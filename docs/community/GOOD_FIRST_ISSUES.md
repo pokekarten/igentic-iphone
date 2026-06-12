@@ -18,7 +18,7 @@ This file lists safe starter tasks for new contributors. It is intentionally wri
 
 ### 1. Add a glossary
 
-**Goal:** Create `docs/GLOSSARY.md` explaining project terms.
+**Goal:** Create the project glossary at docs/GLOSSARY.md explaining project terms.
 
 Include:
 
@@ -47,7 +47,7 @@ Scope:
 
 ### 3. Add a FAQ
 
-**Goal:** Create `docs/FAQ.md` for common early questions.
+**Goal:** Create docs/FAQ.md for common early questions.
 
 Questions:
 
@@ -109,7 +109,7 @@ Ideas:
 - warn on empty markdown files,
 - keep checks dependency-free.
 
-**Validation:** `python scripts/validate_repo_structure.py`.
+**Validation:** Run the repo-structure validation command.
 
 ### 8. Add policy edge-case tests
 
@@ -121,7 +121,7 @@ Examples:
 - critical actions require approval,
 - local-only mode blocks external routing.
 
-**Validation:** `cd ios && swift test`.
+**Validation:** Run the Swift test command.
 
 ## Safe runtime tasks
 
@@ -137,7 +137,7 @@ Requirements:
 - delete by scope or id,
 - tests for save/list/delete.
 
-**Validation:** `cd ios && swift test`.
+**Validation:** Run the Swift test command.
 
 ### 10. Add DelegationBroker policy-gated stub tests
 
@@ -150,75 +150,10 @@ Requirements:
 - no model calls,
 - tests for local-only blocking and approval-required decisions.
 
-**Validation:** `cd ios && swift test`.
+**Validation:** Run the Swift test command.
 
 ## Research tasks
 
 ### 11. Add App Intents safety notes
 
 **Goal:** Create or extend a doc explaining safe App Intents patterns.
-
-Focus:
-
-- draft before execute,
-- approval before critical action,
-- synthetic examples only,
-- no private data in docs.
-
-**Validation:** Source-linked doc review.
-
-### 12. Add device test checklist
-
-**Goal:** Create a checklist for real iPhone testing.
-
-Include:
-
-- device model,
-- iOS version,
-- commit tested,
-- scenario,
-- privacy notes,
-- expected behavior,
-- result.
-
-**Validation:** Manual docs review.
-
-## Social/community tasks
-
-### 13. Draft first Instagram carousel
-
-**Goal:** Create a text-only carousel draft for the first public post.
-
-Topic:
-
-> The trusted device should control identity, permissions and auditability.
-
-**Validation:** Follow `docs/community/SOCIAL_MEDIA_PLAYBOOK.md`.
-
-### 14. Draft first LinkedIn announcement
-
-**Goal:** Create a professional launch/update draft.
-
-Must include:
-
-- experimental status,
-- GitHub-first community model,
-- contributor types wanted,
-- no production-ready claims.
-
-**Validation:** Manual review.
-
-## How to convert one into a GitHub issue
-
-Use a short issue title, for example:
-
-```text
-Good first issue: Add glossary for privacy and runtime terms
-```
-
-Use the relevant issue template and include:
-
-- scope,
-- affected files,
-- stop rules,
-- validation target.
