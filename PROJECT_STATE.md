@@ -29,10 +29,11 @@ The repo is now controlled directly through GitHub instead of relying on ZIP dow
 - `docs/CHATGPT_NEXT_TASK.md` as active next-task handoff
 - GitHub issue templates for feature, model and security reviews
 - Minimal Swift Package under `ios/`
-- `PolicyEngine`, `TaskRouter`, `AuditLog`, `AgentKernel`, `ApprovalManager`
+- `PolicyEngine`, `TaskRouter`, `AuditLog`, `AgentKernel`, `ApprovalManager`, `ToolRegistry`
 - `AuditLog` thread-safety fix using a lock
 - Approval gate in `AgentKernel` before routing to local tools
-- Smoke tests for policy, audit log and approval-gated routing behavior
+- `ToolRegistry` metadata-only stub for tool names, required data levels and action risks
+- Smoke tests for policy, audit log, approval-gated routing and tool registry behavior
 - Repo validation script
 - Swift and repo-audit GitHub Actions workflows
 
@@ -43,12 +44,12 @@ The repo is now controlled directly through GitHub instead of relying on ZIP dow
 - Approval handling is now a first-class gate before tool routing.
 - `.pending` approval status stops routing.
 - `.approved` approval status allows routing to continue.
+- Tool registration is metadata-only; no real tool execution exists yet.
 - No model weights, secrets, app signing files or real private data should be committed.
 - Public contribution docs warn against posting secrets or private data.
 
 ## What still needs bootstrapping
 
-- `ToolRegistry` safe stub
 - `MemoryStore` safe stub
 - `DelegationBroker` policy-gated stub
 - Architecture docs from the verified starter package, imported gradually
