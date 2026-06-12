@@ -57,7 +57,7 @@ final class SmokeTests: XCTestCase {
             approvalManager: ApprovalManager(defaultStatus: .pending)
         )
         let task = TaskRequest(
-            userText: "Prepare a critical action",
+            userText: "Prepare reviewed task",
             intent: .createReminder,
             actionRisk: .execute
         )
@@ -73,14 +73,14 @@ final class SmokeTests: XCTestCase {
             approvalManager: ApprovalManager(defaultStatus: .approved)
         )
         let task = TaskRequest(
-            userText: "Prepare a critical action",
+            userText: "Prepare reviewed task",
             intent: .createReminder,
             actionRisk: .execute
         )
 
         let response = kernel.handle(task, privacyMode: .localOnly)
 
-        XCTAssertEqual(response.approvalStatus, .notRequired)
+        XCTAssertEqual(response.approvalStatus, .approved)
         XCTAssertEqual(response.route, .localTool(name: "createReminder", reason: "Reminder creation is a typed local action."))
     }
 }
