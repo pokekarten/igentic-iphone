@@ -13,6 +13,7 @@ REQUIRED_FILES = [
     "README.md",
     "MODEL_STRATEGY.md",
     "docs/CODEX_NEXT_TASK.md",
+    "docs/CHATGPT_NEXT_TASK.md",
     "docs/SPARSAMKEIT.md",
     "docs/SOURCE_VERIFICATION.md",
     "docs/apple-api-review.md",
@@ -24,6 +25,7 @@ REQUIRED_FILES = [
     "ios/Sources/AgentCore/AuditLog.swift",
     "ios/Sources/AgentCore/ApprovalManager.swift",
     "ios/Sources/AgentCore/ToolRegistry.swift",
+    "ios/Sources/AgentCore/DelegationBroker.swift",
 ]
 
 FORBIDDEN_PARTS = {
