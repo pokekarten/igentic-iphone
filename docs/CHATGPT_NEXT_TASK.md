@@ -30,7 +30,7 @@ Codex is paused for now. ChatGPT works directly through the GitHub Connector on 
 
 ## Next task
 
-Run `.github/workflows/control-dashboard.yml`, inspect the generated report, then run Phase 0 CI Validation on latest `main`.
+Run `.github/workflows/control-dashboard.yml`, inspect the generated report from the workflow summary, then run Phase 0 CI Validation on latest `main`.
 
 Issue #1 must remain open until the required checks are actually executed and documented.
 
@@ -46,7 +46,7 @@ Only change Swift code or validation code if validation fails and the smallest s
 ## Required behavior
 
 - Run the Control Dashboard workflow manually.
-- Inspect `reports/latest-control-report.md` from the workflow summary.
+- Inspect the latest control report from the workflow summary.
 - Run or verify the required validation commands locally or through CI.
 - Record exact pass/fail results.
 - If a check fails, document the exact command, concise error summary and smallest safe next fix.
