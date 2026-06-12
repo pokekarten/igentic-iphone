@@ -1,0 +1,59 @@
+name: Pull Request Quality
+
+on:
+  pull_request:
+    types:
+      - opened
+      - edited
+      - synchronize
+      - reopened
+      - ready_for_review
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  pr-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check PR body quality
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          set -euo pipefail
+          body="${PR_BODY:-}"
+          missing=0
+          for marker in "Summary" "Scope" "Validation" "Safety" "Follow-up"; do
+            if ! printf '%s\n' "$body" | grep -qi "$marker"; then
+              echo "Missing PR section marker: $marker"
+              missing=1
+            fi
+          done
+          if ! printf '%s\n' "$body" | grep -q "python3 scripts/validate_repo_structure.py"; then
+            echo "PR body should mention repo structure validation."
+            missing=1
+          fi
+          if ! printf '%s\n' "$body" | grep -q "swift test"; then
+            echo "PR body should mention Swift tests or explain why not applicable."
+            missing=1
+          fi
+          exit "$missing"
+
+      - name: Summarize PR quality
+        run: |
+          {
+            echo "## Pull Request Quality"
+            echo ""
+            echo "PR body includes core planning, validation and safety sections."
+          } >> "$GITHUB_STEP_SUMMARY"
