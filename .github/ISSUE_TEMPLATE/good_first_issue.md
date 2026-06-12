@@ -1,6 +1,6 @@
 ---
 name: Good first issue
-aabout: Propose a small, safe starter task for new contributors
+about: Propose a small, safe starter task for new contributors
 title: "Good first issue: "
 labels: good first issue
 assignees: ''
