@@ -68,18 +68,27 @@ jobs:
 
           is_forbidden_path() {
             local path="$1"
+            local filename="${path##*/}"
 
-            case "$path" in
-              DUMMY|*.zip|*.p12|*.mobileprovision|*.cer|*.key|*.pem|*.xcuserstate|*xcuserdata/*)
-                return 0
-                ;;
-            esac
+            if [[ "$path" == "DUMMY" ]]; then
+              return 0
+            fi
 
-            case "/$path" in
-              */.env|*/.env.*|*/.DS_Store|*/.build/*|*/DerivedData/*)
-                return 0
-                ;;
-            esac
+            if [[ "$filename" == ".env" || "$filename" == .env.* ]]; then
+              return 0
+            fi
+
+            if [[ "$filename" == ".DS_Store" ]]; then
+              return 0
+            fi
+
+            if [[ "$filename" == *.zip || "$filename" == *.p12 || "$filename" == *.mobileprovision || "$filename" == *.cer || "$filename" == *.key || "$filename" == *.pem || "$filename" == *.xcuserstate ]]; then
+              return 0
+            fi
+
+            if [[ "$path" == */.build/* || "$path" == */DerivedData/* || "$path" == *xcuserdata/* ]]; then
+              return 0
+            fi
 
             return 1
           }
