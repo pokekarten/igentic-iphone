@@ -1,0 +1,55 @@
+name: Main Health Reporter
+
+on:
+  workflow_run:
+    workflows:
+      - "Phase 0 CI Validation"
+      - "Repo Audit"
+      - "Docs Consistency"
+    types:
+      - completed
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  health-summary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Summarize triggering workflow
+        run: |
+          {
+            echo "## Main Health Reporter"
+            echo ""
+            echo "Event: ${GITHUB_EVENT_NAME}"
+            echo "Repository: ${GITHUB_REPOSITORY}"
+            echo "Commit: ${GITHUB_SHA}"
+            echo ""
+            if [ "${GITHUB_EVENT_NAME}" = "workflow_run" ]; then
+              echo "Triggered by workflow completion."
+              echo "Workflow conclusion is available in the GitHub event payload."
+            else
+              echo "Manual health summary requested."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Read workflow_run conclusion
+        if: ${{ github.event_name == 'workflow_run' }}
+        run: |
+          set -euo pipefail
+          echo "Workflow: ${{ github.event.workflow_run.name }}"
+          echo "Conclusion: ${{ github.event.workflow_run.conclusion }}"
+          if [ "${{ github.event.workflow_run.conclusion }}" != "success" ]; then
+            echo "Upstream workflow did not pass."
+            exit 1
+          fi
