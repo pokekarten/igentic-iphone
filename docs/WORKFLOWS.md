@@ -2,6 +2,12 @@
 
 This document explains the GitHub Actions workflows that support the public open-source project.
 
+## CI principle
+
+CI is the baseline for repository control. A pull request is not considered safe just because the changed files look small. The workflows must show which case applies and whether the relevant checks passed for the exact commit under review.
+
+Documentation-only changes usually do not alter runtime or build behavior, but they can and should still trigger CI when they touch validation docs, workflow docs, repository-control files or PR templates.
+
 ## Core validation
 
 ### Phase 0 CI Validation
@@ -20,7 +26,44 @@ Triggers:
 - Pushes to `main`.
 - Manual workflow runs.
 
-This is the main validation source for Issue #1.
+This is the main validation source for Issue #1 and the baseline check for every PR.
+
+## CI case coverage
+
+### PR Change Scope
+
+File: `.github/workflows/pr-change-scope.yml`
+
+Purpose:
+
+- Classify changed files into documentation, workflow, Swift/iOS, scripts, repo-control, other and forbidden-artifact buckets.
+- Produce a GitHub Actions summary that tells reviewers which validation expectations apply.
+- Fail early when forbidden artifacts are introduced, such as ZIP imports, local build products, signing files or environment files.
+
+Triggers:
+
+- Pull requests opened, edited, synchronized, reopened or marked ready for review.
+- Manual workflow runs.
+
+Safety rules:
+
+- Read-only permissions.
+- No marketplace checkout action.
+- No file modifications.
+- No generated commits.
+
+### Required checks by change type
+
+| Change case | Required CI evidence | Notes |
+| --- | --- | --- |
+| Any pull request | PR Change Scope, Pull Request Quality, Repo Audit, Phase 0 CI Validation | Baseline for review and merge readiness. |
+| Documentation / project-control docs | Docs Consistency, Repo Audit, Phase 0 CI Validation | Docs-only does not mean no CI; docs can affect validation contracts. |
+| GitHub workflow changes | Workflow Lint, PR Change Scope, Repo Audit, Phase 0 CI Validation | Workflow syntax must be checked before merge. |
+| Swift / iOS runtime or test code | Phase 0 CI Validation | Includes repo structure, Swift build and Swift tests. |
+| Scripts / automation code | Repo Audit and Phase 0 CI Validation | Automation must stay reviewable and non-destructive unless explicitly scoped. |
+| Issue templates / PR template | PR Change Scope, Docs Consistency, Repo Audit | These files affect contributor intake and validation evidence. |
+| Forbidden artifacts or secrets | PR Change Scope must fail | Remove ZIPs, `.env` files, signing files, local build products and private data. |
+| Latest `main` validation | Phase 0 CI Validation on the current `main` commit | Required before closing Issue #1. |
 
 ## Repository control workflows
 
@@ -176,9 +219,10 @@ Rule:
 
 ## Recommended next steps
 
-1. Run the Control Dashboard workflow and inspect the generated report.
-2. Run Phase 0 CI Validation on the latest `main` commit.
-3. Record the result in `PROJECT_STATE.md`.
-4. Keep Issue #1 open until the validation result is documented.
-5. Configure branch protection for `main` in GitHub UI.
-6. Convert selected good-first backlog items into real issues.
+1. Open the CI case coverage PR and inspect its PR Change Scope summary.
+2. Let Phase 0 CI Validation, Repo Audit, Docs Consistency, Workflow Lint and PR Quality run on the PR.
+3. Merge only if the workflow changes are green and the PR summary matches the intended scope.
+4. Run Phase 0 CI Validation on the latest `main` commit after merge.
+5. Record the result in `PROJECT_STATE.md` and Issue #1.
+6. Configure branch protection for `main` in GitHub UI.
+7. Convert selected good-first backlog items into real issues after Issue #1 is resolved.
