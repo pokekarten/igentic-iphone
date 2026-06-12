@@ -16,7 +16,7 @@ The roadmap favors safe, reviewable slices over broad app claims. Every phase sh
 - ChatGPT can make small direct repo edits through the GitHub Connector.
 - Codex is paused unless a narrow Draft PR task is explicitly prepared.
 - Initial Swift package and safety components exist.
-- Community, brand, social and governance foundation exist in the repo.
+- Community, brand, social, governance and contributor-onboarding foundation exist in the repo.
 
 ## Phase 0 — Research and project foundation
 
@@ -24,7 +24,7 @@ The roadmap favors safe, reviewable slices over broad app claims. Every phase sh
 
 ### Done / in progress
 
-- README with thesis, architecture, brand and community links.
+- README with thesis, architecture, brand, community links and new-contributor quick start.
 - Source verification rules.
 - Apple API review.
 - Local runtime review.
@@ -34,17 +34,22 @@ The roadmap favors safe, reviewable slices over broad app claims. Every phase sh
 - Brand foundation.
 - Design system.
 - Logo brief and usage rules.
-- Initial SVG brand assets.
+- Initial SVG brand assets and asset README.
 - Community strategy.
 - Communication channel policy.
 - Social media playbook.
+- Contributor starter guide.
+- Good-first-issue backlog.
 - Lightweight governance.
-- Issue templates for feature, model, security, design, device test and social content proposals.
+- Issue templates for feature, model, security, design, device test, good-first-issue and social content proposals.
+- Issue template chooser links for the starter guide, good-first-issue ideas, logo rules and security policy.
 - Pull request template with privacy, approval and delegation checklist.
+- Repo structure validation requiring community/brand docs and accessible SVG metadata.
 
 ### Next
 
-- Convert selected roadmap items into small GitHub issues.
+- Run validation after the latest contributor-onboarding and repo-structure commits.
+- Convert selected good-first-issue backlog items into small GitHub issues.
 - Review initial SVG assets and decide whether to set a GitHub social preview.
 - Create first Instagram carousel template based on `docs/community/SOCIAL_MEDIA_PLAYBOOK.md`.
 - Keep `PROJECT_STATE.md` current.
@@ -181,7 +186,7 @@ Deliverables:
 - Keep decisions in GitHub.
 - Use Instagram/X/LinkedIn only to point people back to GitHub.
 - Invite narrow, careful contributors.
-- Use design, device-test and social-content issue templates for early community participation.
+- Use design, device-test, good-first-issue and social-content issue templates for early community participation.
 
 ### Later
 
@@ -198,6 +203,7 @@ Deliverables:
 - Avoid Apple trade dress.
 - Build own visual system around control ring, local identity and policy line.
 - Keep SVG assets in `assets/brand/` and brand rules in `docs/brand/`.
+- Require accessibility metadata for committed SVG brand assets.
 
 ### Later
 
