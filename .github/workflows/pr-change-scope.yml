@@ -1,0 +1,155 @@
+name: PR Change Scope
+
+on:
+  pull_request:
+    types:
+      - opened
+      - edited
+      - synchronize
+      - reopened
+      - ready_for_review
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  classify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - name: Checkout comparison refs without marketplace actions
+        run: |
+          set -euo pipefail
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
+            git fetch --no-tags --depth=100 origin "${BASE_SHA}"
+            git fetch --no-tags --depth=100 origin "${HEAD_SHA}"
+            git checkout --force "${HEAD_SHA}"
+            git clean -fdx
+            git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+            git diff --name-only "${BASE_SHA}" "${HEAD_SHA}" > changed-files.txt
+          else
+            git fetch --no-tags --depth=2 origin "${GITHUB_SHA}"
+            git checkout --force FETCH_HEAD
+            git clean -fdx
+            git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+            git diff-tree --no-commit-id --name-only -r "${GITHUB_SHA}" > changed-files.txt || true
+          fi
+
+      - name: Classify changed files
+        run: |
+          set -euo pipefail
+          docs=0
+          workflows=0
+          swift=0
+          scripts=0
+          repo_control=0
+          forbidden=0
+          other=0
+
+          : > forbidden-files.txt
+          : > buckets.env
+
+          while IFS= read -r path; do
+            [ -z "$path" ] && continue
+
+            case "$path" in
+              DUMMY|*.zip|.env|.env.*|*.p12|*.mobileprovision|*.cer|*.key|*.pem|*.xcuserstate|.DS_Store|*/.DS_Store|.build/*|*/.build/*|DerivedData/*|*/DerivedData/*|*xcuserdata/*)
+                forbidden=1
+                printf '%s\n' "$path" >> forbidden-files.txt
+                ;;
+            esac
+
+            case "$path" in
+              .github/workflows/*)
+                workflows=1
+                ;;
+              ios/*)
+                swift=1
+                ;;
+              scripts/*)
+                scripts=1
+                ;;
+              README.md|PROJECT_STATE.md|CONTRIBUTING.md|GOVERNANCE.md|ROADMAP.md|SECURITY.md|SUPPORT.md|CODE_OF_CONDUCT.md|MODEL_STRATEGY.md|AGENTS.md|docs/*|*.md|.github/ISSUE_TEMPLATE/*|.github/PULL_REQUEST_TEMPLATE.md)
+                docs=1
+                repo_control=1
+                ;;
+              .github/*|assets/*|LICENSE|.gitignore|.github/dependabot.yml)
+                repo_control=1
+                ;;
+              *)
+                other=1
+                ;;
+            esac
+          done < changed-files.txt
+
+          {
+            echo "docs=$docs"
+            echo "workflows=$workflows"
+            echo "swift=$swift"
+            echo "scripts=$scripts"
+            echo "repo_control=$repo_control"
+            echo "forbidden=$forbidden"
+            echo "other=$other"
+          } > buckets.env
+
+          cat buckets.env
+          if [ "$forbidden" -eq 1 ]; then
+            echo "Forbidden files detected:"
+            cat forbidden-files.txt
+            exit 1
+          fi
+
+      - name: Summarize PR case coverage
+        run: |
+          set -euo pipefail
+          source buckets.env
+          {
+            echo "## PR Change Scope"
+            echo ""
+            echo "This workflow classifies changed files so reviewers know which validation path applies."
+            echo ""
+            echo "### Changed files"
+            echo ""
+            if [ -s changed-files.txt ]; then
+              while IFS= read -r path; do
+                [ -z "$path" ] && continue
+                echo "- \`$path\`"
+              done < changed-files.txt
+            else
+              echo "- No changed files detected."
+            fi
+            echo ""
+            echo "### Detected buckets"
+            echo ""
+            echo "| Bucket | Detected |"
+            echo "| --- | --- |"
+            echo "| Documentation / project control | ${docs} |"
+            echo "| GitHub workflows | ${workflows} |"
+            echo "| Swift / iOS code | ${swift} |"
+            echo "| Scripts / automation code | ${scripts} |"
+            echo "| Repo control files | ${repo_control} |"
+            echo "| Other files | ${other} |"
+            echo ""
+            echo "### Required validation expectation"
+            echo ""
+            echo "- Every PR should pass: PR Change Scope, Pull Request Quality, Repo Audit and Phase 0 CI Validation."
+            echo "- Documentation-only changes can still trigger CI; they must pass Docs Consistency when docs paths are touched."
+            echo "- Workflow changes must pass Workflow Lint before merge."
+            echo "- Swift or script changes require Phase 0 CI Validation, including repo structure, Swift build and Swift tests."
+            echo "- Forbidden artifacts, secrets, ZIP imports, signing files and local build products must be removed before merge."
+          } >> "${GITHUB_STEP_SUMMARY}"
