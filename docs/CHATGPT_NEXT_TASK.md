@@ -13,19 +13,21 @@ Codex is paused for now. ChatGPT works directly through the GitHub Connector on 
 - `ApprovalManager` was added as a safe stub.
 - `AgentKernel` now gates routing when policy requires approval.
 - Pending approval stops routing; approved status allows routing to continue.
+- `ToolRegistry` was added as a metadata-only registry.
+- Tool registry tests cover lookup and sorted snapshot behavior.
 
 ## Next task
 
-Add a safe `ToolRegistry` stub before adding real App Intents.
+Add a safe `MemoryStore` stub before adding local RAG, embeddings or real private memory.
 
 ## Why
 
-The runtime should know which tools exist, what data level they require and what action risk they carry before any real iOS action is wired in. This keeps tool execution policy-aware from the start.
+The runtime needs a clear memory boundary before it stores any context. Memory must be scoped, deletable and metadata-only at first. No real user data should be stored in this phase.
 
 ## Proposed files
 
 ```text
-ios/Sources/AgentCore/ToolRegistry.swift
+ios/Sources/AgentCore/MemoryStore.swift
 ios/Tests/AgentCoreTests/SmokeTests.swift
 scripts/validate_repo_structure.py
 PROJECT_STATE.md
@@ -34,11 +36,11 @@ docs/CHATGPT_NEXT_TASK.md
 
 ## Required behavior
 
-- Add `ToolDefinition` with name, required data level and action risk.
-- Add `ToolRegistry` that can register and look up tools by name.
-- Do not add real tool execution yet.
-- Do not add App Intents yet.
-- Keep this as a local metadata registry only.
+- Add `MemoryScope` with local-only-safe scopes.
+- Add `MemoryRecord` with id, scope, data level, title and synthetic content.
+- Add `MemoryStore` that can save, list by scope and delete by id.
+- Keep storage in-memory only.
+- Do not add embeddings, vector search, file access or real private data yet.
 
 ## Validation target
 
@@ -50,4 +52,4 @@ cd ios && swift build
 
 ## Stop rules
 
-Stop if the change would require real iOS permissions, App Intents, signing, private data, external providers, or broader runtime rewrites.
+Stop if the change would require real user data, files, contacts, calendars, embeddings, model runtimes, persistence, encryption APIs or broader runtime rewrites.
