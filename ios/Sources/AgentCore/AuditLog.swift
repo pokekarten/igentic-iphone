@@ -31,15 +31,20 @@ public struct AuditEvent: Identifiable, Equatable, Sendable {
 }
 
 public final class AuditLog: @unchecked Sendable {
+    private let lock = NSLock()
     private var events: [AuditEvent] = []
 
     public init() {}
 
     public func record(_ event: AuditEvent) {
+        lock.lock()
+        defer { lock.unlock() }
         events.append(event)
     }
 
     public func allEvents() -> [AuditEvent] {
-        events
+        lock.lock()
+        defer { lock.unlock() }
+        return events
     }
 }
