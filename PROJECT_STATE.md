@@ -15,6 +15,9 @@ The repo is controlled directly through GitHub. Codex is paused for now. ChatGPT
 - Controller: ChatGPT via GitHub Connector
 - Implementation assistant: paused; Codex later only for narrow Draft PRs
 - Primary target device: iPhone Air as trust/control plane
+- Master brand: `iGentic`
+- Current research track: `iGentic iPhone`
+- Community model: GitHub-first, social-supported
 - Current phase: Phase 0 substantially documented / Phase 1 safety bootstrap in progress
 
 ## Phase 0 status
@@ -27,23 +30,38 @@ Phase 0 is now substantially documented:
 - Model strategy: `MODEL_STRATEGY.md`
 - Privacy model in code: `ios/Sources/AgentCore/DataClassification.swift`
 - Policy model in code: `ios/Sources/AgentCore/PolicyEngine.swift`
+- Public roadmap: `ROADMAP.md`
+- Lightweight governance: `GOVERNANCE.md`
+- Brand foundation: `docs/brand/BRAND.md`
+- Design system: `docs/brand/DESIGN_SYSTEM.md`
+- Logo brief and usage rules: `docs/brand/LOGO_BRIEF.md`, `docs/brand/LOGO_USAGE.md`
+- Community strategy and channel model: `docs/community/COMMUNITY_STRATEGY.md`, `docs/community/COMMUNICATION_CHANNELS.md`
+- Social media playbook: `docs/community/SOCIAL_MEDIA_PLAYBOOK.md`
+- Initial brand SVG assets: `assets/brand/`
+- Apache 2.0 license: `LICENSE`
 
 Remaining Phase 0 follow-up:
 
 - Run CI/local validation after the latest commits.
 - Keep source notes current when Apple APIs or runtime candidates change.
+- Decide whether to enable GitHub Discussions after the first repeated outside community questions.
+- Convert selected roadmap items into small GitHub issues.
 
 ## What exists now
 
-- README with product vision, repo operating model, Phase 0 links and community links
+- README with product vision, repo operating model, Phase 0 links, community links and brand links
 - `AGENTS.md` with ChatGPT/Codex/iPhone tester rules
+- `ROADMAP.md`
+- `GOVERNANCE.md`
 - `CONTRIBUTING.md`
 - `CODE_OF_CONDUCT.md`
 - `SECURITY.md`
 - `SUPPORT.md`
+- `LICENSE`
 - `docs/CODEX_NEXT_TASK.md` now paused
 - `docs/CHATGPT_NEXT_TASK.md` as active next-task handoff
-- GitHub issue templates for feature, model and security reviews
+- GitHub issue templates for feature, model, security, design, device test and social content reviews
+- Pull request template with privacy, approval and delegation checklist
 - Minimal Swift Package under `ios/`
 - `PolicyEngine`, `TaskRouter`, `AuditLog`, `AgentKernel`, `ApprovalManager`, `ToolRegistry`
 - `AuditLog` thread-safety fix using a lock
@@ -63,6 +81,8 @@ Remaining Phase 0 follow-up:
 - Tool registration is metadata-only; no real tool execution exists yet.
 - No model weights, secrets, app signing files or real private data should be committed.
 - Public contribution docs warn against posting secrets or private data.
+- Social media is explicitly not a decision authority.
+- Official design must avoid Apple trade dress and confusing third-party mark usage.
 
 ## What still needs bootstrapping
 
@@ -70,6 +90,8 @@ Remaining Phase 0 follow-up:
 - `DelegationBroker` policy-gated stub
 - Architecture docs from the verified starter package, imported gradually
 - Initial CI verification after the next push/run cycle
+- First set of GitHub issues for brand, roadmap and good-first-contribution tasks
+- Optional GitHub social preview configuration after final social-card asset review
 
 ## Important constraint
 
