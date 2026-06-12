@@ -6,9 +6,9 @@ This repository uses a conservative GitHub-control layer so ChatGPT can review r
 
 ```text
 GitHub Actions + gh CLI + Python standard library
-  -> reports/latest-repo-state.json
-  -> reports/latest-ci-runs.json
-  -> reports/latest-control-report.md
+  -> latest repo-state JSON
+  -> latest CI-runs JSON
+  -> latest control-report Markdown
   -> GitHub Actions job summary
   -> ChatGPT review
 ```
