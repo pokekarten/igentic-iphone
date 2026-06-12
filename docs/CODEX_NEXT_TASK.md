@@ -2,86 +2,42 @@
 
 Repository: `pokekarten/igentic-iphone`
 
-## Task
+## Status
 
-Fix `AuditLog` thread safety before expanding the agent runtime.
+Codex is paused for now.
 
-## Why this task is first
+ChatGPT will continue with direct, small GitHub-Connector changes until the core safety path is stable.
 
-A code audit identified `AuditLog` as the most important current risk: it is marked `@unchecked Sendable` while storing mutable events in a plain array. Because `AgentKernel` can be used from concurrent contexts, this must be fixed before adding more async runtime, approval or delegation behavior.
+## Why Codex is paused
 
-This is intentionally a small security-first task.
+We want to avoid broad agent work before the repository has a stable security-first kernel. Current work should stay very small and reviewable:
 
-## Base branch
+1. thread-safe audit logging,
+2. approval-state guard,
+3. safe stubs for tool and memory components,
+4. docs and tests aligned with actual code.
 
-`main`
+## Next Codex candidate later
 
-## Working branch
+When Codex is re-enabled, the first Codex task should be small and based on the current `docs/CHATGPT_NEXT_TASK.md` state. Do not reuse older ZIP-import tasks without review.
 
-`codex/auditlog-thread-safety`
+## Current active task source
 
-## Allowed files
-
-Codex may only create or modify:
+Use:
 
 ```text
-ios/Sources/AgentCore/AuditLog.swift
-ios/Tests/AgentCoreTests/AuditLogTests.swift
-PROJECT_STATE.md
-docs/CODEX_NEXT_TASK.md
+docs/CHATGPT_NEXT_TASK.md
 ```
 
-Do not modify `README.md`, workflows, package layout or unrelated agent files.
+## Stop rules for future Codex use
 
-## Required implementation
+Codex must stop if a task requires:
 
-Choose one simple approach:
-
-1. make `AuditLog` an `actor`, or
-2. keep it as a final class but protect the mutable event array with `NSLock`.
-
-Prefer the smallest change that keeps the current synchronous `AgentKernel` API working. If making `AuditLog` an actor requires broad async changes, use `NSLock` instead.
-
-## Required behavior
-
-- Concurrent calls to `record(_:)` must not race.
-- `allEvents()` must return a snapshot copy.
-- Existing public behavior should remain the same.
-- Do not remove audit events or weaken privacy semantics.
-
-## Required tests
-
-Add tests that verify:
-
-- events can still be recorded and read,
-- concurrent recording does not lose events,
-- returned events are a stable snapshot.
-
-## Required validation
-
-```bash
-python scripts/validate_repo_structure.py
-cd ios && swift test
-cd ios && swift build
-```
-
-## Stop conditions
-
-Stop and report clearly if:
-
-- Swift tests cannot run because Swift is unavailable,
-- the fix requires changing more than the allowed files,
-- concurrency tests are flaky and cannot be made deterministic,
-- unexpected build artifacts, secrets or model files appear.
-
-## Draft PR body must include
-
-- summary,
-- changed files,
-- validation output,
-- why the chosen thread-safety approach was used,
-- next recommended security task.
-
-## Suggested next task after this PR
-
-Import or implement `ApprovalManager` and make `AgentKernel` block or return an approval-required response when approval is `.pending` or `.rejected`, before adding any real App Intent execution.
+- broad repo import,
+- ZIP extraction,
+- model weights,
+- secrets,
+- Apple signing credentials,
+- real personal data,
+- App Store configuration,
+- external provider integration.
