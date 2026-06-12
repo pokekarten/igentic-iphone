@@ -16,6 +16,88 @@ final class SmokeTests: XCTestCase {
         XCTAssertTrue(decision.isAllowed)
     }
 
+    func testPolicyIncludesRiskMetadataForSafeLocalRead() {
+        let decision = PolicyEngine().decide(
+            PolicyRequest(
+                privacyMode: .localOnly,
+                dataClassification: .publicDefault,
+                actionRisk: .read,
+                requestedDelegationTarget: .localDevice
+            )
+        )
+
+        XCTAssertTrue(decision.isAllowed)
+        XCTAssertFalse(decision.requiresApproval)
+        XCTAssertEqual(decision.riskScore.value, 1)
+        XCTAssertFalse(decision.riskScore.requiresExplicitApproval)
+        XCTAssertFalse(decision.riskScore.reasons.isEmpty)
+    }
+
+    func testPolicyKeepsLocalOnlyExternalDelegationBlockedWithRiskMetadata() {
+        let decision = PolicyEngine().decide(
+            PolicyRequest(
+                privacyMode: .localOnly,
+                dataClassification: .publicDefault,
+                actionRisk: .prepare,
+                requestedDelegationTarget: .trustedMac
+            )
+        )
+
+        XCTAssertFalse(decision.isAllowed)
+        XCTAssertFalse(decision.requiresApproval)
+        XCTAssertEqual(decision.reason, "Local Only blocks non-local delegation.")
+        XCTAssertEqual(decision.riskScore.value, 5)
+        XCTAssertFalse(decision.riskScore.reasons.isEmpty)
+    }
+
+    func testPolicyKeepsRestrictedExternalDelegationBlockedAndApprovalRequired() {
+        let decision = PolicyEngine().decide(
+            PolicyRequest(
+                privacyMode: .trustedDevices,
+                dataClassification: DataClassification(level: .restrictedSensitiveData, reason: "Test restricted metadata."),
+                actionRisk: .prepare,
+                requestedDelegationTarget: .externalProvider
+            )
+        )
+
+        XCTAssertFalse(decision.isAllowed)
+        XCTAssertTrue(decision.requiresApproval)
+        XCTAssertEqual(decision.reason, "Restricted sensitive data cannot be delegated automatically.")
+        XCTAssertTrue(decision.riskScore.requiresExplicitApproval)
+    }
+
+    func testPolicyKeepsCriticalActionsApprovalRequired() {
+        let decision = PolicyEngine().decide(
+            PolicyRequest(
+                privacyMode: .trustedDevices,
+                dataClassification: .publicDefault,
+                actionRisk: .critical,
+                requestedDelegationTarget: .trustedMac
+            )
+        )
+
+        XCTAssertTrue(decision.isAllowed)
+        XCTAssertTrue(decision.requiresApproval)
+        XCTAssertEqual(decision.riskScore.value, 7)
+        XCTAssertTrue(decision.riskScore.requiresExplicitApproval)
+    }
+
+    func testPolicyRiskScoreDoesNotAddApprovalByItself() {
+        let decision = PolicyEngine().decide(
+            PolicyRequest(
+                privacyMode: .trustedDevices,
+                dataClassification: DataClassification(level: .contextualPrivateData, reason: "Test contextual metadata."),
+                actionRisk: .prepare,
+                requestedDelegationTarget: .externalProvider
+            )
+        )
+
+        XCTAssertTrue(decision.isAllowed)
+        XCTAssertFalse(decision.requiresApproval)
+        XCTAssertEqual(decision.riskScore.value, 7)
+        XCTAssertTrue(decision.riskScore.requiresExplicitApproval)
+    }
+
     func testAuditLogRecordsEvents() {
         let log = AuditLog()
         let event = AuditEvent(

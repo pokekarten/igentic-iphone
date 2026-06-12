@@ -92,6 +92,7 @@ Remaining Phase 0 follow-up:
 - `MemoryStore` is volatile in-memory storage only; it has no persistence, no external dependencies, no networking and no model calls.
 - `SensitiveDataDetector` emits categories and reasons only; it does not retain raw sensitive matches.
 - `RiskScorer` is deterministic and local; it does not call models, networks or external services.
+- `PolicyEngine` now attaches `RiskScorer` output to decisions as explanatory metadata only; existing allow, block and approval rules remain unchanged.
 - `ScenarioRunner` runs synthetic dry-run scenarios only.
 - GitHub-control scripts use read-only `git` and `gh` commands and generate reports only.
 - Generated control reports are exposed through workflow summaries and are not committed back to `main` in this first version.
@@ -107,9 +108,9 @@ Remaining Phase 0 follow-up:
 - The accidental empty root file `DUMMY` was removed on branch `chatgpt/cleanup-validation-state`.
 - GitHub-control dashboard automation was added on branch `codex/github-control-dashboard`.
 - Project operating model is being added on branch `chatgpt/project-operating-model`.
-- Local validation checks could not be executed in the ChatGPT environment.
-- Issue #1 is not complete until the required checks are executed and their results are recorded.
-- Required checks remain open:
+- RiskScorer policy metadata integration is implemented on branch `codex/risk-scorer-policy-metadata`; local repo validation, Swift tests and Swift build passed before PR creation.
+- Local validation now passed in the Codex environment for this branch; Issue #1 should remain open until the same required checks are recorded for latest `main`.
+- Required checks for latest `main` remain open:
 
 ```bash
 python3 scripts/validate_repo_structure.py
@@ -122,7 +123,7 @@ cd ios && swift build
 - Run Control Dashboard, inspect generated report, then run Phase 0 CI/local validation after the latest GitHub-control commits
 - Configure `main` branch protection in GitHub UI
 - Re-enable Codex with one narrow Draft PR task after current `main` validation evidence is recorded
-- Optional conservative integration of `RiskScorer` into `PolicyEngine` decision metadata, without loosening existing policy behavior
+- Review and merge the conservative `RiskScorer` to `PolicyEngine` metadata-only Draft PR if validation remains green and policy behavior is not loosened
 - Architecture docs from the verified starter package, imported gradually
 - Convert first good-first-issue backlog items into GitHub issues
 - Optional GitHub social preview configuration after final social-card asset review
