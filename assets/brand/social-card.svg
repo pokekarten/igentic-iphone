@@ -1,0 +1,37 @@
+<svg width="1280" height="640" viewBox="0 0 1280 640" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">iGentic social preview card</title>
+  <desc id="desc">A clean social preview card for the iGentic open-source personal AI control layer.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1280" y2="640" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F8FAFC"/>
+      <stop offset="0.55" stop-color="#EEF6FF"/>
+      <stop offset="1" stop-color="#E0EEFF"/>
+    </linearGradient>
+    <linearGradient id="ring" x1="820" y1="150" x2="1100" y2="480" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#D8DEE9"/>
+      <stop offset="0.55" stop-color="#8EC5FF"/>
+      <stop offset="1" stop-color="#3B82F6"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="640" rx="56" fill="url(#bg)"/>
+  <text x="96" y="168" fill="#111827" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, system-ui, sans-serif" font-size="86" font-weight="500" letter-spacing="-3">iGentic</text>
+  <text x="100" y="230" fill="#475569" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, system-ui, sans-serif" font-size="28" font-weight="500" letter-spacing="5">OPEN-SOURCE PERSONAL AI CONTROL LAYER</text>
+  <text x="100" y="320" fill="#111827" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, system-ui, sans-serif" font-size="38" font-weight="400">Local-first. Approval-gated. Audit-ready.</text>
+  <text x="100" y="378" fill="#475569" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, system-ui, sans-serif" font-size="28" font-weight="400">Starting on iPhone. Built in public on GitHub.</text>
+  <g transform="translate(820 136)">
+    <rect x="0" y="0" width="320" height="320" rx="78" fill="#FFFFFF" fill-opacity="0.82"/>
+    <rect x="0" y="0" width="320" height="320" rx="78" stroke="#D8DEE9" stroke-width="4"/>
+    <path d="M218 92C202 77 182 70 160 70C113 70 75 108 75 155C75 202 113 240 160 240C194 240 222 221 236 193H161" stroke="url(#ring)" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M130 121V216" stroke="#111827" stroke-width="22" stroke-linecap="round"/>
+    <circle cx="130" cy="91" r="12" fill="#8EC5FF"/>
+    <path d="M161 193H236V220" stroke="#3B82F6" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g transform="translate(100 480)">
+    <rect width="150" height="40" rx="20" fill="#FFFFFF"/>
+    <text x="22" y="27" fill="#111827" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, system-ui, sans-serif" font-size="17" font-weight="600">LOCAL ONLY</text>
+    <rect x="168" width="210" height="40" rx="20" fill="#FFFFFF"/>
+    <text x="190" y="27" fill="#111827" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, system-ui, sans-serif" font-size="17" font-weight="600">APPROVAL FIRST</text>
+    <rect x="396" width="245" height="40" rx="20" fill="#FFFFFF"/>
+    <text x="418" y="27" fill="#111827" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, system-ui, sans-serif" font-size="17" font-weight="600">CONTROLLED DELEGATION</text>
+  </g>
+</svg>
