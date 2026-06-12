@@ -47,12 +47,13 @@ public enum ActionRisk: String, Sendable {
     case execute
     case destructive
     case externalShare
+    case critical
 
     public var requiresApproval: Bool {
         switch self {
         case .read, .prepare:
             return false
-        case .execute, .destructive, .externalShare:
+        case .execute, .destructive, .externalShare, .critical:
             return true
         }
     }
