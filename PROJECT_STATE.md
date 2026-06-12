@@ -43,7 +43,7 @@ Phase 0 is now substantially documented and contributor-facing:
 - Validation contract: `docs/VALIDATION.md`
 - GitHub automation strategy: `docs/GITHUB_AUTOMATION_STRATEGY.md`
 - Project operating model: `docs/PROJECT_OPERATING_MODEL.md`
-- Workflow overview: `docs/WORKFLOWS.md`
+- Workflow overview and CI case matrix: `docs/WORKFLOWS.md`
 - Initial brand SVG assets and asset README: `assets/brand/`
 - Apache 2.0 license: `LICENSE`
 
@@ -70,15 +70,15 @@ Remaining Phase 0 follow-up:
 - `docs/CHATGPT_NEXT_TASK.md` as active next-task handoff
 - `docs/GITHUB_AUTOMATION_STRATEGY.md` documenting GitHub Actions + `gh` CLI + Python reports for ChatGPT review
 - `docs/PROJECT_OPERATING_MODEL.md` defining the durable ChatGPT/Codex/contributor work model
-- `docs/WORKFLOWS.md` documenting Control Dashboard, Workflow Lint and validation expectations
+- `docs/WORKFLOWS.md` documenting Control Dashboard, Workflow Lint, PR Change Scope and validation expectations
 - GitHub issue templates for feature, model, security, design, device test, good-first-issue and social content reviews
 - Issue template chooser links for contributor guide, good-first-issue ideas, brand rules and security policy
 - Pull request template with privacy, approval and delegation checklist
 - Minimal Swift Package under `ios/`
 - `PolicyEngine`, `TaskRouter`, `AuditLog`, `AgentKernel`, `ApprovalManager`, `ToolRegistry`, `DelegationBroker`, `MemoryStore`, `SensitiveDataDetector`, `RiskScorer`, `ScenarioRunner`
 - Smoke tests for policy, audit log, approval-gated routing, tool registry behavior, memory-store scope behavior, sensitive-data detection, risk scoring, delegation broker decisions and scenario runner output
-- Repo validation script requiring core AgentCore safety files, brand/community docs, issue templates and accessible SVG metadata
-- GitHub Actions for validation, repo audit, docs consistency, main-health reporting, project control, issue triage and PR quality
+- Repo validation script requiring core AgentCore safety files, brand/community docs, issue templates, critical workflow files and accessible SVG metadata
+- GitHub Actions for validation, PR change-scope classification, repo audit, docs consistency, main-health reporting, project control, issue triage and PR quality
 - GitHub-control dashboard workflow for read-only repo state, PR, issue and CI run reports
 - Workflow-lint workflow for `.github/workflows/**`
 
@@ -96,8 +96,8 @@ Remaining Phase 0 follow-up:
 - `ScenarioRunner` runs synthetic dry-run scenarios only.
 - GitHub-control scripts use read-only `git` and `gh` commands and generate reports only.
 - Generated control reports are exposed through workflow summaries and are not committed back to `main` in this first version.
-- No model weights, secrets, app signing files or real private data should be committed.
-- Public contribution docs warn against posting secrets or private data.
+- No model weights, credentials, signing files or real private data should be committed.
+- Public contribution docs warn against posting private data.
 - Social media is explicitly not a decision authority.
 - Official design must avoid Apple trade dress and confusing third-party mark usage.
 - Brand SVG assets must include accessibility metadata (`title`, `desc`, `role="img"`).
@@ -109,6 +109,7 @@ Remaining Phase 0 follow-up:
 - GitHub-control dashboard automation was added on branch `codex/github-control-dashboard`.
 - Project operating model is being added on branch `chatgpt/project-operating-model`.
 - RiskScorer policy metadata integration is implemented on branch `codex/risk-scorer-policy-metadata`; local repo validation, Swift tests and Swift build passed before PR creation.
+- CI case coverage is being added on branch `chatgpt/ci-case-coverage` with PR Change Scope and an updated validation contract.
 - Local validation now passed in the Codex environment for this branch; Issue #1 should remain open until the same required checks are recorded for latest `main`.
 - Required checks for latest `main` remain open:
 
@@ -120,6 +121,7 @@ cd ios && swift build
 
 ## What still needs bootstrapping
 
+- Review the CI case coverage PR and confirm its PR Change Scope, Workflow Lint, Docs Consistency, Repo Audit, Pull Request Quality and Phase 0 CI results
 - Run Control Dashboard, inspect generated report, then run Phase 0 CI/local validation after the latest GitHub-control commits
 - Configure `main` branch protection in GitHub UI
 - Re-enable Codex with one narrow Draft PR task after current `main` validation evidence is recorded
