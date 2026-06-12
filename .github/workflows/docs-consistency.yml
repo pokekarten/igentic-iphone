@@ -1,0 +1,104 @@
+name: Docs Consistency
+
+on:
+  pull_request:
+    paths:
+      - "README.md"
+      - "PROJECT_STATE.md"
+      - "docs/**"
+      - ".github/workflows/**"
+      - ".github/ISSUE_TEMPLATE/**"
+      - ".github/PULL_REQUEST_TEMPLATE.md"
+  push:
+    branches:
+      - main
+    paths:
+      - "README.md"
+      - "PROJECT_STATE.md"
+      - "docs/**"
+      - ".github/workflows/**"
+      - ".github/ISSUE_TEMPLATE/**"
+      - ".github/PULL_REQUEST_TEMPLATE.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  docs-consistency:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    steps:
+      - name: Checkout repository without marketplace actions
+        run: |
+          set -euo pipefail
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          if git fetch --no-tags --depth=1 origin "${GITHUB_SHA}"; then
+            echo "Fetched ${GITHUB_SHA}"
+          elif [ "${GITHUB_EVENT_NAME}" = "pull_request" ] && [ -n "${PR_NUMBER:-}" ]; then
+            git fetch --no-tags --depth=1 origin "pull/${PR_NUMBER}/merge"
+          else
+            git fetch --no-tags --depth=1 origin "${GITHUB_REF_NAME:-main}"
+          fi
+          git checkout --force FETCH_HEAD
+          git clean -fdx
+          git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+
+      - name: Check referenced local markdown paths
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          import sys
+
+          roots = [Path('README.md'), Path('PROJECT_STATE.md')]
+          roots.extend(Path('docs').rglob('*.md'))
+          missing = []
+          pattern = re.compile(r'`([^`]+\.(?:md|yml|yaml|swift|py))`')
+          for doc in roots:
+              if not doc.exists():
+                  continue
+              text = doc.read_text(encoding='utf-8')
+              for match in pattern.findall(text):
+                  if match.startswith(('http://', 'https://')):
+                      continue
+                  path = Path(match)
+                  if not path.exists():
+                      missing.append((str(doc), match))
+          if missing:
+              print('Missing local references:')
+              for doc, path in missing:
+                  print(f'- {doc}: {path}')
+              sys.exit(1)
+          print('Local markdown references look consistent.')
+          PY
+
+      - name: Check validation contract markers
+        run: |
+          set -euo pipefail
+          grep -q "python3 scripts/validate_repo_structure.py" docs/VALIDATION.md
+          grep -q "cd ios && swift test" docs/VALIDATION.md
+          grep -q "cd ios && swift build" docs/VALIDATION.md
+          grep -q "docs/GITHUB_CONTROL.md" README.md
+          grep -q "docs/VALIDATION.md" README.md
+
+      - name: Summarize docs consistency
+        run: |
+          {
+            echo "## Docs Consistency"
+            echo ""
+            echo "- Local markdown references checked."
+            echo "- Validation contract markers checked."
+          } >> "$GITHUB_STEP_SUMMARY"
