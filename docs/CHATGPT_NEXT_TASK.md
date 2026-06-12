@@ -8,24 +8,25 @@ Codex is paused for now. ChatGPT works directly through the GitHub Connector on 
 
 ## Just completed
 
-- Added `docs/VALIDATION.md` as the validation contract and Issue #1 closure rule.
-- Added `docs/GITHUB_CONTROL.md` as the GitHub-first control runbook.
-- Strengthened `.github/PULL_REQUEST_TEMPLATE.md` with explicit validation evidence and safety checklist sections.
-- Added `.github/ISSUE_TEMPLATE/validation_task.md` for CI/build/test verification tasks.
-- Added `.github/dependabot.yml` for weekly GitHub Actions dependency review PRs.
-- Linked the new control and validation docs from `README.md`.
-- Corrected one accidental placeholder commit on `main`; no placeholder content remains.
+- Expanded `.github/workflows/repo-audit.yml` with weekly scheduled audits and public control-file checks.
+- Added `.github/workflows/docs-consistency.yml` to verify local documentation references and validation markers.
+- Added `.github/workflows/main-health.yml` to report and fail on failed upstream workflow completions.
+- Added `.github/workflows/project-control.yml` for manual, scheduled and repository-dispatch project-control summaries.
+- Added `.github/workflows/issue-triage.yml` to label and comment on public issues that are missing planning fields.
+- Added `.github/workflows/pr-quality.yml` to require useful PR body structure and validation evidence.
+- Added `docs/WORKFLOWS.md` and linked it from `README.md`.
 
 ## Current repo review
 
-- The repo is public and now has stronger open-source collaboration surfaces: README, license, governance, support, security, code of conduct, contributor docs, issue templates, PR template, validation contract and GitHub-control runbook.
+- The repo is public and now has stronger open-source collaboration surfaces: README, license, governance, support, security, code of conduct, contributor docs, issue templates, PR template, validation contract, GitHub-control runbook and workflow overview.
 - Main Phase 1 safety stubs are present: policy, approval, tool registry, delegation broker, memory store, sensitive-data detector, risk scorer and scenario runner.
+- GitHub Actions now support validation, repo audit, docs consistency, main-health reporting, project control, issue triage and PR-quality checks.
 - Issue #1 remains the active validation gate.
 - Local checks could not be executed in the ChatGPT environment, so validation is not complete yet.
 
 ## Next task
 
-Run and verify the validation suite after the latest safety-bootstrap, contributor-onboarding, cleanup and GitHub-control commits, then record the result.
+Run and verify the validation suite on the latest `main` commit after the workflow setup, then record the result.
 
 Issue #1 must remain open until the required checks are actually executed and documented.
 
