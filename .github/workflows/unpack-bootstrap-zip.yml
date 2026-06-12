@@ -1,0 +1,93 @@
+name: Unpack bootstrap ZIP
+
+on:
+  push:
+    paths:
+      - "*.zip"
+      - ".github/workflows/unpack-bootstrap-zip.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  unpack:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Find bootstrap ZIP
+        id: zip
+        shell: bash
+        run: |
+          set -euo pipefail
+          ZIP_FILE=""
+          for candidate in igentic-iphone-open-source-ready.zip igentic-iphone-open-source.zip igentic-iphone.zip *.zip; do
+            if [ -f "$candidate" ]; then
+              ZIP_FILE="$candidate"
+              break
+            fi
+          done
+          if [ -z "$ZIP_FILE" ]; then
+            echo "No ZIP file found. Nothing to unpack."
+            exit 0
+          fi
+          echo "zip_file=$ZIP_FILE" >> "$GITHUB_OUTPUT"
+          echo "Found $ZIP_FILE"
+
+      - name: Unpack ZIP into repository tree
+        if: steps.zip.outputs.zip_file != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          ZIP_FILE="${{ steps.zip.outputs.zip_file }}"
+          rm -rf /tmp/igentic-unpack
+          mkdir -p /tmp/igentic-unpack
+          unzip -q "$ZIP_FILE" -d /tmp/igentic-unpack
+
+          ROOT="/tmp/igentic-unpack"
+          if [ -d "/tmp/igentic-unpack/igentic-iphone" ]; then
+            ROOT="/tmp/igentic-unpack/igentic-iphone"
+          else
+            FIRST_DIR="$(find /tmp/igentic-unpack -mindepth 1 -maxdepth 1 -type d | head -n 1 || true)"
+            if [ -n "$FIRST_DIR" ] && [ -f "$FIRST_DIR/README.md" ]; then
+              ROOT="$FIRST_DIR"
+            fi
+          fi
+
+          rsync -a --delete \
+            --exclude ".git/" \
+            --exclude ".build/" \
+            --exclude "*.zip" \
+            --exclude ".github/workflows/unpack-bootstrap-zip.yml" \
+            "$ROOT/" ./
+
+          rm -f "$ZIP_FILE"
+
+      - name: Validate unpacked repository
+        if: steps.zip.outputs.zip_file != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f scripts/validate-repo.mjs ]; then
+            node scripts/validate-repo.mjs
+          fi
+          if [ -f ios/Package.swift ]; then
+            swift test --package-path ios
+          fi
+
+      - name: Commit unpacked files
+        if: steps.zip.outputs.zip_file != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git commit -m "chore: unpack editable open-source starter repo"
+          git push
