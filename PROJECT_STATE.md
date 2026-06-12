@@ -42,6 +42,7 @@ Phase 0 is now substantially documented and contributor-facing:
 - GitHub control runbook: `docs/GITHUB_CONTROL.md`
 - Validation contract: `docs/VALIDATION.md`
 - GitHub automation strategy: `docs/GITHUB_AUTOMATION_STRATEGY.md`
+- Project operating model: `docs/PROJECT_OPERATING_MODEL.md`
 - Workflow overview: `docs/WORKFLOWS.md`
 - Initial brand SVG assets and asset README: `assets/brand/`
 - Apache 2.0 license: `LICENSE`
@@ -68,6 +69,7 @@ Remaining Phase 0 follow-up:
 - `docs/CODEX_NEXT_TASK.md` now paused
 - `docs/CHATGPT_NEXT_TASK.md` as active next-task handoff
 - `docs/GITHUB_AUTOMATION_STRATEGY.md` documenting GitHub Actions + `gh` CLI + Python reports for ChatGPT review
+- `docs/PROJECT_OPERATING_MODEL.md` defining the durable ChatGPT/Codex/contributor work model
 - `docs/WORKFLOWS.md` documenting Control Dashboard, Workflow Lint and validation expectations
 - GitHub issue templates for feature, model, security, design, device test, good-first-issue and social content reviews
 - Issue template chooser links for contributor guide, good-first-issue ideas, brand rules and security policy
@@ -104,6 +106,7 @@ Remaining Phase 0 follow-up:
 - GitHub Connector could inspect repository metadata, relevant project files and open GitHub issues.
 - The accidental empty root file `DUMMY` was removed on branch `chatgpt/cleanup-validation-state`.
 - GitHub-control dashboard automation was added on branch `codex/github-control-dashboard`.
+- Project operating model is being added on branch `chatgpt/project-operating-model`.
 - Local validation checks could not be executed in the ChatGPT environment.
 - Issue #1 is not complete until the required checks are executed and their results are recorded.
 - Required checks remain open:
@@ -117,6 +120,8 @@ cd ios && swift build
 ## What still needs bootstrapping
 
 - Run Control Dashboard, inspect generated report, then run Phase 0 CI/local validation after the latest GitHub-control commits
+- Configure `main` branch protection in GitHub UI
+- Re-enable Codex with one narrow Draft PR task after current `main` validation evidence is recorded
 - Optional conservative integration of `RiskScorer` into `PolicyEngine` decision metadata, without loosening existing policy behavior
 - Architecture docs from the verified starter package, imported gradually
 - Convert first good-first-issue backlog items into GitHub issues
