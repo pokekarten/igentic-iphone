@@ -4,7 +4,13 @@ Repository: `pokekarten/igentic-iphone`
 
 ## Task
 
-Bootstrap the first minimal Swift AgentCore package for the privacy-first iPhone AI Runtime Layer.
+Fix `AuditLog` thread safety before expanding the agent runtime.
+
+## Why this task is first
+
+A code audit identified `AuditLog` as the most important current risk: it is marked `@unchecked Sendable` while storing mutable events in a plain array. Because `AgentKernel` can be used from concurrent contexts, this must be fixed before adding more async runtime, approval or delegation behavior.
+
+This is intentionally a small security-first task.
 
 ## Base branch
 
@@ -12,56 +18,44 @@ Bootstrap the first minimal Swift AgentCore package for the privacy-first iPhone
 
 ## Working branch
 
-`codex/bootstrap-agent-core`
-
-## Goal
-
-Create or complete the smallest useful Swift package under `ios/` with a policy-first agent kernel.
-
-This is not a full iOS app yet. Do not add Xcode project files, signing, model weights or app-store configuration.
+`codex/auditlog-thread-safety`
 
 ## Allowed files
 
 Codex may only create or modify:
 
 ```text
-AGENTS.md
+ios/Sources/AgentCore/AuditLog.swift
+ios/Tests/AgentCoreTests/AuditLogTests.swift
 PROJECT_STATE.md
 docs/CODEX_NEXT_TASK.md
-docs/SPARSAMKEIT.md
-docs/SOURCE_VERIFICATION.md
-scripts/validate_repo_structure.py
-ios/Package.swift
-ios/Sources/AgentCore/*.swift
-ios/Tests/AgentCoreTests/*.swift
 ```
 
-## Required Swift types
+Do not modify `README.md`, workflows, package layout or unrelated agent files.
 
-- `DataSensitivityLevel`
-- `DataClassification`
-- `PrivacyMode`
-- `ActionRisk`
-- `DelegationTarget`
-- `PolicyRequest`
-- `PolicyDecision`
-- `PolicyEngine`
-- `TaskIntent`
-- `TaskRequest`
-- `TaskRoute`
-- `TaskRouter`
-- `AuditEvent`
-- `AuditLog`
-- `AgentKernel`
+## Required implementation
+
+Choose one simple approach:
+
+1. make `AuditLog` an `actor`, or
+2. keep it as a final class but protect the mutable event array with `NSLock`.
+
+Prefer the smallest change that keeps the current synchronous `AgentKernel` API working. If making `AuditLog` an actor requires broad async changes, use `NSLock` instead.
 
 ## Required behavior
 
-- Local Only blocks external provider delegation.
-- Restricted sensitive data blocks automatic delegation.
-- Highly private data requires explicit approval.
-- Unknown intent asks clarification.
-- Reminder creation routes to a local tool only when policy allows it.
-- AgentKernel writes audit events for received tasks and policy decisions.
+- Concurrent calls to `record(_:)` must not race.
+- `allEvents()` must return a snapshot copy.
+- Existing public behavior should remain the same.
+- Do not remove audit events or weaken privacy semantics.
+
+## Required tests
+
+Add tests that verify:
+
+- events can still be recorded and read,
+- concurrent recording does not lose events,
+- returned events are a stable snapshot.
 
 ## Required validation
 
@@ -75,17 +69,19 @@ cd ios && swift build
 
 Stop and report clearly if:
 
-- `ios/` cannot be created,
 - Swift tests cannot run because Swift is unavailable,
-- unexpected secrets, model weights or build artifacts are present,
-- implementing the task would require an Xcode project or signing credentials,
-- the change exceeds the allowed files.
+- the fix requires changing more than the allowed files,
+- concurrency tests are flaky and cannot be made deterministic,
+- unexpected build artifacts, secrets or model files appear.
 
 ## Draft PR body must include
 
 - summary,
 - changed files,
-- data classes touched,
 - validation output,
-- limitations,
-- next recommended task.
+- why the chosen thread-safety approach was used,
+- next recommended security task.
+
+## Suggested next task after this PR
+
+Import or implement `ApprovalManager` and make `AgentKernel` block or return an approval-required response when approval is `.pending` or `.rejected`, before adding any real App Intent execution.
