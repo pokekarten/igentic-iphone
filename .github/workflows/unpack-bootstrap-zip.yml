@@ -56,11 +56,14 @@ jobs:
             fi
           fi
 
+          # GitHub Actions' GITHUB_TOKEN cannot create or update workflow files
+          # unless the app/token has the workflows permission. Keep workflow
+          # changes out of the ZIP import and add CI workflows separately.
           rsync -a --delete \
             --exclude ".git/" \
             --exclude ".build/" \
             --exclude "*.zip" \
-            --exclude ".github/workflows/unpack-bootstrap-zip.yml" \
+            --exclude ".github/workflows/**" \
             "$ROOT/" ./
 
           rm -f "$ZIP_FILE"
