@@ -22,7 +22,7 @@ The repo is controlled directly through GitHub. Codex is paused for now. ChatGPT
 
 ## Phase 0 status
 
-Phase 0 is now substantially documented:
+Phase 0 is now substantially documented and contributor-facing:
 
 - Source verification rules: `docs/SOURCE_VERIFICATION.md`
 - Apple API review: `docs/apple-api-review.md`
@@ -37,7 +37,9 @@ Phase 0 is now substantially documented:
 - Logo brief and usage rules: `docs/brand/LOGO_BRIEF.md`, `docs/brand/LOGO_USAGE.md`
 - Community strategy and channel model: `docs/community/COMMUNITY_STRATEGY.md`, `docs/community/COMMUNICATION_CHANNELS.md`
 - Social media playbook: `docs/community/SOCIAL_MEDIA_PLAYBOOK.md`
-- Initial brand SVG assets: `assets/brand/`
+- Contributor starter guide: `docs/community/CONTRIBUTOR_STARTER_GUIDE.md`
+- Good-first-issue backlog: `docs/community/GOOD_FIRST_ISSUES.md`
+- Initial brand SVG assets and asset README: `assets/brand/`
 - Apache 2.0 license: `LICENSE`
 
 Remaining Phase 0 follow-up:
@@ -45,22 +47,24 @@ Remaining Phase 0 follow-up:
 - Run CI/local validation after the latest safety-bootstrap commits.
 - Keep source notes current when Apple APIs or runtime candidates change.
 - Decide whether to enable GitHub Discussions after the first repeated outside community questions.
-- Convert selected roadmap items into small GitHub issues.
+- Convert selected good-first-issue backlog items into real GitHub issues.
+- Review/refine initial SVG assets before setting a GitHub social preview.
 
 ## What exists now
 
-- README with product vision, repo operating model, Phase 0 links, community links and brand links
+- README with product vision, repo operating model, Phase 0 links, community links, brand links and new contributor quick-start
 - `AGENTS.md` with ChatGPT/Codex/iPhone tester rules
 - `ROADMAP.md`
 - `GOVERNANCE.md`
-- `CONTRIBUTING.md`
+- `CONTRIBUTING.md` with starter-guide, good-first-issue and design guidance links
 - `CODE_OF_CONDUCT.md`
 - `SECURITY.md`
 - `SUPPORT.md`
 - `LICENSE`
 - `docs/CODEX_NEXT_TASK.md` now paused
 - `docs/CHATGPT_NEXT_TASK.md` as active next-task handoff
-- GitHub issue templates for feature, model, security, design, device test and social content reviews
+- GitHub issue templates for feature, model, security, design, device test, good-first-issue and social content reviews
+- Issue template chooser links for contributor guide, good-first-issue ideas, brand rules and security policy
 - Pull request template with privacy, approval and delegation checklist
 - Minimal Swift Package under `ios/`
 - `PolicyEngine`, `TaskRouter`, `AuditLog`, `AgentKernel`, `ApprovalManager`, `ToolRegistry`, `DelegationBroker`, `MemoryStore`, `SensitiveDataDetector`, `RiskScorer`, `ScenarioRunner`
@@ -73,7 +77,7 @@ Remaining Phase 0 follow-up:
 - `RiskScorer` local deterministic 1-10 risk scorer for privacy mode, data level, action risk, delegation target and detected sensitive categories
 - `ScenarioRunner` dry-run harness for synthetic policy, approval, routing and delegation checks
 - Smoke tests for policy, audit log, approval-gated routing, tool registry behavior, memory-store scope behavior, sensitive-data detection, risk scoring, delegation broker decisions and scenario runner output
-- Repo validation script requiring core AgentCore safety files
+- Repo validation script requiring core AgentCore safety files, brand/community docs, issue templates and accessible SVG metadata
 - Swift, repo-audit and Phase 0 CI GitHub Actions workflows hardened to avoid marketplace startup dependencies
 
 ## Current safety posture
@@ -93,14 +97,16 @@ Remaining Phase 0 follow-up:
 - Public contribution docs warn against posting secrets or private data.
 - Social media is explicitly not a decision authority.
 - Official design must avoid Apple trade dress and confusing third-party mark usage.
+- Brand SVG assets must include accessibility metadata (`title`, `desc`, `role="img"`).
 
 ## What still needs bootstrapping
 
-- Initial CI verification after the latest safety-bootstrap commits
+- Initial CI verification after the latest safety-bootstrap and contributor-onboarding commits
 - Optional conservative integration of `RiskScorer` into `PolicyEngine` decision metadata, without loosening existing policy behavior
 - Architecture docs from the verified starter package, imported gradually
-- First set of GitHub issues for brand, roadmap and good-first-contribution tasks
+- Convert first good-first-issue backlog items into GitHub issues
 - Optional GitHub social preview configuration after final social-card asset review
+- Optional first Instagram carousel asset/template based on the social playbook
 
 ## Important constraint
 
