@@ -8,25 +8,29 @@ Codex is paused for now. ChatGPT works directly through the GitHub Connector on 
 
 ## Just completed
 
-- Expanded `.github/workflows/repo-audit.yml` with weekly scheduled audits and public control-file checks.
-- Added `.github/workflows/docs-consistency.yml` to verify local documentation references and validation markers.
-- Added `.github/workflows/main-health.yml` to report and fail on failed upstream workflow completions.
-- Added `.github/workflows/project-control.yml` for manual, scheduled and repository-dispatch project-control summaries.
-- Added `.github/workflows/issue-triage.yml` to label and comment on public issues that are missing planning fields.
-- Added `.github/workflows/pr-quality.yml` to require useful PR body structure and validation evidence.
-- Added `docs/WORKFLOWS.md` and linked it from `README.md`.
+- Expanded the safe GitHub-control layer on branch `codex/github-control-dashboard`.
+- Added read-only Python control scripts:
+  - `scripts/control/collect_repo_state.py`
+  - `scripts/control/collect_workflow_runs.py`
+  - `scripts/control/render_control_report.py`
+- Added GitHub Actions workflows:
+  - `.github/workflows/control-dashboard.yml`
+  - `.github/workflows/workflow-lint.yml`
+- Added `docs/GITHUB_AUTOMATION_STRATEGY.md`.
+- Updated `docs/WORKFLOWS.md` with Control Dashboard and Workflow Lint sections.
+- No runtime app behavior, persistence, networking, model calls, external providers, CoreML, App Intents, secrets or private data were added.
 
 ## Current repo review
 
 - The repo is public and now has stronger open-source collaboration surfaces: README, license, governance, support, security, code of conduct, contributor docs, issue templates, PR template, validation contract, GitHub-control runbook and workflow overview.
 - Main Phase 1 safety stubs are present: policy, approval, tool registry, delegation broker, memory store, sensitive-data detector, risk scorer and scenario runner.
-- GitHub Actions now support validation, repo audit, docs consistency, main-health reporting, project control, issue triage and PR-quality checks.
+- GitHub Actions support validation, repo audit, docs consistency, main-health reporting, project control, issue triage, PR-quality checks, control-dashboard reporting and workflow linting.
 - Issue #1 remains the active validation gate.
-- Local checks could not be executed in the ChatGPT environment, so validation is not complete yet.
+- Local Swift validation could not be executed in the ChatGPT environment, so validation is not complete yet.
 
 ## Next task
 
-Run and verify the validation suite on the latest `main` commit after the workflow setup, then record the result.
+Run `.github/workflows/control-dashboard.yml`, inspect the generated report from the workflow summary, then run Phase 0 CI Validation on latest `main`.
 
 Issue #1 must remain open until the required checks are actually executed and documented.
 
@@ -41,13 +45,12 @@ Only change Swift code or validation code if validation fails and the smallest s
 
 ## Required behavior
 
-- Run the required validation commands locally or through CI.
+- Run the Control Dashboard workflow manually.
+- Inspect the latest control report from the workflow summary.
+- Run or verify the required validation commands locally or through CI.
 - Record exact pass/fail results.
 - If a check fails, document the exact command, concise error summary and smallest safe next fix.
-- Do not add app actions, persistence, networking, model calls, CoreML, App Intents, external providers or private data.
-- If validation passes, propose the next conservative code step:
-  - Issue #5: add PolicyEngine edge-case tests, or
-  - Issue #9: integrate `RiskScorer` into `PolicyEngine` as metadata without loosening approval/blocking behavior.
+- Do not add app actions, persistence, networking, model calls, CoreML, App Intents, external providers, secrets or private data.
 
 ## Validation target
 

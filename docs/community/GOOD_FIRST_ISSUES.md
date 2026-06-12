@@ -18,7 +18,7 @@ This file lists safe starter tasks for new contributors. It is intentionally wri
 
 ### 1. Add a glossary
 
-**Goal:** Create `docs/GLOSSARY.md` explaining project terms.
+**Goal:** Create the project glossary at docs/GLOSSARY.md explaining project terms.
 
 Include:
 
@@ -47,7 +47,7 @@ Scope:
 
 ### 3. Add a FAQ
 
-**Goal:** Create `docs/FAQ.md` for common early questions.
+**Goal:** Create docs/FAQ.md for common early questions.
 
 Questions:
 
@@ -109,7 +109,7 @@ Ideas:
 - warn on empty markdown files,
 - keep checks dependency-free.
 
-**Validation:** `python scripts/validate_repo_structure.py`.
+**Validation:** Run the repo-structure validation command.
 
 ### 8. Add policy edge-case tests
 
@@ -121,7 +121,7 @@ Examples:
 - critical actions require approval,
 - local-only mode blocks external routing.
 
-**Validation:** `cd ios && swift test`.
+**Validation:** Run the Swift test command.
 
 ## Safe runtime tasks
 
@@ -137,7 +137,7 @@ Requirements:
 - delete by scope or id,
 - tests for save/list/delete.
 
-**Validation:** `cd ios && swift test`.
+**Validation:** Run the Swift test command.
 
 ### 10. Add DelegationBroker policy-gated stub tests
 
@@ -150,7 +150,7 @@ Requirements:
 - no model calls,
 - tests for local-only blocking and approval-required decisions.
 
-**Validation:** `cd ios && swift test`.
+**Validation:** Run the Swift test command.
 
 ## Research tasks
 

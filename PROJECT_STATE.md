@@ -39,12 +39,16 @@ Phase 0 is now substantially documented and contributor-facing:
 - Social media playbook: `docs/community/SOCIAL_MEDIA_PLAYBOOK.md`
 - Contributor starter guide: `docs/community/CONTRIBUTOR_STARTER_GUIDE.md`
 - Good-first-issue backlog: `docs/community/GOOD_FIRST_ISSUES.md`
+- GitHub control runbook: `docs/GITHUB_CONTROL.md`
+- Validation contract: `docs/VALIDATION.md`
+- GitHub automation strategy: `docs/GITHUB_AUTOMATION_STRATEGY.md`
+- Workflow overview: `docs/WORKFLOWS.md`
 - Initial brand SVG assets and asset README: `assets/brand/`
 - Apache 2.0 license: `LICENSE`
 
 Remaining Phase 0 follow-up:
 
-- Run CI/local validation after the latest safety-bootstrap commits.
+- Run CI/local validation after the latest safety-bootstrap and GitHub-control commits.
 - Keep source notes current when Apple APIs or runtime candidates change.
 - Decide whether to enable GitHub Discussions after the first repeated outside community questions.
 - Convert selected good-first-issue backlog items into real GitHub issues.
@@ -63,36 +67,32 @@ Remaining Phase 0 follow-up:
 - `LICENSE`
 - `docs/CODEX_NEXT_TASK.md` now paused
 - `docs/CHATGPT_NEXT_TASK.md` as active next-task handoff
+- `docs/GITHUB_AUTOMATION_STRATEGY.md` documenting GitHub Actions + `gh` CLI + Python reports for ChatGPT review
+- `docs/WORKFLOWS.md` documenting Control Dashboard, Workflow Lint and validation expectations
 - GitHub issue templates for feature, model, security, design, device test, good-first-issue and social content reviews
 - Issue template chooser links for contributor guide, good-first-issue ideas, brand rules and security policy
 - Pull request template with privacy, approval and delegation checklist
 - Minimal Swift Package under `ios/`
 - `PolicyEngine`, `TaskRouter`, `AuditLog`, `AgentKernel`, `ApprovalManager`, `ToolRegistry`, `DelegationBroker`, `MemoryStore`, `SensitiveDataDetector`, `RiskScorer`, `ScenarioRunner`
-- `AuditLog` thread-safety fix using a lock
-- Approval gate in `AgentKernel` before routing to local tools
-- `ToolRegistry` metadata-only stub for tool names, required data levels and action risks
-- `DelegationBroker` safe policy-gated stub for metadata-only delegation decisions
-- `MemoryStore` safe in-memory stub with `session` and `task` scopes, scoped listing and scoped deletion
-- `SensitiveDataDetector` local deterministic metadata-only detector for IBAN-like, email-like and phone-like patterns
-- `RiskScorer` local deterministic 1-10 risk scorer for privacy mode, data level, action risk, delegation target and detected sensitive categories
-- `ScenarioRunner` dry-run harness for synthetic policy, approval, routing and delegation checks
 - Smoke tests for policy, audit log, approval-gated routing, tool registry behavior, memory-store scope behavior, sensitive-data detection, risk scoring, delegation broker decisions and scenario runner output
 - Repo validation script requiring core AgentCore safety files, brand/community docs, issue templates and accessible SVG metadata
-- Swift, repo-audit and Phase 0 CI GitHub Actions workflows hardened to avoid marketplace startup dependencies
+- GitHub Actions for validation, repo audit, docs consistency, main-health reporting, project control, issue triage and PR quality
+- GitHub-control dashboard workflow for read-only repo state, PR, issue and CI run reports
+- Workflow-lint workflow for `.github/workflows/**`
 
 ## Current safety posture
 
 - Privacy and policy are implemented before app actions.
 - `AuditLog` is lock-protected.
 - Approval handling is now a first-class gate before tool routing.
-- `.pending` approval status stops routing.
-- `.approved` approval status allows routing to continue.
 - Tool registration is metadata-only; no real tool execution exists yet.
-- `DelegationBroker` decides only: Local Only blocks delegation, external providers and critical actions require explicit approval, and safe trusted-device paths are metadata-only.
+- `DelegationBroker` safe trusted-device paths are metadata-only and require approval for external or critical decisions.
 - `MemoryStore` is volatile in-memory storage only; it has no persistence, no external dependencies, no networking and no model calls.
 - `SensitiveDataDetector` emits categories and reasons only; it does not retain raw sensitive matches.
 - `RiskScorer` is deterministic and local; it does not call models, networks or external services.
 - `ScenarioRunner` runs synthetic dry-run scenarios only.
+- GitHub-control scripts use read-only `git` and `gh` commands and generate reports only.
+- Generated control reports are exposed through workflow summaries and are not committed back to `main` in this first version.
 - No model weights, secrets, app signing files or real private data should be committed.
 - Public contribution docs warn against posting secrets or private data.
 - Social media is explicitly not a decision authority.
@@ -103,6 +103,7 @@ Remaining Phase 0 follow-up:
 
 - GitHub Connector could inspect repository metadata, relevant project files and open GitHub issues.
 - The accidental empty root file `DUMMY` was removed on branch `chatgpt/cleanup-validation-state`.
+- GitHub-control dashboard automation was added on branch `codex/github-control-dashboard`.
 - Local validation checks could not be executed in the ChatGPT environment.
 - Issue #1 is not complete until the required checks are executed and their results are recorded.
 - Required checks remain open:
@@ -115,7 +116,7 @@ cd ios && swift build
 
 ## What still needs bootstrapping
 
-- Initial CI/local validation after the latest safety-bootstrap and contributor-onboarding commits
+- Run Control Dashboard, inspect generated report, then run Phase 0 CI/local validation after the latest GitHub-control commits
 - Optional conservative integration of `RiskScorer` into `PolicyEngine` decision metadata, without loosening existing policy behavior
 - Architecture docs from the verified starter package, imported gradually
 - Convert first good-first-issue backlog items into GitHub issues
