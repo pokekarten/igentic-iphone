@@ -70,6 +70,7 @@ See:
 - `MODEL_STRATEGY.md`
 - `docs/GITHUB_CONTROL.md`
 - `docs/VALIDATION.md`
+- `docs/WORKFLOWS.md`
 - `docs/apple-api-review.md`
 - `docs/local-runtime-review.md`
 - `docs/CHATGPT_NEXT_TASK.md`
@@ -92,6 +93,7 @@ Brand, design and community decisions are part of the repository because this is
 - Social media playbook: `docs/community/SOCIAL_MEDIA_PLAYBOOK.md`
 - GitHub control runbook: `docs/GITHUB_CONTROL.md`
 - Validation contract: `docs/VALIDATION.md`
+- Workflow overview: `docs/WORKFLOWS.md`
 - Initial brand assets: `assets/brand/`
 
 Community direction: **GitHub-first, social-supported**. Instagram, X and LinkedIn are used for discovery and build-in-public storytelling. GitHub remains the canonical place for decisions, issues, pull requests and roadmap.
@@ -106,6 +108,7 @@ Start with:
 - `GOVERNANCE.md`
 - `docs/GITHUB_CONTROL.md`
 - `docs/VALIDATION.md`
+- `docs/WORKFLOWS.md`
 
 Recommended first lanes:
 
@@ -208,6 +211,7 @@ Before contributing, read:
 - `GOVERNANCE.md`
 - `docs/GITHUB_CONTROL.md`
 - `docs/VALIDATION.md`
+- `docs/WORKFLOWS.md`
 - `docs/community/COMMUNITY_STRATEGY.md`
 
 Do not post private data, secrets, credentials, real messages, contacts, calendars, health data or financial data in public issues or pull requests. Use synthetic data for examples and tests.
