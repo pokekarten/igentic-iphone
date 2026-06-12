@@ -16,7 +16,7 @@ The roadmap favors safe, reviewable slices over broad app claims. Every phase sh
 - ChatGPT can make small direct repo edits through the GitHub Connector.
 - Codex is paused unless a narrow Draft PR task is explicitly prepared.
 - Initial Swift package and safety components exist.
-- Community and brand foundation are now being added.
+- Community, brand, social and governance foundation exist in the repo.
 
 ## Phase 0 — Research and project foundation
 
@@ -24,7 +24,7 @@ The roadmap favors safe, reviewable slices over broad app claims. Every phase sh
 
 ### Done / in progress
 
-- README with thesis and architecture.
+- README with thesis, architecture, brand and community links.
 - Source verification rules.
 - Apple API review.
 - Local runtime review.
@@ -32,16 +32,23 @@ The roadmap favors safe, reviewable slices over broad app claims. Every phase sh
 - Community health docs.
 - Apache 2.0 license.
 - Brand foundation.
+- Design system.
+- Logo brief and usage rules.
+- Initial SVG brand assets.
 - Community strategy.
+- Communication channel policy.
 - Social media playbook.
+- Lightweight governance.
+- Issue templates for feature, model, security, design, device test and social content proposals.
+- Pull request template with privacy, approval and delegation checklist.
 
 ### Next
 
-- Add initial brand assets under `assets/brand/`.
-- Add GitHub social preview asset.
-- Add issue templates for design feedback and device test reports.
-- Add a `GOVERNANCE.md` file when outside contributors appear.
+- Convert selected roadmap items into small GitHub issues.
+- Review initial SVG assets and decide whether to set a GitHub social preview.
+- Create first Instagram carousel template based on `docs/community/SOCIAL_MEDIA_PLAYBOOK.md`.
 - Keep `PROJECT_STATE.md` current.
+- Decide whether to enable GitHub Discussions after repeated outside community questions.
 
 ## Phase 1 — Local Agent Kernel
 
@@ -174,6 +181,7 @@ Deliverables:
 - Keep decisions in GitHub.
 - Use Instagram/X/LinkedIn only to point people back to GitHub.
 - Invite narrow, careful contributors.
+- Use design, device-test and social-content issue templates for early community participation.
 
 ### Later
 
@@ -189,11 +197,12 @@ Deliverables:
 - Use `iGentic iPhone` as current research track.
 - Avoid Apple trade dress.
 - Build own visual system around control ring, local identity and policy line.
+- Keep SVG assets in `assets/brand/` and brand rules in `docs/brand/`.
 
 ### Later
 
-- Publish official SVG logo pack.
-- Add GitHub social preview.
+- Refine official SVG logo pack after design feedback.
+- Set GitHub social preview after asset review.
 - Create Instagram carousel templates.
 - Create website landing page.
 
