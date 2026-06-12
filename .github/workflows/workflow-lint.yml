@@ -1,0 +1,47 @@
+name: Workflow Lint
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/**"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  actionlint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    steps:
+      - name: Checkout repository without marketplace checkout
+        run: |
+          set -euo pipefail
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          if git fetch --no-tags --depth=1 origin "${GITHUB_SHA}"; then
+            echo "Fetched ${GITHUB_SHA}"
+          elif [ "${GITHUB_EVENT_NAME}" = "pull_request" ] && [ -n "${PR_NUMBER:-}" ]; then
+            git fetch --no-tags --depth=1 origin "pull/${PR_NUMBER}/merge"
+          else
+            git fetch --no-tags --depth=1 origin "${GITHUB_REF_NAME:-main}"
+          fi
+          git checkout --force FETCH_HEAD
+          git clean -fdx
+          git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+
+      - name: Lint workflow files
+        uses: rhysd/actionlint@v1
+        with:
+          args: -color
