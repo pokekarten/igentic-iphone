@@ -24,6 +24,7 @@ jobs:
     timeout-minutes: 5
     env:
       PR_NUMBER: ${{ github.event.pull_request.number }}
+      ACTIONLINT_VERSION: v1.7.7
     steps:
       - name: Checkout repository without marketplace checkout
         run: |
@@ -41,7 +42,12 @@ jobs:
           git clean -fdx
           git config --global --add safe.directory "${GITHUB_WORKSPACE}"
 
+      - name: Install actionlint
+        run: |
+          set -euo pipefail
+          mkdir -p "${RUNNER_TEMP}/bin"
+          GOBIN="${RUNNER_TEMP}/bin" go install "github.com/rhysd/actionlint/cmd/actionlint@${ACTIONLINT_VERSION}"
+          echo "${RUNNER_TEMP}/bin" >> "${GITHUB_PATH}"
+
       - name: Lint workflow files
-        uses: rhysd/actionlint@v1
-        with:
-          args: -color
+        run: actionlint -color
