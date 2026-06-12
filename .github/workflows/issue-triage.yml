@@ -1,0 +1,78 @@
+name: Issue Triage
+
+on:
+  issues:
+    types:
+      - opened
+      - edited
+      - reopened
+
+permissions:
+  issues: write
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Inspect issue quality
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: |
+          set -euo pipefail
+          body="${ISSUE_BODY:-}"
+          title="${ISSUE_TITLE:-}"
+
+          missing=()
+          for marker in "Goal" "Scope" "Definition of Done"; do
+            if ! printf '%s\n%s\n' "$title" "$body" | grep -qi "$marker"; then
+              missing+=("$marker")
+            fi
+          done
+
+          lower_title="$(printf '%s' "$title" | tr '[:upper:]' '[:lower:]')"
+          lower_body="$(printf '%s' "$body" | tr '[:upper:]' '[:lower:]')"
+          labels=()
+          if printf '%s\n%s' "$lower_title" "$lower_body" | grep -q "validation\|ci\|build\|test"; then
+            labels+=("validation" "ci")
+          fi
+          if printf '%s\n%s' "$lower_title" "$lower_body" | grep -q "docs\|readme\|documentation"; then
+            labels+=("documentation")
+          fi
+          if printf '%s\n%s' "$lower_title" "$lower_body" | grep -q "swift\|ios"; then
+            labels+=("swift")
+          fi
+          if printf '%s\n%s' "$lower_title" "$lower_body" | grep -q "policy\|approval\|privacy\|delegation\|risk"; then
+            labels+=("safety" "privacy")
+          fi
+
+          for label in "${labels[@]:-}"; do
+            gh issue edit "$ISSUE_NUMBER" --add-label "$label" || true
+          done
+
+          if [ "${#missing[@]}" -gt 0 ]; then
+            printf -v joined '%s, ' "${missing[@]}"
+            joined="${joined%, }"
+            gh issue comment "$ISSUE_NUMBER" --body "Thanks for opening this issue. To keep the public backlog easy to work on, please add the missing planning fields: ${joined}. Helpful structure: Goal, Scope, Forbidden changes, Validation target, Definition of Done."
+          fi
+
+      - name: Summarize triage
+        run: |
+          {
+            echo "## Issue Triage"
+            echo ""
+            echo "Issue: #${{ github.event.issue.number }}"
+            echo "Triage completed."
+          } >> "$GITHUB_STEP_SUMMARY"
