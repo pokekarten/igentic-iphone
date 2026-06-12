@@ -6,7 +6,7 @@ Last updated: 2026-06-12
 
 `iGentic iPhone` is being initialized as an open-source, privacy-first iPhone AI Runtime Layer repository.
 
-The repo is now controlled directly through GitHub instead of relying on ZIP download/upload loops. Codex is paused for now. ChatGPT works directly through the GitHub Connector on small, safe repository changes.
+The repo is controlled directly through GitHub. Codex is paused for now. ChatGPT works directly through the GitHub Connector on small, safe repository changes.
 
 ## Current baseline
 
@@ -15,11 +15,27 @@ The repo is now controlled directly through GitHub instead of relying on ZIP dow
 - Controller: ChatGPT via GitHub Connector
 - Implementation assistant: paused; Codex later only for narrow Draft PRs
 - Primary target device: iPhone Air as trust/control plane
-- Current phase: Phase 0 / Phase 1 safety bootstrap
+- Current phase: Phase 0 substantially documented / Phase 1 safety bootstrap in progress
+
+## Phase 0 status
+
+Phase 0 is now substantially documented:
+
+- Source verification rules: `docs/SOURCE_VERIFICATION.md`
+- Apple API review: `docs/apple-api-review.md`
+- Local runtime review: `docs/local-runtime-review.md`
+- Model strategy: `MODEL_STRATEGY.md`
+- Privacy model in code: `ios/Sources/AgentCore/DataClassification.swift`
+- Policy model in code: `ios/Sources/AgentCore/PolicyEngine.swift`
+
+Remaining Phase 0 follow-up:
+
+- Run CI/local validation after the latest commits.
+- Keep source notes current when Apple APIs or runtime candidates change.
 
 ## What exists now
 
-- README with product vision, repo operating model and community links
+- README with product vision, repo operating model, Phase 0 links and community links
 - `AGENTS.md` with ChatGPT/Codex/iPhone tester rules
 - `CONTRIBUTING.md`
 - `CODE_OF_CONDUCT.md`
@@ -40,7 +56,7 @@ The repo is now controlled directly through GitHub instead of relying on ZIP dow
 ## Current safety posture
 
 - Privacy and policy are implemented before app actions.
-- `AuditLog` is no longer backed by an unprotected mutable array.
+- `AuditLog` is lock-protected.
 - Approval handling is now a first-class gate before tool routing.
 - `.pending` approval status stops routing.
 - `.approved` approval status allows routing to continue.
