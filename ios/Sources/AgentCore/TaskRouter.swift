@@ -29,6 +29,7 @@ public struct TaskRequest: Equatable, Sendable {
 
 public enum TaskRoute: Equatable, Sendable {
     case askClarification(reason: String)
+    case approvalRequired(reason: String)
     case localTool(name: String, reason: String)
     case blocked(reason: String)
 }
