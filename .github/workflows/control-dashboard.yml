@@ -1,0 +1,67 @@
+name: Control Dashboard
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * 2"
+  repository_dispatch:
+    types:
+      - project-control
+      - repo-audit
+      - run-validation
+
+permissions:
+  contents: read
+  actions: read
+  issues: read
+  pull-requests: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  control-dashboard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    steps:
+      - name: Checkout repository without marketplace actions
+        run: |
+          set -euo pipefail
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          if git fetch --no-tags --depth=50 origin "${GITHUB_SHA}"; then
+            echo "Fetched ${GITHUB_SHA}"
+          elif [ "${GITHUB_EVENT_NAME}" = "pull_request" ] && [ -n "${PR_NUMBER:-}" ]; then
+            git fetch --no-tags --depth=50 origin "pull/${PR_NUMBER}/merge"
+          else
+            git fetch --no-tags --depth=50 origin "${GITHUB_REF_NAME:-main}"
+          fi
+          git checkout --force FETCH_HEAD
+          git clean -fdx
+          git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+
+      - name: Show tool versions
+        run: |
+          python3 --version
+          gh --version
+
+      - name: Collect repository state
+        run: python3 scripts/control/collect_repo_state.py
+
+      - name: Collect workflow runs
+        run: python3 scripts/control/collect_workflow_runs.py
+
+      - name: Render control report
+        run: python3 scripts/control/render_control_report.py
+
+      - name: Expose report in job summary
+        run: |
+          {
+            echo "## Control Dashboard"
+            echo
+            cat reports/latest-control-report.md
+          } >> "${GITHUB_STEP_SUMMARY}"
