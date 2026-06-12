@@ -41,12 +41,14 @@ jobs:
             git checkout --force "${HEAD_SHA}"
             git clean -fdx
             git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+            git diff --name-status "${BASE_SHA}" "${HEAD_SHA}" > changed-files-status.txt
             git diff --name-only "${BASE_SHA}" "${HEAD_SHA}" > changed-files.txt
           else
             git fetch --no-tags --depth=2 origin "${GITHUB_SHA}"
             git checkout --force FETCH_HEAD
             git clean -fdx
             git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+            git diff-tree --no-commit-id --name-status -r "${GITHUB_SHA}" > changed-files-status.txt || true
             git diff-tree --no-commit-id --name-only -r "${GITHUB_SHA}" > changed-files.txt || true
           fi
 
@@ -64,17 +66,20 @@ jobs:
           : > forbidden-files.txt
           : > buckets.env
 
-          while IFS= read -r path; do
-            [ -z "$path" ] && continue
-            classified=0
-
-            case "$path" in
-              DUMMY|*.zip|.env|.env.*|*.p12|*.mobileprovision|*.cer|*.key|*.pem|*.xcuserstate|.DS_Store|*/.DS_Store|.build/*|*/.build/*|DerivedData/*|*/DerivedData/*|*xcuserdata/*)
-                forbidden=1
-                classified=1
-                printf '%s\n' "$path" >> forbidden-files.txt
+          is_forbidden_path() {
+            case "$1" in
+              DUMMY|*.zip|.env|.env.*|*/.env|*/.env.*|*.p12|*.mobileprovision|*.cer|*.key|*.pem|*.xcuserstate|.DS_Store|*/.DS_Store|.build/*|*/.build/*|DerivedData/*|*/DerivedData/*|*xcuserdata/*)
+                return 0
+                ;;
+              *)
+                return 1
                 ;;
             esac
+          }
+
+          classify_path() {
+            local path="$1"
+            local classified=0
 
             case "$path" in
               .github/workflows/*)
@@ -116,7 +121,32 @@ jobs:
             if [ "$classified" -eq 0 ]; then
               other=1
             fi
-          done < changed-files.txt
+          }
+
+          while IFS=$'\t' read -r status path extra_path; do
+            [ -z "${status:-}" ] && continue
+
+            # For renames/copies, --name-status emits: RNNN<TAB>old<TAB>new.
+            # Classify and validate the post-image path. For deletions, keep the
+            # cleanup allowed: deleting a forbidden artifact must not fail the PR.
+            case "$status" in
+              D*)
+                classify_path "$path"
+                continue
+                ;;
+              R*|C*)
+                path="${extra_path:-$path}"
+                ;;
+            esac
+
+            [ -z "$path" ] && continue
+            classify_path "$path"
+
+            if is_forbidden_path "$path"; then
+              forbidden=1
+              printf '%s\n' "$path" >> forbidden-files.txt
+            fi
+          done < changed-files-status.txt
 
           {
             echo "docs=$docs"
@@ -146,11 +176,11 @@ jobs:
             echo ""
             echo "### Changed files"
             echo ""
-            if [ -s changed-files.txt ]; then
-              while IFS= read -r path; do
-                [ -z "$path" ] && continue
-                echo "- \`$path\`"
-              done < changed-files.txt
+            if [ -s changed-files-status.txt ]; then
+              while IFS= read -r entry; do
+                [ -z "$entry" ] && continue
+                echo "- \`$entry\`"
+              done < changed-files-status.txt
             else
               echo "- No changed files detected."
             fi
