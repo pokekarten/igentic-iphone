@@ -99,9 +99,23 @@ Remaining Phase 0 follow-up:
 - Official design must avoid Apple trade dress and confusing third-party mark usage.
 - Brand SVG assets must include accessibility metadata (`title`, `desc`, `role="img"`).
 
+## Current validation status
+
+- GitHub Connector could inspect repository metadata, relevant project files and open GitHub issues.
+- The accidental empty root file `DUMMY` was removed on branch `chatgpt/cleanup-validation-state`.
+- Local validation checks could not be executed in the ChatGPT environment.
+- Issue #1 is not complete until the required checks are executed and their results are recorded.
+- Required checks remain open:
+
+```bash
+python3 scripts/validate_repo_structure.py
+cd ios && swift test
+cd ios && swift build
+```
+
 ## What still needs bootstrapping
 
-- Initial CI verification after the latest safety-bootstrap and contributor-onboarding commits
+- Initial CI/local validation after the latest safety-bootstrap and contributor-onboarding commits
 - Optional conservative integration of `RiskScorer` into `PolicyEngine` decision metadata, without loosening existing policy behavior
 - Architecture docs from the verified starter package, imported gradually
 - Convert first good-first-issue backlog items into GitHub issues

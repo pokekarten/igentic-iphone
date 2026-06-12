@@ -8,33 +8,26 @@ Codex is paused for now. ChatGPT works directly through the GitHub Connector on 
 
 ## Just completed
 
-- Added and linked contributor-facing onboarding improvements:
-  - `docs/community/CONTRIBUTOR_STARTER_GUIDE.md`
-  - `docs/community/GOOD_FIRST_ISSUES.md`
-  - `assets/brand/README.md`
-  - `.github/ISSUE_TEMPLATE/good_first_issue.md`
-  - `.github/ISSUE_TEMPLATE/config.yml`
-- Updated `README.md` with a New contributors section and safe contribution lanes.
-- Updated `CONTRIBUTING.md` with starter-guide, good-first-issue, design-style and brand guidance.
-- Expanded `scripts/validate_repo_structure.py` so repo validation now checks:
-  - brand and community docs,
-  - issue and PR templates,
-  - required README and PROJECT_STATE markers,
-  - non-empty required files,
-  - accessible SVG metadata for brand assets.
-- Updated `PROJECT_STATE.md` to record the contributor-onboarding and design/repo-validation hardening.
-- No app actions, persistence, networking, model calls, secrets, real private data or external dependencies were added.
+- Removed the accidental empty root file `DUMMY` on branch `chatgpt/cleanup-validation-state`.
+- Re-reviewed current repo state through the GitHub Connector:
+  - project files could be read,
+  - open GitHub issues could be inspected,
+  - active task source remains this file.
+- Updated `PROJECT_STATE.md` with a conservative validation status.
+- No runtime code, policy behavior, tests, networking, providers, persistence, secrets, model calls or private data were changed.
 
 ## Current repo review
 
-- Open issues found previously: none.
-- Open pull requests found previously: none.
 - Main Phase 1 safety stubs are present: policy, approval, tool registry, delegation broker, memory store, sensitive-data detector, risk scorer and scenario runner.
-- Latest observed CI problem previously: GitHub Actions runs showed `Startup failure`, so workflows were reduced to shell-only checkout and validation steps.
+- Open issues now exist and should be treated as the public task backlog.
+- Issue #1 remains the active validation gate.
+- Local checks could not be executed in the ChatGPT environment, so validation is not complete yet.
 
 ## Next task
 
-Run and verify the validation suite after the latest safety-bootstrap and contributor-onboarding commits, then record the result.
+Run and verify the validation suite after the latest safety-bootstrap, contributor-onboarding and cleanup commits, then record the result.
+
+Issue #1 must remain open until the required checks are actually executed and documented.
 
 ## Proposed files
 
@@ -43,16 +36,17 @@ PROJECT_STATE.md
 docs/CHATGPT_NEXT_TASK.md
 ```
 
-Only change Swift code or validation code in the next task if validation fails or if the smallest safe fix is obvious.
+Only change Swift code or validation code if validation fails and the smallest safe fix is obvious.
 
 ## Required behavior
 
-- Check the latest GitHub Actions result for the latest commits, or run locally if working from a clone.
-- Confirm repo structure validation, Swift tests and Swift build.
-- Do not add app actions, persistence, networking, model calls, CoreML, App Intents or secrets.
-- If validation fails, document the exact failing check and propose the smallest safe fix.
-- If validation passes, propose a conservative next implementation step: integrate `RiskScorer` into `PolicyEngine` as decision metadata without loosening existing approval/blocking behavior.
-- Optional follow-up after validation: convert 3-5 entries from `docs/community/GOOD_FIRST_ISSUES.md` into real GitHub issues.
+- Run the required validation commands locally or through CI.
+- Record exact pass/fail results.
+- If a check fails, document the exact command, concise error summary and smallest safe next fix.
+- Do not add app actions, persistence, networking, model calls, CoreML, App Intents, external providers, secrets or real private data.
+- If validation passes, propose the next conservative code step:
+  - Issue #5: add PolicyEngine edge-case tests, or
+  - Issue #9: integrate `RiskScorer` into `PolicyEngine` as metadata without loosening approval/blocking behavior.
 
 ## Validation target
 
