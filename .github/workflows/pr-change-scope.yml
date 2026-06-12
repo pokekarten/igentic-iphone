@@ -66,10 +66,12 @@ jobs:
 
           while IFS= read -r path; do
             [ -z "$path" ] && continue
+            classified=0
 
             case "$path" in
               DUMMY|*.zip|.env|.env.*|*.p12|*.mobileprovision|*.cer|*.key|*.pem|*.xcuserstate|.DS_Store|*/.DS_Store|.build/*|*/.build/*|DerivedData/*|*/DerivedData/*|*xcuserdata/*)
                 forbidden=1
+                classified=1
                 printf '%s\n' "$path" >> forbidden-files.txt
                 ;;
             esac
@@ -77,24 +79,43 @@ jobs:
             case "$path" in
               .github/workflows/*)
                 workflows=1
+                repo_control=1
+                classified=1
                 ;;
+            esac
+
+            case "$path" in
               ios/*)
                 swift=1
+                classified=1
                 ;;
+            esac
+
+            case "$path" in
               scripts/*)
                 scripts=1
+                classified=1
                 ;;
+            esac
+
+            case "$path" in
               README.md|PROJECT_STATE.md|CONTRIBUTING.md|GOVERNANCE.md|ROADMAP.md|SECURITY.md|SUPPORT.md|CODE_OF_CONDUCT.md|MODEL_STRATEGY.md|AGENTS.md|docs/*|*.md|.github/ISSUE_TEMPLATE/*|.github/PULL_REQUEST_TEMPLATE.md)
                 docs=1
                 repo_control=1
-                ;;
-              .github/*|assets/*|LICENSE|.gitignore|.github/dependabot.yml)
-                repo_control=1
-                ;;
-              *)
-                other=1
+                classified=1
                 ;;
             esac
+
+            case "$path" in
+              .github/*|assets/*|LICENSE|.gitignore)
+                repo_control=1
+                classified=1
+                ;;
+            esac
+
+            if [ "$classified" -eq 0 ]; then
+              other=1
+            fi
           done < changed-files.txt
 
           {
@@ -151,5 +172,5 @@ jobs:
             echo "- Documentation-only changes can still trigger CI; they must pass Docs Consistency when docs paths are touched."
             echo "- Workflow changes must pass Workflow Lint before merge."
             echo "- Swift or script changes require Phase 0 CI Validation, including repo structure, Swift build and Swift tests."
-            echo "- Forbidden artifacts, secrets, ZIP imports, signing files and local build products must be removed before merge."
+            echo "- Forbidden artifacts, credentials, ZIP imports, signing files and local build products must be removed before merge."
           } >> "${GITHUB_STEP_SUMMARY}"
