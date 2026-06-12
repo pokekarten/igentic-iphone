@@ -61,6 +61,7 @@ See:
 
 - `AGENTS.md`
 - `PROJECT_STATE.md`
+- `docs/CHATGPT_NEXT_TASK.md`
 - `docs/CODEX_NEXT_TASK.md`
 - `docs/SPARSAMKEIT.md`
 - `docs/SOURCE_VERIFICATION.md`
@@ -136,6 +137,19 @@ No model weights are committed to this repo.
 - Home Server Worker,
 - privacy broker,
 - result verification.
+
+## Community and support
+
+This project is open to careful, privacy-conscious collaboration.
+
+Before contributing, read:
+
+- `CONTRIBUTING.md`
+- `CODE_OF_CONDUCT.md`
+- `SECURITY.md`
+- `SUPPORT.md`
+
+Do not post private data, secrets, credentials, real messages, contacts, calendars, health data or financial data in public issues or pull requests. Use synthetic data for examples and tests.
 
 ## Safety disclaimer
 
