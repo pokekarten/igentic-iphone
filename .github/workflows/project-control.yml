@@ -1,0 +1,71 @@
+name: Project Control
+
+on:
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Reason for running project control"
+        required: false
+        type: string
+  repository_dispatch:
+    types:
+      - project-control
+      - repo-audit
+      - run-validation
+  schedule:
+    - cron: "41 5 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  project-control:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout repository without marketplace actions
+        run: |
+          set -euo pipefail
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git fetch --no-tags --depth=1 origin "${GITHUB_SHA}"
+          git checkout --force FETCH_HEAD
+          git clean -fdx
+          git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+
+      - name: Inspect control docs
+        run: |
+          set -euo pipefail
+          for path in PROJECT_STATE.md docs/CHATGPT_NEXT_TASK.md docs/GITHUB_CONTROL.md docs/VALIDATION.md docs/OPEN_SOURCE_ISSUE_PLAN.md; do
+            test -s "$path"
+          done
+
+      - name: Build project control summary
+        run: |
+          {
+            echo "## Project Control"
+            echo ""
+            echo "Repository: ${GITHUB_REPOSITORY}"
+            echo "Commit: ${GITHUB_SHA}"
+            echo "Event: ${GITHUB_EVENT_NAME}"
+            echo ""
+            echo "### Control files"
+            echo ""
+            echo "- PROJECT_STATE.md present"
+            echo "- docs/CHATGPT_NEXT_TASK.md present"
+            echo "- docs/GITHUB_CONTROL.md present"
+            echo "- docs/VALIDATION.md present"
+            echo "- docs/OPEN_SOURCE_ISSUE_PLAN.md present"
+            echo ""
+            echo "### Recommended next action"
+            echo ""
+            echo "Run Phase 0 CI Validation on the latest main commit and record the result before closing Issue #1."
+          } >> "$GITHUB_STEP_SUMMARY"
