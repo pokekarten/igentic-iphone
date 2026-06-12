@@ -1,5 +1,9 @@
 # iGentic iPhone
 
+<p align="center">
+  <img src="assets/brand/logo-lockup.svg" alt="iGentic logo lockup" width="760">
+</p>
+
 **iGentic iPhone** is an experimental, privacy-first iPhone AI Runtime Layer.
 
 The goal is not to build another chatbot app. The goal is to explore the iPhone, especially iPhone Air, as the trust and control plane for a personal AI system: local first, approval gated, offline capable and able to delegate larger tasks only when policy allows it.
@@ -61,6 +65,8 @@ See:
 
 - `AGENTS.md`
 - `PROJECT_STATE.md`
+- `ROADMAP.md`
+- `GOVERNANCE.md`
 - `MODEL_STRATEGY.md`
 - `docs/apple-api-review.md`
 - `docs/local-runtime-review.md`
@@ -68,6 +74,23 @@ See:
 - `docs/CODEX_NEXT_TASK.md`
 - `docs/SPARSAMKEIT.md`
 - `docs/SOURCE_VERIFICATION.md`
+
+## Brand and community
+
+The master brand is **iGentic**. `iGentic iPhone` is the current research track.
+
+Brand, design and community decisions are part of the repository because this is an open-source project with a long-term identity and IP direction.
+
+- Brand foundation: `docs/brand/BRAND.md`
+- Design system: `docs/brand/DESIGN_SYSTEM.md`
+- Logo brief: `docs/brand/LOGO_BRIEF.md`
+- Logo usage rules: `docs/brand/LOGO_USAGE.md`
+- Community strategy: `docs/community/COMMUNITY_STRATEGY.md`
+- Communication channels: `docs/community/COMMUNICATION_CHANNELS.md`
+- Social media playbook: `docs/community/SOCIAL_MEDIA_PLAYBOOK.md`
+- Initial brand assets: `assets/brand/`
+
+Community direction: **GitHub-first, social-supported**. Instagram, X and LinkedIn are used for discovery and build-in-public storytelling. GitHub remains the canonical place for decisions, issues, pull requests and roadmap.
 
 ## Model strategy
 
@@ -100,12 +123,15 @@ No model weights are committed to this repo.
 
 ## Roadmap
 
+See the full roadmap in `ROADMAP.md`.
+
 ### Phase 0: Research & Architecture
 
 - source verification: `docs/SOURCE_VERIFICATION.md`,
 - Apple API review: `docs/apple-api-review.md`,
 - local runtime review: `docs/local-runtime-review.md`,
-- privacy model definition: `ios/Sources/AgentCore/DataClassification.swift` and `MODEL_STRATEGY.md`.
+- privacy model definition: `ios/Sources/AgentCore/DataClassification.swift` and `MODEL_STRATEGY.md`,
+- brand/community foundation: `docs/brand/` and `docs/community/`.
 
 ### Phase 1: Local Agent Kernel
 
@@ -113,7 +139,9 @@ No model weights are committed to this repo.
 - `PolicyEngine`,
 - `AuditLog`,
 - `DataClassification`,
-- `ApprovalManager`.
+- `ApprovalManager`,
+- `MemoryStore` safe stub,
+- `DelegationBroker` policy-gated stub.
 
 ### Phase 2: Diagnostic iPhone Shell
 
@@ -151,8 +179,14 @@ Before contributing, read:
 - `CODE_OF_CONDUCT.md`
 - `SECURITY.md`
 - `SUPPORT.md`
+- `GOVERNANCE.md`
+- `docs/community/COMMUNITY_STRATEGY.md`
 
 Do not post private data, secrets, credentials, real messages, contacts, calendars, health data or financial data in public issues or pull requests. Use synthetic data for examples and tests.
+
+## License
+
+Code and documentation are licensed under the Apache License 2.0 unless otherwise noted. Brand and logo usage must also follow `docs/brand/LOGO_USAGE.md`.
 
 ## Safety disclaimer
 
