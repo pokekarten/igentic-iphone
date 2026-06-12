@@ -121,6 +121,44 @@ final class SmokeTests: XCTestCase {
         XCTAssertEqual(registry.allTools().map(\.name), ["createReminder", "summarizeNote"])
     }
 
+    func testMemoryStoreSavesAndListsEntriesByScope() {
+        let store = MemoryStore()
+
+        store.save(key: "session-summary", value: "metadata-only", scope: .session)
+        store.save(key: "task-state", value: "pending", scope: .task)
+
+        let sessionEntries = store.entries(in: .session)
+        let taskEntries = store.entries(in: .task)
+
+        XCTAssertEqual(sessionEntries.map(\.key), ["session-summary"])
+        XCTAssertEqual(sessionEntries.map(\.value), ["metadata-only"])
+        XCTAssertEqual(taskEntries.map(\.key), ["task-state"])
+        XCTAssertEqual(taskEntries.map(\.value), ["pending"])
+    }
+
+    func testMemoryStoreOverwritesWithinSameScope() {
+        let store = MemoryStore()
+
+        let firstEntry = store.save(key: "task-state", value: "pending", scope: .task)
+        let updatedEntry = store.save(key: "task-state", value: "approved", scope: .task)
+
+        XCTAssertEqual(firstEntry.id, updatedEntry.id)
+        XCTAssertEqual(store.entries(in: .task).count, 1)
+        XCTAssertEqual(store.entries(in: .task).first?.value, "approved")
+    }
+
+    func testMemoryStoreDeletesOnlyRequestedScope() {
+        let store = MemoryStore()
+
+        store.save(key: "session-summary", value: "metadata-only", scope: .session)
+        store.save(key: "task-state", value: "pending", scope: .task)
+
+        store.delete(scope: .session)
+
+        XCTAssertTrue(store.entries(in: .session).isEmpty)
+        XCTAssertEqual(store.entries(in: .task).map(\.key), ["task-state"])
+    }
+
     func testDelegationBrokerBlocksLocalOnlyMode() {
         let broker = DelegationBroker()
         let decision = broker.decide(
