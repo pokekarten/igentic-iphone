@@ -83,4 +83,41 @@ final class SmokeTests: XCTestCase {
         XCTAssertEqual(response.approvalStatus, .approved)
         XCTAssertEqual(response.route, .localTool(name: "createReminder", reason: "Reminder creation is a typed local action."))
     }
+
+    func testToolRegistryStoresToolMetadataOnly() {
+        let registry = ToolRegistry()
+        let tool = ToolDefinition(
+            name: "createReminder",
+            requiredDataLevel: .contextualPrivateData,
+            actionRisk: .prepare,
+            description: "Prepare a local reminder action."
+        )
+
+        registry.register(tool)
+
+        XCTAssertEqual(registry.tool(named: "createReminder"), tool)
+        XCTAssertNil(registry.tool(named: "sendMessage"))
+    }
+
+    func testToolRegistryReturnsSortedSnapshot() {
+        let registry = ToolRegistry()
+        registry.register(
+            ToolDefinition(
+                name: "summarizeNote",
+                requiredDataLevel: .contextualPrivateData,
+                actionRisk: .prepare,
+                description: "Prepare a local note summary."
+            )
+        )
+        registry.register(
+            ToolDefinition(
+                name: "createReminder",
+                requiredDataLevel: .contextualPrivateData,
+                actionRisk: .prepare,
+                description: "Prepare a local reminder action."
+            )
+        )
+
+        XCTAssertEqual(registry.allTools().map(\.name), ["createReminder", "summarizeNote"])
+    }
 }
