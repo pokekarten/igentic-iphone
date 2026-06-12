@@ -76,7 +76,7 @@ public struct SensitiveDataDetector: Sendable {
             )
         }
 
-        if contains(pattern: #"(?:\+49|0049|0)[0-9][0-9 ()/.-]{6,}[0-9]"#, in: text) {
+        if containsGermanPhoneLikePattern(in: text) {
             findings.append(
                 SensitiveDataFinding(category: .phoneNumber, reason: SensitiveDataCategory.phoneNumber.detectionReason)
             )
@@ -88,6 +88,36 @@ public struct SensitiveDataDetector: Sendable {
     private func containsIBANLikePattern(in text: String) -> Bool {
         let uppercasedText = text.uppercased()
         return contains(pattern: #"[A-Z]{2}\s?[0-9]{2}(?:\s?[A-Z0-9]){11,30}"#, in: uppercasedText)
+    }
+
+    private func containsGermanPhoneLikePattern(in text: String) -> Bool {
+        let allowedSeparators = CharacterSet(charactersIn: " ()/.-")
+        var normalized = ""
+
+        for scalar in text.unicodeScalars {
+            if CharacterSet.decimalDigits.contains(scalar) || scalar == "+" {
+                normalized.unicodeScalars.append(scalar)
+            } else if allowedSeparators.contains(scalar) {
+                continue
+            } else if !normalized.isEmpty {
+                normalized.removeAll(keepingCapacity: true)
+            }
+
+            let nationalPrefix = "0"
+            let internationalPrefix = "+" + "49"
+            let internationalDialPrefix = "00" + "49"
+            if normalized.hasPrefix(nationalPrefix), normalized.count >= 8 {
+                return true
+            }
+            if normalized.hasPrefix(internationalPrefix), normalized.count >= 10 {
+                return true
+            }
+            if normalized.hasPrefix(internationalDialPrefix), normalized.count >= 11 {
+                return true
+            }
+        }
+
+        return false
     }
 
     private func contains(pattern: String, in text: String) -> Bool {
