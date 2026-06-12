@@ -15,4 +15,40 @@ final class SmokeTests: XCTestCase {
 
         XCTAssertTrue(decision.isAllowed)
     }
+
+    func testAuditLogRecordsEvents() {
+        let log = AuditLog()
+        let event = AuditEvent(
+            type: .taskReceived,
+            message: "test event",
+            dataSensitivity: .publicData
+        )
+
+        log.record(event)
+
+        XCTAssertEqual(log.allEvents(), [event])
+    }
+
+    func testAuditLogReturnsSnapshot() {
+        let log = AuditLog()
+        log.record(
+            AuditEvent(
+                type: .taskReceived,
+                message: "first",
+                dataSensitivity: .publicData
+            )
+        )
+
+        let snapshot = log.allEvents()
+        log.record(
+            AuditEvent(
+                type: .routeSelected,
+                message: "second",
+                dataSensitivity: .publicData
+            )
+        )
+
+        XCTAssertEqual(snapshot.count, 1)
+        XCTAssertEqual(log.allEvents().count, 2)
+    }
 }
