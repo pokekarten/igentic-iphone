@@ -26,6 +26,7 @@ REQUIRED_FILES = [
     "ios/Sources/AgentCore/ApprovalManager.swift",
     "ios/Sources/AgentCore/ToolRegistry.swift",
     "ios/Sources/AgentCore/DelegationBroker.swift",
+    "ios/Sources/AgentCore/ScenarioRunner.swift",
 ]
 
 FORBIDDEN_PARTS = {
