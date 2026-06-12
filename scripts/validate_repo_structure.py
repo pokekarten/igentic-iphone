@@ -19,6 +19,7 @@ REQUIRED_FILES = [
     "ios/Sources/AgentCore/PolicyEngine.swift",
     "ios/Sources/AgentCore/TaskRouter.swift",
     "ios/Sources/AgentCore/AuditLog.swift",
+    "ios/Sources/AgentCore/ApprovalManager.swift",
 ]
 
 FORBIDDEN_PARTS = {
