@@ -120,7 +120,7 @@ jobs:
             esac
 
             case "$path" in
-              README.md|PROJECT_STATE.md|CONTRIBUTING.md|GOVERNANCE.md|ROADMAP.md|SECURITY.md|SUPPORT.md|CODE_OF_CONDUCT.md|MODEL_STRATEGY.md|AGENTS.md|docs/*|*.md|.github/ISSUE_TEMPLATE/*|.github/PULL_REQUEST_TEMPLATE.md)
+              README.md|PROJECT_STATE.md|CONTRIBUTING.md|GOVERNANCE.md|ROADMAP.md|SECURITY.md|SUPPORT.md|CODE_OF_CONDUCT.md|MODEL_STRATEGY.md|AGENTS.md|docs/*|.github/ISSUE_TEMPLATE/*|.github/PULL_REQUEST_TEMPLATE.md|*.md)
                 docs=1
                 repo_control=1
                 classified=1
