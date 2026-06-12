@@ -36,10 +36,12 @@ A validation report is complete only when it records:
 
 | Check | Required evidence |
 | --- | --- |
-| Repo structure | `python3 scripts/validate_repo_structure.py` exits 0 |
-| Swift tests | `cd ios && swift test` exits 0 |
-| Swift build | `cd ios && swift build` exits 0 |
+| Repo structure | The repo-structure validation command exits 0 |
+| Swift tests | The Swift test command exits 0 |
+| Swift build | The Swift build command exits 0 |
 | CI | GitHub Actions workflow conclusion is `success` for the relevant commit |
+
+The exact command list remains the fenced command block above.
 
 ## What does not count as passing
 
@@ -72,16 +74,6 @@ If any required check fails, keep Issue #1 open and document the smallest safe n
 
 ## Safety boundary
 
-Validation work must not add:
-
-- app actions,
-- persistence,
-- networking,
-- external providers,
-- model calls,
-- CoreML runtime changes,
-- App Intents,
-- secrets,
-- real private data.
+Validation work must remain documentation and verification focused. It must not introduce runtime capabilities, external integrations or real user data.
 
 Validation should only prove that the existing safety-first repository is structurally sound and buildable.
