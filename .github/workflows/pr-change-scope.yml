@@ -86,7 +86,7 @@ jobs:
               return 0
             fi
 
-            if [[ "$path" == */.build/* || "$path" == */DerivedData/* || "$path" == *xcuserdata/* ]]; then
+            if [[ "$path" == .build/* || "$path" == */.build/* || "$path" == DerivedData/* || "$path" == */DerivedData/* || "$path" == *xcuserdata/* ]]; then
               return 0
             fi
 
