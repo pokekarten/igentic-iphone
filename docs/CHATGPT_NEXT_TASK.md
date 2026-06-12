@@ -21,6 +21,8 @@ All future work should follow `docs/PROJECT_OPERATING_MODEL.md` once that PR is 
 - Added `docs/GITHUB_AUTOMATION_STRATEGY.md`.
 - Updated `docs/WORKFLOWS.md` with Control Dashboard and Workflow Lint sections.
 - Started a process-improvement PR on branch `chatgpt/project-operating-model` to make the ChatGPT/Codex/contributor workflow durable in the repo.
+- Integrated `RiskScorer` into `PolicyEngine` on branch `codex/risk-scorer-policy-metadata` as decision metadata only.
+- Added smoke-test coverage showing safe decisions stay safe, local-only/restricted/critical approval behavior is preserved, risk metadata is present, and risk-score metadata alone does not add approval behavior.
 - No runtime app behavior, persistence, networking, model calls, external providers, CoreML, App Intents, secrets or private data were added.
 
 ## Current repo review
@@ -29,25 +31,27 @@ All future work should follow `docs/PROJECT_OPERATING_MODEL.md` once that PR is 
 - Main Phase 1 safety stubs are present: policy, approval, tool registry, delegation broker, memory store, sensitive-data detector, risk scorer and scenario runner.
 - GitHub Actions support validation, repo audit, docs consistency, main-health reporting, project control, issue triage, PR-quality checks, control-dashboard reporting and workflow linting.
 - Issue #1 remains the active validation gate.
-- Local Swift validation could not be executed in the ChatGPT environment, so validation is not complete yet.
+- Local validation passed in the Codex environment for `codex/risk-scorer-policy-metadata`; Issue #1 remains open until latest `main` validation is recorded.
 
 ## Next task
 
-Review and merge the `chatgpt/project-operating-model` PR only if checks pass and the scope remains documentation/process only.
+Review the `codex/risk-scorer-policy-metadata` Draft PR first. Merge it only if the diff remains limited to the allowed files, tests stay green, and approval/blocking behavior is confirmed unchanged.
 
-After that, run `.github/workflows/control-dashboard.yml`, inspect the generated report from the workflow summary, then run Phase 0 CI Validation on latest `main`.
+After that, review and merge the `chatgpt/project-operating-model` PR only if checks pass and the scope remains documentation/process only. Then run `.github/workflows/control-dashboard.yml`, inspect the generated report from the workflow summary, and run Phase 0 CI Validation on latest `main`.
 
 Issue #1 must remain open until the required checks are actually executed and documented.
 
-## Proposed files for the process PR
+## Proposed files for the next review
 
 ```text
-docs/PROJECT_OPERATING_MODEL.md
+ios/Sources/AgentCore/PolicyEngine.swift
+ios/Sources/AgentCore/RiskScorer.swift
+ios/Tests/AgentCoreTests/SmokeTests.swift
 PROJECT_STATE.md
 docs/CHATGPT_NEXT_TASK.md
 ```
 
-Only change Swift code or validation code if validation fails and the smallest safe fix is obvious.
+Only change Swift code or validation code if validation fails and the smallest safe fix is obvious. Keep `RiskScorer` output metadata-only unless a future explicit policy task changes approval behavior with tests.
 
 ## Required behavior
 
