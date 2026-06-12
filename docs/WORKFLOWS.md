@@ -24,6 +24,29 @@ This is the main validation source for Issue #1.
 
 ## Repository control workflows
 
+### Control Dashboard
+
+File: `.github/workflows/control-dashboard.yml`
+
+Purpose:
+
+- Collect a read-only repository-state snapshot.
+- Collect recent GitHub Actions workflow runs.
+- Render `reports/latest-control-report.md`.
+- Expose the report through `$GITHUB_STEP_SUMMARY`.
+
+Triggers:
+
+- Manual workflow runs.
+- Weekly schedule at `03:17 UTC` on Tuesdays.
+- Repository dispatch events: `project-control`, `repo-audit`, `run-validation`.
+
+Safety rules:
+
+- No marketplace checkout action.
+- No mutation of issues, pull requests, refs, workflow runs or repository files.
+- No generated reports committed back to `main` in this first version.
+
 ### Repo Audit
 
 File: `.github/workflows/repo-audit.yml`
@@ -115,6 +138,28 @@ Triggers:
 
 - Pull requests opened, edited, synchronized, reopened or marked ready for review.
 
+### Workflow Lint
+
+File: `.github/workflows/workflow-lint.yml`
+
+Purpose:
+
+- Lint GitHub Actions workflow YAML files.
+- Catch workflow syntax and actionlint problems early.
+- Make workflow edits safer before merging.
+
+Triggers:
+
+- Pull requests that change `.github/workflows/**`.
+- Pushes to `main` that change `.github/workflows/**`.
+- Manual workflow runs.
+
+Safety rules:
+
+- Read-only permissions.
+- No file modifications.
+- No generated commits.
+
 ## Dependency workflow
 
 ### Dependabot
@@ -131,8 +176,9 @@ Rule:
 
 ## Recommended next steps
 
-1. Run Phase 0 CI Validation on the latest `main` commit.
-2. Record the result in `PROJECT_STATE.md`.
-3. Keep Issue #1 open until the validation result is documented.
-4. Configure branch protection for `main` in GitHub UI.
-5. Convert selected good-first backlog items into real issues.
+1. Run the Control Dashboard workflow and inspect the generated report.
+2. Run Phase 0 CI Validation on the latest `main` commit.
+3. Record the result in `PROJECT_STATE.md`.
+4. Keep Issue #1 open until the validation result is documented.
+5. Configure branch protection for `main` in GitHub UI.
+6. Convert selected good-first backlog items into real issues.
