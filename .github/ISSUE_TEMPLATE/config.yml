@@ -1,0 +1,14 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Read the contributor starter guide
+    url: https://github.com/pokekarten/igentic-iphone/blob/main/docs/community/CONTRIBUTOR_STARTER_GUIDE.md
+    about: New contributors should start here before opening an issue.
+  - name: Review good first issue ideas
+    url: https://github.com/pokekarten/igentic-iphone/blob/main/docs/community/GOOD_FIRST_ISSUES.md
+    about: Find small, safe tasks that are suitable for first contributions.
+  - name: Read the brand and logo rules
+    url: https://github.com/pokekarten/igentic-iphone/blob/main/docs/brand/LOGO_USAGE.md
+    about: Use this before proposing logo, design or social assets.
+  - name: Read the security policy
+    url: https://github.com/pokekarten/igentic-iphone/blob/main/SECURITY.md
+    about: Do not report sensitive vulnerabilities or private data in public issues.
