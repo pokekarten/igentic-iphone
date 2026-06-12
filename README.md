@@ -61,6 +61,9 @@ See:
 
 - `AGENTS.md`
 - `PROJECT_STATE.md`
+- `MODEL_STRATEGY.md`
+- `docs/apple-api-review.md`
+- `docs/local-runtime-review.md`
 - `docs/CHATGPT_NEXT_TASK.md`
 - `docs/CODEX_NEXT_TASK.md`
 - `docs/SPARSAMKEIT.md`
@@ -99,10 +102,10 @@ No model weights are committed to this repo.
 
 ### Phase 0: Research & Architecture
 
-- source verification,
-- Apple API review,
-- local runtime review,
-- privacy model definition.
+- source verification: `docs/SOURCE_VERIFICATION.md`,
+- Apple API review: `docs/apple-api-review.md`,
+- local runtime review: `docs/local-runtime-review.md`,
+- privacy model definition: `ios/Sources/AgentCore/DataClassification.swift` and `MODEL_STRATEGY.md`.
 
 ### Phase 1: Local Agent Kernel
 
