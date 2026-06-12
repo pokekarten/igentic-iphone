@@ -92,6 +92,26 @@ Brand, design and community decisions are part of the repository because this is
 
 Community direction: **GitHub-first, social-supported**. Instagram, X and LinkedIn are used for discovery and build-in-public storytelling. GitHub remains the canonical place for decisions, issues, pull requests and roadmap.
 
+## New contributors
+
+Start with:
+
+- `docs/community/CONTRIBUTOR_STARTER_GUIDE.md`
+- `docs/community/GOOD_FIRST_ISSUES.md`
+- `CONTRIBUTING.md`
+- `GOVERNANCE.md`
+
+Recommended first lanes:
+
+- documentation clarity,
+- design and logo feedback,
+- repo validation improvements,
+- policy tests,
+- synthetic device test reports,
+- safe metadata-only runtime stubs.
+
+Do not start with real private data, external AI provider integrations, model weights, signing files or broad rewrites.
+
 ## Model strategy
 
 Initial model strategy is hybrid:
