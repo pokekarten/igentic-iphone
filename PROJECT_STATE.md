@@ -1,25 +1,50 @@
 # Project State
 
+Last updated: 2026-06-12
+
 ## Current status
-The repository is being rebuilt as an open-source iPhone AI runtime starter project.
 
-## Import source
-Use the verified flat ZIP prepared in ChatGPT:
+`iGentic iPhone` is being initialized as an open-source, privacy-first iPhone AI Runtime Layer repository.
 
-`igentic-iphone-rebuild-verified-flat.zip`
+The repo is now controlled directly through GitHub instead of relying only on ZIP download/upload loops.
 
-The ZIP should be extracted into the repository root as real files. ZIP archives themselves must not be committed.
+## Current baseline
 
-## Immediate next step
-Use Codex to import the verified ZIP on branch:
+- Repository: `pokekarten/igentic-iphone`
+- Visibility: public
+- Controller: ChatGPT via GitHub Connector
+- Implementation assistant: Codex through small Draft PRs only
+- Primary target device: iPhone Air as trust/control plane
+- Current phase: Phase 0 / Phase 1 bootstrap
 
-`codex/bootstrap-open-source-repo`
+## What exists now
 
-Codex should then open a Draft PR into `main`.
+- README with product vision and repo operating model
+- `AGENTS.md` with ChatGPT/Codex/iPhone tester rules
+- `docs/CODEX_NEXT_TASK.md` as the single next-task handoff
+- GitHub issue templates for feature, model and security reviews
+- Placeholder import work is being replaced with real tracked files
 
-## Validation target
-- `npm run validate`
-- `cd ios && swift test`
+## What still needs bootstrapping
+
+- Complete Swift Package skeleton under `ios/`
+- Architecture docs from the verified v3 package
+- Repo validation script
+- Source verification and sparsamkeit docs
+- Initial CI verification after the first full Swift package commit
+
+## Important constraint
+
+The GitHub Connector can edit repository files, but it does not directly upload and extract ZIP archives. Therefore repository bootstrapping should happen as either:
+
+1. direct file commits through the connector,
+2. a narrow Codex Draft PR that imports the verified ZIP locally,
+3. manual local push from the verified ZIP.
+
+## Current next task
+
+See `docs/CODEX_NEXT_TASK.md`.
 
 ## Review owner
-ChatGPT reviews the Draft PR before merge.
+
+ChatGPT reviews all Draft PRs before merge.
