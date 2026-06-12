@@ -63,12 +63,13 @@ Remaining Phase 0 follow-up:
 - GitHub issue templates for feature, model, security, design, device test and social content reviews
 - Pull request template with privacy, approval and delegation checklist
 - Minimal Swift Package under `ios/`
-- `PolicyEngine`, `TaskRouter`, `AuditLog`, `AgentKernel`, `ApprovalManager`, `ToolRegistry`, `DelegationBroker`
+- `PolicyEngine`, `TaskRouter`, `AuditLog`, `AgentKernel`, `ApprovalManager`, `ToolRegistry`, `DelegationBroker`, `ScenarioRunner`
 - `AuditLog` thread-safety fix using a lock
 - Approval gate in `AgentKernel` before routing to local tools
 - `ToolRegistry` metadata-only stub for tool names, required data levels and action risks
 - `DelegationBroker` safe policy-gated stub for metadata-only delegation decisions
-- Smoke tests for policy, audit log, approval-gated routing, tool registry behavior and delegation broker decisions
+- `ScenarioRunner` dry-run harness for synthetic policy, approval, routing and delegation checks
+- Smoke tests for policy, audit log, approval-gated routing, tool registry behavior, delegation broker decisions and scenario runner output
 - Repo validation script
 - Swift and repo-audit GitHub Actions workflows
 
@@ -81,7 +82,7 @@ Remaining Phase 0 follow-up:
 - `.approved` approval status allows routing to continue.
 - Tool registration is metadata-only; no real tool execution exists yet.
 - `DelegationBroker` decides only: Local Only blocks delegation, external providers and critical actions require explicit approval, and safe trusted-device paths are metadata-only.
-- `DelegationBroker` does not execute actions, call providers, send data, add networking, persist data or touch app intents.
+- `ScenarioRunner` runs synthetic dry-run scenarios only.
 - No model weights, secrets, app signing files or real private data should be committed.
 - Public contribution docs warn against posting secrets or private data.
 - Social media is explicitly not a decision authority.
@@ -90,7 +91,6 @@ Remaining Phase 0 follow-up:
 ## What still needs bootstrapping
 
 - `MemoryStore` safe stub
-- Diagnostic Shell / Scenario Runner as a dry-run test harness
 - Architecture docs from the verified starter package, imported gradually
 - Initial CI verification after the next push/run cycle
 - First set of GitHub issues for brand, roadmap and good-first-contribution tasks
