@@ -12,9 +12,9 @@ Codex is paused for now. ChatGPT works directly through the GitHub Connector on 
 - PR #21 (GitHub control dashboard layer) is merged.
 - Issue #1 remains the primary validation gate.
 - Issue #1 now contains local validation evidence showing:
-  - `python3 scripts/validate_repo_structure.py` passed.
-  - `cd ios && swift test` passed.
-  - `cd ios && swift build` passed.
+  - repo-structure validation passed.
+  - Swift tests passed.
+  - Swift build passed.
 - GitHub Actions evidence exists on recent PR heads, but current-main validation evidence should be explicitly confirmed before Issue #1 is closed.
 - Branch `chatgpt/ci-case-coverage` adds PR Change Scope and documents the CI case matrix so future PRs show which validation path applies.
 
