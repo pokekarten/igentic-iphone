@@ -159,6 +159,95 @@ final class SmokeTests: XCTestCase {
         XCTAssertEqual(store.entries(in: .task).map(\.key), ["task-state"])
     }
 
+    func testSensitiveDataDetectorFlagsIBANWithoutRetainingRawValue() {
+        let result = SensitiveDataDetector().detect(
+            in: "Bitte pruefe DE44500105175407324931 fuer die lokale Risikoanalyse."
+        )
+
+        XCTAssertEqual(result.findings.map(\.category), [.iban])
+        XCTAssertEqual(result.suggestedDataClassification.level, .restrictedSensitiveData)
+        XCTAssertFalse(result.findings.contains { $0.reason.contains("DE44500105175407324931") })
+    }
+
+    func testSensitiveDataDetectorFlagsEmailAndPhoneAsMetadataCategories() {
+        let result = SensitiveDataDetector().detect(
+            in: "Kontakt: test@example.com oder +49 151 12345678."
+        )
+
+        XCTAssertEqual(result.findings.map(\.category), [.emailAddress, .phoneNumber])
+        XCTAssertEqual(result.suggestedDataClassification.level, .contextualPrivateData)
+    }
+
+    func testRiskScorerKeepsLocalPublicReadLow() {
+        let score = RiskScorer().score(
+            RiskScoringRequest(
+                privacyMode: .localOnly,
+                dataClassification: .publicDefault,
+                actionRisk: .read,
+                delegationTarget: .localDevice
+            )
+        )
+
+        XCTAssertEqual(score.value, 1)
+        XCTAssertFalse(score.requiresExplicitApproval)
+    }
+
+    func testRiskScorerRaisesExternalProviderRisk() {
+        let scorer = RiskScorer()
+        let localScore = scorer.score(
+            RiskScoringRequest(
+                privacyMode: .trustedDevices,
+                dataClassification: DataClassification(level: .contextualPrivateData, reason: "Test metadata."),
+                actionRisk: .prepare,
+                delegationTarget: .localDevice
+            )
+        )
+        let externalScore = scorer.score(
+            RiskScoringRequest(
+                privacyMode: .trustedDevices,
+                dataClassification: DataClassification(level: .contextualPrivateData, reason: "Test metadata."),
+                actionRisk: .prepare,
+                delegationTarget: .externalProvider
+            )
+        )
+
+        XCTAssertGreaterThan(externalScore.value, localScore.value)
+        XCTAssertEqual(externalScore.value, 7)
+        XCTAssertTrue(externalScore.requiresExplicitApproval)
+    }
+
+    func testRiskScorerTreatsCriticalActionsAsHighRisk() {
+        let score = RiskScorer().score(
+            RiskScoringRequest(
+                privacyMode: .trustedDevices,
+                dataClassification: .publicDefault,
+                actionRisk: .critical,
+                delegationTarget: .trustedMac
+            )
+        )
+
+        XCTAssertEqual(score.value, 7)
+        XCTAssertTrue(score.requiresExplicitApproval)
+    }
+
+    func testRiskScorerTreatsIBANLikeDataAsHighRisk() {
+        let detection = SensitiveDataDetector().detect(
+            in: "IBAN fuer Test: DE44500105175407324931"
+        )
+        let score = RiskScorer().score(
+            RiskScoringRequest(
+                privacyMode: .localOnly,
+                dataClassification: detection.suggestedDataClassification,
+                actionRisk: .read,
+                delegationTarget: .localDevice,
+                sensitiveDataFindings: detection.findings
+            )
+        )
+
+        XCTAssertEqual(score.value, 8)
+        XCTAssertTrue(score.requiresExplicitApproval)
+    }
+
     func testDelegationBrokerBlocksLocalOnlyMode() {
         let broker = DelegationBroker()
         let decision = broker.decide(
