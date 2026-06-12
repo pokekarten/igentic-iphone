@@ -48,8 +48,10 @@ public final class AgentKernel: @unchecked Sendable {
             return AgentResponse(route: .blocked(reason: decision.reason), policyDecision: decision)
         }
 
+        var approvalStatus: ApprovalStatus = .notRequired
+
         if decision.requiresApproval {
-            let status = approvalManager.requestApproval(
+            approvalStatus = approvalManager.requestApproval(
                 ApprovalRequest(
                     taskSummary: task.userText,
                     dataClassification: task.dataClassification,
@@ -58,13 +60,13 @@ public final class AgentKernel: @unchecked Sendable {
                 )
             )
 
-            auditLog.record(AuditEvent(type: .approvalRequired, message: "Approval status: \(status.rawValue)", dataSensitivity: task.dataClassification.level))
+            auditLog.record(AuditEvent(type: .approvalRequired, message: "Approval status: \(approvalStatus.rawValue)", dataSensitivity: task.dataClassification.level))
 
-            guard status == .approved else {
+            guard approvalStatus == .approved else {
                 return AgentResponse(
                     route: .approvalRequired(reason: "Approval is required before routing."),
                     policyDecision: decision,
-                    approvalStatus: status
+                    approvalStatus: approvalStatus
                 )
             }
         }
@@ -72,7 +74,7 @@ public final class AgentKernel: @unchecked Sendable {
         let route = taskRouter.route(task, privacyMode: privacyMode)
         auditLog.record(AuditEvent(type: .routeSelected, message: String(describing: route), dataSensitivity: task.dataClassification.level))
 
-        return AgentResponse(route: route, policyDecision: decision)
+        return AgentResponse(route: route, policyDecision: decision, approvalStatus: approvalStatus)
     }
 
     public func auditEvents() -> [AuditEvent] {
