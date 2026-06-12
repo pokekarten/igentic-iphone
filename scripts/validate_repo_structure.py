@@ -27,6 +27,8 @@ REQUIRED_FILES = [
     "ios/Sources/AgentCore/ToolRegistry.swift",
     "ios/Sources/AgentCore/DelegationBroker.swift",
     "ios/Sources/AgentCore/MemoryStore.swift",
+    "ios/Sources/AgentCore/SensitiveDataDetector.swift",
+    "ios/Sources/AgentCore/RiskScorer.swift",
     "ios/Sources/AgentCore/ScenarioRunner.swift",
 ]
 
