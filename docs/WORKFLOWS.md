@@ -32,7 +32,7 @@ Purpose:
 
 - Collect a read-only repository-state snapshot.
 - Collect recent GitHub Actions workflow runs.
-- Render `reports/latest-control-report.md`.
+- Render the latest control report into the workflow workspace.
 - Expose the report through `$GITHUB_STEP_SUMMARY`.
 
 Triggers:
