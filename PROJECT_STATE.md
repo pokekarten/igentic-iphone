@@ -19,8 +19,12 @@ The repo is now controlled directly through GitHub instead of relying on ZIP dow
 
 ## What exists now
 
-- README with product vision and repo operating model
+- README with product vision, repo operating model and community links
 - `AGENTS.md` with ChatGPT/Codex/iPhone tester rules
+- `CONTRIBUTING.md`
+- `CODE_OF_CONDUCT.md`
+- `SECURITY.md`
+- `SUPPORT.md`
 - `docs/CODEX_NEXT_TASK.md` now paused
 - `docs/CHATGPT_NEXT_TASK.md` as active next-task handoff
 - GitHub issue templates for feature, model and security reviews
@@ -37,6 +41,7 @@ The repo is now controlled directly through GitHub instead of relying on ZIP dow
 - `AuditLog` is no longer backed by an unprotected mutable array.
 - Approval handling still needs a first-class guard before any real action layer is added.
 - No model weights, secrets, app signing files or real private data should be committed.
+- Public contribution docs now warn against posting secrets or private data.
 
 ## What still needs bootstrapping
 
