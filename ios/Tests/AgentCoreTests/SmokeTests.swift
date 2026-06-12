@@ -51,4 +51,36 @@ final class SmokeTests: XCTestCase {
         XCTAssertEqual(snapshot.count, 1)
         XCTAssertEqual(log.allEvents().count, 2)
     }
+
+    func testAgentKernelStopsWhenApprovalIsPending() {
+        let kernel = AgentKernel(
+            approvalManager: ApprovalManager(defaultStatus: .pending)
+        )
+        let task = TaskRequest(
+            userText: "Prepare a critical action",
+            intent: .createReminder,
+            actionRisk: .execute
+        )
+
+        let response = kernel.handle(task, privacyMode: .localOnly)
+
+        XCTAssertEqual(response.approvalStatus, .pending)
+        XCTAssertEqual(response.route, .approvalRequired(reason: "Approval is required before routing."))
+    }
+
+    func testAgentKernelRoutesWhenApprovalIsApproved() {
+        let kernel = AgentKernel(
+            approvalManager: ApprovalManager(defaultStatus: .approved)
+        )
+        let task = TaskRequest(
+            userText: "Prepare a critical action",
+            intent: .createReminder,
+            actionRisk: .execute
+        )
+
+        let response = kernel.handle(task, privacyMode: .localOnly)
+
+        XCTAssertEqual(response.approvalStatus, .notRequired)
+        XCTAssertEqual(response.route, .localTool(name: "createReminder", reason: "Reminder creation is a typed local action."))
+    }
 }
