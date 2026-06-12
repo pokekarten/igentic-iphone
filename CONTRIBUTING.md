@@ -4,6 +4,22 @@ Thank you for your interest in iGentic iPhone.
 
 This project explores a privacy-first iPhone AI Runtime Layer. It is an experimental research prototype, not a production AI assistant. Security, privacy, auditability and user approval come before autonomy.
 
+## Start here
+
+New contributors should read:
+
+- `docs/community/CONTRIBUTOR_STARTER_GUIDE.md`
+- `docs/community/GOOD_FIRST_ISSUES.md`
+- `ROADMAP.md`
+- `GOVERNANCE.md`
+- `SECURITY.md`
+
+If you want to contribute visuals, also read:
+
+- `docs/brand/BRAND.md`
+- `docs/brand/DESIGN_SYSTEM.md`
+- `docs/brand/LOGO_USAGE.md`
+
 ## Project principles
 
 Contributions should follow these principles:
@@ -14,6 +30,7 @@ Contributions should follow these principles:
 4. Draft before execute.
 5. Small pull requests before large rewrites.
 6. Real device evidence before iPhone performance claims.
+7. GitHub decisions before social media discussion.
 
 ## Good first contributions
 
@@ -23,7 +40,9 @@ Good first contributions include:
 - tests for `PolicyEngine`, `AuditLog`, `TaskRouter` and `AgentKernel`,
 - safe stubs for future runtime components,
 - source verification notes,
-- issue triage and reproducible test reports.
+- issue triage and reproducible test reports,
+- logo/design refinements that follow the brand rules,
+- social post drafts that point back to GitHub.
 
 Avoid starting with:
 
@@ -32,7 +51,8 @@ Avoid starting with:
 - App Store configuration,
 - signing or provisioning files,
 - real private user data,
-- broad architecture rewrites.
+- broad architecture rewrites,
+- production-readiness or performance claims without evidence.
 
 ## Development workflow
 
@@ -63,6 +83,8 @@ Every pull request should explain:
 - how it was validated,
 - what remains intentionally out of scope.
 
+Use `.github/PULL_REQUEST_TEMPLATE.md`.
+
 ## Privacy and data handling
 
 Do not commit:
@@ -90,6 +112,15 @@ If a contribution requires sample data, use synthetic examples only.
 - Prefer explicit policy decisions over implicit behavior.
 - Keep public APIs stable unless there is a clear reason to change them.
 - Add tests for security-sensitive behavior.
+- Keep validation dependency-free unless there is a strong reason.
+
+## Design style
+
+- Keep the brand calm, precise and privacy-first.
+- Do not use Apple logos, iPhone outlines, Dynamic Island shapes or Apple-owned campaign styling.
+- Prefer diagrams and policy states over generic AI hype.
+- Include accessibility metadata in SVG assets where possible.
+- Treat design proposals as project artifacts, not disposable marketing.
 
 ## Agent and Codex usage
 
@@ -97,4 +128,4 @@ Codex and other coding agents must follow `AGENTS.md`, `PROJECT_STATE.md` and th
 
 ## License
 
-By contributing, you agree that your contribution is licensed under this repository's license.
+By contributing, you agree that your contribution is licensed under this repository's license. Brand and logo usage must also follow `docs/brand/LOGO_USAGE.md`.
