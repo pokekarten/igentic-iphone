@@ -15,6 +15,15 @@ Codex is paused for now. ChatGPT works directly through the GitHub Connector on 
 - Pending approval stops routing; approved status allows routing to continue.
 - `ToolRegistry` was added as a metadata-only registry.
 - Tool registry tests cover lookup and sorted snapshot behavior.
+- Open-source/brand/community foundation was added:
+  - `LICENSE`
+  - `ROADMAP.md`
+  - `GOVERNANCE.md`
+  - `docs/brand/`
+  - `docs/community/`
+  - `assets/brand/`
+  - design, device-test and social-content issue templates
+  - pull request template with privacy/approval/delegation checklist
 
 ## Next task
 
