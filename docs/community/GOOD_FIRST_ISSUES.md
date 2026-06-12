@@ -157,3 +157,68 @@ Requirements:
 ### 11. Add App Intents safety notes
 
 **Goal:** Create or extend a doc explaining safe App Intents patterns.
+
+Focus:
+
+- draft before execute,
+- approval before critical action,
+- synthetic examples only,
+- no private data in docs.
+
+**Validation:** Source-linked doc review.
+
+### 12. Add device test checklist
+
+**Goal:** Create a checklist for real iPhone testing.
+
+Include:
+
+- device model,
+- iOS version,
+- commit tested,
+- scenario,
+- privacy notes,
+- expected behavior,
+- result.
+
+**Validation:** Manual docs review.
+
+## Social/community tasks
+
+### 13. Draft first Instagram carousel
+
+**Goal:** Create a text-only carousel draft for the first public post.
+
+Topic:
+
+> The trusted device should control identity, permissions and auditability.
+
+**Validation:** Follow `docs/community/SOCIAL_MEDIA_PLAYBOOK.md`.
+
+### 14. Draft first LinkedIn announcement
+
+**Goal:** Create a professional launch/update draft.
+
+Must include:
+
+- experimental status,
+- GitHub-first community model,
+- contributor types wanted,
+- no production-ready claims.
+
+**Validation:** Manual review.
+
+## How to convert one into a GitHub issue
+
+Use a short issue title, for example:
+
+```text
+Good first issue: Add glossary for privacy and runtime terms
+```
+
+Use the relevant issue template and include:
+
+- scope,
+- affected files,
+- stop rules,
+- validation target.
