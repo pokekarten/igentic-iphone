@@ -20,6 +20,7 @@ REQUIRED_FILES = [
     "ios/Sources/AgentCore/TaskRouter.swift",
     "ios/Sources/AgentCore/AuditLog.swift",
     "ios/Sources/AgentCore/ApprovalManager.swift",
+    "ios/Sources/AgentCore/ToolRegistry.swift",
 ]
 
 FORBIDDEN_PARTS = {
