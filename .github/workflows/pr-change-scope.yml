@@ -86,7 +86,7 @@ jobs:
               return 0
             fi
 
-            if [[ "$path" == */.build/* || "$path" == */DerivedData/* || "$path" == *xcuserdata/* ]]; then
+            if [[ "$path" == .build/* || "$path" == */.build/* || "$path" == DerivedData/* || "$path" == */DerivedData/* || "$path" == *xcuserdata/* ]]; then
               return 0
             fi
 
@@ -144,7 +144,7 @@ jobs:
 
             # For renames/copies, --name-status emits: RNNN<TAB>old<TAB>new.
             # Classify and validate the post-image path. For deletions, keep the
-            # cleanup allowed: deleting a forbidden artifact must not fail the PR.
+            # cleanup allowed: deleting a forbidden item must not fail the PR.
             case "$status" in
               D*)
                 classify_path "$path"
@@ -218,5 +218,5 @@ jobs:
             echo "- Documentation-only changes can still trigger CI; they must pass Docs Consistency when docs paths are touched."
             echo "- Workflow changes must pass Workflow Lint before merge."
             echo "- Swift or script changes require Phase 0 CI Validation, including repo structure, Swift build and Swift tests."
-            echo "- Forbidden artifacts, credentials, ZIP imports, signing files and local build products must be removed before merge."
+            echo "- Disallowed local outputs and sensitive files must be removed before merge."
           } >> "${GITHUB_STEP_SUMMARY}"
