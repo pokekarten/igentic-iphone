@@ -42,7 +42,7 @@ Phase 0 is now substantially documented:
 
 Remaining Phase 0 follow-up:
 
-- Run CI/local validation after the latest commits.
+- Run CI/local validation after the latest workflow hardening commit.
 - Keep source notes current when Apple APIs or runtime candidates change.
 - Decide whether to enable GitHub Discussions after the first repeated outside community questions.
 - Convert selected roadmap items into small GitHub issues.
@@ -63,15 +63,16 @@ Remaining Phase 0 follow-up:
 - GitHub issue templates for feature, model, security, design, device test and social content reviews
 - Pull request template with privacy, approval and delegation checklist
 - Minimal Swift Package under `ios/`
-- `PolicyEngine`, `TaskRouter`, `AuditLog`, `AgentKernel`, `ApprovalManager`, `ToolRegistry`, `DelegationBroker`, `ScenarioRunner`
+- `PolicyEngine`, `TaskRouter`, `AuditLog`, `AgentKernel`, `ApprovalManager`, `ToolRegistry`, `DelegationBroker`, `MemoryStore`, `ScenarioRunner`
 - `AuditLog` thread-safety fix using a lock
 - Approval gate in `AgentKernel` before routing to local tools
 - `ToolRegistry` metadata-only stub for tool names, required data levels and action risks
 - `DelegationBroker` safe policy-gated stub for metadata-only delegation decisions
+- `MemoryStore` safe in-memory stub with `session` and `task` scopes, scoped listing and scoped deletion
 - `ScenarioRunner` dry-run harness for synthetic policy, approval, routing and delegation checks
-- Smoke tests for policy, audit log, approval-gated routing, tool registry behavior, delegation broker decisions and scenario runner output
+- Smoke tests for policy, audit log, approval-gated routing, tool registry behavior, delegation broker decisions, memory-store scope behavior and scenario runner output
 - Repo validation script
-- Swift and repo-audit GitHub Actions workflows
+- Swift, repo-audit and Phase 0 CI GitHub Actions workflows hardened to avoid marketplace startup dependencies
 
 ## Current safety posture
 
@@ -82,6 +83,7 @@ Remaining Phase 0 follow-up:
 - `.approved` approval status allows routing to continue.
 - Tool registration is metadata-only; no real tool execution exists yet.
 - `DelegationBroker` decides only: Local Only blocks delegation, external providers and critical actions require explicit approval, and safe trusted-device paths are metadata-only.
+- `MemoryStore` is volatile in-memory storage only; it has no persistence, no external dependencies, no networking and no model calls.
 - `ScenarioRunner` runs synthetic dry-run scenarios only.
 - No model weights, secrets, app signing files or real private data should be committed.
 - Public contribution docs warn against posting secrets or private data.
@@ -90,9 +92,8 @@ Remaining Phase 0 follow-up:
 
 ## What still needs bootstrapping
 
-- `MemoryStore` safe stub
 - Architecture docs from the verified starter package, imported gradually
-- Initial CI verification after the next push/run cycle
+- Initial CI verification after the latest workflow hardening commit
 - First set of GitHub issues for brand, roadmap and good-first-contribution tasks
 - Optional GitHub social preview configuration after final social-card asset review
 
