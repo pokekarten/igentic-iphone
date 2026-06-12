@@ -120,4 +120,64 @@ final class SmokeTests: XCTestCase {
 
         XCTAssertEqual(registry.allTools().map(\.name), ["createReminder", "summarizeNote"])
     }
+
+    func testDelegationBrokerBlocksLocalOnlyMode() {
+        let broker = DelegationBroker()
+        let decision = broker.decide(
+            DelegationRequest(
+                privacyMode: .localOnly,
+                target: .trustedMac,
+                actionRisk: .prepare
+            )
+        )
+
+        XCTAssertEqual(decision, .blocked(reason: "Local Only prevents delegation."))
+        XCTAssertFalse(decision.isAllowed)
+        XCTAssertFalse(decision.requiresExplicitApproval)
+    }
+
+    func testDelegationBrokerRequiresApprovalForExternalProvider() {
+        let broker = DelegationBroker()
+        let decision = broker.decide(
+            DelegationRequest(
+                privacyMode: .trustedDevices,
+                target: .externalProvider,
+                actionRisk: .prepare
+            )
+        )
+
+        XCTAssertEqual(decision, .requiresApproval(reason: "External provider delegation requires explicit approval."))
+        XCTAssertFalse(decision.isAllowed)
+        XCTAssertTrue(decision.requiresExplicitApproval)
+    }
+
+    func testDelegationBrokerRequiresApprovalForCriticalAction() {
+        let broker = DelegationBroker()
+        let decision = broker.decide(
+            DelegationRequest(
+                privacyMode: .trustedDevices,
+                target: .trustedMac,
+                actionRisk: .critical
+            )
+        )
+
+        XCTAssertEqual(decision, .requiresApproval(reason: "Critical actions require explicit approval."))
+        XCTAssertFalse(decision.isAllowed)
+        XCTAssertTrue(decision.requiresExplicitApproval)
+    }
+
+    func testDelegationBrokerAllowsSafeTrustedDeviceMetadataDecision() {
+        let broker = DelegationBroker()
+        let decision = broker.decide(
+            DelegationRequest(
+                privacyMode: .trustedDevices,
+                target: .trustedMac,
+                actionRisk: .prepare
+            )
+        )
+
+        XCTAssertEqual(decision, .allowedMetadataOnly(reason: "Allowed as metadata-only delegation decision."))
+        XCTAssertTrue(decision.isAllowed)
+        XCTAssertFalse(decision.requiresExplicitApproval)
+    }
 }
