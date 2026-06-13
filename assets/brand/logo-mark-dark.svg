@@ -1,0 +1,26 @@
+<svg width="1080" height="1080" viewBox="0 0 1080 1080" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">iGentic dark logo mark</title>
+  <desc id="desc">Dark-mode iGentic mark with a refined blue open G control ring and a white local identity point.</desc>
+  <defs>
+    <radialGradient id="dark-bg" cx="50%" cy="45%" r="70%">
+      <stop offset="0" stop-color="#111827"/>
+      <stop offset="0.72" stop-color="#0B1120"/>
+      <stop offset="1" stop-color="#020617"/>
+    </radialGradient>
+    <linearGradient id="ring" x1="245" y1="210" x2="860" y2="870" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#5DD6FF"/>
+      <stop offset="0.45" stop-color="#1D8DFF"/>
+      <stop offset="1" stop-color="#0B4FD8"/>
+    </linearGradient>
+    <filter id="controlled-glow" x="120" y="80" width="860" height="900" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="0" stdDeviation="13" flood-color="#1D8DFF" flood-opacity="0.42"/>
+      <feDropShadow dx="0" dy="14" stdDeviation="24" flood-color="#020617" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+  <rect width="1080" height="1080" rx="216" fill="url(#dark-bg)"/>
+  <g id="igentic-mark" fill="none" stroke-linecap="round" stroke-linejoin="round" filter="url(#controlled-glow)">
+    <path id="control-ring" d="M760 310 L660 210 H430 L245 395 V685 L430 870 H665 L860 675 V595 H665" stroke="url(#ring)" stroke-width="96"/>
+    <circle id="identity-dot" cx="520" cy="365" r="46" fill="#F8FAFC"/>
+    <rect id="identity-stem" x="478" y="455" width="84" height="270" rx="42" fill="#F8FAFC"/>
+  </g>
+</svg>
