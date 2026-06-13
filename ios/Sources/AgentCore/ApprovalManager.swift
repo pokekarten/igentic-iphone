@@ -36,4 +36,13 @@ public struct ApprovalManager: Sendable {
     public func requestApproval(_ request: ApprovalRequest) -> ApprovalStatus {
         defaultStatus
     }
+
+    public func approvalReceipt(for request: ApprovalRequest) -> ApprovalReceipt {
+        ApprovalReceipt(
+            status: defaultStatus,
+            requestID: "approval-\(defaultStatus.rawValue)",
+            reasonCode: request.reason,
+            mayContinueRouting: defaultStatus == .approved || defaultStatus == .notRequired
+        )
+    }
 }
