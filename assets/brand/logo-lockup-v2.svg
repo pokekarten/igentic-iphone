@@ -1,0 +1,17 @@
+<svg width="1200" height="360" viewBox="0 0 1200 360" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+<title id="title">iGentic logo lockup v2</title>
+<desc id="desc">Clean iGentic logo lockup with mark and wordmark.</desc>
+<defs>
+<linearGradient id="ring" x1="60" y1="56" x2="238" y2="290" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#2DA7FF"/><stop offset="0.55" stop-color="#0B63F6"/><stop offset="1" stop-color="#0647B8"/></linearGradient>
+</defs>
+<rect width="1200" height="360" rx="48" fill="#F8FAFC"/>
+<g transform="translate(28 22) scale(0.29)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+<path d="M760 310 L660 210 H430 L245 395 V685 L430 870 H665 L860 675 V595 H665" stroke="url(#ring)" stroke-width="96"/>
+<circle cx="520" cy="365" r="46" fill="#111827"/>
+<rect x="478" y="455" width="84" height="270" rx="42" fill="#111827"/>
+</g>
+<text x="360" y="163" fill="#111827" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, system-ui, sans-serif" font-size="82" font-weight="500" letter-spacing="-2">iGentic</text>
+<text x="366" y="218" fill="#64748B" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, system-ui, sans-serif" font-size="22" font-weight="650" letter-spacing="6">LOCAL-FIRST AI CONTROL LAYER</text>
+<path d="M366 251H748" stroke="#D8DEE9" stroke-width="2"/>
+<text x="366" y="294" fill="#475569" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, system-ui, sans-serif" font-size="20" font-weight="400">Controlled local AI systems for humans in the loop.</text>
+</svg>
