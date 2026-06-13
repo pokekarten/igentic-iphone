@@ -26,7 +26,12 @@ REQUIRED_FILES = [
     "docs/apple-api-review.md",
     "docs/local-runtime-review.md",
     "docs/brand/BRAND.md",
+    "docs/brand/CORPORATE_IDENTITY.md",
+    "docs/brand/BRAND_ASSET_MANIFEST.md",
+    "docs/brand/BRAND_REVIEW_WORKFLOW.md",
+    "docs/brand/SOCIAL_IDENTITY.md",
     "docs/brand/DESIGN_SYSTEM.md",
+    "docs/brand/DESIGN_SYSTEM_V2_NOTES.md",
     "docs/brand/LOGO_BRIEF.md",
     "docs/brand/LOGO_USAGE.md",
     "docs/community/COMMUNITY_STRATEGY.md",
@@ -38,6 +43,12 @@ REQUIRED_FILES = [
     "assets/brand/logo-mark.svg",
     "assets/brand/logo-lockup.svg",
     "assets/brand/social-card.svg",
+    "assets/brand/logo-symbol-v3.svg",
+    "assets/brand/logo-mark-dark-v3.svg",
+    "assets/brand/logo-lockup-v3.svg",
+    "assets/brand/logo-mark-mono.svg",
+    "assets/social/instagram-profile-v3.svg",
+    "assets/social/instagram-carousel-template-v1.svg",
     ".github/PULL_REQUEST_TEMPLATE.md",
     ".github/dependabot.yml",
     ".github/workflows/ci-phase-0-validation.yml",
@@ -81,7 +92,10 @@ FORBIDDEN_PARTS = {
 }
 
 REQUIRED_README_MARKERS = [
-    "assets/brand/logo-lockup.svg",
+    "assets/brand/logo-lockup-v3.svg",
+    "docs/brand/BRAND_ASSET_MANIFEST.md",
+    "docs/brand/SOCIAL_IDENTITY.md",
+    "assets/social/instagram-profile-v3.svg",
     "docs/community/CONTRIBUTOR_STARTER_GUIDE.md",
     "docs/community/GOOD_FIRST_ISSUES.md",
     "GitHub-first, social-supported",
@@ -91,6 +105,8 @@ REQUIRED_PROJECT_STATE_MARKERS = [
     "Master brand: `iGentic`",
     "Community model: GitHub-first, social-supported",
     "docs/brand/BRAND.md",
+    "docs/brand/BRAND_ASSET_MANIFEST.md",
+    "assets/social/instagram-profile-v3.svg",
     "docs/community/COMMUNITY_STRATEGY.md",
     "ApprovalReceipt",
 ]
@@ -99,6 +115,12 @@ BRAND_SVG_FILES = [
     "assets/brand/logo-mark.svg",
     "assets/brand/logo-lockup.svg",
     "assets/brand/social-card.svg",
+    "assets/brand/logo-symbol-v3.svg",
+    "assets/brand/logo-mark-dark-v3.svg",
+    "assets/brand/logo-lockup-v3.svg",
+    "assets/brand/logo-mark-mono.svg",
+    "assets/social/instagram-profile-v3.svg",
+    "assets/social/instagram-carousel-template-v1.svg",
 ]
 
 
