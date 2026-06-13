@@ -10,34 +10,32 @@ Codex remains paused until the validation and PR-scope path is stable enough for
 
 ## Recently completed
 
-The brand identity foundation was expanded with a v2 visual direction:
+The brand identity foundation was expanded from v2 into a cleaner v3 social-ready system:
 
-- `docs/brand/CORPORATE_IDENTITY.md`
-- `docs/brand/DESIGN_SYSTEM_V2_NOTES.md`
-- `assets/brand/logo-mark-v2.svg`
-- `assets/brand/logo-mark-dark.svg`
-- `assets/brand/logo-mark-social.svg`
-- `assets/brand/logo-mark-mono.svg`
-- `assets/brand/logo-lockup-v2.svg`
-- `assets/social/instagram-profile.svg`
+- `assets/brand/logo-symbol-v3.svg`
+- `assets/brand/logo-mark-dark-v3.svg`
+- `assets/brand/logo-lockup-v3.svg`
+- `assets/social/instagram-profile-v3.svg`
+- `assets/social/instagram-carousel-template-v1.svg`
+- `docs/brand/SOCIAL_IDENTITY.md`
 
-The v2 direction is cleaner and more usable for public profiles than the first exploratory logo because it removes tiny details and improves small-size readability.
+The v3 direction is stronger because it separates the identity into a responsive system: transparent symbol, profile avatar, lockup, dark mark and social carousel template.
 
 ## Active cycle
 
 Target: public brand readiness for iGentic.
 
-Goal: validate whether the v2 mark is strong enough to become the default public avatar and README/logo baseline.
+Goal: validate whether the v3 mark is strong enough to become the default public avatar and README/logo baseline.
 
 ## Next task
 
-Create a visual review pass for the v2 brand assets:
+Create a visual review pass for the v3 brand assets:
 
-1. Render `assets/social/instagram-profile.svg` at 64 px, 120 px and 220 px.
-2. Compare it against `assets/brand/logo-mark.svg` and `assets/brand/logo-mark-v2.svg`.
-3. Decide whether `logo-mark-v2.svg` should replace `logo-mark.svg` as the default mark or remain a candidate.
-4. If accepted, update README/logo references to prefer the v2 assets.
-5. Keep the first pass as documentation and SVG-only unless explicit runtime work is requested.
+1. Render `assets/social/instagram-profile-v3.svg` at 64 px, 120 px and 220 px.
+2. Compare it against `assets/brand/logo-mark.svg`, `assets/brand/logo-mark-v2.svg` and `assets/brand/logo-symbol-v3.svg`.
+3. Decide whether v3 should become the default public mark.
+4. If accepted, update README/logo references to prefer `logo-lockup-v3.svg` and `instagram-profile-v3.svg`.
+5. Test `assets/social/instagram-carousel-template-v1.svg` with three real carousel topics.
 
 ## Guardrails
 
