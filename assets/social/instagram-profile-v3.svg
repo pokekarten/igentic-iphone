@@ -1,0 +1,27 @@
+<svg width="1080" height="1080" viewBox="0 0 1080 1080" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">iGentic Instagram profile logo v3</title>
+  <desc id="desc">Instagram-ready iGentic profile logo with a large open G control ring and local identity i.</desc>
+  <defs>
+    <radialGradient id="surface" cx="50%" cy="44%" r="68%">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="0.70" stop-color="#F8FAFC"/>
+      <stop offset="1" stop-color="#EEF6FF"/>
+    </radialGradient>
+    <linearGradient id="ring" x1="240" y1="208" x2="850" y2="872" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2DA7FF"/>
+      <stop offset="0.48" stop-color="#0B63F6"/>
+      <stop offset="1" stop-color="#0647B8"/>
+    </linearGradient>
+    <linearGradient id="identity" x1="540" y1="330" x2="540" y2="734" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#334155"/>
+      <stop offset="1" stop-color="#0F172A"/>
+    </linearGradient>
+  </defs>
+  <rect width="1080" height="1080" rx="216" fill="#F8FAFC"/>
+  <circle cx="540" cy="540" r="468" fill="url(#surface)" stroke="#D8DEE9" stroke-width="4"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M762 306 L662 206 H414 L234 386 V694 L414 874 H666 L852 688 V606 H668" stroke="url(#ring)" stroke-width="104"/>
+    <circle cx="540" cy="366" r="48" fill="url(#identity)"/>
+    <rect x="496" y="458" width="88" height="276" rx="44" fill="url(#identity)"/>
+  </g>
+</svg>
