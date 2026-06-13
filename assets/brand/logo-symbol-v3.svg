@@ -1,0 +1,20 @@
+<svg width="1080" height="1080" viewBox="0 0 1080 1080" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">iGentic symbol v3</title>
+  <desc id="desc">A clean geometric lowercase i inside an open uppercase G control ring for the iGentic identity.</desc>
+  <defs>
+    <linearGradient id="ring" x1="240" y1="208" x2="850" y2="872" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2DA7FF"/>
+      <stop offset="0.48" stop-color="#0B63F6"/>
+      <stop offset="1" stop-color="#0647B8"/>
+    </linearGradient>
+    <linearGradient id="identity" x1="540" y1="330" x2="540" y2="734" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#334155"/>
+      <stop offset="1" stop-color="#0F172A"/>
+    </linearGradient>
+  </defs>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M762 306 L662 206 H414 L234 386 V694 L414 874 H666 L852 688 V606 H668" stroke="url(#ring)" stroke-width="104"/>
+    <circle cx="540" cy="366" r="48" fill="url(#identity)"/>
+    <rect x="496" y="458" width="88" height="276" rx="44" fill="url(#identity)"/>
+  </g>
+</svg>
