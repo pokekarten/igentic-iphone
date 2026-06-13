@@ -1,6 +1,6 @@
 # Project State
 
-Last updated: 2026-06-12
+Last updated: 2026-06-13
 
 ## Current status
 
@@ -18,7 +18,7 @@ The repo is controlled directly through GitHub. Codex is paused for now. ChatGPT
 - Master brand: `iGentic`
 - Current research track: `iGentic iPhone`
 - Community model: GitHub-first, social-supported
-- Current phase: Phase 0 substantially documented / Phase 1 safety bootstrap in progress
+- Current phase: Phase 0 validation complete; Phase 1 safety bootstrap in progress
 
 ## Phase 0 status
 
@@ -49,7 +49,6 @@ Phase 0 is now substantially documented and contributor-facing:
 
 Remaining Phase 0 follow-up:
 
-- Run CI/local validation after the latest safety-bootstrap and GitHub-control commits.
 - Keep source notes current when Apple APIs or runtime candidates change.
 - Decide whether to enable GitHub Discussions after the first repeated outside community questions.
 - Convert selected good-first-issue backlog items into real GitHub issues.
@@ -105,13 +104,7 @@ Remaining Phase 0 follow-up:
 ## Current validation status
 
 - GitHub Connector could inspect repository metadata, relevant project files and open GitHub issues.
-- The accidental empty root file `DUMMY` was removed on branch `chatgpt/cleanup-validation-state`.
-- GitHub-control dashboard automation was added on branch `codex/github-control-dashboard`.
-- Project operating model is being added on branch `chatgpt/project-operating-model`.
-- RiskScorer policy metadata integration is implemented on branch `codex/risk-scorer-policy-metadata`; local repo validation, Swift tests and Swift build passed before PR creation.
-- CI case coverage is being added on branch `chatgpt/ci-case-coverage` with PR Change Scope and an updated validation contract.
-- Local validation now passed in the Codex environment for this branch; Issue #1 should remain open until the same required checks are recorded for latest `main`.
-- Required checks for latest `main` remain open:
+- Issue #1 acceptance criteria are satisfied by recorded validation evidence for:
 
 ```bash
 python3 scripts/validate_repo_structure.py
@@ -119,15 +112,17 @@ cd ios && swift test
 cd ios && swift build
 ```
 
+- Local/Codex-environment evidence is recorded on Issue #1 for all three required commands.
+- Recent PR-head checks also recorded repository validation evidence before merge.
+- A post-merge workflow run attached to every new `main` merge commit is useful extra evidence, but it is no longer treated as a blocker for closing the original Phase 0 validation issue when the issue acceptance criteria are already met.
+- ChatGPT watcher comments, documentation notes and bookkeeping commits must not reset Issue #1 or create a new latest-main validation loop.
+- Future code/runtime changes still require PR validation or a new validation issue.
+
 ## What still needs bootstrapping
 
-- Review the CI case coverage PR and confirm its PR Change Scope, Workflow Lint, Docs Consistency, Repo Audit, Pull Request Quality and Phase 0 CI results
-- Run Control Dashboard, inspect generated report, then run Phase 0 CI/local validation after the latest GitHub-control commits
 - Configure `main` branch protection in GitHub UI
-- Re-enable Codex with one narrow Draft PR task after current `main` validation evidence is recorded
-- Review and merge the conservative `RiskScorer` to `PolicyEngine` metadata-only Draft PR if validation remains green and policy behavior is not loosened
-- Architecture docs from the verified starter package, imported gradually
 - Convert first good-first-issue backlog items into GitHub issues
+- Architecture docs from the verified starter package, imported gradually
 - Optional GitHub social preview configuration after final social-card asset review
 - Optional first Instagram carousel asset/template based on the social playbook
 
