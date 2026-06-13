@@ -4,73 +4,75 @@ Repository: `pokekarten/igentic-iphone`
 
 ## Current operating mode
 
-ChatGPT works through the GitHub Connector for repository-control, review and small documentation/process changes. Runtime/code changes should stay narrow and use pull requests before merge.
+ChatGPT works through the GitHub Connector for repository-control, review, documentation/process changes and narrow pull-request based implementation slices.
 
-Codex remains paused until the validation and PR-scope path is stable enough for repeatable Draft PR handoffs.
+Codex can later be used only through explicit narrow Draft PR handoffs. Current active work is still handled directly through ChatGPT because the slice is small and reviewable.
 
 ## Recently completed
 
-PR #31 `Issue #18: add ApprovalReceipt metadata` has been completed and merged into `main`.
+PR #32 `Issue #26: clarify validation and PR scope evidence` has been completed and merged into `main`.
 
 Status:
 
-- PR #31 was marked Ready for review.
-- PR #31 was squash-merged into `main` as `c4e8bb137201382e73b86b81a69a465db87cc559`.
-- Issue #18 was closed as completed.
-- ApprovalReceipt is now part of AgentCore metadata.
-- Pending and rejected receipts keep routing blocked; approved/notRequired receipts may continue routing.
-- No persistence, networking, model calls, telemetry, secrets or private raw data were added.
+- PR #32 was marked Ready for review.
+- PR #32 was squash-merged into `main` as `8cfad90d8eae909c6cc61583ce01f732e813ec97`.
+- Issue #26 was closed as completed.
+- PR scope, privacy, action risk, approval/delegation behavior, safety and validation provenance are now explicit in the PR path.
+- No Swift runtime behavior, workflow YAML, secrets, networking, App Intents, external providers, signing files, private data or Pokekartenkiste files were changed.
 
-Validation evidence for the PR:
+Validation evidence for PR #32:
 
-- PR-head `d9cec48838bf31ce3e872c3d03a6eb9a25441334` had green GitHub checks:
-  - Pull Request Quality
+- PR-head `0479eb4ba944b0267ca82b585719f25b07b5a9d2` had green GitHub checks:
   - Docs Consistency
-  - PR Change Scope
+  - Pull Request Quality
   - Repo Audit
+  - PR Change Scope
   - Swift
   - Phase 0 CI Validation
-- Local ZIP snapshot evidence was also recorded for:
-  - script path: `scripts/validate_repo_structure.py`
-  - script path: `scripts/validation_summary.py`
-  - Swift tests
-  - Swift build
 
 ## Active cycle
 
-Target: Issue #26 `MVP-01: Make validation and PR scope checks the default contributor path`.
+Target: Issue #10 `Code: Add DiagnosticSnapshot for Phase 2 readiness`.
 
-Goal: make every future PR easier to review by making scope, validation provenance and exact evidence visible by default.
+Goal: add a small metadata-only `DiagnosticSnapshot` model in AgentCore so the future diagnostic iPhone shell can display safe local status without coupling SwiftUI to internal runtime types.
 
 Current branch:
 
 ```text
-chatgpt/issue26-validation-scope-control
+chatgpt/issue10-diagnostic-snapshot
 ```
+
+## Current implementation status
+
+Started on branch `chatgpt/issue10-diagnostic-snapshot`:
+
+- Added `ios/Sources/AgentCore/DiagnosticSnapshot.swift`.
+- Added a smoke test for metadata-only diagnostic summaries.
+- Updated `scripts/validate_repo_structure.py` to require the new core file and `DiagnosticSnapshot` project-state marker.
+- Updated `PROJECT_STATE.md` to document the active Issue #10 slice.
 
 ## Next task
 
-Create a small process/documentation PR for Issue #26:
+Open a Draft PR for Issue #10 after final file review:
 
-1. Update `.github/PULL_REQUEST_TEMPLATE.md` so every PR records:
-   - changed files,
-   - scope category,
-   - privacy/data class impact,
-   - action risk,
-   - approval/delegation behavior,
-   - exact validation provenance.
-2. Update `scripts/validation_summary.py` so it prints a copy-pasteable validation evidence block and clearly states that it does not execute Swift or GitHub Actions.
-3. Update `PROJECT_STATE.md` to reflect:
-   - PR #31 merged,
-   - Issue #18 completed,
-   - Issue #26 is the active control task.
-4. Open a Draft PR against `main`.
+1. Confirm changed files stay within Issue #10 scope:
+   - `ios/Sources/AgentCore/DiagnosticSnapshot.swift`
+   - `ios/Tests/AgentCoreTests/SmokeTests.swift`
+   - `scripts/validate_repo_structure.py`
+   - `PROJECT_STATE.md`
+   - `docs/CHATGPT_NEXT_TASK.md`
+2. Open a Draft PR against `main`.
+3. Let GitHub Actions run.
+4. Review failures by log, not by guessing.
+5. If checks pass, mark ready and merge.
 
 ## Guardrails
 
-- Do not change Swift runtime code for this task.
-- Do not change workflows unless directly required by Issue #26.
-- Do not add secrets, network calls, external providers, App Intents, signing files or private data.
+- Do not add SwiftUI.
+- Do not add App Intents.
+- Do not add persistence.
+- Do not add networking or external providers.
+- Do not add model calls.
+- Do not add screenshots or signing files.
+- Do not use real private data.
 - Do not touch Pokekartenkiste files or references.
-- Do not claim Swift build/test success unless backed by a specific local run or GitHub Actions run.
-- Keep the change documentation/process-only.
