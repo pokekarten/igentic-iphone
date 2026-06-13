@@ -1,0 +1,26 @@
+<svg width="1080" height="1080" viewBox="0 0 1080 1080" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">iGentic dark social logo v3</title>
+  <desc id="desc">Dark-mode iGentic logo with controlled blue edge light for premium social and presentation surfaces.</desc>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="45%" r="70%">
+      <stop offset="0" stop-color="#111827"/>
+      <stop offset="0.72" stop-color="#0B1120"/>
+      <stop offset="1" stop-color="#020617"/>
+    </radialGradient>
+    <linearGradient id="ring" x1="240" y1="208" x2="850" y2="872" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#5DD6FF"/>
+      <stop offset="0.48" stop-color="#1D8DFF"/>
+      <stop offset="1" stop-color="#0B4FD8"/>
+    </linearGradient>
+    <filter id="edge" x="140" y="120" width="820" height="840" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="0" stdDeviation="10" flood-color="#1D8DFF" flood-opacity="0.36"/>
+      <feDropShadow dx="0" dy="18" stdDeviation="24" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  <rect width="1080" height="1080" rx="216" fill="url(#bg)"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round" filter="url(#edge)">
+    <path d="M762 306 L662 206 H414 L234 386 V694 L414 874 H666 L852 688 V606 H668" stroke="url(#ring)" stroke-width="104"/>
+    <circle cx="540" cy="366" r="48" fill="#F8FAFC"/>
+    <rect x="496" y="458" width="88" height="276" rx="44" fill="#F8FAFC"/>
+  </g>
+</svg>
