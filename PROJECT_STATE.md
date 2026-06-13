@@ -19,6 +19,7 @@ The repo is controlled directly through GitHub. Codex is paused for now. ChatGPT
 - Current research track: `iGentic iPhone`
 - Community model: GitHub-first, social-supported
 - Current phase: Phase 0 validation complete; Phase 1 safety bootstrap in progress
+- Current brand track: v3 responsive brand system, documented in `docs/brand/BRAND_ASSET_MANIFEST.md`
 
 ## Phase 0 status
 
@@ -31,12 +32,19 @@ Phase 0 is substantially documented and contributor-facing. Issue #1 is closed a
 - `ApprovalReceipt` now records approval status metadata without storing private raw data.
 - `ApprovalManager` can create approval receipts for audit/diagnostic use.
 - Focused tests cover pending, approved and rejected approval outcomes.
+- Brand identity v3 assets were added as preferred candidates for public profile, symbol, lockup, dark mark and social carousel usage.
 
 ## What exists now
 
 - README, roadmap, governance, contribution, support, security and conduct docs
 - Phase 0 source verification, Apple API, local runtime, model strategy, validation and workflow docs
-- Brand/community docs and initial SVG assets, including `docs/brand/BRAND.md` and `docs/community/COMMUNITY_STRATEGY.md`
+- Brand/community docs and SVG assets, including `docs/brand/BRAND.md`, `docs/brand/CORPORATE_IDENTITY.md`, `docs/brand/SOCIAL_IDENTITY.md`, `docs/brand/BRAND_ASSET_MANIFEST.md`, `docs/brand/BRAND_REVIEW_WORKFLOW.md` and `docs/community/COMMUNITY_STRATEGY.md`
+- Current preferred brand candidates:
+  - `assets/brand/logo-symbol-v3.svg`
+  - `assets/social/instagram-profile-v3.svg`
+  - `assets/brand/logo-mark-dark-v3.svg`
+  - `assets/brand/logo-lockup-v3.svg`
+  - `assets/social/instagram-carousel-template-v1.svg`
 - GitHub control, workflow lint, PR quality, repo audit, docs consistency and validation workflows
 - Minimal Swift Package under `ios/`
 - `PolicyEngine`, `TaskRouter`, `AuditLog`, `AgentKernel`, `ApprovalManager`, `ApprovalReceipt`, `ToolRegistry`, `DelegationBroker`, `MemoryStore`, `SensitiveDataDetector`, `RiskScorer`, `ScenarioRunner`
@@ -77,22 +85,22 @@ cd ios && swift build
 
 ## Current active task
 
-Issue #26 is the current control task: make validation and PR scope checks the default contributor path.
+The current active brand task is to visually validate the v3 responsive brand system and decide whether it becomes the default public identity.
 
-The active branch is:
+The source-of-truth files are:
 
-```text
-chatgpt/issue26-validation-scope-control
-```
-
-This task is documentation/process-only unless explicitly expanded. It should improve PR template evidence, validation summary output and next-task clarity without changing Swift runtime behavior.
+- `docs/brand/BRAND_ASSET_MANIFEST.md`
+- `docs/brand/BRAND_REVIEW_WORKFLOW.md`
+- `docs/brand/SOCIAL_IDENTITY.md`
+- `docs/CHATGPT_NEXT_TASK.md`
 
 ## What still needs bootstrapping
 
 - Configure `main` branch protection in GitHub UI
 - Architecture docs from the verified starter package, imported gradually
 - Optional GitHub social preview configuration after final social-card asset review
-- Optional first Instagram carousel asset/template based on the social playbook
+- Visual review of v3 brand assets at 64 px, 120 px and 220 px
+- Test `assets/social/instagram-carousel-template-v1.svg` with three real social topics
 
 ## Important constraint
 
