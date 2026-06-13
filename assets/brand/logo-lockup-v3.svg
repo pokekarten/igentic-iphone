@@ -1,0 +1,25 @@
+<svg width="1440" height="420" viewBox="0 0 1440 420" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">iGentic logo lockup v3</title>
+  <desc id="desc">Horizontal iGentic logo lockup with symbol, wordmark, descriptor and short trust promise.</desc>
+  <defs>
+    <linearGradient id="ring" x1="240" y1="208" x2="850" y2="872" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2DA7FF"/>
+      <stop offset="0.48" stop-color="#0B63F6"/>
+      <stop offset="1" stop-color="#0647B8"/>
+    </linearGradient>
+    <linearGradient id="identity" x1="540" y1="330" x2="540" y2="734" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#334155"/>
+      <stop offset="1" stop-color="#0F172A"/>
+    </linearGradient>
+  </defs>
+  <rect width="1440" height="420" rx="56" fill="#F8FAFC"/>
+  <g transform="translate(86 46) scale(0.30)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M762 306 L662 206 H414 L234 386 V694 L414 874 H666 L852 688 V606 H668" stroke="url(#ring)" stroke-width="104"/>
+    <circle cx="540" cy="366" r="48" fill="url(#identity)"/>
+    <rect x="496" y="458" width="88" height="276" rx="44" fill="url(#identity)"/>
+  </g>
+  <text x="430" y="177" fill="#111827" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, system-ui, sans-serif" font-size="90" font-weight="560" letter-spacing="-2.2">iGentic</text>
+  <text x="436" y="238" fill="#64748B" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, system-ui, sans-serif" font-size="24" font-weight="700" letter-spacing="7">LOCAL-FIRST AI CONTROL LAYER</text>
+  <path d="M436 278H860" stroke="#D8DEE9" stroke-width="2"/>
+  <text x="436" y="326" fill="#475569" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, system-ui, sans-serif" font-size="24" font-weight="400">Private by default. Approval-gated. Audit-ready.</text>
+</svg>
