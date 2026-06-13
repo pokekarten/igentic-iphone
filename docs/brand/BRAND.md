@@ -1,6 +1,6 @@
 # iGentic Brand Foundation
 
-Last updated: 2026-06-12
+Last updated: 2026-06-13
 
 ## Brand decision
 
@@ -26,6 +26,23 @@ The brand must communicate that iGentic is not another chatbot and not a cloud-f
 - **Audience:** privacy-conscious developers, Swift/iOS builders, local-AI researchers, security reviewers and early community contributors
 - **Tone:** calm, precise, transparent, safety-first
 
+## Corporate identity direction
+
+The current CI direction is **clean technical trust**.
+
+The preferred v2 identity is simpler than the first exploratory logo: bigger symbol, fewer small details, stronger small-size readability and clearer public avatar usage.
+
+Preferred current assets:
+
+- `assets/brand/logo-mark-v2.svg` for the default mark.
+- `assets/social/instagram-profile.svg` for the Instagram profile candidate.
+- `assets/brand/logo-mark-dark.svg` for dark surfaces.
+- `assets/brand/logo-mark-social.svg` for high-contrast social experiments.
+- `assets/brand/logo-mark-mono.svg` for one-color fallback.
+- `assets/brand/logo-lockup-v2.svg` for README or website headers.
+
+See `docs/brand/CORPORATE_IDENTITY.md` for the full corporate identity strategy.
+
 ## Design principles
 
 1. **Do not imitate Apple.** Be compatible with the expectations of high-quality Apple-platform software without using Apple trade dress, logos, product silhouettes or campaign styling.
@@ -33,6 +50,7 @@ The brand must communicate that iGentic is not another chatbot and not a cloud-f
 3. **Keep the human in the loop.** The identity should show that AI surrounds and supports the user, not the other way around.
 4. **Prefer diagrams over hype.** Explain systems, flows and decisions visually.
 5. **Open-source clarity.** Contributors should immediately understand where decisions happen and how to participate.
+6. **Small-size first.** Public avatars must work at 64 px before any decorative detail is accepted.
 
 ## Logo concept
 
@@ -40,9 +58,11 @@ The logo mark should combine:
 
 - a small `i` as identity, user and local device,
 - an open `G` as guardrail, control ring and agent loop,
-- a subtle connector line as policy-gated delegation,
 - rounded, minimal geometry,
-- quiet silver-blue gradients.
+- calm blue/graphite contrast,
+- enough simplicity to remain recognizable inside circular profile crops.
+
+The original mark may include a subtle connector line as a policy-gated delegation metaphor. The v2 public-avatar direction removes that fine detail for legibility.
 
 The mark should never be a robot head, generic AI sparkle, chat bubble, Apple logo, iPhone outline, Dynamic Island, camera bump or Siri-like orb.
 
@@ -93,7 +113,7 @@ Avoid:
 - Graphite text
 - Frosted silver surfaces
 - Subtle blue glow
-- Thin technical lines
+- Clear blue control ring
 - Rounded corners
 - Calm architecture diagrams
 - Clear status badges for policy states
