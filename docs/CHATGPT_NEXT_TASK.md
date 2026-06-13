@@ -10,7 +10,7 @@ Codex remains paused until the validation and PR-scope path is stable enough for
 
 ## Recently completed
 
-The brand identity foundation was expanded from v2 into a cleaner v3 social-ready system:
+The brand identity foundation was expanded from v2 into a cleaner v3 social-ready system and anchored in the repository:
 
 - `assets/brand/logo-symbol-v3.svg`
 - `assets/brand/logo-mark-dark-v3.svg`
@@ -18,14 +18,18 @@ The brand identity foundation was expanded from v2 into a cleaner v3 social-read
 - `assets/social/instagram-profile-v3.svg`
 - `assets/social/instagram-carousel-template-v1.svg`
 - `docs/brand/SOCIAL_IDENTITY.md`
+- `docs/brand/BRAND_ASSET_MANIFEST.md`
+- `docs/brand/BRAND_REVIEW_WORKFLOW.md`
 
-The v3 direction is stronger because it separates the identity into a responsive system: transparent symbol, profile avatar, lockup, dark mark and social carousel template.
+README now uses `assets/brand/logo-lockup-v3.svg` as the visible repository logo.
+
+`scripts/validate_repo_structure.py` now requires the v3 brand assets, the brand manifest and the social identity docs, and checks the relevant SVG files for `<title>`, `<desc>` and `role="img"` metadata.
 
 ## Active cycle
 
 Target: public brand readiness for iGentic.
 
-Goal: validate whether the v3 mark is strong enough to become the default public avatar and README/logo baseline.
+Goal: visually validate whether the v3 mark should become the default public identity and whether the social carousel template is usable for real posts.
 
 ## Next task
 
@@ -33,9 +37,12 @@ Create a visual review pass for the v3 brand assets:
 
 1. Render `assets/social/instagram-profile-v3.svg` at 64 px, 120 px and 220 px.
 2. Compare it against `assets/brand/logo-mark.svg`, `assets/brand/logo-mark-v2.svg` and `assets/brand/logo-symbol-v3.svg`.
-3. Decide whether v3 should become the default public mark.
-4. If accepted, update README/logo references to prefer `logo-lockup-v3.svg` and `instagram-profile-v3.svg`.
-5. Test `assets/social/instagram-carousel-template-v1.svg` with three real carousel topics.
+3. Test `assets/social/instagram-carousel-template-v1.svg` with three real carousel topics:
+   - Policy before action.
+   - Local first.
+   - Approval gated.
+4. Decide whether v3 should be promoted from preferred candidate to default identity.
+5. If accepted, update `docs/brand/BRAND_ASSET_MANIFEST.md` and `docs/brand/SOCIAL_IDENTITY.md` from preferred candidate to default.
 
 ## Guardrails
 
