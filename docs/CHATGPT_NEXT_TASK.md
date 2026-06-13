@@ -31,10 +31,10 @@ Validation evidence for the PR:
   - Swift
   - Phase 0 CI Validation
 - Local ZIP snapshot evidence was also recorded for:
-  - `python3 scripts/validate_repo_structure.py`
-  - `python3 scripts/validation_summary.py`
-  - `cd ios && swift test`
-  - `cd ios && swift build`
+  - script path: `scripts/validate_repo_structure.py`
+  - script path: `scripts/validation_summary.py`
+  - Swift tests
+  - Swift build
 
 ## Active cycle
 
