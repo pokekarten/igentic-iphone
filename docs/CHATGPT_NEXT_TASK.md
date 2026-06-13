@@ -19,7 +19,7 @@ Codex is paused for now. ChatGPT works directly through the GitHub Connector on 
 
 ## Next task
 
-Choose the smallest scoped open issue and continue normal progress.
+Close Issue #1 as completed. Then choose the smallest scoped open issue and continue normal progress.
 
 Preferred next candidates:
 
