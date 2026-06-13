@@ -1,0 +1,10 @@
+<svg width="1080" height="1080" viewBox="0 0 1080 1080" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">iGentic monochrome logo mark</title>
+  <desc id="desc">Monochrome iGentic mark for one-color print, masks and neutral documentation use.</desc>
+  <rect width="1080" height="1080" rx="216" fill="#FFFFFF"/>
+  <g id="igentic-mark" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path id="control-ring" d="M760 310 L660 210 H430 L245 395 V685 L430 870 H665 L860 675 V595 H665" stroke="#111827" stroke-width="96"/>
+    <circle id="identity-dot" cx="520" cy="365" r="46" fill="#111827"/>
+    <rect id="identity-stem" x="478" y="455" width="84" height="270" rx="42" fill="#111827"/>
+  </g>
+</svg>
