@@ -63,6 +63,7 @@ REQUIRED_FILES = [
     "ios/Sources/AgentCore/AuditLog.swift",
     "ios/Sources/AgentCore/ApprovalManager.swift",
     "ios/Sources/AgentCore/ApprovalReceipt.swift",
+    "ios/Sources/AgentCore/DiagnosticSnapshot.swift",
     "ios/Sources/AgentCore/ToolRegistry.swift",
     "ios/Sources/AgentCore/DelegationBroker.swift",
     "ios/Sources/AgentCore/MemoryStore.swift",
@@ -93,6 +94,7 @@ REQUIRED_PROJECT_STATE_MARKERS = [
     "docs/brand/BRAND.md",
     "docs/community/COMMUNITY_STRATEGY.md",
     "ApprovalReceipt",
+    "DiagnosticSnapshot",
 ]
 
 BRAND_SVG_FILES = [
