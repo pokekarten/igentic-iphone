@@ -70,7 +70,7 @@ cd ios && swift build
 
 - Local/Codex-environment evidence is recorded on Issue #1 for all three required commands.
 - PR #31 also recorded PR-head validation evidence before merge.
-- A local ZIP snapshot additionally confirmed `validate_repo_structure.py`, `validation_summary.py`, `swift test` and `swift build` on the supplied repo snapshot.
+- A local ZIP snapshot additionally confirmed `scripts/validate_repo_structure.py`, `scripts/validation_summary.py`, Swift tests and Swift build on the supplied repo snapshot.
 - A post-merge workflow run attached to every new `main` merge commit is useful extra evidence, but it is no longer treated as a blocker for closing the original Phase 0 validation issue when the issue acceptance criteria are already met.
 - ChatGPT watcher comments, documentation notes and bookkeeping commits must not reset Issue #1 or create a new latest-main validation loop.
 - Future code/runtime changes still require PR validation or a new validation issue.
