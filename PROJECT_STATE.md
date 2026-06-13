@@ -28,7 +28,7 @@ Phase 0 is substantially documented and contributor-facing. Issue #1 is ready to
 
 - README, roadmap, governance, contribution, support, security and conduct docs
 - Phase 0 source verification, Apple API, local runtime, model strategy, validation and workflow docs
-- Brand/community docs and initial SVG assets
+- Brand/community docs and initial SVG assets, including `docs/brand/BRAND.md` and `docs/community/COMMUNITY_STRATEGY.md`
 - GitHub control, workflow lint, PR quality, repo audit, docs consistency and validation workflows
 - Minimal Swift Package under `ios/`
 - `PolicyEngine`, `TaskRouter`, `AuditLog`, `AgentKernel`, `ApprovalManager`, `ToolRegistry`, `DelegationBroker`, `MemoryStore`, `SensitiveDataDetector`, `RiskScorer`, `ScenarioRunner`
