@@ -8,6 +8,18 @@ CI is the baseline for repository control. A pull request is not considered safe
 
 Documentation-only changes usually do not alter runtime or build behavior, but they can and should still trigger CI when they touch validation docs, workflow docs, repository-control files or PR templates.
 
+## Review decision principle
+
+Review classifications should separate actual defects from missing or partially unavailable evidence.
+
+Use `MERGE-CANDIDATE` when the scope is correct, the diff is safe, linked issue context is clear, required CI is green or enough equivalent validation evidence is available, and no security, privacy, architecture or runtime regression is found. A draft PR with otherwise clean evidence may be recorded as `MERGE-CANDIDATE (Draft)` instead of `FIX-NEEDED`.
+
+Use `FIX-NEEDED` only when there is a concrete problem that should be changed before merge, such as a failing required check, a scope mismatch, missing tests for changed runtime behavior, an unsafe diff, broken documentation contracts or a review finding that can be acted on in the PR.
+
+Use `BLOCKED` when the reviewer cannot make a safe judgement because required evidence is unavailable, contradictory or outside the connector's visibility. Missing local validation logs alone do not make a PR `FIX-NEEDED` when GitHub Actions evidence is present and sufficient for the changed scope.
+
+Use `NO-PR` when no open pull request is available for review.
+
 ## Core validation
 
 ### Phase 0 CI Validation
