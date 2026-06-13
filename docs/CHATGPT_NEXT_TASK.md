@@ -4,32 +4,40 @@ Repository: `pokekarten/igentic-iphone`
 
 ## Current operating mode
 
-Codex is paused for now. ChatGPT works directly through the GitHub Connector on small, safe repository changes.
+ChatGPT works directly through the GitHub Connector for small repository-control and documentation steps. Code PRs stay narrow and are reviewed before merge.
 
-## Current validation status
+## Active cycle
 
-- Issue #1 acceptance criteria are satisfied and the issue can be closed as completed.
-- Recorded evidence exists for:
-  - `python3 scripts/validate_repo_structure.py`
-  - `cd ios && swift test`
-  - `cd ios && swift build`
-- Do not create an endless validation loop by treating ChatGPT issue comments, documentation notes, or follow-up bookkeeping commits as new feature validation targets.
-- A post-merge Actions run on every latest `main` commit is useful evidence, but it is not required to keep re-opening Issue #1 when the original acceptance criteria are already satisfied.
-- Future code/runtime changes must still prove validation through PR checks or a new validation issue.
+Target: PR #31 validation cleanup before merge.
+
+Current PR: #31 `Issue #18: add ApprovalReceipt metadata`
+
+Status:
+
+- PR #31 is open and still draft.
+- The ApprovalReceipt code scope is small and acceptable.
+- Swift build/test evidence is green in the PR checks.
+- Repo Audit and Phase 0 repo-structure validation failed because `PROJECT_STATE.md` does not mention the exact status markers expected by the validator.
+- The required marker fix is documented in `docs/status/2026-06-13-project-state-marker-fix.md`.
 
 ## Next task
 
-Close Issue #1 as completed. Then choose the smallest scoped open issue and continue normal progress.
+Apply the marker-only docs fix:
 
-Preferred next candidates:
+1. Update the existing Brand/community bullet in `PROJECT_STATE.md` so it explicitly mentions:
+   - `docs/brand/BRAND.md`
+   - `docs/community/COMMUNITY_STRATEGY.md`
+2. Rerun or re-check Repo Audit and Phase 0 CI Validation for PR #31.
+3. Keep PR #31 as draft until those checks are green.
+4. Only after green validation: mark PR #31 ready for review, perform final review, then merge if still clean.
 
-- Issue #2: glossary for privacy and runtime terms.
-- Issue #3: contributor/user FAQ.
-- Issue #4: monochrome logo mark.
+## Deferred task
+
+Issue #1 can still be closed as completed, but it is not the active first step while PR #31 is open and awaiting validation cleanup.
 
 ## Guardrails
 
-- No direct app-runtime behavior changes.
-- No networking, persistence, model calls, App Intents, external providers, credentials or private data.
-- No broad rewrites.
-- One small validation-oriented or documentation-oriented step per cycle.
+- Do not change ApprovalReceipt code as part of the marker fix.
+- Do not change workflows or package files.
+- Do not broaden the scope beyond the exact validation marker repair.
+- One small validation-oriented step per cycle.
