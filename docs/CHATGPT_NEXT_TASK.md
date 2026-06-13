@@ -16,18 +16,17 @@ Status:
 
 - PR #31 is open and still draft.
 - The ApprovalReceipt code scope is small and acceptable.
-- Swift build/test evidence is green in the PR checks.
-- Repo Audit and Phase 0 repo-structure validation failed because `PROJECT_STATE.md` does not mention the exact status markers expected by the validator.
-- The required marker fix is documented in `docs/status/2026-06-13-project-state-marker-fix.md`.
+- Swift build/test evidence was previously green in the PR checks.
+- Repo Audit and Phase 0 repo-structure validation failed because `PROJECT_STATE.md` did not mention the exact status markers expected by the validator.
+- The marker-only fix has now been applied on `main` in `PROJECT_STATE.md`.
+- `PROJECT_STATE.md` now explicitly mentions `docs/brand/BRAND.md` and `docs/community/COMMUNITY_STRATEGY.md`.
 
 ## Next task
 
-Apply the marker-only docs fix:
+Re-check PR #31 after the base-branch marker fix:
 
-1. Update the existing Brand/community bullet in `PROJECT_STATE.md` so it explicitly mentions:
-   - `docs/brand/BRAND.md`
-   - `docs/community/COMMUNITY_STRATEGY.md`
-2. Rerun or re-check Repo Audit and Phase 0 CI Validation for PR #31.
+1. Confirm that PR #31 has refreshed against the updated `main` branch.
+2. Confirm that Repo Audit and Phase 0 CI Validation are green for PR #31 or its current merge ref.
 3. Keep PR #31 as draft until those checks are green.
 4. Only after green validation: mark PR #31 ready for review, perform final review, then merge if still clean.
 
@@ -37,7 +36,7 @@ Issue #1 can still be closed as completed, but it is not the active first step w
 
 ## Guardrails
 
-- Do not change ApprovalReceipt code as part of the marker fix.
+- Do not change ApprovalReceipt code as part of the validation cleanup.
 - Do not change workflows or package files.
-- Do not broaden the scope beyond the exact validation marker repair.
+- Do not broaden the scope beyond validation and review for PR #31.
 - One small validation-oriented step per cycle.
