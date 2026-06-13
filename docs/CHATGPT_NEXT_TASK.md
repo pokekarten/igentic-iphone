@@ -4,47 +4,73 @@ Repository: `pokekarten/igentic-iphone`
 
 ## Current operating mode
 
-ChatGPT works directly through the GitHub Connector for small repository-control and documentation steps. Code PRs stay narrow and are reviewed before merge.
+ChatGPT works through the GitHub Connector for repository-control, review and small documentation/process changes. Runtime/code changes should stay narrow and use pull requests before merge.
 
-## Active cycle
+Codex remains paused until the validation and PR-scope path is stable enough for repeatable Draft PR handoffs.
 
-Target: PR #31 final administrative merge step.
+## Recently completed
 
-Current PR: #31 `Issue #18: add ApprovalReceipt metadata`
+PR #31 `Issue #18: add ApprovalReceipt metadata` has been completed and merged into `main`.
 
 Status:
 
-- PR #31 is open and still draft.
-- The ApprovalReceipt code scope is small and acceptable.
-- The marker-only validation fix has been applied to `PROJECT_STATE.md`.
-- `PROJECT_STATE.md` now explicitly mentions `docs/brand/BRAND.md` and `docs/community/COMMUNITY_STRATEGY.md`.
-- PR-head validation is green on `d9cec48838bf31ce3e872c3d03a6eb9a25441334`:
-  - Pull Request Quality: success
-  - Docs Consistency: success
-  - PR Change Scope: success
-  - Repo Audit: success
-  - Swift: success
-  - Phase 0 CI Validation: success
-- Review threads are empty.
-- A final ChatGPT review comment has been added to PR #31.
-- The automatic Ready-for-Review tool step was blocked by the tool safety check, so the remaining step is administrative.
+- PR #31 was marked Ready for review.
+- PR #31 was squash-merged into `main` as `c4e8bb137201382e73b86b81a69a465db87cc559`.
+- Issue #18 was closed as completed.
+- ApprovalReceipt is now part of AgentCore metadata.
+- Pending and rejected receipts keep routing blocked; approved/notRequired receipts may continue routing.
+- No persistence, networking, model calls, telemetry, secrets or private raw data were added.
+
+Validation evidence for the PR:
+
+- PR-head `d9cec48838bf31ce3e872c3d03a6eb9a25441334` had green GitHub checks:
+  - Pull Request Quality
+  - Docs Consistency
+  - PR Change Scope
+  - Repo Audit
+  - Swift
+  - Phase 0 CI Validation
+- Local ZIP snapshot evidence was also recorded for:
+  - script path: `scripts/validate_repo_structure.py`
+  - script path: `scripts/validation_summary.py`
+  - Swift tests
+  - Swift build
+
+## Active cycle
+
+Target: Issue #26 `MVP-01: Make validation and PR scope checks the default contributor path`.
+
+Goal: make every future PR easier to review by making scope, validation provenance and exact evidence visible by default.
+
+Current branch:
+
+```text
+chatgpt/issue26-validation-scope-control
+```
 
 ## Next task
 
-Finish PR #31 administratively:
+Create a small process/documentation PR for Issue #26:
 
-1. In GitHub UI, mark PR #31 as Ready for review.
-2. Re-check that the current head is still `d9cec48838bf31ce3e872c3d03a6eb9a25441334` or newer with green checks.
-3. Merge PR #31 if still clean.
-4. After merge, update `PROJECT_STATE.md` and this file to point to the next Phase 1 task.
-
-## Deferred task
-
-Issue #1 can still be closed as completed after PR #31 is merged or explicitly skipped.
+1. Update `.github/PULL_REQUEST_TEMPLATE.md` so every PR records:
+   - changed files,
+   - scope category,
+   - privacy/data class impact,
+   - action risk,
+   - approval/delegation behavior,
+   - exact validation provenance.
+2. Update `scripts/validation_summary.py` so it prints a copy-pasteable validation evidence block and clearly states that it does not execute Swift or GitHub Actions.
+3. Update `PROJECT_STATE.md` to reflect:
+   - PR #31 merged,
+   - Issue #18 completed,
+   - Issue #26 is the active control task.
+4. Open a Draft PR against `main`.
 
 ## Guardrails
 
-- Do not change ApprovalReceipt code as part of the administrative finish.
-- Do not change workflows or package files.
-- Do not start another Swift code task while PR #31 is still open as draft.
-- One small validation-oriented step per cycle.
+- Do not change Swift runtime code for this task.
+- Do not change workflows unless directly required by Issue #26.
+- Do not add secrets, network calls, external providers, App Intents, signing files or private data.
+- Do not touch Pokekartenkiste files or references.
+- Do not claim Swift build/test success unless backed by a specific local run or GitHub Actions run.
+- Keep the change documentation/process-only.

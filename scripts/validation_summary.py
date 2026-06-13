@@ -25,6 +25,7 @@ REQUIRED_FILES = [
     "docs/GITHUB_CONTROL.md",
     "docs/WORKFLOWS.md",
     "scripts/validate_repo_structure.py",
+    "scripts/validation_summary.py",
     "ios/Package.swift",
     "ios/Sources/AgentCore/PolicyEngine.swift",
     "ios/Tests/AgentCoreTests/SmokeTests.swift",
@@ -41,8 +42,18 @@ FORBIDDEN_PATH_HINTS = [
 
 CANONICAL_COMMANDS = [
     "python3 scripts/validate_repo_structure.py",
+    "python3 scripts/validation_summary.py",
     "cd ios && swift test",
     "cd ios && swift build",
+]
+
+GITHUB_CHECKS = [
+    "PR Change Scope",
+    "Pull Request Quality",
+    "Repo Audit",
+    "Docs Consistency",
+    "Swift workflow, if Swift code changed",
+    "Phase 0 CI Validation, if required",
 ]
 
 
@@ -97,6 +108,30 @@ def print_result(result: CheckResult) -> None:
     print(f"- {icon}: {result.name}: {result.detail}")
 
 
+def print_evidence_template() -> None:
+    print("## Copy-paste PR validation evidence")
+    print()
+    print("Use this block in the PR description or review comment. Only mark commands/checks as passed after they were actually run for the current branch or commit.")
+    print()
+    print("```markdown")
+    print("### Validation evidence")
+    print()
+    print("Commit SHA:")
+    print("Local environment:")
+    print()
+    print("Local commands:")
+    for command in CANONICAL_COMMANDS:
+        print(f"- [ ] `{command}`")
+    print()
+    print("GitHub Actions / connector checks:")
+    for check in GITHUB_CHECKS:
+        print(f"- [ ] {check}")
+    print()
+    print("Commands or checks not run, with reason:")
+    print("- ")
+    print("```")
+
+
 def main() -> int:
     checks = [
         check_required_files(),
@@ -119,9 +154,17 @@ def main() -> int:
         print(f"- {command}")
 
     print()
+    print("## GitHub checks to inspect when available")
+    for check in GITHUB_CHECKS:
+        print(f"- {check}")
+
+    print()
     print("## Notes")
     print("- This summary does not replace the canonical validation commands.")
     print("- It does not execute Swift, access networks, write files or read private user data.")
+    print("- Do not claim Swift build/test success unless `swift test`, `swift build` or a relevant GitHub Actions run actually passed for the current branch/commit.")
+    print()
+    print_evidence_template()
 
     return 0 if all(check.ok for check in checks) else 1
 
