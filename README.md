@@ -1,7 +1,7 @@
 # iGentic iPhone
 
 <p align="center">
-  <img src="assets/brand/logo-lockup.svg" alt="iGentic logo lockup" width="760">
+  <img src="assets/brand/logo-lockup-v3.svg" alt="iGentic logo lockup" width="760">
 </p>
 
 **iGentic iPhone** is an experimental, privacy-first iPhone AI Runtime Layer.
@@ -85,6 +85,10 @@ The master brand is **iGentic**. `iGentic iPhone` is the current research track.
 Brand, design and community decisions are part of the repository because this is an open-source project with a long-term identity and IP direction.
 
 - Brand foundation: `docs/brand/BRAND.md`
+- Corporate identity: `docs/brand/CORPORATE_IDENTITY.md`
+- Brand asset manifest: `docs/brand/BRAND_ASSET_MANIFEST.md`
+- Brand review workflow: `docs/brand/BRAND_REVIEW_WORKFLOW.md`
+- Social identity: `docs/brand/SOCIAL_IDENTITY.md`
 - Design system: `docs/brand/DESIGN_SYSTEM.md`
 - Logo brief: `docs/brand/LOGO_BRIEF.md`
 - Logo usage rules: `docs/brand/LOGO_USAGE.md`
@@ -94,7 +98,7 @@ Brand, design and community decisions are part of the repository because this is
 - GitHub control runbook: `docs/GITHUB_CONTROL.md`
 - Validation contract: `docs/VALIDATION.md`
 - Workflow overview: `docs/WORKFLOWS.md`
-- Initial brand assets: `assets/brand/`
+- Preferred brand assets: `assets/brand/logo-symbol-v3.svg`, `assets/brand/logo-lockup-v3.svg`, `assets/social/instagram-profile-v3.svg`
 
 Community direction: **GitHub-first, social-supported**. Instagram, X and LinkedIn are used for discovery and build-in-public storytelling. GitHub remains the canonical place for decisions, issues, pull requests and roadmap.
 
