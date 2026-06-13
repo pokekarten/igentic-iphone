@@ -1,0 +1,27 @@
+<svg width="1080" height="1080" viewBox="0 0 1080 1080" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">iGentic logo mark v2</title>
+  <desc id="desc">A clean lowercase i inside an open geometric G control ring, optimized for small avatars and public brand use.</desc>
+  <defs>
+    <radialGradient id="surface" cx="50%" cy="44%" r="66%">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="0.68" stop-color="#F8FAFC"/>
+      <stop offset="1" stop-color="#EEF6FF"/>
+    </radialGradient>
+    <linearGradient id="ring" x1="245" y1="210" x2="860" y2="870" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2DA7FF"/>
+      <stop offset="0.55" stop-color="#0B63F6"/>
+      <stop offset="1" stop-color="#0647B8"/>
+    </linearGradient>
+    <linearGradient id="graphite" x1="520" y1="319" x2="520" y2="725" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#334155"/>
+      <stop offset="1" stop-color="#0F172A"/>
+    </linearGradient>
+  </defs>
+  <rect width="1080" height="1080" rx="216" fill="#F8FAFC"/>
+  <circle cx="540" cy="540" r="468" fill="url(#surface)" stroke="#D8DEE9" stroke-width="4"/>
+  <g id="igentic-mark" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path id="control-ring" d="M760 310 L660 210 H430 L245 395 V685 L430 870 H665 L860 675 V595 H665" stroke="url(#ring)" stroke-width="96"/>
+    <circle id="identity-dot" cx="520" cy="365" r="46" fill="url(#graphite)"/>
+    <rect id="identity-stem" x="478" y="455" width="84" height="270" rx="42" fill="url(#graphite)"/>
+  </g>
+</svg>
