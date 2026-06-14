@@ -2,6 +2,12 @@
 
 Repository: `pokekarten/igentic-iphone`
 
+## Source-of-truth contract
+
+This file is the current work source for AI-assisted repository work in `pokekarten/igentic-iphone`.
+
+The private brain may point here, but it must not duplicate detailed live state. PR numbers, branches, CI, validation, head SHAs, scope and concrete blockers must be re-read from this repository, issues, pull requests or current files before status is reported.
+
 ## Current operating mode
 
 ChatGPT works through the GitHub Connector for repository-control, review and small documentation/process changes. Runtime/code changes should stay narrow and use pull requests before merge.
