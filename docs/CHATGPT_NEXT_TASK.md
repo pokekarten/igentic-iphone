@@ -33,7 +33,7 @@ README now uses `assets/brand/logo-lockup-v3.svg` as the visible repository logo
 
 A ChatGPT visual review pass on 2026-06-14 promoted the v3 profile, symbol and lockup from preferred candidates to the default public identity recommendation in the brand docs.
 
-The review also found that `assets/social/instagram-carousel-template-v1.svg` is structurally useful but needs a wrapped-copy/example-cover pass before it should be treated as locked or final.
+The first carousel copy wrap pass is recorded in `docs/brand/CAROUSEL_COPY_WRAP_PASS.md`. It confirms short two-line subtitles for the current social pillars and keeps the carousel as an active template candidate until committed SVG example covers or a wrapped-subtitle template revision confirms the layout visually.
 
 ## Active cycle
 
@@ -43,16 +43,18 @@ Goal: make the carousel template usable for real public posts without touching r
 
 ## Next task
 
-Create a carousel wrap/example pass for the current social pillars:
+Create the next visual-only carousel proof from `assets/social/instagram-carousel-template-v1.svg` and `docs/brand/CAROUSEL_COPY_WRAP_PASS.md`:
 
-1. Use `assets/social/instagram-carousel-template-v1.svg` as the source template.
-2. Test or create committed example covers for these topics:
+1. Add committed SVG example covers, or a wrapped-subtitle template revision, for these topics:
    - Policy before action.
    - Local first.
    - Approval gated.
-3. Ensure subtitle copy does not overflow the 1080 x 1350 frame.
+2. Use two subtitle text rows for realistic public copy:
+   - line 1 around `y=470`
+   - line 2 around `y=520`
+3. Re-check that headline, subtitle and card copy stay inside the 1080 x 1350 frame.
 4. Keep the profile/avatar, master symbol and lockup status as v3 default unless new visual evidence contradicts it.
-5. If the carousel pass succeeds, update `docs/brand/BRAND_ASSET_MANIFEST.md` and `docs/brand/SOCIAL_IDENTITY.md` from active template candidate toward default carousel template.
+5. If the SVG proof succeeds, update `docs/brand/BRAND_ASSET_MANIFEST.md` and `docs/brand/SOCIAL_IDENTITY.md` from active template candidate toward default carousel template.
 
 ## Guardrails
 
