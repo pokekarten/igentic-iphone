@@ -1,6 +1,6 @@
 # iGentic Brand Asset Manifest
 
-Last updated: 2026-06-13
+Last updated: 2026-06-14
 
 ## Purpose
 
@@ -10,7 +10,9 @@ It prevents the project from drifting between one-off logo experiments, generate
 
 ## Current brand state
 
-The current preferred identity direction is **v3 responsive brand system**.
+The current default public identity direction is **v3 responsive brand system** for the master symbol, public profile/avatar and README/header lockup.
+
+The carousel template remains an **active template candidate** until the next wrapped-copy pass confirms that realistic social copy does not overflow.
 
 The v3 direction is preferred because it separates the brand into context-specific assets:
 
@@ -25,10 +27,10 @@ The v3 direction is preferred because it separates the brand into context-specif
 
 | Asset | Path | Role | Status |
 | --- | --- | --- | --- |
-| Transparent master symbol | `assets/brand/logo-symbol-v3.svg` | flexible mark for custom surfaces | preferred candidate |
-| Instagram profile | `assets/social/instagram-profile-v3.svg` | public profile/avatar candidate | preferred candidate |
+| Transparent master symbol | `assets/brand/logo-symbol-v3.svg` | flexible mark for custom surfaces | default |
+| Instagram profile | `assets/social/instagram-profile-v3.svg` | public profile/avatar | default |
 | Dark mark | `assets/brand/logo-mark-dark-v3.svg` | dark decks, social posts, dark UI sections | preferred candidate |
-| Lockup | `assets/brand/logo-lockup-v3.svg` | README, website hero, social header | preferred candidate |
+| Lockup | `assets/brand/logo-lockup-v3.svg` | README, website hero, social header | default |
 | Carousel template | `assets/social/instagram-carousel-template-v1.svg` | first repeatable Instagram carousel layout | active template candidate |
 | Monochrome mark | `assets/brand/logo-mark-mono.svg` | one-color fallback, masks, print | required fallback |
 
@@ -76,19 +78,37 @@ Assets move through these states:
 4. **Default** — used by README, website and social profile.
 5. **Locked** — only after visual review and maintainer approval.
 
+## Visual review result — 2026-06-14
+
+The v3 profile asset was rendered from the committed SVG at 64 px, 120 px and 220 px for local visual review. The mark remains legible at all three sizes: the open G ring, local identity i and light profile surface remain distinct enough for avatar use.
+
+Comparison against `assets/brand/logo-mark.svg`, `assets/brand/logo-mark-v2.svg` and `assets/brand/logo-symbol-v3.svg` supports promoting v3 as the default public direction:
+
+- the original mark has extra connector-line detail that is less useful at small avatar sizes,
+- the v2 mark is clean but less aligned with the transparent v3 master symbol,
+- the v3 profile and v3 symbol are consistent with each other and avoid text, Apple-owned visual language, robots, sparkle icons and generic AI motifs.
+
+The carousel template was checked with the three current social pillars:
+
+- Policy before action,
+- Local first,
+- Approval gated.
+
+The template structure is usable, but realistic subtitle copy can overflow because the current SVG uses a single long text line. Keep the carousel as an active template candidate until a wrapped-copy variant or committed example covers is added.
+
+Decision: promote the v3 symbol, profile and lockup to **default**. Do not mark the full identity as **locked** until maintainer approval and the carousel wrap pass are complete.
+
 ## Current recommendation
 
 Use these for the next public-facing pass:
 
-- Profile: `assets/social/instagram-profile-v3.svg`
+- Profile/avatar: `assets/social/instagram-profile-v3.svg`
 - Master symbol: `assets/brand/logo-symbol-v3.svg`
-- Header: `assets/brand/logo-lockup-v3.svg`
-- Social post template: `assets/social/instagram-carousel-template-v1.svg`
+- Header/README: `assets/brand/logo-lockup-v3.svg`
+- Social post template candidate: `assets/social/instagram-carousel-template-v1.svg`
 
 ## Next review checklist
 
-- Render profile at 64 px, 120 px and 220 px.
-- Compare v3 against original and v2 assets.
-- Test the carousel template with three real posts.
-- Decide whether README should switch to `logo-lockup-v3.svg`.
-- Decide whether the GitHub/social avatar should use `instagram-profile-v3.svg`.
+- Add or update wrapped-copy carousel examples for the three social pillars.
+- Re-check GitHub/social avatar appearance after applying `instagram-profile-v3.svg` on the public profile surface.
+- Keep old assets as legacy comparison until final maintainer lock.
