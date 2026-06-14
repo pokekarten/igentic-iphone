@@ -31,24 +31,28 @@ README now uses `assets/brand/logo-lockup-v3.svg` as the visible repository logo
 
 `scripts/validate_repo_structure.py` now requires the v3 brand assets, the brand manifest and the social identity docs, and checks the relevant SVG files for `<title>`, `<desc>` and `role="img"` metadata.
 
+A ChatGPT visual review pass on 2026-06-14 promoted the v3 profile, symbol and lockup from preferred candidates to the default public identity recommendation in the brand docs.
+
+The review also found that `assets/social/instagram-carousel-template-v1.svg` is structurally useful but needs a wrapped-copy/example-cover pass before it should be treated as locked or final.
+
 ## Active cycle
 
 Target: public brand readiness for iGentic.
 
-Goal: visually validate whether the v3 mark should become the default public identity and whether the social carousel template is usable for real posts.
+Goal: make the carousel template usable for real public posts without touching runtime code.
 
 ## Next task
 
-Create a visual review pass for the v3 brand assets:
+Create a carousel wrap/example pass for the current social pillars:
 
-1. Render `assets/social/instagram-profile-v3.svg` at 64 px, 120 px and 220 px.
-2. Compare it against `assets/brand/logo-mark.svg`, `assets/brand/logo-mark-v2.svg` and `assets/brand/logo-symbol-v3.svg`.
-3. Test `assets/social/instagram-carousel-template-v1.svg` with three real carousel topics:
+1. Use `assets/social/instagram-carousel-template-v1.svg` as the source template.
+2. Test or create committed example covers for these topics:
    - Policy before action.
    - Local first.
    - Approval gated.
-4. Decide whether v3 should be promoted from preferred candidate to default identity.
-5. If accepted, update `docs/brand/BRAND_ASSET_MANIFEST.md` and `docs/brand/SOCIAL_IDENTITY.md` from preferred candidate to default.
+3. Ensure subtitle copy does not overflow the 1080 x 1350 frame.
+4. Keep the profile/avatar, master symbol and lockup status as v3 default unless new visual evidence contradicts it.
+5. If the carousel pass succeeds, update `docs/brand/BRAND_ASSET_MANIFEST.md` and `docs/brand/SOCIAL_IDENTITY.md` from active template candidate toward default carousel template.
 
 ## Guardrails
 
