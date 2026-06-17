@@ -37,13 +37,15 @@ A ChatGPT visual review pass on 2026-06-14 promoted the v3 profile, symbol and l
 
 The first carousel copy wrap pass is recorded in `docs/brand/CAROUSEL_COPY_WRAP_PASS.md`. It confirms short two-line subtitles for the current social pillars and keeps the carousel as an active template candidate until committed SVG example covers or a wrapped-subtitle template revision confirms the layout visually.
 
+PR #36 / Issue #34 added the docs-only test coverage preservation gate and was completed on 2026-06-17. The current iGentic focus should now return to the independent carousel proof unless a new source check finds a higher-priority blocker.
+
 ## Active cycle
 
 Target: public brand readiness for iGentic.
 
 Goal: make the carousel template usable for real public posts without touching runtime code.
 
-Current gate context: PR #36 is a separate docs-only safety/process PR. On 2026-06-17 it was source-gated as one-file docs-only and marked ready for review. Re-read PR #36 before any merge/status claim; do not mix PR #36 files with the carousel task.
+Current gate context: PR #36 / Issue #34 is completed. Do not reopen that scope unless a future runtime/test PR again risks deleting unrelated safety coverage.
 
 ## Next task
 
@@ -66,6 +68,6 @@ Create the next visual-only carousel proof from `assets/social/instagram-carouse
 - Do not change workflows unless explicitly required.
 - Do not add secrets, network calls, external providers, App Intents, signing files or private data.
 - Do not touch Pokekartenkiste files or references.
-- Do not touch PR #36 files or `docs/TEST_COVERAGE_PRESERVATION.md` unless the current task is explicitly PR #36 gate/review.
+- Do not reopen PR #36 / Issue #34 scope unless a new source-backed test-coverage risk appears.
 - Do not claim Swift build/test success unless backed by a specific local run or GitHub Actions run.
 - Keep the change visual/documentation-only.
