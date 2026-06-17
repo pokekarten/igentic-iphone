@@ -1,6 +1,6 @@
 # Project State
 
-Last updated: 2026-06-13
+Last updated: 2026-06-17
 
 ## Current status
 
@@ -29,9 +29,12 @@ Phase 0 is substantially documented and contributor-facing. Issue #1 is closed a
 
 - PR #31 `Issue #18: add ApprovalReceipt metadata` was squash-merged into `main` as `c4e8bb137201382e73b86b81a69a465db87cc559`.
 - Issue #18 is closed as completed.
+- PR #36 `Issue #34: add test coverage preservation gate` was squash-merged into `main` as `02aec38c2627ab5c299c94e5376c198c65821852`.
+- Issue #34 is closed as completed.
 - `ApprovalReceipt` now records approval status metadata without storing private raw data.
 - `ApprovalManager` can create approval receipts for audit/diagnostic use.
 - Focused tests cover pending, approved and rejected approval outcomes.
+- The test coverage preservation gate now documents that unrelated existing safety tests must not be silently removed from narrow runtime or test PRs.
 - Brand identity v3 assets were added as preferred candidates for public profile, symbol, lockup, dark mark and social carousel usage.
 
 ## What exists now
@@ -82,6 +85,7 @@ cd ios && swift build
 - A post-merge workflow run attached to every new `main` merge commit is useful extra evidence, but it is no longer treated as a blocker for closing the original Phase 0 validation issue when the issue acceptance criteria are already met.
 - ChatGPT watcher comments, documentation notes and bookkeeping commits must not reset Issue #1 or create a new latest-main validation loop.
 - Future code/runtime changes still require PR validation or a new validation issue.
+- PR #36 was docs-only and connector-reviewed before merge; no Swift build/test claim is made for that docs-only change.
 
 ## Current active task
 
