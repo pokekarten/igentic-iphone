@@ -2,6 +2,8 @@
 
 Repository: `pokekarten/igentic-iphone`
 
+Stand: 2026-06-17
+
 ## Source-of-truth contract
 
 This file is the current work source for AI-assisted repository work in `pokekarten/igentic-iphone`.
@@ -41,6 +43,8 @@ Target: public brand readiness for iGentic.
 
 Goal: make the carousel template usable for real public posts without touching runtime code.
 
+Current gate context: PR #36 is a separate docs-only safety/process PR. It remains a gate/review target and must not be mixed with the carousel task. Re-read PR #36 before any status claim; do not merge while Draft or stale.
+
 ## Next task
 
 Create the next visual-only carousel proof from `assets/social/instagram-carousel-template-v1.svg` and `docs/brand/CAROUSEL_COPY_WRAP_PASS.md`:
@@ -62,5 +66,6 @@ Create the next visual-only carousel proof from `assets/social/instagram-carouse
 - Do not change workflows unless explicitly required.
 - Do not add secrets, network calls, external providers, App Intents, signing files or private data.
 - Do not touch Pokekartenkiste files or references.
+- Do not touch PR #36 files or `docs/TEST_COVERAGE_PRESERVATION.md` unless the current task is explicitly PR #36 gate/review.
 - Do not claim Swift build/test success unless backed by a specific local run or GitHub Actions run.
 - Keep the change visual/documentation-only.
