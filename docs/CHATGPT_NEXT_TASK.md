@@ -43,7 +43,7 @@ Target: public brand readiness for iGentic.
 
 Goal: make the carousel template usable for real public posts without touching runtime code.
 
-Current gate context: PR #36 is a separate docs-only safety/process PR. It remains a gate/review target and must not be mixed with the carousel task. Re-read PR #36 before any status claim; do not merge while Draft or stale.
+Current gate context: PR #36 is a separate docs-only safety/process PR. On 2026-06-17 it was source-gated as one-file docs-only and marked ready for review. Re-read PR #36 before any merge/status claim; do not mix PR #36 files with the carousel task.
 
 ## Next task
 
