@@ -1,6 +1,6 @@
 # iGentic Social Identity
 
-Last updated: 2026-06-14
+Last updated: 2026-06-18
 
 ## Purpose
 
@@ -14,7 +14,10 @@ The goal is to make iGentic recognizable on public surfaces without turning the 
 | --- | --- |
 | `assets/social/instagram-profile-v3.svg` | Default public profile/avatar recommendation |
 | `assets/social/instagram-profile.svg` | Earlier profile candidate, kept for comparison |
-| `assets/social/instagram-carousel-template-v1.svg` | First carousel cover/content template candidate |
+| `assets/social/instagram-carousel-template-v1.svg` | Preferred carousel cover/content template candidate |
+| `assets/social/carousel-policy-before-action.svg` | Wrapped-copy proof cover for Policy before action |
+| `assets/social/carousel-local-first.svg` | Wrapped-copy proof cover for Local first |
+| `assets/social/carousel-approval-gated.svg` | Wrapped-copy proof cover for Approval gated |
 | `assets/brand/logo-symbol-v3.svg` | Default transparent master symbol for flexible layouts |
 | `assets/brand/logo-mark-dark-v3.svg` | Preferred dark social and slide surface candidate |
 | `assets/brand/logo-lockup-v3.svg` | Default social header, website hero and README lockup |
@@ -59,7 +62,13 @@ Recommended structure:
 4. Slide 4: example safe routing decision.
 5. Slide 5: call for review, contribution or testing.
 
-Carousel cover copy should be short enough to render without overflowing. The next template pass should add wrapped subtitle handling or committed example covers for the first three pillars.
+Carousel cover copy should use two subtitle lines for realistic public copy instead of one long subtitle line. The first proof covers use the documented rows around `y=470` and `y=520` for:
+
+- Policy before action,
+- Local first,
+- Approval gated.
+
+The committed proof covers make the carousel direction stronger, but the template is not locked until the SVGs are rendered/reviewed at 1080 x 1350.
 
 ## Current judgement
 
@@ -73,13 +82,13 @@ The current best public profile candidate is:
 assets/social/instagram-profile-v3.svg
 ```
 
-The carousel template direction is usable, but it is not locked yet. Realistic subtitle copy for the current social pillars can overflow unless wrapped or shortened, so the carousel remains an active template candidate.
+The carousel template direction is now a preferred candidate with committed wrapped-copy proof covers. The remaining gate is visual rendering/review of those covers before treating the carousel as the default public social template.
 
 ## Next checks
 
 Before final public lock:
 
-- Add or update wrapped-copy carousel examples for Policy before action, Local first and Approval gated.
+- Render/review `assets/social/carousel-policy-before-action.svg`, `assets/social/carousel-local-first.svg` and `assets/social/carousel-approval-gated.svg` at 1080 x 1350.
 - Check circular crop readability after applying the profile asset on the actual public profile surface.
 - Keep the old original and v2 marks as comparison assets until maintainer approval.
 - Do not change Swift runtime code for brand-only work.
