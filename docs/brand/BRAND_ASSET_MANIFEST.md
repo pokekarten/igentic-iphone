@@ -1,6 +1,6 @@
 # iGentic Brand Asset Manifest
 
-Last updated: 2026-06-14
+Last updated: 2026-06-18
 
 ## Purpose
 
@@ -12,7 +12,7 @@ It prevents the project from drifting between one-off logo experiments, generate
 
 The current default public identity direction is **v3 responsive brand system** for the master symbol, public profile/avatar and README/header lockup.
 
-The carousel template remains an **active template candidate** until the next wrapped-copy pass confirms that realistic social copy does not overflow.
+The carousel template is now a **preferred template candidate with committed proof covers** for the first three social pillars. It should not be treated as locked until the proof covers are visually rendered/reviewed and maintainer approval confirms the final public style.
 
 The v3 direction is preferred because it separates the brand into context-specific assets:
 
@@ -21,6 +21,7 @@ The v3 direction is preferred because it separates the brand into context-specif
 - dark surface mark,
 - horizontal lockup,
 - carousel template,
+- wrapped-copy proof covers,
 - monochrome fallback.
 
 ## Canonical assets
@@ -31,7 +32,10 @@ The v3 direction is preferred because it separates the brand into context-specif
 | Instagram profile | `assets/social/instagram-profile-v3.svg` | public profile/avatar | default |
 | Dark mark | `assets/brand/logo-mark-dark-v3.svg` | dark decks, social posts, dark UI sections | preferred candidate |
 | Lockup | `assets/brand/logo-lockup-v3.svg` | README, website hero, social header | default |
-| Carousel template | `assets/social/instagram-carousel-template-v1.svg` | first repeatable Instagram carousel layout | active template candidate |
+| Carousel template | `assets/social/instagram-carousel-template-v1.svg` | first repeatable Instagram carousel layout | preferred template candidate |
+| Policy proof cover | `assets/social/carousel-policy-before-action.svg` | wrapped-copy proof for the Policy before action pillar | proof candidate |
+| Local-first proof cover | `assets/social/carousel-local-first.svg` | wrapped-copy proof for the Local first pillar | proof candidate |
+| Approval-gated proof cover | `assets/social/carousel-approval-gated.svg` | wrapped-copy proof for the Approval gated pillar | proof candidate |
 | Monochrome mark | `assets/brand/logo-mark-mono.svg` | one-color fallback, masks, print | required fallback |
 
 ## Legacy / comparison assets
@@ -88,15 +92,17 @@ Comparison against `assets/brand/logo-mark.svg`, `assets/brand/logo-mark-v2.svg`
 - the v2 mark is clean but less aligned with the transparent v3 master symbol,
 - the v3 profile and v3 symbol are consistent with each other and avoid text, Apple-owned visual language, robots, sparkle icons and generic AI motifs.
 
-The carousel template was checked with the three current social pillars:
+## Carousel proof update — 2026-06-18
 
-- Policy before action,
-- Local first,
-- Approval gated.
+The carousel template now has committed SVG proof covers for the three current social pillars:
 
-The template structure is usable, but realistic subtitle copy can overflow because the current SVG uses a single long text line. Keep the carousel as an active template candidate until a wrapped-copy variant or committed example covers is added.
+- `assets/social/carousel-policy-before-action.svg`,
+- `assets/social/carousel-local-first.svg`,
+- `assets/social/carousel-approval-gated.svg`.
 
-Decision: promote the v3 symbol, profile and lockup to **default**. Do not mark the full identity as **locked** until maintainer approval and the carousel wrap pass are complete.
+Each proof uses the documented two-line subtitle rows at `y=470` and `y=520` instead of one long subtitle line. This removes the earlier single-line overflow risk at the source level. The next gate is visual rendering/review of those committed SVGs before promoting the carousel from preferred template candidate to default social carousel.
+
+Decision: keep the v3 symbol, profile and lockup as **default**. Promote the carousel from active template candidate to **preferred template candidate with committed proof covers**. Do not mark the full identity as **locked** until maintainer approval and final visual review are complete.
 
 ## Current recommendation
 
@@ -106,9 +112,13 @@ Use these for the next public-facing pass:
 - Master symbol: `assets/brand/logo-symbol-v3.svg`
 - Header/README: `assets/brand/logo-lockup-v3.svg`
 - Social post template candidate: `assets/social/instagram-carousel-template-v1.svg`
+- Social proof covers:
+  - `assets/social/carousel-policy-before-action.svg`
+  - `assets/social/carousel-local-first.svg`
+  - `assets/social/carousel-approval-gated.svg`
 
 ## Next review checklist
 
-- Add or update wrapped-copy carousel examples for the three social pillars.
+- Render/review the three committed carousel proof covers at 1080 x 1350.
 - Re-check GitHub/social avatar appearance after applying `instagram-profile-v3.svg` on the public profile surface.
 - Keep old assets as legacy comparison until final maintainer lock.
