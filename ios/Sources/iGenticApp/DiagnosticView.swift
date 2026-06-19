@@ -1,3 +1,4 @@
+#if canImport(SwiftUI)
 import SwiftUI
 
 public struct DiagnosticView: View {
@@ -53,3 +54,4 @@ private struct DiagnosticMetric: View {
         .font(.subheadline)
     }
 }
+#endif
