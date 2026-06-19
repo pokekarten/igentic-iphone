@@ -8,6 +8,8 @@ This directory contains the smallest installable iOS application wrapper for the
 - Imports the local package product from `../../ios`.
 - Presents `DiagnosticView` as the root SwiftUI view.
 - Builds for the iOS Simulator without code signing in GitHub Actions.
+- Installs the built app into an available iPhone simulator.
+- Launches the app, captures a simulator screenshot, terminates it, and verifies a clean relaunch.
 
 ## What it does not do
 
@@ -43,11 +45,20 @@ xcodebuild \
   -configuration Debug \
   -sdk iphonesimulator \
   -destination 'generic/platform=iOS Simulator' \
+  -derivedDataPath /tmp/iGenticDerivedData \
   CODE_SIGNING_ALLOWED=NO \
   build
 ```
 
-A successful simulator build does not prove physical-device installation, launch behavior or performance.
+The reusable launch smoke test then runs with:
+
+```bash
+APP_PATH=/tmp/iGenticDerivedData/Build/Products/Debug-iphonesimulator/iGenticDiagnostics.app \
+BUNDLE_IDENTIFIER=org.example.iGenticDiagnostics \
+bash scripts/smoke-ios-simulator.sh
+```
+
+A successful simulator smoke test proves that the built app can be installed, launched, screenshotted, terminated, and relaunched in an iOS Simulator. It does not prove physical-device signing, installation, device-specific behavior, accessibility quality, or performance.
 
 ## Follow-up
 

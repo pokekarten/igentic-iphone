@@ -5,6 +5,7 @@ on:
     paths:
       - "app/**"
       - "ios/**"
+      - "scripts/smoke-ios-simulator.sh"
       - ".github/workflows/ios-app-wrapper.yml"
   push:
     branches:
@@ -12,6 +13,7 @@ on:
     paths:
       - "app/**"
       - "ios/**"
+      - "scripts/smoke-ios-simulator.sh"
       - ".github/workflows/ios-app-wrapper.yml"
   workflow_dispatch:
 
@@ -28,11 +30,12 @@ defaults:
 
 jobs:
   simulator-build:
-    name: Build diagnostic app for simulator
+    name: Build and launch diagnostic app in simulator
     runs-on: macos-15
-    timeout-minutes: 20
+    timeout-minutes: 25
     env:
       PR_NUMBER: ${{ github.event.pull_request.number }}
+      BUNDLE_IDENTIFIER: org.example.iGenticDiagnostics
 
     steps:
       - name: Checkout repository without marketplace actions
@@ -65,11 +68,24 @@ jobs:
 
       - name: Build unsigned simulator app
         run: |
+          set -euo pipefail
+          derived_data_path="${RUNNER_TEMP}/iGenticDerivedData"
+          app_path="${derived_data_path}/Build/Products/Debug-iphonesimulator/iGenticDiagnostics.app"
+          screenshot_path="${RUNNER_TEMP}/iGenticDiagnostics-launch.png"
+
           xcodebuild \
             -project app/iGenticDiagnostics/iGenticDiagnostics.xcodeproj \
             -scheme iGenticDiagnostics \
             -configuration Debug \
             -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "${derived_data_path}" \
             CODE_SIGNING_ALLOWED=NO \
             build
+
+          echo "APP_PATH=${app_path}" >> "${GITHUB_ENV}"
+          echo "SCREENSHOT_PATH=${screenshot_path}" >> "${GITHUB_ENV}"
+
+      - name: Install, launch, screenshot, and relaunch app
+        run: |
+          bash scripts/smoke-ios-simulator.sh
