@@ -1,0 +1,36 @@
+<svg width="1080" height="1350" viewBox="0 0 1080 1350" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">iGentic carousel cover: Local first</title>
+  <desc id="desc">A wrapped-copy Instagram carousel cover proving the Local first social pillar.</desc>
+  <defs>
+    <linearGradient id="ring" x1="240" y1="208" x2="850" y2="872" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2DA7FF"/>
+      <stop offset="0.48" stop-color="#0B63F6"/>
+      <stop offset="1" stop-color="#0647B8"/>
+    </linearGradient>
+    <linearGradient id="identity" x1="540" y1="330" x2="540" y2="734" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#334155"/>
+      <stop offset="1" stop-color="#0F172A"/>
+    </linearGradient>
+  </defs>
+  <rect width="1080" height="1350" fill="#F8FAFC"/>
+  <circle cx="900" cy="170" r="340" fill="#EEF6FF"/>
+  <g transform="translate(680 52) scale(0.22)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M762 306 L662 206 H414 L234 386 V694 L414 874 H666 L852 688 V606 H668" stroke="url(#ring)" stroke-width="104"/>
+    <circle cx="540" cy="366" r="48" fill="url(#identity)"/>
+    <rect x="496" y="458" width="88" height="276" rx="44" fill="url(#identity)"/>
+  </g>
+  <text x="76" y="100" fill="#0B63F6" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, system-ui, sans-serif" font-size="28" font-weight="750" letter-spacing="6">IGENTIC</text>
+  <text x="76" y="360" fill="#111827" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, system-ui, sans-serif" font-size="92" font-weight="620" letter-spacing="-2">Local first.</text>
+  <text x="76" y="470" fill="#475569" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, system-ui, sans-serif" font-size="40" font-weight="420">Keep decisions on your trusted device</text>
+  <text x="76" y="520" fill="#475569" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, system-ui, sans-serif" font-size="40" font-weight="420">before delegating anything remote.</text>
+  <rect x="76" y="690" width="928" height="360" rx="40" fill="#FFFFFF" stroke="#D8DEE9" stroke-width="2"/>
+  <text x="124" y="770" fill="#111827" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, system-ui, sans-serif" font-size="34" font-weight="680">What this means</text>
+  <circle cx="145" cy="850" r="9" fill="#0B63F6"/>
+  <text x="172" y="862" fill="#334155" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, system-ui, sans-serif" font-size="30">Trusted device comes first</text>
+  <circle cx="145" cy="920" r="9" fill="#F59E0B"/>
+  <text x="172" y="932" fill="#334155" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, system-ui, sans-serif" font-size="30">Remote delegation is optional</text>
+  <circle cx="145" cy="990" r="9" fill="#22C55E"/>
+  <text x="172" y="1002" fill="#334155" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, system-ui, sans-serif" font-size="30">Metadata stays inspectable</text>
+  <path d="M76 1190H1004" stroke="#D8DEE9" stroke-width="2"/>
+  <text x="76" y="1260" fill="#64748B" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, system-ui, sans-serif" font-size="28">Open-source personal AI control layer</text>
+</svg>
