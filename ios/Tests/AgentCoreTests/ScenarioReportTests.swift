@@ -4,7 +4,7 @@ import XCTest
 final class ScenarioReportTests: XCTestCase {
     func testSyntheticScenarioCatalogKeepsStableOrder() {
         XCTAssertEqual(
-            SyntheticScenarioCatalog.all.map(\.id),
+            SyntheticScenarioCatalog.baseline.map(\.id),
             ["local-only-summary", "critical-reminder", "external-provider-check", "trusted-device-metadata"]
         )
     }
