@@ -68,6 +68,14 @@ If any item is missing, stop the device run and record `NOT_AVAILABLE`. Do not t
 
 Record each step separately:
 
+- [ ] Open the installable app project or workspace in Xcode.
+- [ ] Select the app scheme rather than a package-library scheme.
+- [ ] Link the local `iGenticApp` package product.
+- [ ] Confirm the app entry point presents `DiagnosticView`.
+- [ ] Connect and unlock the physical test iPhone.
+- [ ] Select the physical device as the run destination.
+- [ ] Select the local Apple Developer Team under Signing & Capabilities.
+- [ ] Confirm that the bundle identifier is unique and contains no private account identifier.
 - [ ] Xcode resolves the local package products.
 - [ ] The app target builds for the selected physical device.
 - [ ] Signing succeeds.
