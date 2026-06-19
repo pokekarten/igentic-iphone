@@ -25,7 +25,7 @@ Mode: `IGENTIC_SELECT_NEXT_SAFE_SLICE`.
 - PR #51 `Add ToolRegistry contract validation` was squash-merged into `main` as `8730b302ef2a30175d4bd6d330ef15d741e29964`.
 - PR #52 `Add metadata-only RuntimeBudget model` was merged into `main` as `6ff0c6875cb58560b0a98c4d23dbee91e538319b`.
 - PR #52 passed the declared current-head workflow set, including Swift, Phase 0 CI, PR scope, PR quality, docs consistency, repo audit and iOS app-wrapper validation.
-- Issue #14 is complete and must be closed with source-backed acceptance evidence.
+- Issue #14 is complete and awaiting closure with source-backed acceptance evidence.
 - Issue #29 remains open for physical-device validation.
 
 ## Active target
@@ -34,7 +34,7 @@ No new implementation candidate is selected yet.
 
 The next iGentic director/context cycle must:
 
-1. verify Issue #14 closure,
+1. verify and close Issue #14,
 2. keep Issue #29 classified as an owner/device boundary,
 3. inspect current open product issues and repository state,
 4. select exactly one smallest safe deterministic or simulator-verifiable product slice,
