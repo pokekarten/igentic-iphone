@@ -54,6 +54,12 @@ public struct DelegationBroker: Sendable {
             return .blocked(reason: "Local Only prevents delegation.")
         }
 
+        if request.dataClassification.level.blocksAutomaticExternalDelegation,
+           request.target != .none,
+           request.target != .localDevice {
+            return .blocked(reason: "Restricted sensitive data cannot be delegated automatically.")
+        }
+
         if request.target == .externalProvider {
             return .requiresApproval(reason: "External provider delegation requires explicit approval.")
         }

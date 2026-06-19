@@ -1,7 +1,15 @@
 import Foundation
 
 public enum SyntheticScenarioCatalog {
-    public static let all: [DiagnosticScenario] = [
+    private static let syntheticSensitiveText = "Synthetic contact: scenario@example.com"
+
+    private static var syntheticSensitiveClassification: DataClassification {
+        SensitiveDataDetector()
+            .detect(in: syntheticSensitiveText)
+            .suggestedDataClassification
+    }
+
+    public static let baseline: [DiagnosticScenario] = [
         DiagnosticScenario(
             id: "local-only-summary",
             task: TaskRequest(
@@ -38,6 +46,34 @@ public enum SyntheticScenarioCatalog {
                 userText: "Synthetic trusted-device metadata dry run",
                 intent: .findFile,
                 actionRisk: .prepare
+            ),
+            privacyMode: .trustedDevices,
+            delegationTarget: .trustedMac
+        ),
+    ]
+
+    public static let all: [DiagnosticScenario] = baseline + [
+        DiagnosticScenario(
+            id: "restricted-external-delegation",
+            task: TaskRequest(
+                userText: "Synthetic restricted metadata delegation dry run",
+                intent: .summarizeNote,
+                dataClassification: DataClassification(
+                    level: .restrictedSensitiveData,
+                    reason: "Synthetic restricted classification for delegation smoke testing."
+                ),
+                actionRisk: .prepare
+            ),
+            privacyMode: .trustedDevices,
+            delegationTarget: .externalProvider
+        ),
+        DiagnosticScenario(
+            id: "sensitive-data-detection",
+            task: TaskRequest(
+                userText: syntheticSensitiveText,
+                intent: .summarizeNote,
+                dataClassification: syntheticSensitiveClassification,
+                actionRisk: .read
             ),
             privacyMode: .trustedDevices,
             delegationTarget: .trustedMac

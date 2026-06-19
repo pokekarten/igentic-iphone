@@ -51,7 +51,7 @@ public struct ScenarioRunner: Sendable {
         self.delegationBroker = delegationBroker
     }
 
-    public static let defaultScenarios = SyntheticScenarioCatalog.all
+    public static let defaultScenarios = SyntheticScenarioCatalog.baseline
 
     public func run(_ scenario: DiagnosticScenario) -> DiagnosticScenarioResult {
         let kernel = AgentKernel(
