@@ -8,51 +8,65 @@ Stand: 2026-06-19
 
 This file is the current work source for AI-assisted repository work in `pokekarten/igentic-iphone`.
 
-The private Brain may point here, but detailed live truth must be re-read from this repository. Before reporting or acting, verify current PR state, head SHA, changed files, checks, review threads and issue scope.
+The private Brain may point here, but detailed live truth must be re-read from this repository. Before reporting or acting, verify current PR state, current `main`, open issues and the physical-device evidence boundary.
 
 ## Current operating mode
 
-Mode: `IGENTIC_APP_WRAPPER_VALIDATION`.
+Mode: `IGENTIC_DEVICE_RUN_READY`.
 
 - iGentic remains the active repository context.
 - Pokekartenkiste remains outside this task.
-- Public GitHub Actions remain the independent validation environment.
+- Public GitHub Actions remain the independent repository validation environment.
 - Codex remains paused.
 - All recurring slot automations remain paused.
-- The owner authorized implementation of the smallest safe app-wrapper slice through the current chat instruction to implement what is possible.
+- No speculative runtime or integration work should start while the next step requires local Apple/Xcode/device access.
 
-## Active target
+## Recently completed
 
-PR #43 `Add minimal installable iOS diagnostics app wrapper` is the single active candidate.
+PR #43 `Add minimal installable iOS diagnostics app wrapper` was squash-merged into `main` as `c2554d26a0a80cf0e19dafc5355ff1b4abd0d1d0`.
 
-Intended scope:
+Before merge:
 
-- `app/iGenticDiagnostics/iGenticDiagnostics/iGenticDiagnosticsApp.swift`
-- `app/iGenticDiagnostics/iGenticDiagnostics.xcodeproj/project.pbxproj`
-- `app/iGenticDiagnostics/iGenticDiagnostics.xcodeproj/xcshareddata/xcschemes/iGenticDiagnostics.xcscheme`
-- `app/iGenticDiagnostics/README.md`
-- `.github/workflows/ios-app-wrapper.yml`
-- `PROJECT_STATE.md`
-- `docs/CHATGPT_NEXT_TASK.md`
+- PR Change Scope passed.
+- Pull Request Quality passed.
+- Docs Consistency passed.
+- Repo Audit passed.
+- Workflow Lint passed.
+- Phase 0 CI Validation passed.
+- Swift package validation passed.
+- `Build diagnostic app for simulator` passed.
+- No unresolved review thread remained.
 
-## Goal
+## Current repository state
 
-- Provide the smallest Xcode iOS application target.
-- Import the existing local `iGenticApp` Swift package product.
-- Present `DiagnosticView` as the application root.
-- Validate an unsigned iOS Simulator build in GitHub Actions.
-- Preserve the owner-only boundary for bundle identity, Apple Developer Team, signing and physical-device evidence.
+The repository now contains:
 
-## Next task
+- tested `AgentCore` and `iGenticApp` Swift package products,
+- deterministic metadata-only `ScenarioReport`,
+- tested SwiftUI `DiagnosticView`,
+- an Xcode application project under `app/iGenticDiagnostics`,
+- an `@main` iOS app entry point that presents `DiagnosticView`,
+- a shared Xcode scheme,
+- a successful unsigned iOS Simulator build workflow,
+- a committed device-test checklist and validation report template.
 
-Gate PR #43 at its latest head:
+The app wrapper uses `org.example.iGenticDiagnostics` as an explicit non-production placeholder bundle identifier.
 
-1. Read current PR metadata, changed files, patch, comments and review threads.
-2. Require repository structure, PR scope, PR quality, docs consistency, repo audit and workflow lint checks.
-3. Require existing macOS and Linux Swift package build/test checks.
-4. Require the `Build diagnostic app for simulator` check to resolve the local package and complete an unsigned simulator build.
-5. Inspect exact logs before changing project or workflow files.
-6. Mark ready and merge only with a stable head, green current-head evidence and no unresolved review thread.
+## Current boundary
+
+Repository automation has completed everything that can be proven without the owner's local Apple environment.
+
+The remaining steps require local owner action:
+
+1. open `app/iGenticDiagnostics/iGenticDiagnostics.xcodeproj` in Xcode,
+2. replace the placeholder bundle identifier,
+3. select the Apple Developer Team,
+4. configure automatic signing locally,
+5. connect and select the physical test iPhone,
+6. build, install, launch and relaunch the app,
+7. execute `docs/device-test-checklist.md`,
+8. complete `docs/reports/iphone-air-validation-template.md`,
+9. attach sanitized evidence to Issue #29.
 
 ## Required repository validation
 
@@ -62,7 +76,7 @@ cd ios && swift test
 cd ios && swift build
 ```
 
-Additional app-wrapper validation:
+App-wrapper validation:
 
 ```bash
 xcodebuild \
@@ -75,29 +89,22 @@ xcodebuild \
   build
 ```
 
-## Safety boundary
+These checks prove package and simulator buildability only. They do not prove physical-device signing, installation, launch behavior or performance.
 
-- `org.example.iGenticDiagnostics` is a non-production placeholder only.
-- Do not add Apple account, team, certificate, provisioning-profile or device identifiers.
-- Do not claim physical-device installation, launch or performance from simulator CI.
-- No networking, providers, persistence, App Intents, model calls, real actions, secrets or private data.
+## Stop rules
 
-## After PR #43
+Do not autonomously add:
 
-If PR #43 is validated and merged:
-
-1. keep Issue #29 open,
-2. replace the placeholder bundle identifier locally,
-3. select the Apple Developer Team locally in Xcode,
-4. configure signing without committing signing material,
-5. run the physical-device checklist and complete the validation report.
+- Apple account, team, certificate, provisioning-profile or device identifiers,
+- committed signing configuration,
+- networking, external providers or model calls,
+- persistence of private data,
+- App Intents or real tool execution,
+- physical-device success claims without direct observation.
 
 ## Expected terminal result
 
-One of:
+Until local device evidence is supplied:
 
-- `FIX_NEEDED`
-- `WAITING_RUNNER`
-- `READY_MARKED`
-- `MERGED`
-- `BEN` only for local Apple/Xcode/signing/device steps
+- `OWNER_DEVICE_STEP`
+- `BEN` for Xcode, signing or physical-device execution
