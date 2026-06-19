@@ -12,67 +12,47 @@ The private Brain may point here, but detailed live truth must be re-read from t
 
 ## Current operating mode
 
-Mode: `IGENTIC_LIMITED_AUTONOMOUS_BURST`.
+Mode: `IGENTIC_OWNER_BOUNDARY_READY`.
 
-- iGentic is the only active repository lane.
+- iGentic remains the active repository context.
 - Pokekartenkiste remains outside this task.
-- Public GitHub Actions are the primary independent validation environment.
-- Use exactly one active PR or issue target at a time.
-- Four scheduled roles are active for three hourly cycles: director, worker, gate-and-merge, review-and-stop.
-- Old product, support, research and Pokekartenkiste slots remain disabled.
+- Public GitHub Actions remain the independent validation environment.
 - Codex remains paused.
+- The limited four-slot burst has completed its safe autonomous targets and all four scheduled roles are paused.
+- Do not open speculative implementation work while the next decisions require repository-owner or Apple/Xcode input.
 
 ## Recently completed
 
-PR #40 `Guard SwiftUI and validate the package on Linux` was squash-merged into `main` as `1f13a0c3bf7d4d9625a9adb2a52a62a06e00c1c6`.
-
-Before merge:
-
-- PR Change Scope passed.
-- Pull Request Quality passed.
-- Docs Consistency passed.
-- Repo Audit passed.
-- Workflow Lint passed.
-- macOS Swift build and tests passed.
-- Linux Swift build and tests passed.
-- Phase 0 CI Validation passed.
-- No unresolved review threads remained.
-
-The cross-platform SwiftUI import regression is fixed and now covered by Linux CI.
+- PR #40 `Guard SwiftUI and validate the package on Linux` was squash-merged into `main` as `1f13a0c3bf7d4d9625a9adb2a52a62a06e00c1c6` after macOS, Linux, workflow, documentation, scope and repository checks passed.
+- PR #41 `Sync project state after PR #40` was squash-merged into `main` as `adb8b61c87e3207be2e33da917db2336d9aa4d54` after all applicable checks passed.
+- Issue #11 `ScenarioReport exporter` was verified against current implementation and closed as completed.
+- Issue #7 `device test checklist` was verified against the checklist, issue template and report template and closed as completed.
+- Issue #29 remains open for actual physical-device execution and evidence.
 
 ## Current repository state
 
-- No open pull request was present at the latest verification.
-- The tested `AgentCore` and `iGenticApp` package products remain the current product baseline.
-- Real-device validation remains pending.
-- An installable Xcode app target, bundle identifier, Apple signing and a physical-device run remain owner boundaries.
+- `AgentCore` and `iGenticApp` compile and test through public GitHub Actions on macOS and Linux.
+- `ScenarioReport` provides deterministic metadata-only diagnostic output.
+- `DiagnosticView` provides the tested SwiftUI diagnostic surface.
+- The real-device checklist and report template are ready.
+- The repository still contains a Swift package library, not an installable signed iOS application.
 
-## Autonomous burst target order
+## Current owner boundary
 
-Select exactly one target per cycle:
+The next meaningful product step requires joint decisions:
 
-1. Verify Issue #11 against the merged deterministic `ScenarioReport` implementation and close it only if all acceptance criteria are satisfied.
-2. Verify Issue #7 against `docs/device-test-checklist.md`, the device-test issue template and the validation report template; close it only if all acceptance criteria are satisfied.
-3. Synchronize `PROJECT_STATE.md` or another project-local pointer only when current GitHub truth materially changed.
-4. If no safe autonomous cleanup remains, stop at the owner boundary rather than opening speculative product work.
+1. Configure the `main` repository ruleset and merge settings in GitHub UI.
+2. Decide whether to add the minimal installable Xcode app wrapper.
+3. Choose the bundle identifier and Apple Developer Team locally in Xcode.
+4. Configure signing without committing credentials, profiles or account identifiers.
+5. Run the physical-device checklist and complete Issue #29 evidence.
 
-Issue #29 must remain open for the actual physical-device validation boundary.
-
-## Worker rules
-
-- Re-read current GitHub source before every write.
-- Never create parallel implementation PRs.
-- For issue cleanup, cite the current files and merged validation evidence.
-- For a code or workflow change, use one narrow Draft PR and require current-head checks.
-- Do not repeat comments, handoffs or status reports without new evidence.
-
-## Owner boundary
+## Stop rules
 
 Do not autonomously start or configure:
 
-- an installable Xcode app wrapper,
-- bundle identifier or Apple Developer Team,
-- signing or provisioning,
+- an installable Xcode app wrapper without explicit approval,
+- bundle identifier, Apple Developer Team, signing or provisioning,
 - physical-device installation or test claims,
 - GitHub rulesets or repository-owner UI settings,
 - networking, providers, persistence, App Intents, model calls, secrets or real private data.
@@ -89,12 +69,7 @@ Linux package validation is additionally represented by the `Swift package Linux
 
 ## Expected terminal result
 
-One of:
+Until the owner session occurs:
 
-- `CLEANUP_DONE`
-- `PR_OPENED`
-- `FIX_APPLIED`
-- `MERGED`
-- `WAITING_RUNNER`
 - `OWNER_BOUNDARY`
-- `BEN` only for the explicit owner/signing/device boundary
+- `BEN` only for the explicit repository-owner, Xcode, signing or physical-device step
