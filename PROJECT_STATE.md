@@ -32,6 +32,8 @@ ChatGPT works through the GitHub Connector on small, reviewable branches and pul
 
 - README, roadmap, governance, contribution, support, security and conduct docs
 - Phase 0 source verification, Apple API, local runtime, model strategy, validation and workflow docs
+- Brand and community docs plus accessible SVG identity and social assets
+- Public identity sources: `docs/brand/BRAND.md`, `docs/brand/BRAND_ASSET_MANIFEST.md`, `assets/social/instagram-profile-v3.svg`, `docs/community/COMMUNITY_STRATEGY.md`
 - GitHub control, workflow lint, PR quality, repo audit, docs consistency and validation workflows
 - Swift Package under `ios/`
 - `AgentCore` policy, approval, audit, routing, risk, memory, delegation and synthetic diagnostic components
