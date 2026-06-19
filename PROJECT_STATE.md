@@ -36,6 +36,7 @@ The repository is controlled directly through GitHub. ChatGPT works through the 
 - README, roadmap, governance, contribution, support, security and conduct docs
 - Phase 0 source verification, Apple API, local runtime, model strategy, validation and workflow docs
 - Brand and community docs plus accessible SVG identity and social assets
+- Public identity sources: `docs/brand/BRAND.md`, `docs/brand/BRAND_ASSET_MANIFEST.md`, `assets/social/instagram-profile-v3.svg`, `docs/community/COMMUNITY_STRATEGY.md`
 - GitHub control, workflow lint, PR quality, repo audit, docs consistency and validation workflows
 - Minimal Swift Package under `ios/`
 - `PolicyEngine`, `TaskRouter`, `AuditLog`, `AgentKernel`, `ApprovalManager`, `ApprovalReceipt`, `ToolRegistry`, `DelegationBroker`, `MemoryStore`, `SensitiveDataDetector`, `RiskScorer`, `ScenarioRunner`
