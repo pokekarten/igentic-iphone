@@ -30,8 +30,9 @@ Intended scope:
 - `scripts/smoke-ios-simulator.sh`
 - `.github/workflows/ios-app-wrapper.yml`
 - `app/iGenticDiagnostics/README.md`
-- `PROJECT_STATE.md`
 - `docs/CHATGPT_NEXT_TASK.md`
+
+`PROJECT_STATE.md` will be synchronized only after the candidate is validated and merged.
 
 ## Goal
 
