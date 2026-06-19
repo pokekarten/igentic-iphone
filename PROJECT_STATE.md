@@ -22,11 +22,10 @@ ChatGPT works through the GitHub Connector on small, reviewable branches and pul
 
 ## Recently completed
 
-- PR #43 added the minimal installable iOS diagnostics app wrapper.
-- PR #45 added automated simulator install, launch, screenshot, terminate and relaunch evidence.
 - PR #46 completed the six-scenario synthetic safety matrix and restricted-data delegation blocking.
-- PR #47 `Add metadata-only DiagnosticSnapshot` was squash-merged into `main` as `ba351e8b3206108a14d5dae5849287b657a09e54`.
-- Issues #16, #10, #11 and #7 are closed with source-backed evidence.
+- PR #47 added metadata-only `DiagnosticSnapshot`.
+- PR #48 `Add typed PolicyDecision reason codes` was squash-merged into `main` as `4a4579bb2b099a0e5b718940ff76e3b4635e80cc`.
+- Issues #16, #13, #10, #11 and #7 are closed with source-backed evidence.
 - Issue #29 remains open for physical-device validation.
 
 ## What exists on `main`
@@ -38,15 +37,12 @@ ChatGPT works through the GitHub Connector on small, reviewable branches and pul
 - GitHub control, workflow lint, PR quality, repo audit, docs consistency and validation workflows
 - Swift Package under `ios/`
 - `AgentCore` policy, approval, audit, routing, risk, memory, delegation and synthetic diagnostic components
-- `ApprovalManager` and metadata-only `ApprovalReceipt`
-- metadata-only `DiagnosticSnapshot` with typed summaries and deterministic output
-- `SensitiveDataDetector`, `RiskScorer`, `ScenarioRunner`, `SyntheticScenarioCatalog` and metadata-only `ScenarioReport`
+- typed `PolicyDecisionReason` metadata without loosening policy outcomes
+- metadata-only `ApprovalReceipt`, `DiagnosticSnapshot`, `ScenarioReport` and diagnostic view state
 - complete six-scenario synthetic safety matrix with restricted-data delegation blocking
-- `iGenticApp` SwiftUI library with `DiagnosticView` and `DiagnosticViewState`
-- Xcode iOS application project under `app/iGenticDiagnostics`
-- shared Xcode scheme and local package dependency
+- `iGenticApp` SwiftUI library and installable Xcode diagnostics wrapper
 - dedicated unsigned iOS Simulator build and runtime smoke workflow
-- device-test issue template, real-device checklist and validation report template
+- device-test issue template, checklist and validation report template
 
 ## Current safety posture
 
@@ -54,30 +50,31 @@ ChatGPT works through the GitHub Connector on small, reviewable branches and pul
 - `AuditLog` is lock-protected.
 - Approval handling is a first-class gate before tool routing.
 - Approval receipts, diagnostic snapshots and reports remain metadata-only.
+- Policy decisions expose stable typed reason codes while preserving existing free-text explanations.
 - Restricted sensitive data is blocked before automatic external delegation.
 - Tool registration is metadata-only; no real tool execution exists yet.
 - `MemoryStore` is volatile in-memory storage only.
 - `SensitiveDataDetector` reports categories without retaining raw matches.
 - `ScenarioRunner` uses synthetic dry-run scenarios only.
-- `DiagnosticViewState` excludes raw synthetic task sentences.
 - The app wrapper adds no networking, provider, persistence, App Intent or real-action capability.
 - No model weights, credentials, signing files or real private data should be committed.
 
 ## Current active candidate
 
-PR #48 `Add typed PolicyDecision reason codes` is the single active candidate for Issue #13.
+PR #50 `Add metadata-only AuditLog query helpers` is the single active candidate for Issue #12.
 
 The candidate adds:
 
-- stable typed `PolicyDecisionReason` metadata,
-- explicit codes for local-only and restricted-data blocking,
-- explicit codes for low-risk allow, data approval, action approval and combined approval,
-- source-compatible `.unspecified` metadata for direct manual construction,
-- focused tests for six engine paths and the compatibility default.
+- `AuditEventMetadata` containing only timestamp, event type and sensitivity,
+- stable metadata snapshots in recording order,
+- filtering and counting by event type,
+- filtering and counting at or above a sensitivity level,
+- one shared lock-protected read boundary,
+- focused tests for metadata exclusion, ordering, filters, counts, unchanged raw-event behavior and concurrent recording.
 
-Existing free-text reasons remain available. Existing `isAllowed` and `requiresApproval` behavior must remain unchanged.
+Existing `record(_:)` and `allEvents()` behavior must remain unchanged. New diagnostic helpers must never expose raw messages or event identifiers.
 
-The candidate must not add runtime execution, app actions, networking, external providers, model calls, persistence, secrets, real private data, signing or hardware behavior.
+The candidate must not add databases, files, persistence, networking, external providers, app actions, secrets, model calls, signing or hardware behavior.
 
 ## Current validation contract
 
@@ -87,30 +84,21 @@ cd ios && swift test
 cd ios && swift build
 ```
 
-Before PR #48 can merge:
+Before PR #50 can merge:
 
 - base must remain `main`,
 - head SHA must remain stable during the final gate,
 - changed files must match the declared four-file scope,
 - PR Change Scope, Pull Request Quality, Docs Consistency, Repo Audit and Workflow Lint must pass,
 - macOS and Linux Swift package build/tests must pass,
-- existing allow/block/approval outcomes must remain unchanged,
+- tests must prove metadata-only output and unchanged recording behavior,
 - no unresolved review thread or source-backed blocker may remain.
 
 ## Evidence boundary
 
-A successful PR #48 may prove that policy outcomes expose stable typed reason metadata without depending only on free-text explanations.
+A successful PR #50 may prove that lock-protected audit metadata can be queried deterministically without exposing raw audit messages or identifiers.
 
-It cannot prove:
-
-- Apple signing or provisioning,
-- physical-device installation or launch,
-- device-specific UI behavior,
-- accessibility quality,
-- battery, thermal or performance behavior,
-- production readiness.
-
-The committed app wrapper still uses `org.example.iGenticDiagnostics` as a non-production placeholder bundle identifier.
+It cannot prove signing, physical-device behavior, accessibility, performance or production readiness.
 
 ## Remaining owner-local boundary
 
@@ -128,10 +116,10 @@ Signing material, account identifiers, certificates, provisioning profiles and d
 
 ## Next sequence
 
-1. Gate PR #48 against scope, validation and review evidence.
+1. Gate PR #50 against scope, validation and review evidence.
 2. Fix only exact source-backed failures within the declared scope.
 3. Mark ready and merge only with a stable head and no unresolved review thread.
-4. Close Issue #13 only after current-source acceptance evidence is complete.
+4. Close Issue #12 only after current-source acceptance evidence is complete.
 5. Keep Issue #29 open.
 6. Select at most one additional deterministic or simulator-verifiable safety slice.
 
