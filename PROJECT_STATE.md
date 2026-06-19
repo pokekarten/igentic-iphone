@@ -17,8 +17,8 @@ The repository is controlled directly through GitHub. ChatGPT works through the 
 - Primary target device: iPhone Air as trust/control plane
 - Master brand: `iGentic`
 - Community model: GitHub-first, social-supported
-- Current phase: Phase 2 diagnostic shell bootstrap
-- Current MVP direction: local-only diagnostic app with synthetic dry-runs, metadata-only reports and a minimal SwiftUI surface
+- Current phase: Phase 2 diagnostic shell readiness
+- Current MVP direction: local-only diagnostic app with synthetic dry-runs, metadata-only reports and a tested SwiftUI diagnostic surface
 
 ## Recent completed work
 
@@ -26,9 +26,11 @@ The repository is controlled directly through GitHub. ChatGPT works through the 
 - PR #36 `Issue #34: add test coverage preservation gate` was squash-merged into `main` as `02aec38c2627ab5c299c94e5376c198c65821852`.
 - PR #37 `Add carousel proof covers for social pillars` was squash-merged into `main` as `1b6304b49fd5b0cccfc51ff4efff2eb91d3510ac`.
 - PR #38 `Issue #28: add deterministic synthetic scenario report` was squash-merged into `main` as `b124da205462ce253906fa51e2080a67ee52ba5f` after all required public checks passed.
-- `SyntheticScenarioCatalog` now provides stable local dry-run scenarios.
+- PR #39 `Issue #27: add minimal SwiftUI diagnostic screen` was squash-merged into `main` as `f4110e1dccaadd38695ff0e798cbe6c403afff7f` after all required public checks, Swift tests and Swift build passed.
+- `SyntheticScenarioCatalog` provides stable local dry-run scenarios.
 - `ScenarioReport` exposes structured and human-readable policy, approval and delegation metadata without task text.
-- The v3 profile, symbol, lockup and carousel system remain the current public identity direction.
+- `iGenticApp` is a separate Swift package library containing a metadata-only `DiagnosticView` and tested view-state mapping.
+- `docs/device-test-checklist.md` and `docs/reports/iphone-air-validation-template.md` prepare a repeatable real-device evidence process.
 
 ## What exists now
 
@@ -38,9 +40,10 @@ The repository is controlled directly through GitHub. ChatGPT works through the 
 - Public identity sources: `docs/brand/BRAND.md`, `docs/brand/BRAND_ASSET_MANIFEST.md`, `assets/social/instagram-profile-v3.svg`, `docs/community/COMMUNITY_STRATEGY.md`
 - GitHub control, workflow lint, PR quality, repo audit, docs consistency and validation workflows
 - Swift Package under `ios/`
-- `PolicyEngine`, `TaskRouter`, `AuditLog`, `AgentKernel`, `ApprovalManager`, `ApprovalReceipt`, `ToolRegistry`, `DelegationBroker`, `MemoryStore`, `SensitiveDataDetector`, `RiskScorer`, `ScenarioRunner`, `SyntheticScenarioCatalog`, `ScenarioReport`
-- Tests for policy, audit log, approval-gated routing, approval receipt metadata, tool registry behavior, memory-store scope behavior, sensitive-data detection, risk scoring, delegation decisions and synthetic scenario reporting
-- Repo validation requiring core safety files, contributor docs, critical workflows and accessible SVG metadata
+- `AgentCore` library with policy, approval, audit, routing, risk, memory, delegation and synthetic diagnostic components
+- `iGenticApp` SwiftUI library with `DiagnosticView` and `DiagnosticViewState`
+- Tests for AgentCore behavior and diagnostic view-state privacy/mapping
+- Device-test issue template, real-device checklist and validation report template
 
 ## Current safety posture
 
@@ -54,11 +57,12 @@ The repository is controlled directly through GitHub. ChatGPT works through the 
 - `SensitiveDataDetector` emits categories and reasons only; it does not retain raw sensitive matches.
 - `RiskScorer` is deterministic and local.
 - `ScenarioRunner` uses synthetic dry-run scenarios only.
+- `DiagnosticViewState` excludes raw synthetic task sentences.
 - No model weights, credentials, signing files or real private data should be committed.
 
 ## Current validation status
 
-Required validation remains:
+Required repository validation remains:
 
 ```bash
 python3 scripts/validate_repo_structure.py
@@ -67,37 +71,48 @@ cd ios && swift build
 ```
 
 - Phase 0 acceptance evidence is recorded and Issue #1 is closed.
-- PR #38 received green current-head evidence for PR scope, PR quality, docs consistency, repo audit, Phase 0 validation, Swift tests and Swift build before merge.
-- Future runtime or UI changes require current PR-head validation through GitHub Actions or equivalent specific execution evidence.
-- Documentation-only work must not claim Swift validation unless a concrete run exists.
+- PR #39 received green current-head evidence for PR scope, PR quality, docs consistency, repo audit, Phase 0 validation, Swift tests and Swift build before merge.
+- The Swift package and SwiftUI library compile and test successfully in public GitHub Actions.
+- This is not evidence of an installed or launched physical iPhone app.
 
-## Current active task
+## Current active boundary
 
-PR #39 implements Issue #27 as the current single runtime/UI candidate:
+Real-device validation is **pending**.
 
-- add a separate `iGenticApp` Swift package target,
-- map the metadata-only `ScenarioReport` into a deterministic `DiagnosticViewState`,
-- render a minimal SwiftUI diagnostics screen,
-- ensure visible state excludes synthetic task text,
-- validate on the public macOS Swift runner before ready or merge consideration.
+Prepared autonomously:
 
-No parallel runtime or UI PR should be opened while PR #39 remains active.
+- repeatable device-test checklist,
+- report template separating observations, automated evidence and assumptions,
+- build/install/launch/Diagnostic UI checks,
+- synthetic scenario expectations,
+- privacy, network and qualitative-performance boundaries.
+
+Still required before a physical iPhone run:
+
+- an installable Xcode iOS app target that presents `DiagnosticView`,
+- a unique bundle identifier,
+- local Apple Developer Team and signing selection,
+- a connected physical test iPhone,
+- direct observation of build, installation, launch and UI behavior.
+
+The current `iGenticApp` product is a Swift package library, not yet an installable iOS application. No device-readiness or performance claim may be made from package CI alone.
 
 ## Next sequence
 
-1. Review and validate PR #39 at its current head.
-2. Fix only source-backed failures within the Issue #27 scope.
-3. Mark ready and merge only when scope, tests, build and review gates are clean.
-4. After Issue #27 completes, prepare Issue #29's real-device validation report and exact device checklist.
-5. Treat installation, launch, visual confirmation and device performance as human-device evidence, not connector evidence.
+1. Confirm the minimal GitHub repository protection settings with the owner.
+2. Decide together whether the next code slice should add an installable Xcode app wrapper.
+3. If approved, implement the wrapper as a separate narrow PR without networking, persistence, providers, App Intents or real actions.
+4. Configure signing locally in Xcode without committing account or provisioning material.
+5. Run the physical-device checklist and complete the validation report.
 
 ## What still needs owner UI setup
 
-- Configure `main` branch protection or a ruleset in GitHub UI.
-- Require pull requests and the selected status checks before merge.
+- Configure a `main` ruleset or branch protection.
+- Require pull requests and selected status checks before merge.
+- Require conversation resolution.
 - Disable force pushes and branch deletion on `main`.
-- Add repository topics and optional social preview after the public identity is locked.
-- Later, configure Apple signing and a physical-device run only when an actual iOS app wrapper exists.
+- Choose allowed merge methods; squash-only is the current recommendation.
+- Later, select Apple signing and a physical test device locally when an installable app target exists.
 
 ## Important constraint
 
