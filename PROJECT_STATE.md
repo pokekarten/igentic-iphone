@@ -26,8 +26,7 @@ ChatGPT works through the GitHub Connector on small, reviewable branches and pul
 - PR #50 added lock-protected AuditLog metadata query helpers.
 - PR #51 `Add ToolRegistry contract validation` was squash-merged into `main` as `8730b302ef2a30175d4bd6d330ef15d741e29964`.
 - PR #52 `Add metadata-only RuntimeBudget model` was merged into `main` as `6ff0c6875cb58560b0a98c4d23dbee91e538319b`.
-- Issues #16, #15, #13, #12, #10, #11 and #7 are closed with source-backed evidence.
-- Issue #14 is implemented and awaiting final issue closure.
+- Issues #16, #15, #14, #13, #12, #10, #11 and #7 are closed with source-backed evidence.
 - Issue #29 remains open for physical-device validation.
 
 ## What exists on `main`
@@ -68,7 +67,7 @@ ChatGPT works through the GitHub Connector on small, reviewable branches and pul
 
 No new implementation candidate is selected yet.
 
-The next iGentic cycle must first verify Issue #14 closure, then select at most one small deterministic or simulator-verifiable safety slice from current open issues and repository evidence. The open Dependabot PR #49 is maintenance work and must not automatically displace the next explicit product target.
+The next iGentic cycle must select at most one small deterministic or simulator-verifiable safety slice from current open issues and repository evidence. The open Dependabot PR #49 is maintenance work and must not automatically displace the next explicit product target.
 
 ## Current validation contract
 
@@ -111,11 +110,10 @@ Signing material, account identifiers, certificates, provisioning profiles and d
 
 ## Next sequence
 
-1. Verify and close Issue #14 with PR #52 acceptance evidence.
-2. Keep Issue #29 open as an owner/device boundary.
-3. Re-read open product issues and select exactly one smallest safe deterministic or simulator-verifiable slice.
-4. Open at most one narrow Draft PR with explicit scope and validation.
-5. Keep unrelated maintenance PRs outside the product target unless intentionally selected.
+1. Keep Issue #29 open as an owner/device boundary.
+2. Re-read open product issues and select exactly one smallest safe deterministic or simulator-verifiable slice.
+3. Open at most one narrow Draft PR with explicit scope and validation.
+4. Keep unrelated maintenance PRs outside the product target unless intentionally selected.
 
 ## Important constraint
 
