@@ -1,6 +1,6 @@
 import Foundation
 
-public enum AuditEventType: String, Sendable {
+public enum AuditEventType: String, Equatable, Sendable {
     case taskReceived
     case policyDecision
     case routeSelected
@@ -30,6 +30,30 @@ public struct AuditEvent: Identifiable, Equatable, Sendable {
     }
 }
 
+public struct AuditEventMetadata: Equatable, Sendable {
+    public let timestamp: Date
+    public let type: AuditEventType
+    public let dataSensitivity: DataSensitivityLevel
+
+    public init(
+        timestamp: Date,
+        type: AuditEventType,
+        dataSensitivity: DataSensitivityLevel
+    ) {
+        self.timestamp = timestamp
+        self.type = type
+        self.dataSensitivity = dataSensitivity
+    }
+
+    public init(_ event: AuditEvent) {
+        self.init(
+            timestamp: event.timestamp,
+            type: event.type,
+            dataSensitivity: event.dataSensitivity
+        )
+    }
+}
+
 public final class AuditLog: @unchecked Sendable {
     private let lock = NSLock()
     private var events: [AuditEvent] = []
@@ -43,8 +67,52 @@ public final class AuditLog: @unchecked Sendable {
     }
 
     public func allEvents() -> [AuditEvent] {
+        withLockedEvents { $0 }
+    }
+
+    public func metadataSnapshot() -> [AuditEventMetadata] {
+        withLockedEvents { events in
+            events.map(AuditEventMetadata.init)
+        }
+    }
+
+    public func metadataSnapshot(ofType type: AuditEventType) -> [AuditEventMetadata] {
+        withLockedEvents { events in
+            events
+                .filter { $0.type == type }
+                .map(AuditEventMetadata.init)
+        }
+    }
+
+    public func metadataSnapshot(
+        atOrAbove minimumSensitivity: DataSensitivityLevel
+    ) -> [AuditEventMetadata] {
+        withLockedEvents { events in
+            events
+                .filter { $0.dataSensitivity >= minimumSensitivity }
+                .map(AuditEventMetadata.init)
+        }
+    }
+
+    public func count(ofType type: AuditEventType) -> Int {
+        withLockedEvents { events in
+            events.lazy.filter { $0.type == type }.count
+        }
+    }
+
+    public func count(
+        atOrAbove minimumSensitivity: DataSensitivityLevel
+    ) -> Int {
+        withLockedEvents { events in
+            events.lazy.filter { $0.dataSensitivity >= minimumSensitivity }.count
+        }
+    }
+
+    private func withLockedEvents<Result>(
+        _ body: ([AuditEvent]) -> Result
+    ) -> Result {
         lock.lock()
         defer { lock.unlock() }
-        return events
+        return body(events)
     }
 }
