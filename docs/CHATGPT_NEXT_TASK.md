@@ -22,7 +22,7 @@ Mode: `IGENTIC_FOCUS_BURST`.
 
 ## Recently completed
 
-PR #37 `Add carousel proof covers for social pillars` was squash-merged into `main` as `1b6304b49fd5b0cccfc51ff4efff2eb91d3510ac`.
+PR #38 `Issue #28: add deterministic synthetic scenario report` was squash-merged into `main` as `b124da205462ce253906fa51e2080a67ee52ba5f`.
 
 Before merge:
 
@@ -31,38 +31,37 @@ Before merge:
 - Docs Consistency passed.
 - Repo Audit passed.
 - Phase 0 CI Validation passed.
-- Swift passed.
-- The three 1080 x 1350 SVG covers were visually reviewed without clipping or overflow.
+- Swift tests and Swift build passed.
+- No unresolved review threads remained.
 
-The carousel proof task is complete. Do not reopen it without new visual evidence.
+Issue #28 is complete. Do not reopen its scope unless a future diagnostic regression is source-backed.
 
 ## Active cycle
 
-Target: PR #38 / Issue #28.
+Target: PR #39 / Issue #27.
 
-Goal: complete the smallest local-only bridge from the existing synthetic `ScenarioRunner` to a deterministic, machine-readable and human-readable metadata report.
+Goal: expose the existing metadata-only `ScenarioReport` through the smallest separate SwiftUI diagnostic target without adding an app action path.
 
 Current intended scope:
 
-- `ios/Sources/AgentCore/SyntheticScenarioCatalog.swift`
-- `ios/Sources/AgentCore/ScenarioReport.swift`
-- `ios/Sources/AgentCore/ScenarioRunner.swift`
-- `ios/Tests/AgentCoreTests/ScenarioReportTests.swift`
+- `ios/Package.swift`
+- `ios/Sources/iGenticApp/DiagnosticView.swift`
+- `ios/Sources/iGenticApp/DiagnosticViewState.swift`
+- `ios/Tests/iGenticAppTests/DiagnosticViewStateTests.swift`
 - `PROJECT_STATE.md`
 - `docs/CHATGPT_NEXT_TASK.md`
 
 ## Next task
 
-Gate and progress PR #38 at its current head:
+Gate and progress PR #39 at its current head:
 
-1. Re-read PR #38 metadata, changed files, patch, comments and review threads.
+1. Re-read PR #39 metadata, changed files, patch, comments and review threads.
 2. Read all GitHub Actions results for the current head.
-3. If a check fails, inspect the exact failed step and logs before changing code.
-4. Fix only the smallest source-backed problem within Issue #28 scope.
-5. Confirm that the report remains deterministic and metadata-only.
-6. Confirm that no synthetic task text, real user content or private data appears in report output.
-7. Mark ready only when current-head validation and review gates are clean.
-8. Merge only with a stable expected head SHA and no unresolved review thread.
+3. Confirm the new `iGenticApp` target compiles on the macOS Swift runner.
+4. Confirm the view state contains structured scenario metadata and excludes synthetic task text.
+5. Fix only the smallest source-backed failure within Issue #27 scope.
+6. Mark ready only when current-head validation and review gates are clean.
+7. Merge only with a stable expected head SHA and no unresolved review thread.
 
 Required validation:
 
@@ -72,16 +71,18 @@ cd ios && swift test
 cd ios && swift build
 ```
 
-## After PR #38
+## After PR #39
 
-Select Issue #27 as the next independent product slice:
+Issue #29 is the next phase, but it contains a genuine human-device boundary.
 
-- minimal SwiftUI diagnostic screen,
-- metadata-only state,
-- synthetic inputs,
-- no networking, persistence, providers, App Intents or real actions.
+Autonomous preparation may include:
 
-Do not open the Issue #27 implementation PR while PR #38 remains active.
+- a synthetic device-test report template,
+- exact build/launch/diagnostic-screen steps,
+- evidence fields separating observation from assumption,
+- privacy and no-network checks.
+
+Do not claim real iPhone installation, launch or performance evidence without an actual device run.
 
 ## Guardrails
 
