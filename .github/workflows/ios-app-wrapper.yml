@@ -35,10 +35,7 @@ jobs:
     timeout-minutes: 25
     env:
       PR_NUMBER: ${{ github.event.pull_request.number }}
-      DERIVED_DATA_PATH: ${{ runner.temp }}/iGenticDerivedData
-      APP_PATH: ${{ runner.temp }}/iGenticDerivedData/Build/Products/Debug-iphonesimulator/iGenticDiagnostics.app
       BUNDLE_IDENTIFIER: org.example.iGenticDiagnostics
-      SCREENSHOT_PATH: ${{ runner.temp }}/iGenticDiagnostics-launch.png
 
     steps:
       - name: Checkout repository without marketplace actions
@@ -71,15 +68,23 @@ jobs:
 
       - name: Build unsigned simulator app
         run: |
+          set -euo pipefail
+          derived_data_path="${RUNNER_TEMP}/iGenticDerivedData"
+          app_path="${derived_data_path}/Build/Products/Debug-iphonesimulator/iGenticDiagnostics.app"
+          screenshot_path="${RUNNER_TEMP}/iGenticDiagnostics-launch.png"
+
           xcodebuild \
             -project app/iGenticDiagnostics/iGenticDiagnostics.xcodeproj \
             -scheme iGenticDiagnostics \
             -configuration Debug \
             -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' \
-            -derivedDataPath "${DERIVED_DATA_PATH}" \
+            -derivedDataPath "${derived_data_path}" \
             CODE_SIGNING_ALLOWED=NO \
             build
+
+          echo "APP_PATH=${app_path}" >> "${GITHUB_ENV}"
+          echo "SCREENSHOT_PATH=${screenshot_path}" >> "${GITHUB_ENV}"
 
       - name: Install, launch, screenshot, and relaunch app
         run: |
