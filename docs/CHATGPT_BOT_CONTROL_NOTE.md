@@ -17,7 +17,7 @@ Applicable iGentic slots in this mode:
 - 06 — `IGENTIC_GATE`: review/gate exactly one iGentic PR, issue or task.
 - 12 — `IGENTIC_PROGRESS`: produce one concrete iGentic progress result, exact handoff, PATCH_READY, BEN, or next unblocked task.
 
-Slot 18 is no longer an iGentic slot in the active product cycle; it is currently the Pokekartenkiste gate slot. Older full-slot/debug mappings are background only unless Brain `CURRENT_STATE.md` and automation source explicitly switch modes again.
+Slot 18 is no longer an iGentic slot in the active product cycle; it is currently the Pokekartenkiste gate slot. Older full-slot/debug mappings are background only unless Brain `../CURRENT_STATE.md` and automation source explicitly switch modes again.
 
 Current local direction:
 
