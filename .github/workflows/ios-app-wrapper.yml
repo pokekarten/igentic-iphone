@@ -1,0 +1,75 @@
+name: iOS App Wrapper
+
+on:
+  pull_request:
+    paths:
+      - "app/**"
+      - "ios/**"
+      - ".github/workflows/ios-app-wrapper.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "app/**"
+      - "ios/**"
+      - ".github/workflows/ios-app-wrapper.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  simulator-build:
+    name: Build diagnostic app for simulator
+    runs-on: macos-15
+    timeout-minutes: 20
+    env:
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+
+    steps:
+      - name: Checkout repository without marketplace actions
+        run: |
+          set -euo pipefail
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          if git fetch --no-tags --depth=1 origin "${GITHUB_SHA}"; then
+            echo "Fetched ${GITHUB_SHA}"
+          elif [ "${GITHUB_EVENT_NAME}" = "pull_request" ] && [ -n "${PR_NUMBER:-}" ]; then
+            git fetch --no-tags --depth=1 origin "pull/${PR_NUMBER}/merge"
+          else
+            git fetch --no-tags --depth=1 origin "${GITHUB_REF_NAME:-main}"
+          fi
+          git checkout --force FETCH_HEAD
+          git clean -fdx
+          git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+
+      - name: Show Xcode and Swift versions
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Resolve local package dependency
+        run: |
+          xcodebuild \
+            -project app/iGenticDiagnostics/iGenticDiagnostics.xcodeproj \
+            -scheme iGenticDiagnostics \
+            -resolvePackageDependencies
+
+      - name: Build unsigned simulator app
+        run: |
+          xcodebuild \
+            -project app/iGenticDiagnostics/iGenticDiagnostics.xcodeproj \
+            -scheme iGenticDiagnostics \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            build
