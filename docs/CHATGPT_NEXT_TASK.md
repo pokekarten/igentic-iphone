@@ -12,52 +12,72 @@ The private Brain may point here, but detailed live truth must be re-read from t
 
 ## Current operating mode
 
-Mode: `IGENTIC_VALIDATION_REPAIR`.
+Mode: `IGENTIC_LIMITED_AUTONOMOUS_BURST`.
 
-- iGentic is the active repository lane.
+- iGentic is the only active repository lane.
 - Pokekartenkiste remains outside this task.
-- Public GitHub Actions are the primary repository validation environment.
-- Use one active implementation PR at a time.
-- Scheduled iGentic cycle automations remain paused while this explicit repair PR is gated.
-- Codex remains paused for implementation; post-merge review evidence may identify source-backed regressions.
+- Public GitHub Actions are the primary independent validation environment.
+- Use exactly one active PR or issue target at a time.
+- Four scheduled roles are active for three hourly cycles: director, worker, gate-and-merge, review-and-stop.
+- Old product, support, research and Pokekartenkiste slots remain disabled.
+- Codex remains paused.
 
 ## Recently completed
 
-PR #39 `Issue #27: add minimal SwiftUI diagnostic screen` was squash-merged into `main` as `f4110e1dccaadd38695ff0e798cbe6c403afff7f` after its current-head macOS Swift tests and build passed.
+PR #40 `Guard SwiftUI and validate the package on Linux` was squash-merged into `main` as `1f13a0c3bf7d4d9625a9adb2a52a62a06e00c1c6`.
 
-A later automated review identified a cross-platform validation gap: `ios/Sources/iGenticApp/DiagnosticView.swift` imported SwiftUI unconditionally, so the documented Swift package validation could fail on non-Apple toolchains.
+Before merge:
 
-## Active cycle
+- PR Change Scope passed.
+- Pull Request Quality passed.
+- Docs Consistency passed.
+- Repo Audit passed.
+- Workflow Lint passed.
+- macOS Swift build and tests passed.
+- Linux Swift build and tests passed.
+- Phase 0 CI Validation passed.
+- No unresolved review threads remained.
 
-Target: PR #40, a narrow validation repair.
+The cross-platform SwiftUI import regression is fixed and now covered by Linux CI.
 
-Goal:
+## Current repository state
 
-- guard the SwiftUI-only view with `canImport(SwiftUI)`,
-- preserve cross-platform `DiagnosticViewState` tests,
-- add explicit Linux Swift package build/test evidence,
-- fix the docs path checker so shell commands are not misclassified as repository paths.
+- No open pull request was present at the latest verification.
+- The tested `AgentCore` and `iGenticApp` package products remain the current product baseline.
+- Real-device validation remains pending.
+- An installable Xcode app target, bundle identifier, Apple signing and a physical-device run remain owner boundaries.
 
-Current intended scope:
+## Autonomous burst target order
 
-- `ios/Sources/iGenticApp/DiagnosticView.swift`
-- `.github/workflows/ci-phase-0-validation.yml`
-- `.github/workflows/docs-consistency.yml`
-- `docs/CHATGPT_NEXT_TASK.md`
+Select exactly one target per cycle:
 
-## Next task
+1. Verify Issue #11 against the merged deterministic `ScenarioReport` implementation and close it only if all acceptance criteria are satisfied.
+2. Verify Issue #7 against `docs/device-test-checklist.md`, the device-test issue template and the validation report template; close it only if all acceptance criteria are satisfied.
+3. Synchronize `PROJECT_STATE.md` or another project-local pointer only when current GitHub truth materially changed.
+4. If no safe autonomous cleanup remains, stop at the owner boundary rather than opening speculative product work.
 
-Gate PR #40 at its latest head:
+Issue #29 must remain open for the actual physical-device validation boundary.
 
-1. Require repository structure validation.
-2. Require Workflow Lint.
-3. Require macOS Swift build and tests.
-4. Require Linux Swift build and tests.
-5. Require Docs Consistency, PR Change Scope, PR Quality and Repo Audit.
-6. Inspect exact failed steps before changing any file.
-7. Mark ready and merge only with a stable head and no unresolved review thread.
+## Worker rules
 
-Required validation commands represented by CI:
+- Re-read current GitHub source before every write.
+- Never create parallel implementation PRs.
+- For issue cleanup, cite the current files and merged validation evidence.
+- For a code or workflow change, use one narrow Draft PR and require current-head checks.
+- Do not repeat comments, handoffs or status reports without new evidence.
+
+## Owner boundary
+
+Do not autonomously start or configure:
+
+- an installable Xcode app wrapper,
+- bundle identifier or Apple Developer Team,
+- signing or provisioning,
+- physical-device installation or test claims,
+- GitHub rulesets or repository-owner UI settings,
+- networking, providers, persistence, App Intents, model calls, secrets or real private data.
+
+## Required repository validation
 
 ```bash
 python3 scripts/validate_repo_structure.py
@@ -65,30 +85,16 @@ cd ios && swift test
 cd ios && swift build
 ```
 
-## After PR #40
-
-- Close only clearly completed duplicate/backlog issues such as the device-test checklist and ScenarioReport tasks when current source satisfies their acceptance criteria.
-- Keep Issue #29 open for the physical-device boundary.
-- Return to the short owner-settings session for repository rules and the installable app-wrapper decision.
-- Do not begin signing, bundle configuration or a physical-device claim autonomously.
-
-## Guardrails
-
-- No networking or external providers.
-- No persistence of private data.
-- No model calls or model weights.
-- No App Intents or real tool execution.
-- No signing files, credentials, secrets or `.env` files.
-- No broad architecture rewrite.
-- Preserve unrelated safety tests.
-- Never present macOS or Linux package CI as physical-device evidence.
+Linux package validation is additionally represented by the `Swift package Linux build and test` CI job.
 
 ## Expected terminal result
 
 One of:
 
-- `FIX_NEEDED`
-- `WAITING_RUNNER`
-- `READY_MARKED`
+- `CLEANUP_DONE`
+- `PR_OPENED`
+- `FIX_APPLIED`
 - `MERGED`
+- `WAITING_RUNNER`
+- `OWNER_BOUNDARY`
 - `BEN` only for the explicit owner/signing/device boundary

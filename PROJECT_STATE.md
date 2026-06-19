@@ -13,7 +13,7 @@ The repository is controlled directly through GitHub. ChatGPT works through the 
 - Repository: `pokekarten/igentic-iphone`
 - Visibility: public
 - Controller: ChatGPT via GitHub Connector
-- Validation environment: public GitHub Actions
+- Validation environment: public GitHub Actions on macOS and Linux
 - Primary target device: iPhone Air as trust/control plane
 - Master brand: `iGentic`
 - Community model: GitHub-first, social-supported
@@ -27,6 +27,7 @@ The repository is controlled directly through GitHub. ChatGPT works through the 
 - PR #37 `Add carousel proof covers for social pillars` was squash-merged into `main` as `1b6304b49fd5b0cccfc51ff4efff2eb91d3510ac`.
 - PR #38 `Issue #28: add deterministic synthetic scenario report` was squash-merged into `main` as `b124da205462ce253906fa51e2080a67ee52ba5f` after all required public checks passed.
 - PR #39 `Issue #27: add minimal SwiftUI diagnostic screen` was squash-merged into `main` as `f4110e1dccaadd38695ff0e798cbe6c403afff7f` after all required public checks, Swift tests and Swift build passed.
+- PR #40 `Guard SwiftUI and validate the package on Linux` was squash-merged into `main` as `1f13a0c3bf7d4d9625a9adb2a52a62a06e00c1c6` after macOS, Linux, workflow, documentation, scope and repository checks passed.
 - `SyntheticScenarioCatalog` provides stable local dry-run scenarios.
 - `ScenarioReport` exposes structured and human-readable policy, approval and delegation metadata without task text.
 - `iGenticApp` is a separate Swift package library containing a metadata-only `DiagnosticView` and tested view-state mapping.
@@ -43,6 +44,7 @@ The repository is controlled directly through GitHub. ChatGPT works through the 
 - `AgentCore` library with policy, approval, audit, routing, risk, memory, delegation and synthetic diagnostic components
 - `iGenticApp` SwiftUI library with `DiagnosticView` and `DiagnosticViewState`
 - Tests for AgentCore behavior and diagnostic view-state privacy/mapping
+- macOS and Linux Swift package build/test evidence
 - Device-test issue template, real-device checklist and validation report template
 
 ## Current safety posture
@@ -58,6 +60,7 @@ The repository is controlled directly through GitHub. ChatGPT works through the 
 - `RiskScorer` is deterministic and local.
 - `ScenarioRunner` uses synthetic dry-run scenarios only.
 - `DiagnosticViewState` excludes raw synthetic task sentences.
+- SwiftUI-only code is platform-guarded so non-Apple package validation remains possible.
 - No model weights, credentials, signing files or real private data should be committed.
 
 ## Current validation status
@@ -71,9 +74,26 @@ cd ios && swift build
 ```
 
 - Phase 0 acceptance evidence is recorded and Issue #1 is closed.
-- PR #39 received green current-head evidence for PR scope, PR quality, docs consistency, repo audit, Phase 0 validation, Swift tests and Swift build before merge.
-- The Swift package and SwiftUI library compile and test successfully in public GitHub Actions.
+- PR #40 received green current-head evidence for PR scope, PR quality, docs consistency, repo audit, Workflow Lint, Phase 0 validation, macOS Swift tests/build and Linux Swift tests/build before merge.
+- The Swift package and SwiftUI library compile and test successfully in public GitHub Actions on Apple and Linux runners.
 - This is not evidence of an installed or launched physical iPhone app.
+
+## Current autonomous mode
+
+A limited four-role iGentic burst is active for three hourly cycles:
+
+1. director selects exactly one current target,
+2. worker performs one safe action,
+3. gate-and-merge verifies or merges at most one PR,
+4. review-and-stop selects one next target or pauses at the owner boundary.
+
+All prior Pokekartenkiste, support and research slot systems remain disabled during this burst.
+
+Current safe autonomous priority:
+
+- verify and close clearly completed stale issues such as Issue #11 and Issue #7,
+- keep Issue #29 open for the actual physical-device phase,
+- avoid opening speculative product PRs when the remaining work requires owner settings or Apple signing.
 
 ## Current active boundary
 
@@ -99,11 +119,13 @@ The current `iGenticApp` product is a Swift package library, not yet an installa
 
 ## Next sequence
 
-1. Confirm the minimal GitHub repository protection settings with the owner.
-2. Decide together whether the next code slice should add an installable Xcode app wrapper.
-3. If approved, implement the wrapper as a separate narrow PR without networking, persistence, providers, App Intents or real actions.
-4. Configure signing locally in Xcode without committing account or provisioning material.
-5. Run the physical-device checklist and complete the validation report.
+1. Let the limited burst clean up only source-verified completed issues and synchronize project-local truth.
+2. Stop the burst when no safe autonomous cleanup remains.
+3. Confirm the minimal GitHub repository protection settings with the owner.
+4. Decide together whether the next code slice should add an installable Xcode app wrapper.
+5. If approved, implement the wrapper as a separate narrow PR without networking, persistence, providers, App Intents or real actions.
+6. Configure signing locally in Xcode without committing account or provisioning material.
+7. Run the physical-device checklist and complete the validation report.
 
 ## What still needs owner UI setup
 
