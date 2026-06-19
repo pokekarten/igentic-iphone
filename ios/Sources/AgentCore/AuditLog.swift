@@ -1,6 +1,6 @@
 import Foundation
 
-public enum AuditEventType: String, Sendable {
+public enum AuditEventType: String, Equatable, Sendable {
     case taskReceived
     case policyDecision
     case routeSelected
