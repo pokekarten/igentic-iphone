@@ -48,3 +48,7 @@ xcodebuild \
 ```
 
 A successful simulator build does not prove physical-device installation, launch behavior or performance.
+
+## Follow-up
+
+After repository validation succeeds, the remaining steps are local owner actions: choose the production bundle identifier, select the Apple Developer Team, configure signing and execute the committed physical-device checklist.
