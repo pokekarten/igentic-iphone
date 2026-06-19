@@ -39,6 +39,7 @@ The repository is controlled directly through GitHub. ChatGPT works through the 
 - GitHub control, workflow lint, PR quality, repo audit, docs consistency and validation workflows
 - Swift Package under `ios/`
 - `AgentCore` library with policy, approval, audit, routing, risk, memory, delegation and synthetic diagnostic components
+- `ApprovalManager` and metadata-only `ApprovalReceipt` support for approval-gated audit and diagnostics
 - `iGenticApp` SwiftUI library with `DiagnosticView` and `DiagnosticViewState`
 - `SyntheticScenarioCatalog` and deterministic metadata-only `ScenarioReport`
 - macOS and Linux Swift package build/test evidence
