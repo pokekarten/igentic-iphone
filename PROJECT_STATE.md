@@ -17,8 +17,8 @@ The repository is controlled directly through GitHub. ChatGPT works through the 
 - Primary target device: iPhone Air as trust/control plane
 - Master brand: `iGentic`
 - Community model: GitHub-first, social-supported
-- Current phase: Phase 2 diagnostic shell ready for local device execution
-- Current MVP direction: local-only diagnostics app with synthetic dry-runs, metadata-only reports, tested SwiftUI UI and a validated Xcode app wrapper
+- Current phase: Phase 2 diagnostic shell simulator reliability and deterministic safety validation
+- Current MVP direction: local-only diagnostics app with synthetic dry-runs, metadata-only reports, tested SwiftUI UI, a validated Xcode app wrapper and automated simulator runtime smoke evidence
 
 ## Recent completed work
 
@@ -26,7 +26,9 @@ The repository is controlled directly through GitHub. ChatGPT works through the 
 - PR #39 added the minimal SwiftUI `DiagnosticView` and view-state tests.
 - PR #40 added cross-platform SwiftUI guarding and Linux package validation.
 - PR #41 and PR #42 synchronized project truth and closed completed cleanup work.
-- PR #43 `Add minimal installable iOS diagnostics app wrapper` was squash-merged into `main` as `c2554d26a0a80cf0e19dafc5355ff1b4abd0d1d0` after all applicable checks passed.
+- PR #43 added the minimal installable iOS diagnostics app wrapper and passed unsigned simulator build validation.
+- PR #44 synchronized the device-ready project state.
+- PR #45 `Add automated simulator launch smoke test` was squash-merged into `main` as `74c913148eac7a1ed66647485ca5cad85db0123a` after all current-head checks passed.
 - Issue #11 and Issue #7 are closed as completed.
 - Issue #29 remains open for actual physical-device validation.
 
@@ -46,7 +48,8 @@ The repository is controlled directly through GitHub. ChatGPT works through the 
 - Xcode iOS application project under `app/iGenticDiagnostics`
 - `@main` application entry point presenting `DiagnosticView`
 - shared Xcode scheme and local package dependency
-- dedicated unsigned iOS Simulator build workflow
+- dedicated unsigned iOS Simulator build and runtime smoke workflow
+- automated simulator install, launch, screenshot, terminate and relaunch evidence
 - device-test issue template, real-device checklist and validation report template
 
 ## Current safety posture
@@ -56,7 +59,7 @@ The repository is controlled directly through GitHub. ChatGPT works through the 
 - Approval handling is a first-class gate before tool routing.
 - Approval receipts and diagnostic outputs remain metadata-only.
 - Tool registration is metadata-only; no real tool execution exists yet.
-- `DelegationBroker` requires approval for external or critical decisions.
+- `DelegationBroker` requires approval for external or critical decisions on the current `main` baseline.
 - `MemoryStore` is volatile in-memory storage only; it has no persistence, networking or model calls.
 - `SensitiveDataDetector` emits categories and reasons only; it does not retain raw sensitive matches.
 - `RiskScorer` is deterministic and local.
@@ -76,53 +79,76 @@ cd ios && swift test
 cd ios && swift build
 ```
 
-App-wrapper validation:
+App-wrapper runtime smoke validation now additionally proves that the unsigned simulator app can be:
 
-```bash
-xcodebuild \
-  -project app/iGenticDiagnostics/iGenticDiagnostics.xcodeproj \
-  -scheme iGenticDiagnostics \
-  -configuration Debug \
-  -sdk iphonesimulator \
-  -destination 'generic/platform=iOS Simulator' \
-  CODE_SIGNING_ALLOWED=NO \
-  build
-```
+- built,
+- installed,
+- launched with a process identifier,
+- screenshotted,
+- terminated,
+- relaunched cleanly.
 
-PR #43 received green current-head evidence for PR scope, PR quality, docs consistency, repo audit, Workflow Lint, Phase 0 validation, Swift package validation and the unsigned simulator app build before merge.
+PR #45 received green current-head evidence for PR scope, PR quality, docs consistency, repo audit, Workflow Lint, Phase 0 validation, Swift package validation and the simulator runtime smoke test before merge.
 
-This proves package and simulator buildability. It is not evidence of physical-device signing, installation, launch behavior or performance.
+This proves package and simulator runtime behavior. It is not evidence of physical-device signing, installation, device-specific behavior or performance.
+
+## Current active candidate
+
+PR #46 `Complete synthetic safety scenario catalog` is the single active candidate for Issue #16.
+
+It proposes:
+
+- preserving the existing four-scenario baseline report,
+- adding `restricted-external-delegation`,
+- adding `sensitive-data-detection`,
+- deriving the synthetic sensitive classification through `SensitiveDataDetector`,
+- blocking restricted sensitive data before the generic external-provider approval path,
+- running the complete six-scenario catalog through `ScenarioRunner`,
+- verifying deterministic metadata-only complete-report output.
+
+PR #46 remains a candidate until all current-head repository and Swift checks pass.
 
 ## Current autonomous mode
 
 All recurring slot automations remain paused.
 
-Repository-side autonomous implementation is complete for the current diagnostic MVP boundary. No parallel runtime or integration PR should be opened without new owner direction.
+The owner requested continued progress without a local physical iPhone Air test. Work remains limited to exactly one deterministic or simulator-verifiable safety slice at a time. No parallel runtime, UI or integration PR should be opened while PR #46 remains active.
 
-## Current active boundary
+## Evidence boundary
 
-The committed app wrapper uses `org.example.iGenticDiagnostics` as a non-production placeholder bundle identifier.
+A successful PR #46 may prove the complete synthetic safety matrix and restricted-data delegation behavior.
 
-Still required locally:
+It cannot prove:
+
+- Apple signing or provisioning,
+- physical-device installation or launch,
+- device-specific UI behavior,
+- accessibility quality,
+- battery, thermal or performance behavior,
+- production readiness.
+
+The committed app wrapper continues to use `org.example.iGenticDiagnostics` as a non-production placeholder bundle identifier.
+
+## Remaining owner-local boundary
 
 - replace the placeholder bundle identifier,
 - select the Apple Developer Team,
 - configure automatic signing and provisioning,
 - connect and select a physical test iPhone,
-- build, install, launch and relaunch the app,
 - execute `docs/device-test-checklist.md`,
 - complete `docs/reports/iphone-air-validation-template.md`,
-- attach sanitized evidence to Issue #29.
+- attach sanitized physical-device evidence to Issue #29.
 
 Signing material, account identifiers, certificates, provisioning profiles and device identifiers must not be committed.
 
 ## Next sequence
 
-1. Configure the minimal GitHub repository protection settings with the owner.
-2. Open the committed Xcode project locally.
-3. Set the production bundle identifier and Apple Developer Team locally.
-4. Run the physical-device checklist.
-5. Complete Issue #29 with direct observations and sanitized evidence.
+1. Gate PR #46 against scope, workflow, macOS/Linux Swift and complete-catalog test evidence.
+2. Fix only exact source-backed failures within the declared scope.
+3. Mark ready and merge only with a stable head and no unresolved review thread.
+4. Close Issue #16 only after current-source acceptance evidence is complete.
+5. Keep Issue #29 open.
+6. Select at most one additional deterministic or simulator-verifiable safety slice after PR #46 is complete.
 
 ## What still needs owner UI setup
 
@@ -131,7 +157,7 @@ Signing material, account identifiers, certificates, provisioning profiles and d
 - Require conversation resolution.
 - Disable force pushes and branch deletion on `main`.
 - Choose allowed merge methods; squash-only is the current recommendation.
-- Select Apple signing and a physical test device locally.
+- Select Apple signing and a physical test device locally when physical validation resumes.
 
 ## Important constraint
 
