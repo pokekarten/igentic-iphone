@@ -22,10 +22,10 @@ ChatGPT works through the GitHub Connector on small, reviewable branches and pul
 
 ## Recently completed
 
-- PR #47 added metadata-only `DiagnosticSnapshot`.
 - PR #48 added typed `PolicyDecisionReason` metadata.
-- PR #50 `Add metadata-only AuditLog query helpers` was squash-merged into `main` as `94f20aea5bd739339586af9ff9a0d66aab162e29`.
-- Issues #16, #13, #12, #10, #11 and #7 are closed with source-backed evidence.
+- PR #50 added lock-protected AuditLog metadata query helpers.
+- PR #51 `Add ToolRegistry contract validation` was squash-merged into `main` as `8730b302ef2a30175d4bd6d330ef15d741e29964`.
+- Issues #16, #15, #13, #12, #10, #11 and #7 are closed with source-backed evidence.
 - Issue #29 remains open for physical-device validation.
 
 ## What exists on `main`
@@ -39,6 +39,7 @@ ChatGPT works through the GitHub Connector on small, reviewable branches and pul
 - `AgentCore` policy, approval, audit, routing, risk, memory, delegation and synthetic diagnostic components
 - typed policy reason metadata without loosening policy outcomes
 - lock-protected AuditLog metadata snapshots, filters and counts
+- validated metadata-only ToolRegistry definitions with deterministic invalid/duplicate handling
 - metadata-only `ApprovalReceipt`, `DiagnosticSnapshot`, `ScenarioReport` and diagnostic view state
 - complete six-scenario synthetic safety matrix with restricted-data delegation blocking
 - `iGenticApp` SwiftUI library and installable Xcode diagnostics wrapper
@@ -54,25 +55,25 @@ ChatGPT works through the GitHub Connector on small, reviewable branches and pul
 - Approval receipts, diagnostic snapshots and reports remain metadata-only.
 - Policy decisions expose stable typed reason codes while preserving existing explanations.
 - Restricted sensitive data is blocked before automatic external delegation.
-- Tool registration is metadata-only; no real tool execution exists yet.
+- Tool registration validates metadata deterministically; no real tool execution exists yet.
 - `MemoryStore` is volatile in-memory storage only.
 - The app wrapper adds no networking, provider, persistence, App Intent or real-action capability.
 - No model weights, credentials, signing files or real private data should be committed.
 
 ## Current active candidate
 
-PR #51 `Add ToolRegistry contract validation` is the single active candidate for Issue #15.
+PR #52 `Add metadata-only RuntimeBudget model` is the single active candidate for Issue #14.
 
 The candidate adds:
 
-- `ToolDefinitionValidationIssue` for invalid contract metadata,
-- deterministic registration results for success, invalid names and duplicate names,
-- rejection of empty or whitespace-only names,
-- outer-whitespace normalization for valid names and lookups,
-- first-valid-definition-wins duplicate handling,
-- focused tests for valid metadata, invalid names, duplicates and sorted initialization snapshots.
+- typed execution classes (`tiny`, `small`, `large`),
+- typed expected-locality metadata (`local-only`, `trusted-device`, `external-required`),
+- typed estimated-memory classes (`low`, `moderate`, `high`),
+- stable ordering for execution and memory classes,
+- deterministic metadata lines and caller-supplied synthetic reasons,
+- focused construction, ordering, equality and external-runtime tests.
 
-Required data level and action risk remain mandatory typed fields. Existing registry callers remain source-compatible through an `@discardableResult` registration API. No actual tool execution is added.
+The candidate is planning metadata only. It does not measure hardware, load models or alter routing behavior.
 
 ## Current validation contract
 
@@ -82,21 +83,22 @@ cd ios && swift test
 cd ios && swift build
 ```
 
-Before PR #51 can merge:
+Before PR #52 can merge:
 
 - base must remain `main`,
 - head SHA must remain stable during the final gate,
 - changed files must match the declared four-file scope,
 - PR Change Scope, Pull Request Quality, Docs Consistency, Repo Audit and Workflow Lint must pass,
 - macOS and Linux Swift package build/tests must pass,
-- valid, invalid, duplicate and deterministic snapshot behavior must be covered,
+- deterministic construction, ordering and metadata behavior must be covered,
+- no hardware probing, runtime measurement or model loading may be added,
 - no unresolved review thread or source-backed blocker may remain.
 
 ## Evidence boundary
 
-A successful PR #51 may prove that metadata-only tool definitions are validated deterministically before registration.
+A successful PR #52 may prove that local-device capability assumptions can be represented as deterministic metadata for future planning and diagnostic display.
 
-It does not add or validate real tool execution, App Intents, file access, networking, providers, persistence, signing, hardware behavior or production readiness.
+It does not prove actual device capacity, memory use, performance, model compatibility, signing, physical-device behavior or production readiness.
 
 ## Remaining owner-local boundary
 
@@ -114,10 +116,10 @@ Signing material, account identifiers, certificates, provisioning profiles and d
 
 ## Next sequence
 
-1. Gate PR #51 against scope, validation and review evidence.
+1. Gate PR #52 against scope, validation and review evidence.
 2. Fix only exact source-backed failures within the declared scope.
 3. Mark ready and merge only with a stable head and no unresolved review thread.
-4. Close Issue #15 only after current-source acceptance evidence is complete.
+4. Close Issue #14 only after current-source acceptance evidence is complete.
 5. Keep Issue #29 open.
 6. Select at most one additional deterministic or simulator-verifiable safety slice.
 
