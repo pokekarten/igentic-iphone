@@ -12,80 +12,52 @@ The private Brain may point here, but detailed live truth must be re-read from t
 
 ## Current operating mode
 
-Mode: `IGENTIC_DEVICE_READINESS`.
+Mode: `IGENTIC_VALIDATION_REPAIR`.
 
 - iGentic is the active repository lane.
 - Pokekartenkiste remains outside this task.
 - Public GitHub Actions are the primary repository validation environment.
 - Use one active implementation PR at a time.
-- Do not open an app-wrapper PR until the owner settings and signing boundary are explicitly resolved.
-- Codex remains paused unless a later task is explicitly routed as a narrow Draft-PR handoff.
+- Scheduled iGentic cycle automations remain paused while this explicit repair PR is gated.
+- Codex remains paused for implementation; post-merge review evidence may identify source-backed regressions.
 
 ## Recently completed
 
-PR #39 `Issue #27: add minimal SwiftUI diagnostic screen` was squash-merged into `main` as `f4110e1dccaadd38695ff0e798cbe6c403afff7f`.
+PR #39 `Issue #27: add minimal SwiftUI diagnostic screen` was squash-merged into `main` as `f4110e1dccaadd38695ff0e798cbe6c403afff7f` after its current-head macOS Swift tests and build passed.
 
-Before merge:
+A later automated review identified a cross-platform validation gap: `ios/Sources/iGenticApp/DiagnosticView.swift` imported SwiftUI unconditionally, so the documented Swift package validation could fail on non-Apple toolchains.
 
-- PR Change Scope passed.
-- Pull Request Quality passed.
-- Docs Consistency passed.
-- Repo Audit passed.
-- Phase 0 CI Validation passed.
-- Swift tests passed.
-- Swift build passed.
-- No unresolved review threads remained.
+## Active cycle
 
-The repository now contains a tested `iGenticApp` SwiftUI library, but it does not yet contain an installable Xcode iOS app target.
+Target: PR #40, a narrow validation repair.
 
-## Prepared device-validation kit
+Goal:
 
-Issue #29 preparation now includes:
+- guard the SwiftUI-only view with `canImport(SwiftUI)`,
+- preserve cross-platform `DiagnosticViewState` tests,
+- add explicit Linux Swift package build/test evidence,
+- fix the docs path checker so shell commands are not misclassified as repository paths.
 
-- `docs/device-test-checklist.md`
-- `docs/reports/iphone-air-validation-template.md`
-- existing `.github/ISSUE_TEMPLATE/device_test_report.md`
+Current intended scope:
 
-These sources separate:
-
-- physical-device observations,
-- automated repository evidence,
-- assumptions,
-- unavailable prerequisites,
-- explicit failures.
-
-They do not claim that an iPhone test has run.
-
-## Current boundary
-
-Real-device validation remains pending because the following are not yet present or configured:
-
-- installable Xcode iOS app target,
-- bundle identifier,
-- local Apple Developer Team/signing,
-- physical test device run.
-
-The Swift package CI proves buildability and tests for the package products. It does not prove installation, launch, visual behavior or performance on an iPhone.
+- `ios/Sources/iGenticApp/DiagnosticView.swift`
+- `.github/workflows/ci-phase-0-validation.yml`
+- `.github/workflows/docs-consistency.yml`
+- `docs/CHATGPT_NEXT_TASK.md`
 
 ## Next task
 
-Prepare for one short owner-settings session before more app code:
+Gate PR #40 at its latest head:
 
-1. Confirm the `main` ruleset and required checks.
-2. Confirm squash-only merge policy and branch cleanup behavior.
-3. Decide whether to create the minimal installable Xcode app wrapper now.
-4. If approved, define the local bundle identifier and Apple Developer Team only in Xcode; never commit signing material.
-5. Keep the initial app root limited to `DiagnosticView` with no network, persistence, providers, App Intents or real actions.
+1. Require repository structure validation.
+2. Require Workflow Lint.
+3. Require macOS Swift build and tests.
+4. Require Linux Swift build and tests.
+5. Require Docs Consistency, PR Change Scope, PR Quality and Repo Audit.
+6. Inspect exact failed steps before changing any file.
+7. Mark ready and merge only with a stable head and no unresolved review thread.
 
-Until that decision is made:
-
-- do not create a parallel runtime PR,
-- do not claim real-device validation,
-- do not add signing files,
-- do not add external capabilities,
-- continue only with source-backed review, issue cleanup or documentation corrections.
-
-## Required repository validation
+Required validation commands represented by CI:
 
 ```bash
 python3 scripts/validate_repo_structure.py
@@ -93,23 +65,12 @@ cd ios && swift test
 cd ios && swift build
 ```
 
-## Human-device phase after app-wrapper approval
+## After PR #40
 
-Use:
-
-- `docs/device-test-checklist.md`
-- `docs/reports/iphone-air-validation-template.md`
-
-Directly observe and record:
-
-- Xcode build for the physical device,
-- signing,
-- installation,
-- first launch and relaunch,
-- Diagnostic UI content,
-- synthetic scenario results,
-- privacy and permission behavior,
-- qualitative performance limitations.
+- Close only clearly completed duplicate/backlog issues such as the device-test checklist and ScenarioReport tasks when current source satisfies their acceptance criteria.
+- Keep Issue #29 open for the physical-device boundary.
+- Return to the short owner-settings session for repository rules and the installable app-wrapper decision.
+- Do not begin signing, bundle configuration or a physical-device claim autonomously.
 
 ## Guardrails
 
@@ -120,14 +81,14 @@ Directly observe and record:
 - No signing files, credentials, secrets or `.env` files.
 - No broad architecture rewrite.
 - Preserve unrelated safety tests.
-- Never present automated evidence as a device observation.
+- Never present macOS or Linux package CI as physical-device evidence.
 
 ## Expected terminal result
 
 One of:
 
-- `OWNER_SETTINGS_READY`
-- `APP_WRAPPER_APPROVED`
-- `PATCH_READY`
-- `NEXT_UNBLOCKED_TASK_SELECTED`
+- `FIX_NEEDED`
+- `WAITING_RUNNER`
+- `READY_MARKED`
+- `MERGED`
 - `BEN` only for the explicit owner/signing/device boundary
