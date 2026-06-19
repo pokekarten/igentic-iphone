@@ -36,6 +36,7 @@ Intended scope:
 - `ios/Sources/AgentCore/DelegationBroker.swift`
 - `ios/Sources/AgentCore/SyntheticScenarioCatalog.swift`
 - `ios/Sources/AgentCore/ScenarioRunner.swift`
+- `ios/Tests/AgentCoreTests/ScenarioReportTests.swift`
 - `ios/Tests/AgentCoreTests/SyntheticScenarioCatalogCompletionTests.swift`
 - `PROJECT_STATE.md`
 - `docs/CHATGPT_NEXT_TASK.md`
