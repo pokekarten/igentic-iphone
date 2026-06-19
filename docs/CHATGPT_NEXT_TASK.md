@@ -12,61 +12,46 @@ The private Brain may point here, but detailed live truth must be re-read from t
 
 ## Current operating mode
 
-Mode: `IGENTIC_RUNTIME_BUDGET_METADATA`.
+Mode: `IGENTIC_SELECT_NEXT_SAFE_SLICE`.
 
-- iGentic is the only active repository context.
+- iGentic is handled by the first half of the continuous ten-slot hourly cycle.
 - Pokekartenkiste remains outside this task.
 - Public GitHub Actions remain the independent validation environment.
-- Codex and all recurring slot automations remain paused.
 - Exactly one active implementation candidate is allowed.
+- Unrelated maintenance PRs must not displace an explicitly selected product target.
 
 ## Recently completed
 
-- PR #50 added lock-protected AuditLog metadata query helpers.
 - PR #51 `Add ToolRegistry contract validation` was squash-merged into `main` as `8730b302ef2a30175d4bd6d330ef15d741e29964`.
-- Issue #15 is closed with acceptance evidence.
+- PR #52 `Add metadata-only RuntimeBudget model` was merged into `main` as `6ff0c6875cb58560b0a98c4d23dbee91e538319b`.
+- PR #52 passed the declared current-head workflow set, including Swift, Phase 0 CI, PR scope, PR quality, docs consistency, repo audit and iOS app-wrapper validation.
+- Issue #14 is complete and must be closed with source-backed acceptance evidence.
 - Issue #29 remains open for physical-device validation.
 
 ## Active target
 
-PR #52 `Add metadata-only RuntimeBudget model` is the single active candidate and implements Issue #14.
+No new implementation candidate is selected yet.
 
-Declared scope:
+The next iGentic director/context cycle must:
 
-- `ios/Sources/AgentCore/RuntimeBudget.swift`
-- `ios/Tests/AgentCoreTests/RuntimeBudgetTests.swift`
-- `PROJECT_STATE.md`
-- `docs/CHATGPT_NEXT_TASK.md`
+1. verify Issue #14 closure,
+2. keep Issue #29 classified as an owner/device boundary,
+3. inspect current open product issues and repository state,
+4. select exactly one smallest safe deterministic or simulator-verifiable product slice,
+5. avoid selecting Dependabot PR #49 as the product target unless maintenance is explicitly chosen.
 
-## Goal
+## Selection criteria
 
-Represent future local-device capability planning without measuring real hardware:
+Prefer a target that:
 
-1. define typed execution classes (`tiny`, `small`, `large`),
-2. define typed expected locality (`local-only`, `trusted-device`, `external-required`),
-3. define typed estimated-memory classes (`low`, `moderate`, `high`),
-4. preserve stable ordering for execution and memory classes,
-5. expose deterministic metadata lines for diagnostic display,
-6. preserve caller-supplied synthetic reasons in input order,
-7. make external-runtime requirements explicit,
-8. keep the model independent from routing, hardware and model-loading APIs.
+- is metadata-only, deterministic or simulator-verifiable,
+- has narrow Swift/test scope,
+- strengthens privacy, policy, approval, diagnostics or local-runtime planning,
+- requires no real private data or external provider,
+- can be validated by the repository structure validator plus Swift build/tests,
+- does not require signing or a physical iPhone.
 
-## Merge gate
-
-Before PR #52 can merge:
-
-- base must remain `main`,
-- head SHA must remain stable during the final gate,
-- changed files must match the four-file declared scope,
-- PR Change Scope, Pull Request Quality, Docs Consistency, Repo Audit and Workflow Lint must pass,
-- macOS and Linux Swift package build/tests must pass,
-- tests must cover deterministic construction, metadata output, class ordering and explicit external-runtime behavior,
-- no actual hardware probing, runtime measurement, CoreML, MLX or model loading may be added,
-- no unresolved review thread or source-backed blocker may remain.
-
-Inspect exact workflow logs before changing code. Do not make speculative fixes while a runner is queued or running.
-
-## Required validation
+## Required validation for a new Swift slice
 
 ```bash
 python3 scripts/validate_repo_structure.py
@@ -74,41 +59,38 @@ cd ios && swift test
 cd ios && swift build
 ```
 
+Before any new candidate can merge:
+
+- base must remain `main`,
+- head SHA must remain stable during the final gate,
+- changed files must match the declared scope,
+- required current-head workflows must pass,
+- no unresolved review thread or source-backed blocker may remain.
+
 ## Safety rules
 
 Do not add:
 
 - hardware probing or real performance measurements,
 - CoreML, MLX, model weights or model loading,
-- routing behavior or automatic delegation changes,
+- routing behavior or automatic external delegation without a separately scoped safety design,
 - file access, databases or persistence,
 - networking, external providers or model calls,
 - secrets or real private data,
-- SwiftUI or app-route changes,
 - App Intents, signing or physical-device success claims.
 
 ## Evidence boundary
 
-A successful PR #52 proves only that runtime capability assumptions can be represented as typed, deterministic metadata.
+The merged RuntimeBudget slice proves only that runtime capability assumptions can be represented as typed, deterministic metadata.
 
 It does not prove actual iPhone capacity, memory use, latency, model compatibility, signing, physical-device behavior, accessibility or production readiness. Issue #29 remains open.
-
-## After PR #52
-
-If the PR is validated and merged:
-
-1. close Issue #14 with source-backed acceptance evidence,
-2. keep Issue #29 open,
-3. synchronize project state,
-4. select at most one additional deterministic or simulator-verifiable safety slice.
 
 ## Expected terminal result
 
 One of:
 
-- `FIX_NEEDED`
-- `WAITING_RUNNER`
-- `READY_MARKED`
-- `MERGED`
+- `NEXT_UNBLOCKED_TASK_SELECTED`
+- `PR_OPENED`
 - `ISSUE_CLOSED`
 - `OWNER_DEVICE_STEP`
+- `WRITE_SKIPPED`
