@@ -51,48 +51,7 @@ public struct ScenarioRunner: Sendable {
         self.delegationBroker = delegationBroker
     }
 
-    public static let defaultScenarios: [DiagnosticScenario] = [
-        DiagnosticScenario(
-            id: "local-only-summary",
-            task: TaskRequest(
-                userText: "Synthetic local summary dry run",
-                intent: .summarizeNote,
-                actionRisk: .read
-            ),
-            privacyMode: .localOnly,
-            delegationTarget: .trustedMac
-        ),
-        DiagnosticScenario(
-            id: "critical-reminder",
-            task: TaskRequest(
-                userText: "Synthetic critical reminder dry run",
-                intent: .createReminder,
-                actionRisk: .critical
-            ),
-            privacyMode: .trustedDevices,
-            delegationTarget: .trustedMac
-        ),
-        DiagnosticScenario(
-            id: "external-provider-check",
-            task: TaskRequest(
-                userText: "Synthetic external provider dry run",
-                intent: .summarizeNote,
-                actionRisk: .prepare
-            ),
-            privacyMode: .trustedDevices,
-            delegationTarget: .externalProvider
-        ),
-        DiagnosticScenario(
-            id: "trusted-device-metadata",
-            task: TaskRequest(
-                userText: "Synthetic trusted-device metadata dry run",
-                intent: .findFile,
-                actionRisk: .prepare
-            ),
-            privacyMode: .trustedDevices,
-            delegationTarget: .trustedMac
-        ),
-    ]
+    public static let defaultScenarios = SyntheticScenarioCatalog.all
 
     public func run(_ scenario: DiagnosticScenario) -> DiagnosticScenarioResult {
         let kernel = AgentKernel(
@@ -120,5 +79,9 @@ public struct ScenarioRunner: Sendable {
 
     public func runAll(_ scenarios: [DiagnosticScenario] = ScenarioRunner.defaultScenarios) -> [DiagnosticScenarioResult] {
         scenarios.map(run)
+    }
+
+    public func report(_ scenarios: [DiagnosticScenario] = ScenarioRunner.defaultScenarios) -> ScenarioReport {
+        ScenarioReport(results: runAll(scenarios))
     }
 }
