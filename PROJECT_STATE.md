@@ -6,7 +6,7 @@ Last updated: 2026-06-19
 
 `iGentic iPhone` is an open-source, privacy-first iPhone AI Runtime Layer research repository.
 
-ChatGPT works through the GitHub Connector on small, reviewable branches and pull requests. GitHub Actions provides independent validation evidence. Codex and all recurring slot automations remain paused.
+ChatGPT works through the GitHub Connector on small, reviewable branches and pull requests. GitHub Actions provides independent validation evidence. The continuous ten-slot cycle is active; iGentic work is handled by Slots 00, 06, 12, 18 and 24 before the Pokekartenkiste half-hour begins.
 
 ## Current baseline
 
@@ -25,7 +25,8 @@ ChatGPT works through the GitHub Connector on small, reviewable branches and pul
 - PR #48 added typed `PolicyDecisionReason` metadata.
 - PR #50 added lock-protected AuditLog metadata query helpers.
 - PR #51 `Add ToolRegistry contract validation` was squash-merged into `main` as `8730b302ef2a30175d4bd6d330ef15d741e29964`.
-- Issues #16, #15, #13, #12, #10, #11 and #7 are closed with source-backed evidence.
+- PR #52 `Add metadata-only RuntimeBudget model` was merged into `main` as `6ff0c6875cb58560b0a98c4d23dbee91e538319b`.
+- Issues #16, #15, #14, #13, #12, #10, #11 and #7 are closed with source-backed evidence.
 - Issue #29 remains open for physical-device validation.
 
 ## What exists on `main`
@@ -40,6 +41,7 @@ ChatGPT works through the GitHub Connector on small, reviewable branches and pul
 - typed policy reason metadata without loosening policy outcomes
 - lock-protected AuditLog metadata snapshots, filters and counts
 - validated metadata-only ToolRegistry definitions with deterministic invalid/duplicate handling
+- metadata-only RuntimeBudget planning classes and deterministic diagnostic metadata
 - metadata-only `ApprovalReceipt`, `DiagnosticSnapshot`, `ScenarioReport` and diagnostic view state
 - complete six-scenario synthetic safety matrix with restricted-data delegation blocking
 - `iGenticApp` SwiftUI library and installable Xcode diagnostics wrapper
@@ -56,26 +58,20 @@ ChatGPT works through the GitHub Connector on small, reviewable branches and pul
 - Policy decisions expose stable typed reason codes while preserving existing explanations.
 - Restricted sensitive data is blocked before automatic external delegation.
 - Tool registration validates metadata deterministically; no real tool execution exists yet.
+- RuntimeBudget describes planning assumptions only; it does not probe hardware or measure performance.
 - `MemoryStore` is volatile in-memory storage only.
 - The app wrapper adds no networking, provider, persistence, App Intent or real-action capability.
 - No model weights, credentials, signing files or real private data should be committed.
 
 ## Current active candidate
 
-PR #52 `Add metadata-only RuntimeBudget model` is the single active candidate for Issue #14.
+No new implementation candidate is selected yet.
 
-The candidate adds:
-
-- typed execution classes (`tiny`, `small`, `large`),
-- typed expected-locality metadata (`local-only`, `trusted-device`, `external-required`),
-- typed estimated-memory classes (`low`, `moderate`, `high`),
-- stable ordering for execution and memory classes,
-- deterministic metadata lines and caller-supplied synthetic reasons,
-- focused construction, ordering, equality and external-runtime tests.
-
-The candidate is planning metadata only. It does not measure hardware, load models or alter routing behavior.
+The next iGentic cycle must select at most one small deterministic or simulator-verifiable safety slice from current open issues and repository evidence. The open Dependabot PR #49 is maintenance work and must not automatically displace the next explicit product target.
 
 ## Current validation contract
+
+For any new Swift product slice:
 
 ```bash
 python3 scripts/validate_repo_structure.py
@@ -83,22 +79,20 @@ cd ios && swift test
 cd ios && swift build
 ```
 
-Before PR #52 can merge:
+A pull request may be marked ready or merged only when:
 
-- base must remain `main`,
-- head SHA must remain stable during the final gate,
-- changed files must match the declared four-file scope,
-- PR Change Scope, Pull Request Quality, Docs Consistency, Repo Audit and Workflow Lint must pass,
-- macOS and Linux Swift package build/tests must pass,
-- deterministic construction, ordering and metadata behavior must be covered,
-- no hardware probing, runtime measurement or model loading may be added,
-- no unresolved review thread or source-backed blocker may remain.
+- base remains `main`,
+- head SHA is stable during the final gate,
+- changed files match the declared scope,
+- required current-head workflows pass,
+- no unresolved review thread or source-backed blocker remains,
+- the change preserves the privacy and safety boundaries below.
 
 ## Evidence boundary
 
-A successful PR #52 may prove that local-device capability assumptions can be represented as deterministic metadata for future planning and diagnostic display.
+The current repository proves deterministic metadata models, policy and diagnostic behavior under repository and simulator validation.
 
-It does not prove actual device capacity, memory use, performance, model compatibility, signing, physical-device behavior or production readiness.
+It does not prove actual iPhone capacity, memory use, performance, model compatibility, signing, physical-device behavior or production readiness.
 
 ## Remaining owner-local boundary
 
@@ -116,12 +110,11 @@ Signing material, account identifiers, certificates, provisioning profiles and d
 
 ## Next sequence
 
-1. Gate PR #52 against scope, validation and review evidence.
-2. Fix only exact source-backed failures within the declared scope.
-3. Mark ready and merge only with a stable head and no unresolved review thread.
-4. Close Issue #14 only after current-source acceptance evidence is complete.
-5. Keep Issue #29 open.
-6. Select at most one additional deterministic or simulator-verifiable safety slice.
+1. Confirm Issue #14 is closed with PR #52 acceptance evidence.
+2. Keep Issue #29 open as an owner/device boundary.
+3. Re-read open product issues and select exactly one smallest safe deterministic or simulator-verifiable slice.
+4. Open at most one narrow Draft PR with explicit scope and validation.
+5. Keep unrelated maintenance PRs outside the product target unless intentionally selected.
 
 ## Important constraint
 
