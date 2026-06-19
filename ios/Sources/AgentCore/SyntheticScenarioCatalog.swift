@@ -9,7 +9,7 @@ public enum SyntheticScenarioCatalog {
             .suggestedDataClassification
     }
 
-    public static let all: [DiagnosticScenario] = [
+    public static let baseline: [DiagnosticScenario] = [
         DiagnosticScenario(
             id: "local-only-summary",
             task: TaskRequest(
@@ -50,6 +50,9 @@ public enum SyntheticScenarioCatalog {
             privacyMode: .trustedDevices,
             delegationTarget: .trustedMac
         ),
+    ]
+
+    public static let all: [DiagnosticScenario] = baseline + [
         DiagnosticScenario(
             id: "restricted-external-delegation",
             task: TaskRequest(
