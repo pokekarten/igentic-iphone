@@ -12,50 +12,47 @@ The private Brain may point here, but detailed live truth must be re-read from t
 
 ## Current operating mode
 
-Mode: `IGENTIC_OWNER_BOUNDARY_READY`.
+Mode: `IGENTIC_APP_WRAPPER_VALIDATION`.
 
 - iGentic remains the active repository context.
 - Pokekartenkiste remains outside this task.
 - Public GitHub Actions remain the independent validation environment.
 - Codex remains paused.
-- The limited four-slot burst has completed its safe autonomous targets and all four scheduled roles are paused.
-- Do not open speculative implementation work while the next decisions require repository-owner or Apple/Xcode input.
+- All recurring slot automations remain paused.
+- The owner authorized implementation of the smallest safe app-wrapper slice through the current chat instruction to implement what is possible.
 
-## Recently completed
+## Active target
 
-- PR #40 `Guard SwiftUI and validate the package on Linux` was squash-merged into `main` as `1f13a0c3bf7d4d9625a9adb2a52a62a06e00c1c6` after macOS, Linux, workflow, documentation, scope and repository checks passed.
-- PR #41 `Sync project state after PR #40` was squash-merged into `main` as `adb8b61c87e3207be2e33da917db2336d9aa4d54` after all applicable checks passed.
-- Issue #11 `ScenarioReport exporter` was verified against current implementation and closed as completed.
-- Issue #7 `device test checklist` was verified against the checklist, issue template and report template and closed as completed.
-- Issue #29 remains open for actual physical-device execution and evidence.
+PR #43 `Add minimal installable iOS diagnostics app wrapper` is the single active candidate.
 
-## Current repository state
+Intended scope:
 
-- `AgentCore` and `iGenticApp` compile and test through public GitHub Actions on macOS and Linux.
-- `ScenarioReport` provides deterministic metadata-only diagnostic output.
-- `DiagnosticView` provides the tested SwiftUI diagnostic surface.
-- The real-device checklist and report template are ready.
-- The repository still contains a Swift package library, not an installable signed iOS application.
+- `app/iGenticDiagnostics/iGenticDiagnostics/iGenticDiagnosticsApp.swift`
+- `app/iGenticDiagnostics/iGenticDiagnostics.xcodeproj/project.pbxproj`
+- `app/iGenticDiagnostics/iGenticDiagnostics.xcodeproj/xcshareddata/xcschemes/iGenticDiagnostics.xcscheme`
+- `app/iGenticDiagnostics/README.md`
+- `.github/workflows/ios-app-wrapper.yml`
+- `PROJECT_STATE.md`
+- `docs/CHATGPT_NEXT_TASK.md`
 
-## Current owner boundary
+## Goal
 
-The next meaningful product step requires joint decisions:
+- Provide the smallest Xcode iOS application target.
+- Import the existing local `iGenticApp` Swift package product.
+- Present `DiagnosticView` as the application root.
+- Validate an unsigned iOS Simulator build in GitHub Actions.
+- Preserve the owner-only boundary for bundle identity, Apple Developer Team, signing and physical-device evidence.
 
-1. Configure the `main` repository ruleset and merge settings in GitHub UI.
-2. Decide whether to add the minimal installable Xcode app wrapper.
-3. Choose the bundle identifier and Apple Developer Team locally in Xcode.
-4. Configure signing without committing credentials, profiles or account identifiers.
-5. Run the physical-device checklist and complete Issue #29 evidence.
+## Next task
 
-## Stop rules
+Gate PR #43 at its latest head:
 
-Do not autonomously start or configure:
-
-- an installable Xcode app wrapper without explicit approval,
-- bundle identifier, Apple Developer Team, signing or provisioning,
-- physical-device installation or test claims,
-- GitHub rulesets or repository-owner UI settings,
-- networking, providers, persistence, App Intents, model calls, secrets or real private data.
+1. Read current PR metadata, changed files, patch, comments and review threads.
+2. Require repository structure, PR scope, PR quality, docs consistency, repo audit and workflow lint checks.
+3. Require existing macOS and Linux Swift package build/test checks.
+4. Require the `Build diagnostic app for simulator` check to resolve the local package and complete an unsigned simulator build.
+5. Inspect exact logs before changing project or workflow files.
+6. Mark ready and merge only with a stable head, green current-head evidence and no unresolved review thread.
 
 ## Required repository validation
 
@@ -65,11 +62,42 @@ cd ios && swift test
 cd ios && swift build
 ```
 
-Linux package validation is additionally represented by the `Swift package Linux build and test` CI job.
+Additional app-wrapper validation:
+
+```bash
+xcodebuild \
+  -project app/iGenticDiagnostics/iGenticDiagnostics.xcodeproj \
+  -scheme iGenticDiagnostics \
+  -configuration Debug \
+  -sdk iphonesimulator \
+  -destination 'generic/platform=iOS Simulator' \
+  CODE_SIGNING_ALLOWED=NO \
+  build
+```
+
+## Safety boundary
+
+- `org.example.iGenticDiagnostics` is a non-production placeholder only.
+- Do not add Apple account, team, certificate, provisioning-profile or device identifiers.
+- Do not claim physical-device installation, launch or performance from simulator CI.
+- No networking, providers, persistence, App Intents, model calls, real actions, secrets or private data.
+
+## After PR #43
+
+If PR #43 is validated and merged:
+
+1. keep Issue #29 open,
+2. replace the placeholder bundle identifier locally,
+3. select the Apple Developer Team locally in Xcode,
+4. configure signing without committing signing material,
+5. run the physical-device checklist and complete the validation report.
 
 ## Expected terminal result
 
-Until the owner session occurs:
+One of:
 
-- `OWNER_BOUNDARY`
-- `BEN` only for the explicit repository-owner, Xcode, signing or physical-device step
+- `FIX_NEEDED`
+- `WAITING_RUNNER`
+- `READY_MARKED`
+- `MERGED`
+- `BEN` only for local Apple/Xcode/signing/device steps
