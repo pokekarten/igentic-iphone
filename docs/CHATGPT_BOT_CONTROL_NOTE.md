@@ -1,6 +1,6 @@
 # ChatGPT Bot Control Note
 
-Last updated: 2026-06-18
+Last updated: 2026-06-19
 
 Use the private Brain control files as the source for scheduled ChatGPT slot behavior, but always re-read current iGentic project sources before reporting state or acting.
 
@@ -17,7 +17,7 @@ Applicable iGentic slots in this mode:
 - 06 — `IGENTIC_GATE`: review/gate exactly one iGentic PR, issue or task.
 - 12 — `IGENTIC_PROGRESS`: produce one concrete iGentic progress result, exact handoff, PATCH_READY, BEN, or next unblocked task.
 
-Slot 18 is no longer an iGentic slot in the active product cycle; it is currently the Pokekartenkiste gate slot. Older full-slot/debug mappings are background only unless Brain `../CURRENT_STATE.md` and automation source explicitly switch modes again.
+Slot 18 is no longer an iGentic slot in the active product cycle; it is currently the Pokekartenkiste gate slot. Older full-slot/debug mappings are background only unless the private Brain current-state source and automation source explicitly switch modes again.
 
 Current local direction:
 
