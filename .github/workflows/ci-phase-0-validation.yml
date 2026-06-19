@@ -96,6 +96,7 @@ jobs:
       - name: Checkout repository without marketplace actions
         run: |
           set -euo pipefail
+          git config --global --add safe.directory "${GITHUB_WORKSPACE}"
           git init .
           git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
           if git fetch --no-tags --depth=1 origin "${GITHUB_SHA}"; then
@@ -107,7 +108,6 @@ jobs:
           fi
           git checkout --force FETCH_HEAD
           git clean -fdx
-          git config --global --add safe.directory "${GITHUB_WORKSPACE}"
 
       - name: Show Swift version
         run: swift --version
