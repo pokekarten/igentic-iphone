@@ -8,65 +8,58 @@ Stand: 2026-06-19
 
 This file is the current work source for AI-assisted repository work in `pokekarten/igentic-iphone`.
 
-The private Brain may point here, but detailed live truth must be re-read from this repository. Before reporting or acting, verify current PR state, current `main`, open issues and the physical-device evidence boundary.
+The private Brain may point here, but detailed live truth must be re-read from this repository. Before reporting or acting, verify current PR state, current `main`, workflow evidence, review threads and the physical-device evidence boundary.
 
 ## Current operating mode
 
-Mode: `IGENTIC_DEVICE_RUN_READY`.
+Mode: `IGENTIC_SIMULATOR_RELIABILITY`.
 
-- iGentic remains the active repository context.
+- iGentic is the only active repository context.
 - Pokekartenkiste remains outside this task.
 - Public GitHub Actions remain the independent repository validation environment.
-- Codex remains paused.
-- All recurring slot automations remain paused.
-- No speculative runtime or integration work should start while the next step requires local Apple/Xcode/device access.
+- Codex and all recurring slot automations remain paused.
+- The owner explicitly requested continued progress without a local physical iPhone Air test.
+- Exactly one active implementation candidate is allowed.
 
-## Recently completed
+## Active target
 
-PR #43 `Add minimal installable iOS diagnostics app wrapper` was squash-merged into `main` as `c2554d26a0a80cf0e19dafc5355ff1b4abd0d1d0`.
+PR #45 `Add automated simulator launch smoke test` is the single active candidate.
 
-Before merge:
+Intended scope:
 
-- PR Change Scope passed.
-- Pull Request Quality passed.
-- Docs Consistency passed.
-- Repo Audit passed.
-- Workflow Lint passed.
-- Phase 0 CI Validation passed.
-- Swift package validation passed.
-- `Build diagnostic app for simulator` passed.
-- No unresolved review thread remained.
+- `scripts/smoke-ios-simulator.sh`
+- `.github/workflows/ios-app-wrapper.yml`
+- `app/iGenticDiagnostics/README.md`
+- `PROJECT_STATE.md`
+- `docs/CHATGPT_NEXT_TASK.md`
 
-## Current repository state
+## Goal
 
-The repository now contains:
+Extend simulator evidence from build-only to runtime smoke evidence:
 
-- tested `AgentCore` and `iGenticApp` Swift package products,
-- deterministic metadata-only `ScenarioReport`,
-- tested SwiftUI `DiagnosticView`,
-- an Xcode application project under `app/iGenticDiagnostics`,
-- an `@main` iOS app entry point that presents `DiagnosticView`,
-- a shared Xcode scheme,
-- a successful unsigned iOS Simulator build workflow,
-- a committed device-test checklist and validation report template.
+1. build the unsigned diagnostics app into a deterministic DerivedData path,
+2. select an available iPhone simulator dynamically,
+3. boot the simulator,
+4. install the app,
+5. launch it and require a returned process identifier,
+6. capture a non-empty simulator screenshot,
+7. terminate the app,
+8. relaunch it cleanly,
+9. shut down the simulator.
 
-The app wrapper uses `org.example.iGenticDiagnostics` as an explicit non-production placeholder bundle identifier.
+## Merge gate
 
-## Current boundary
+Before PR #45 can merge:
 
-Repository automation has completed everything that can be proven without the owner's local Apple environment.
+- base must remain `main`,
+- head SHA must remain stable during the final gate,
+- changed files must match the declared scope,
+- PR Change Scope, Pull Request Quality, Docs Consistency, Repo Audit and Workflow Lint must pass,
+- Phase 0 CI Validation and Swift package validation must pass,
+- `Build and launch diagnostic app in simulator` must pass on the current head,
+- no unresolved review thread or source-backed blocker may remain.
 
-The remaining steps require local owner action:
-
-1. open `app/iGenticDiagnostics/iGenticDiagnostics.xcodeproj` in Xcode,
-2. replace the placeholder bundle identifier,
-3. select the Apple Developer Team,
-4. configure automatic signing locally,
-5. connect and select the physical test iPhone,
-6. build, install, launch and relaunch the app,
-7. execute `docs/device-test-checklist.md`,
-8. complete `docs/reports/iphone-air-validation-template.md`,
-9. attach sanitized evidence to Issue #29.
+Inspect exact workflow logs before changing the smoke script or workflow. Do not make speculative fixes while a runner is merely queued or running.
 
 ## Required repository validation
 
@@ -76,7 +69,7 @@ cd ios && swift test
 cd ios && swift build
 ```
 
-App-wrapper validation:
+App-wrapper build and runtime smoke validation:
 
 ```bash
 xcodebuild \
@@ -85,15 +78,33 @@ xcodebuild \
   -configuration Debug \
   -sdk iphonesimulator \
   -destination 'generic/platform=iOS Simulator' \
+  -derivedDataPath /tmp/iGenticDerivedData \
   CODE_SIGNING_ALLOWED=NO \
   build
+
+APP_PATH=/tmp/iGenticDerivedData/Build/Products/Debug-iphonesimulator/iGenticDiagnostics.app \
+BUNDLE_IDENTIFIER=org.example.iGenticDiagnostics \
+bash scripts/smoke-ios-simulator.sh
 ```
 
-These checks prove package and simulator buildability only. They do not prove physical-device signing, installation, launch behavior or performance.
+## Evidence boundary
 
-## Stop rules
+A successful simulator smoke test proves that the built app can be installed, launched, screenshotted, terminated and relaunched in an iOS Simulator.
 
-Do not autonomously add:
+It does not prove:
+
+- Apple signing or provisioning,
+- physical-device installation or launch,
+- device-specific UI behavior,
+- accessibility quality,
+- battery, thermal or performance behavior,
+- production readiness.
+
+Issue #29 remains open for physical-device evidence.
+
+## Safety rules
+
+Do not add:
 
 - Apple account, team, certificate, provisioning-profile or device identifiers,
 - committed signing configuration,
@@ -104,7 +115,10 @@ Do not autonomously add:
 
 ## Expected terminal result
 
-Until local device evidence is supplied:
+One of:
 
+- `FIX_NEEDED`
+- `WAITING_RUNNER`
+- `READY_MARKED`
+- `MERGED`
 - `OWNER_DEVICE_STEP`
-- `BEN` for Xcode, signing or physical-device execution
