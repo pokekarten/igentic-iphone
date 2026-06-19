@@ -12,7 +12,7 @@ The private Brain may point here, but detailed live truth must be re-read from t
 
 ## Current operating mode
 
-Mode: `IGENTIC_AUDIT_METADATA_QUERIES`.
+Mode: `IGENTIC_TOOL_CONTRACT_VALIDATION`.
 
 - iGentic is the only active repository context.
 - Pokekartenkiste remains outside this task.
@@ -22,46 +22,46 @@ Mode: `IGENTIC_AUDIT_METADATA_QUERIES`.
 
 ## Recently completed
 
-- PR #47 added metadata-only `DiagnosticSnapshot`.
-- PR #48 `Add typed PolicyDecision reason codes` was squash-merged into `main` as `4a4579bb2b099a0e5b718940ff76e3b4635e80cc`.
-- Issue #13 is closed with acceptance evidence.
+- PR #48 added typed policy reason metadata.
+- PR #50 `Add metadata-only AuditLog query helpers` was squash-merged into `main` as `94f20aea5bd739339586af9ff9a0d66aab162e29`.
+- Issue #12 is closed with acceptance evidence.
 - Issue #29 remains open for physical-device validation.
 
 ## Active target
 
-PR #50 `Add metadata-only AuditLog query helpers` is the single active candidate and implements Issue #12.
+PR #51 `Add ToolRegistry contract validation` is the single active candidate and implements Issue #15.
 
 Declared scope:
 
-- `ios/Sources/AgentCore/AuditLog.swift`
-- `ios/Tests/AgentCoreTests/AuditLogQueryTests.swift`
+- `ios/Sources/AgentCore/ToolRegistry.swift`
+- `ios/Tests/AgentCoreTests/ToolRegistryValidationTests.swift`
 - `PROJECT_STATE.md`
 - `docs/CHATGPT_NEXT_TASK.md`
 
 ## Goal
 
-Add deterministic audit queries without exposing raw messages:
+Validate metadata contracts without adding execution:
 
-1. preserve `record(_:)` and `allEvents()`,
-2. add `AuditEventMetadata` without message or UUID,
-3. return stable metadata snapshots in recording order,
-4. filter snapshots by event type,
-5. filter snapshots by minimum sensitivity,
-6. count events by type and minimum sensitivity,
-7. keep every read and write within the existing lock boundary,
-8. verify concurrent recording remains complete and queryable.
+1. require a non-empty tool name,
+2. keep required data level and action risk mandatory and typed,
+3. normalize outer whitespace for valid names,
+4. return explicit success, invalid-name or duplicate-name outcomes,
+5. keep first valid registration on duplicates,
+6. preserve deterministic sorted snapshots,
+7. keep existing callers source-compatible,
+8. verify initialization handles invalid and duplicate definitions deterministically.
 
 ## Merge gate
 
-Before PR #50 can merge:
+Before PR #51 can merge:
 
 - base must remain `main`,
 - head SHA must remain stable during the final gate,
 - changed files must match the four-file declared scope,
 - PR Change Scope, Pull Request Quality, Docs Consistency, Repo Audit and Workflow Lint must pass,
 - macOS and Linux Swift package build/tests must pass,
-- tests must prove metadata-only output, deterministic filtering and unchanged raw-event behavior,
-- thread-safety must not be weakened,
+- valid metadata, missing names, whitespace-only names, duplicates and sorted snapshots must be tested,
+- no actual tool execution may be added,
 - no unresolved review thread or source-backed blocker may remain.
 
 Inspect exact workflow logs before changing code. Do not make speculative fixes while a runner is queued or running.
@@ -78,27 +78,25 @@ cd ios && swift build
 
 Do not add:
 
-- databases, files or persistence,
+- real tools, tool execution or App Intents,
+- file access, databases or persistence,
 - networking, external providers or model calls,
-- app actions or real tool execution,
-- raw private data or secrets,
+- secrets or real private data,
 - SwiftUI or app-route changes,
 - signing or hardware behavior,
 - physical-device success claims without direct observation.
 
-Metadata query helpers must never return raw audit messages or event identifiers.
-
 ## Evidence boundary
 
-A successful PR #50 proves only that audit metadata can be queried deterministically under the existing lock boundary.
+A successful PR #51 proves only that metadata-only tool definitions are validated and registered deterministically.
 
-It does not prove signing, physical-device behavior, accessibility, performance or production readiness. Issue #29 remains open.
+It does not prove execution safety, signing, physical-device behavior, accessibility, performance or production readiness. Issue #29 remains open.
 
-## After PR #50
+## After PR #51
 
 If the PR is validated and merged:
 
-1. close Issue #12 with source-backed acceptance evidence,
+1. close Issue #15 with source-backed acceptance evidence,
 2. keep Issue #29 open,
 3. synchronize project state,
 4. select at most one additional deterministic or simulator-verifiable safety slice.

@@ -1,5 +1,15 @@
 import Foundation
 
+public enum ToolDefinitionValidationIssue: String, Equatable, Sendable {
+    case emptyName
+}
+
+public enum ToolRegistrationResult: Equatable, Sendable {
+    case registered
+    case rejectedInvalid([ToolDefinitionValidationIssue])
+    case rejectedDuplicateName
+}
+
 public struct ToolDefinition: Equatable, Sendable {
     public let name: String
     public let requiredDataLevel: DataSensitivityLevel
@@ -17,6 +27,27 @@ public struct ToolDefinition: Equatable, Sendable {
         self.actionRisk = actionRisk
         self.description = description
     }
+
+    public var validationIssues: [ToolDefinitionValidationIssue] {
+        canonicalName.isEmpty ? [.emptyName] : []
+    }
+
+    public var isValid: Bool {
+        validationIssues.isEmpty
+    }
+
+    fileprivate var canonicalName: String {
+        name.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    fileprivate var normalized: ToolDefinition {
+        ToolDefinition(
+            name: canonicalName,
+            requiredDataLevel: requiredDataLevel,
+            actionRisk: actionRisk,
+            description: description
+        )
+    }
 }
 
 public final class ToolRegistry: @unchecked Sendable {
@@ -25,20 +56,39 @@ public final class ToolRegistry: @unchecked Sendable {
 
     public init(tools: [ToolDefinition] = []) {
         for tool in tools {
-            toolsByName[tool.name] = tool
+            _ = register(tool)
         }
     }
 
-    public func register(_ tool: ToolDefinition) {
+    @discardableResult
+    public func register(_ tool: ToolDefinition) -> ToolRegistrationResult {
+        let issues = tool.validationIssues
+        guard issues.isEmpty else {
+            return .rejectedInvalid(issues)
+        }
+
+        let normalizedTool = tool.normalized
+
         lock.lock()
         defer { lock.unlock() }
-        toolsByName[tool.name] = tool
+
+        guard toolsByName[normalizedTool.name] == nil else {
+            return .rejectedDuplicateName
+        }
+
+        toolsByName[normalizedTool.name] = normalizedTool
+        return .registered
     }
 
     public func tool(named name: String) -> ToolDefinition? {
+        let canonicalName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !canonicalName.isEmpty else {
+            return nil
+        }
+
         lock.lock()
         defer { lock.unlock() }
-        return toolsByName[name]
+        return toolsByName[canonicalName]
     }
 
     public func allTools() -> [ToolDefinition] {
