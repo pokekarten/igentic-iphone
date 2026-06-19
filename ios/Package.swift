@@ -9,10 +9,13 @@ let package = Package(
         .macOS(.v14)
     ],
     products: [
-        .library(name: "AgentCore", targets: ["AgentCore"])
+        .library(name: "AgentCore", targets: ["AgentCore"]),
+        .library(name: "iGenticApp", targets: ["iGenticApp"])
     ],
     targets: [
         .target(name: "AgentCore"),
-        .testTarget(name: "AgentCoreTests", dependencies: ["AgentCore"])
+        .target(name: "iGenticApp", dependencies: ["AgentCore"]),
+        .testTarget(name: "AgentCoreTests", dependencies: ["AgentCore"]),
+        .testTarget(name: "iGenticAppTests", dependencies: ["iGenticApp", "AgentCore"])
     ]
 )
