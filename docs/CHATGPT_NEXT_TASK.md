@@ -12,17 +12,18 @@ The private Brain may point here, but detailed live truth must be re-read from t
 
 ## Current operating mode
 
-Mode: `IGENTIC_FOCUS_BURST`.
+Mode: `IGENTIC_DEVICE_READINESS`.
 
-- iGentic is the active implementation lane.
-- Pokekartenkiste remains outside this repository and must not be touched from this task.
-- Use one active runtime PR at a time.
-- Public GitHub Actions are the primary independent validation environment.
+- iGentic is the active repository lane.
+- Pokekartenkiste remains outside this task.
+- Public GitHub Actions are the primary repository validation environment.
+- Use one active implementation PR at a time.
+- Do not open an app-wrapper PR until the owner settings and signing boundary are explicitly resolved.
 - Codex remains paused unless a later task is explicitly routed as a narrow Draft-PR handoff.
 
 ## Recently completed
 
-PR #38 `Issue #28: add deterministic synthetic scenario report` was squash-merged into `main` as `b124da205462ce253906fa51e2080a67ee52ba5f`.
+PR #39 `Issue #27: add minimal SwiftUI diagnostic screen` was squash-merged into `main` as `f4110e1dccaadd38695ff0e798cbe6c403afff7f`.
 
 Before merge:
 
@@ -31,39 +32,60 @@ Before merge:
 - Docs Consistency passed.
 - Repo Audit passed.
 - Phase 0 CI Validation passed.
-- Swift tests and Swift build passed.
+- Swift tests passed.
+- Swift build passed.
 - No unresolved review threads remained.
 
-Issue #28 is complete. Do not reopen its scope unless a future diagnostic regression is source-backed.
+The repository now contains a tested `iGenticApp` SwiftUI library, but it does not yet contain an installable Xcode iOS app target.
 
-## Active cycle
+## Prepared device-validation kit
 
-Target: PR #39 / Issue #27.
+Issue #29 preparation now includes:
 
-Goal: expose the existing metadata-only `ScenarioReport` through the smallest separate SwiftUI diagnostic target without adding an app action path.
+- `docs/device-test-checklist.md`
+- `docs/reports/iphone-air-validation-template.md`
+- existing `.github/ISSUE_TEMPLATE/device_test_report.md`
 
-Current intended scope:
+These sources separate:
 
-- `ios/Package.swift`
-- `ios/Sources/iGenticApp/DiagnosticView.swift`
-- `ios/Sources/iGenticApp/DiagnosticViewState.swift`
-- `ios/Tests/iGenticAppTests/DiagnosticViewStateTests.swift`
-- `PROJECT_STATE.md`
-- `docs/CHATGPT_NEXT_TASK.md`
+- physical-device observations,
+- automated repository evidence,
+- assumptions,
+- unavailable prerequisites,
+- explicit failures.
+
+They do not claim that an iPhone test has run.
+
+## Current boundary
+
+Real-device validation remains pending because the following are not yet present or configured:
+
+- installable Xcode iOS app target,
+- bundle identifier,
+- local Apple Developer Team/signing,
+- physical test device run.
+
+The Swift package CI proves buildability and tests for the package products. It does not prove installation, launch, visual behavior or performance on an iPhone.
 
 ## Next task
 
-Gate and progress PR #39 at its current head:
+Prepare for one short owner-settings session before more app code:
 
-1. Re-read PR #39 metadata, changed files, patch, comments and review threads.
-2. Read all GitHub Actions results for the current head.
-3. Confirm the new `iGenticApp` target compiles on the macOS Swift runner.
-4. Confirm the view state contains structured scenario metadata and excludes synthetic task text.
-5. Fix only the smallest source-backed failure within Issue #27 scope.
-6. Mark ready only when current-head validation and review gates are clean.
-7. Merge only with a stable expected head SHA and no unresolved review thread.
+1. Confirm the `main` ruleset and required checks.
+2. Confirm squash-only merge policy and branch cleanup behavior.
+3. Decide whether to create the minimal installable Xcode app wrapper now.
+4. If approved, define the local bundle identifier and Apple Developer Team only in Xcode; never commit signing material.
+5. Keep the initial app root limited to `DiagnosticView` with no network, persistence, providers, App Intents or real actions.
 
-Required validation:
+Until that decision is made:
+
+- do not create a parallel runtime PR,
+- do not claim real-device validation,
+- do not add signing files,
+- do not add external capabilities,
+- continue only with source-backed review, issue cleanup or documentation corrections.
+
+## Required repository validation
 
 ```bash
 python3 scripts/validate_repo_structure.py
@@ -71,18 +93,23 @@ cd ios && swift test
 cd ios && swift build
 ```
 
-## After PR #39
+## Human-device phase after app-wrapper approval
 
-Issue #29 is the next phase, but it contains a genuine human-device boundary.
+Use:
 
-Autonomous preparation may include:
+- `docs/device-test-checklist.md`
+- `docs/reports/iphone-air-validation-template.md`
 
-- a synthetic device-test report template,
-- exact build/launch/diagnostic-screen steps,
-- evidence fields separating observation from assumption,
-- privacy and no-network checks.
+Directly observe and record:
 
-Do not claim real iPhone installation, launch or performance evidence without an actual device run.
+- Xcode build for the physical device,
+- signing,
+- installation,
+- first launch and relaunch,
+- Diagnostic UI content,
+- synthetic scenario results,
+- privacy and permission behavior,
+- qualitative performance limitations.
 
 ## Guardrails
 
@@ -90,19 +117,17 @@ Do not claim real iPhone installation, launch or performance evidence without an
 - No persistence of private data.
 - No model calls or model weights.
 - No App Intents or real tool execution.
-- No signing files, secrets or `.env` files.
+- No signing files, credentials, secrets or `.env` files.
 - No broad architecture rewrite.
-- Preserve all unrelated safety tests.
-- Do not claim validation success without a specific GitHub Actions run, local run or user-provided execution record.
-- Do not create duplicate validation comments or parallel PRs.
+- Preserve unrelated safety tests.
+- Never present automated evidence as a device observation.
 
 ## Expected terminal result
 
 One of:
 
-- `FIX_NEEDED`
-- `READY_MARKED`
-- `MERGED`
+- `OWNER_SETTINGS_READY`
+- `APP_WRAPPER_APPROVED`
 - `PATCH_READY`
 - `NEXT_UNBLOCKED_TASK_SELECTED`
-- `BEN` only for a genuinely human-only decision
+- `BEN` only for the explicit owner/signing/device boundary
