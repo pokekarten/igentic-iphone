@@ -10,19 +10,31 @@ Primary local sources:
 - `docs/CHATGPT_NEXT_TASK.md`
 - current iGentic issues and pull requests
 
-Current active scheduler mode: `PRODUCTIVE_SIX_SLOT_CYCLE`.
+Current active scheduler mode: `CONTINUOUS_10_SLOT_HOURLY`.
 
-Applicable iGentic slots in this mode:
+All ten cross-project slots run every hour. iGentic participates in the first half:
 
-- 06 — `IGENTIC_GATE`: review/gate exactly one iGentic PR, issue or task.
-- 12 — `IGENTIC_PROGRESS`: produce one concrete iGentic progress result, exact handoff, PATCH_READY, BEN, or next unblocked task.
+- 00 — cross-project director selects exactly one iGentic target and one separate Pokekartenkiste target.
+- 06 — `IGENTIC_CONTEXT` verifies current source and creates one precise working question.
+- 12 — `IGENTIC_PRODUCER` creates one verifiable artifact or an explicit waiting/owner result.
+- 18 — `IGENTIC_REVIEWER` independently checks scope, diff, safety and current-head evidence; it does not implement.
+- 24 — `IGENTIC_CLOSER` applies one exact fix or merges at most one fully gated PR.
+- 54 — cross-project sequencer verifies the completed hour and selects the next focus without product mutation.
 
-Slot 18 is no longer an iGentic slot in the active product cycle; it is currently the Pokekartenkiste gate slot. Older full-slot/debug mappings are background only unless the private Brain current-state source and automation source explicitly switch modes again.
+The shared rolling conversation bus is comment `4752404609` in `pokekarten/agentic-private-brain` issue #2. Each slot reads the previous same-cycle section, re-checks live repository truth, and updates only its own compact section. Detailed PR, issue, branch, head-SHA and validation truth stays in this repository.
 
-Current local direction:
+Current local direction is always defined by `PROJECT_STATE.md`, `docs/CHATGPT_NEXT_TASK.md` and current GitHub evidence. Existing open PRs take priority over new candidates. Exactly one implementation candidate is allowed.
 
-- Treat PR #36 / Issue #34 as completed unless a future source-backed test-coverage regression appears.
-- Continue the visual/documentation-only carousel proof from `docs/CHATGPT_NEXT_TASK.md`.
-- Keep the carousel proof separate from Swift runtime, workflows, secrets, networking, model calls, App Intents and Pokekartenkiste files.
+Safety and progress rules:
 
-Each run should read current repository sources first, keep project context separate, avoid overlapping edits, and end with the active prompt's result shape (`IGENTIC_GATE` or `IGENTIC_PROGRESS`). Do not claim Swift build/test success unless backed by a specific local run, workflow run, or user-provided evidence.
+- current verified source overrides Brain and memory,
+- no parallel PR or duplicate repository comment,
+- producer-first: generic status does not count as progress,
+- reviewer does not implement,
+- closer does not merge with pending/failed checks, unsafe scope or unresolved threads,
+- no speculative changes while a runner is queued or running,
+- no networking, persistence, providers, App Intents, signing, model calls, secrets or real private data unless explicitly scoped by current project source,
+- physical-device and owner settings remain owner-only boundaries,
+- do not touch Pokekartenkiste files.
+
+Each iGentic slot ends with the result shape defined by its active automation prompt. Do not claim Swift build/test success unless backed by a specific local run, current workflow run or user-provided evidence.
