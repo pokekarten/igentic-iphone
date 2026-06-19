@@ -42,7 +42,7 @@ public struct ScenarioReport: Equatable, Sendable {
     public let entries: [ScenarioReportEntry]
 
     public init(results: [DiagnosticScenarioResult]) {
-        self.entries = results.map(ScenarioReportEntry.init)
+        self.entries = results.map { ScenarioReportEntry(result: $0) }
     }
 
     public var textSummary: String {
