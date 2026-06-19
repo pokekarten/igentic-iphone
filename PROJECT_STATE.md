@@ -24,9 +24,9 @@ ChatGPT works through the GitHub Connector on small, reviewable branches and pul
 
 - PR #43 added the minimal installable iOS diagnostics app wrapper.
 - PR #45 added automated simulator install, launch, screenshot, terminate and relaunch evidence.
-- PR #46 `Complete synthetic safety scenario catalog` was squash-merged into `main` as `efdcd79692dccaae7444d8606c6f7581b8cb872e`.
-- Issue #16 is closed with source-backed acceptance evidence.
-- Issues #11 and #7 are closed as completed.
+- PR #46 completed the six-scenario synthetic safety matrix and restricted-data delegation blocking.
+- PR #47 `Add metadata-only DiagnosticSnapshot` was squash-merged into `main` as `ba351e8b3206108a14d5dae5849287b657a09e54`.
+- Issues #16, #10, #11 and #7 are closed with source-backed evidence.
 - Issue #29 remains open for physical-device validation.
 
 ## What exists on `main`
@@ -39,6 +39,7 @@ ChatGPT works through the GitHub Connector on small, reviewable branches and pul
 - Swift Package under `ios/`
 - `AgentCore` policy, approval, audit, routing, risk, memory, delegation and synthetic diagnostic components
 - `ApprovalManager` and metadata-only `ApprovalReceipt`
+- metadata-only `DiagnosticSnapshot` with typed summaries and deterministic output
 - `SensitiveDataDetector`, `RiskScorer`, `ScenarioRunner`, `SyntheticScenarioCatalog` and metadata-only `ScenarioReport`
 - complete six-scenario synthetic safety matrix with restricted-data delegation blocking
 - `iGenticApp` SwiftUI library with `DiagnosticView` and `DiagnosticViewState`
@@ -52,7 +53,7 @@ ChatGPT works through the GitHub Connector on small, reviewable branches and pul
 - Privacy and policy are implemented before app actions.
 - `AuditLog` is lock-protected.
 - Approval handling is a first-class gate before tool routing.
-- Approval receipts and diagnostic reports remain metadata-only.
+- Approval receipts, diagnostic snapshots and reports remain metadata-only.
 - Restricted sensitive data is blocked before automatic external delegation.
 - Tool registration is metadata-only; no real tool execution exists yet.
 - `MemoryStore` is volatile in-memory storage only.
@@ -64,18 +65,19 @@ ChatGPT works through the GitHub Connector on small, reviewable branches and pul
 
 ## Current active candidate
 
-PR #47 `Add metadata-only DiagnosticSnapshot` is the single active candidate for Issue #10.
+PR #48 `Add typed PolicyDecision reason codes` is the single active candidate for Issue #13.
 
 The candidate adds:
 
-- `DiagnosticSnapshot` as a plain Swift value type,
-- typed summaries for policy, approval, audit, delegation and risk state,
-- deterministic metadata lines,
-- deliberate exclusion of policy reasons, approval identifiers, audit messages, delegation reasons and risk reason text,
-- focused tests using intentionally private synthetic strings,
-- a repository validator requirement for the new core file and this project-state marker.
+- stable typed `PolicyDecisionReason` metadata,
+- explicit codes for local-only and restricted-data blocking,
+- explicit codes for low-risk allow, data approval, action approval and combined approval,
+- source-compatible `.unspecified` metadata for direct manual construction,
+- focused tests for six engine paths and the compatibility default.
 
-The candidate must not add SwiftUI, App Intents, persistence, networking, external providers, model calls, real private data, screenshots, signing or hardware behavior.
+Existing free-text reasons remain available. Existing `isAllowed` and `requiresApproval` behavior must remain unchanged.
+
+The candidate must not add runtime execution, app actions, networking, external providers, model calls, persistence, secrets, real private data, signing or hardware behavior.
 
 ## Current validation contract
 
@@ -85,18 +87,19 @@ cd ios && swift test
 cd ios && swift build
 ```
 
-Before PR #47 can merge:
+Before PR #48 can merge:
 
 - base must remain `main`,
 - head SHA must remain stable during the final gate,
-- changed files must match the declared five-file scope,
+- changed files must match the declared four-file scope,
 - PR Change Scope, Pull Request Quality, Docs Consistency, Repo Audit and Workflow Lint must pass,
 - macOS and Linux Swift package build/tests must pass,
+- existing allow/block/approval outcomes must remain unchanged,
 - no unresolved review thread or source-backed blocker may remain.
 
 ## Evidence boundary
 
-A successful PR #47 may prove that safe local diagnostic state can be represented and rendered as metadata without exposing raw runtime reason strings.
+A successful PR #48 may prove that policy outcomes expose stable typed reason metadata without depending only on free-text explanations.
 
 It cannot prove:
 
@@ -125,10 +128,10 @@ Signing material, account identifiers, certificates, provisioning profiles and d
 
 ## Next sequence
 
-1. Gate PR #47 against scope, validation and review evidence.
+1. Gate PR #48 against scope, validation and review evidence.
 2. Fix only exact source-backed failures within the declared scope.
 3. Mark ready and merge only with a stable head and no unresolved review thread.
-4. Close Issue #10 only after current-source acceptance evidence is complete.
+4. Close Issue #13 only after current-source acceptance evidence is complete.
 5. Keep Issue #29 open.
 6. Select at most one additional deterministic or simulator-verifiable safety slice.
 
