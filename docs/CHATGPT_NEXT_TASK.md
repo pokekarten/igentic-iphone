@@ -2,72 +2,106 @@
 
 Repository: `pokekarten/igentic-iphone`
 
-Stand: 2026-06-17
+Stand: 2026-06-19
 
 ## Source-of-truth contract
 
 This file is the current work source for AI-assisted repository work in `pokekarten/igentic-iphone`.
 
-The private brain may point here, but it must not duplicate detailed live state. PR numbers, branches, CI, validation, head SHAs, scope and concrete blockers must be re-read from this repository, issues, pull requests or current files before status is reported.
+The private Brain may point here, but detailed live truth must be re-read from this repository. Before reporting or acting, verify current PR state, head SHA, changed files, checks, review threads and issue scope.
 
 ## Current operating mode
 
-ChatGPT works through the GitHub Connector for repository-control, review and small documentation/process changes. Runtime/code changes should stay narrow and use pull requests before merge.
+Mode: `IGENTIC_FOCUS_BURST`.
 
-Codex remains paused until the validation and PR-scope path is stable enough for repeatable Draft PR handoffs.
+- iGentic is the active implementation lane.
+- Pokekartenkiste remains outside this repository and must not be touched from this task.
+- Use one active runtime PR at a time.
+- Public GitHub Actions are the primary independent validation environment.
+- Codex remains paused unless a later task is explicitly routed as a narrow Draft-PR handoff.
 
 ## Recently completed
 
-The brand identity foundation was expanded from v2 into a cleaner v3 social-ready system and anchored in the repository:
+PR #37 `Add carousel proof covers for social pillars` was squash-merged into `main` as `1b6304b49fd5b0cccfc51ff4efff2eb91d3510ac`.
 
-- `assets/brand/logo-symbol-v3.svg`
-- `assets/brand/logo-mark-dark-v3.svg`
-- `assets/brand/logo-lockup-v3.svg`
-- `assets/social/instagram-profile-v3.svg`
-- `assets/social/instagram-carousel-template-v1.svg`
-- `docs/brand/SOCIAL_IDENTITY.md`
-- `docs/brand/BRAND_ASSET_MANIFEST.md`
-- `docs/brand/BRAND_REVIEW_WORKFLOW.md`
+Before merge:
 
-README now uses `assets/brand/logo-lockup-v3.svg` as the visible repository logo.
+- PR Change Scope passed.
+- Pull Request Quality passed.
+- Docs Consistency passed.
+- Repo Audit passed.
+- Phase 0 CI Validation passed.
+- Swift passed.
+- The three 1080 x 1350 SVG covers were visually reviewed without clipping or overflow.
 
-`scripts/validate_repo_structure.py` now requires the v3 brand assets, the brand manifest and the social identity docs, and checks the relevant SVG files for `<title>`, `<desc>` and `role="img"` metadata.
-
-A ChatGPT visual review pass on 2026-06-14 promoted the v3 profile, symbol and lockup from preferred candidates to the default public identity recommendation in the brand docs.
-
-The first carousel copy wrap pass is recorded in `docs/brand/CAROUSEL_COPY_WRAP_PASS.md`. It confirms short two-line subtitles for the current social pillars and keeps the carousel as an active template candidate until committed SVG example covers or a wrapped-subtitle template revision confirms the layout visually.
-
-PR #36 / Issue #34 added the docs-only test coverage preservation gate and was completed on 2026-06-17. The current iGentic focus should now return to the independent carousel proof unless a new source check finds a higher-priority blocker.
+The carousel proof task is complete. Do not reopen it without new visual evidence.
 
 ## Active cycle
 
-Target: public brand readiness for iGentic.
+Target: PR #38 / Issue #28.
 
-Goal: make the carousel template usable for real public posts without touching runtime code.
+Goal: complete the smallest local-only bridge from the existing synthetic `ScenarioRunner` to a deterministic, machine-readable and human-readable metadata report.
 
-Current gate context: PR #36 / Issue #34 is completed. Do not reopen that scope unless a future runtime/test PR again risks deleting unrelated safety coverage.
+Current intended scope:
+
+- `ios/Sources/AgentCore/SyntheticScenarioCatalog.swift`
+- `ios/Sources/AgentCore/ScenarioReport.swift`
+- `ios/Sources/AgentCore/ScenarioRunner.swift`
+- `ios/Tests/AgentCoreTests/ScenarioReportTests.swift`
+- `PROJECT_STATE.md`
+- `docs/CHATGPT_NEXT_TASK.md`
 
 ## Next task
 
-Create the next visual-only carousel proof from `assets/social/instagram-carousel-template-v1.svg` and `docs/brand/CAROUSEL_COPY_WRAP_PASS.md`:
+Gate and progress PR #38 at its current head:
 
-1. Add committed SVG example covers, or a wrapped-subtitle template revision, for these topics:
-   - Policy before action.
-   - Local first.
-   - Approval gated.
-2. Use two subtitle text rows for realistic public copy:
-   - line 1 around `y=470`
-   - line 2 around `y=520`
-3. Re-check that headline, subtitle and card copy stay inside the 1080 x 1350 frame.
-4. Keep the profile/avatar, master symbol and lockup status as v3 default unless new visual evidence contradicts it.
-5. If the SVG proof succeeds, update `docs/brand/BRAND_ASSET_MANIFEST.md` and `docs/brand/SOCIAL_IDENTITY.md` from active template candidate toward default carousel template.
+1. Re-read PR #38 metadata, changed files, patch, comments and review threads.
+2. Read all GitHub Actions results for the current head.
+3. If a check fails, inspect the exact failed step and logs before changing code.
+4. Fix only the smallest source-backed problem within Issue #28 scope.
+5. Confirm that the report remains deterministic and metadata-only.
+6. Confirm that no synthetic task text, real user content or private data appears in report output.
+7. Mark ready only when current-head validation and review gates are clean.
+8. Merge only with a stable expected head SHA and no unresolved review thread.
+
+Required validation:
+
+```bash
+python3 scripts/validate_repo_structure.py
+cd ios && swift test
+cd ios && swift build
+```
+
+## After PR #38
+
+Select Issue #27 as the next independent product slice:
+
+- minimal SwiftUI diagnostic screen,
+- metadata-only state,
+- synthetic inputs,
+- no networking, persistence, providers, App Intents or real actions.
+
+Do not open the Issue #27 implementation PR while PR #38 remains active.
 
 ## Guardrails
 
-- Do not change Swift runtime code for this task.
-- Do not change workflows unless explicitly required.
-- Do not add secrets, network calls, external providers, App Intents, signing files or private data.
-- Do not touch Pokekartenkiste files or references.
-- Do not reopen PR #36 / Issue #34 scope unless a new source-backed test-coverage risk appears.
-- Do not claim Swift build/test success unless backed by a specific local run or GitHub Actions run.
-- Keep the change visual/documentation-only.
+- No networking or external providers.
+- No persistence of private data.
+- No model calls or model weights.
+- No App Intents or real tool execution.
+- No signing files, secrets or `.env` files.
+- No broad architecture rewrite.
+- Preserve all unrelated safety tests.
+- Do not claim validation success without a specific GitHub Actions run, local run or user-provided execution record.
+- Do not create duplicate validation comments or parallel PRs.
+
+## Expected terminal result
+
+One of:
+
+- `FIX_NEEDED`
+- `READY_MARKED`
+- `MERGED`
+- `PATCH_READY`
+- `NEXT_UNBLOCKED_TASK_SELECTED`
+- `BEN` only for a genuinely human-only decision
