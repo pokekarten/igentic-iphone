@@ -74,6 +74,8 @@ jobs:
               for match in pattern.findall(text):
                   if match.startswith(('http://', 'https://')):
                       continue
+                  if any(character.isspace() for character in match):
+                      continue
                   path = Path(match)
                   if not path.exists():
                       missing.append((str(doc), match))
