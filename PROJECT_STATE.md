@@ -28,10 +28,10 @@ The repository is controlled directly through GitHub. ChatGPT works through the 
 - PR #38 `Issue #28: add deterministic synthetic scenario report` was squash-merged into `main` as `b124da205462ce253906fa51e2080a67ee52ba5f` after all required public checks passed.
 - PR #39 `Issue #27: add minimal SwiftUI diagnostic screen` was squash-merged into `main` as `f4110e1dccaadd38695ff0e798cbe6c403afff7f` after all required public checks, Swift tests and Swift build passed.
 - PR #40 `Guard SwiftUI and validate the package on Linux` was squash-merged into `main` as `1f13a0c3bf7d4d9625a9adb2a52a62a06e00c1c6` after macOS, Linux, workflow, documentation, scope and repository checks passed.
-- `SyntheticScenarioCatalog` provides stable local dry-run scenarios.
-- `ScenarioReport` exposes structured and human-readable policy, approval and delegation metadata without task text.
-- `iGenticApp` is a separate Swift package library containing a metadata-only `DiagnosticView` and tested view-state mapping.
-- `docs/device-test-checklist.md` and `docs/reports/iphone-air-validation-template.md` prepare a repeatable real-device evidence process.
+- PR #41 `Sync project state after PR #40` was squash-merged into `main` as `adb8b61c87e3207be2e33da917db2336d9aa4d54`.
+- Issue #11 was verified against the deterministic `ScenarioReport` implementation and closed as completed.
+- Issue #7 was verified against the real-device checklist, issue template and report template and closed as completed.
+- Issue #29 remains open for actual physical-device validation.
 
 ## What exists now
 
@@ -43,6 +43,7 @@ The repository is controlled directly through GitHub. ChatGPT works through the 
 - Swift Package under `ios/`
 - `AgentCore` library with policy, approval, audit, routing, risk, memory, delegation and synthetic diagnostic components
 - `iGenticApp` SwiftUI library with `DiagnosticView` and `DiagnosticViewState`
+- `SyntheticScenarioCatalog` and deterministic metadata-only `ScenarioReport`
 - Tests for AgentCore behavior and diagnostic view-state privacy/mapping
 - macOS and Linux Swift package build/test evidence
 - Device-test issue template, real-device checklist and validation report template
@@ -80,20 +81,17 @@ cd ios && swift build
 
 ## Current autonomous mode
 
-A limited four-role iGentic burst is active for three hourly cycles:
+The limited four-role iGentic burst completed its safe autonomous targets before the scheduled 11:00 start and is now paused.
 
-1. director selects exactly one current target,
-2. worker performs one safe action,
-3. gate-and-merge verifies or merges at most one PR,
-4. review-and-stop selects one next target or pauses at the owner boundary.
+Completed autonomously:
 
-All prior Pokekartenkiste, support and research slot systems remain disabled during this burst.
+1. merged PR #41 to synchronize project truth,
+2. verified and closed Issue #11,
+3. verified and closed Issue #7,
+4. preserved Issue #29 for real physical-device evidence,
+5. stopped all four scheduled burst roles at the owner boundary.
 
-Current safe autonomous priority:
-
-- verify and close clearly completed stale issues such as Issue #11 and Issue #7,
-- keep Issue #29 open for the actual physical-device phase,
-- avoid opening speculative product PRs when the remaining work requires owner settings or Apple signing.
+All prior Pokekartenkiste, support and research slot systems remain disabled.
 
 ## Current active boundary
 
@@ -119,13 +117,11 @@ The current `iGenticApp` product is a Swift package library, not yet an installa
 
 ## Next sequence
 
-1. Let the limited burst clean up only source-verified completed issues and synchronize project-local truth.
-2. Stop the burst when no safe autonomous cleanup remains.
-3. Confirm the minimal GitHub repository protection settings with the owner.
-4. Decide together whether the next code slice should add an installable Xcode app wrapper.
-5. If approved, implement the wrapper as a separate narrow PR without networking, persistence, providers, App Intents or real actions.
-6. Configure signing locally in Xcode without committing account or provisioning material.
-7. Run the physical-device checklist and complete the validation report.
+1. Configure the minimal GitHub repository protection settings with the owner.
+2. Decide together whether the next code slice should add an installable Xcode app wrapper.
+3. If approved, implement the wrapper as a separate narrow PR without networking, persistence, providers, App Intents or real actions.
+4. Configure signing locally in Xcode without committing account or provisioning material.
+5. Run the physical-device checklist and complete the validation report under Issue #29.
 
 ## What still needs owner UI setup
 
