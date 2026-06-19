@@ -25,7 +25,7 @@ Mode: `IGENTIC_VALIDATION_REPAIR`.
 
 PR #39 `Issue #27: add minimal SwiftUI diagnostic screen` was squash-merged into `main` as `f4110e1dccaadd38695ff0e798cbe6c403afff7f` after its current-head macOS Swift tests and build passed.
 
-A later automated review identified a cross-platform validation gap: `DiagnosticView.swift` imported SwiftUI unconditionally, so the documented Swift package validation could fail on non-Apple toolchains.
+A later automated review identified a cross-platform validation gap: `ios/Sources/iGenticApp/DiagnosticView.swift` imported SwiftUI unconditionally, so the documented Swift package validation could fail on non-Apple toolchains.
 
 ## Active cycle
 
