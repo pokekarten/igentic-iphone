@@ -73,6 +73,7 @@ See:
 - `docs/WORKFLOWS.md`
 - `docs/apple-api-review.md`
 - `docs/local-runtime-review.md`
+- `docs/app-intents-safety.md`
 - `docs/CHATGPT_NEXT_TASK.md`
 - `docs/CODEX_NEXT_TASK.md`
 - `docs/SPARSAMKEIT.md`
