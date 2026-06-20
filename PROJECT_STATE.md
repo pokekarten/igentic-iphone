@@ -1,6 +1,6 @@
 # Project State
 
-Last updated: 2026-06-19
+Last updated: 2026-06-20
 
 ## Current status
 
@@ -17,8 +17,8 @@ ChatGPT works through the GitHub Connector on small, reviewable branches and pul
 - Primary target device: iPhone Air as trust/control plane
 - Master brand: `iGentic`
 - Community model: GitHub-first, social-supported
-- Current phase: Phase 2 diagnostic shell and metadata-only safety visibility
-- Current MVP direction: local-only diagnostics app with synthetic dry-runs, metadata-only reports, tested SwiftUI UI, an installable Xcode app wrapper and automated simulator runtime smoke evidence
+- Current phase: Phase 2 diagnostic shell and safety visibility
+- Current MVP direction: local-only diagnostics app with synthetic dry-runs, privacy-aware reports, tested SwiftUI UI, an installable Xcode app wrapper and automated simulator runtime smoke evidence
 
 ## Recently completed
 
@@ -26,20 +26,20 @@ ChatGPT works through the GitHub Connector on small, reviewable branches and pul
 - PR #50 added lock-protected AuditLog metadata query helpers.
 - PR #51 `Add ToolRegistry contract validation` was squash-merged into `main` as `8730b302ef2a30175d4bd6d330ef15d741e29964`.
 - PR #52 `Add metadata-only RuntimeBudget model` was merged into `main` as `6ff0c6875cb58560b0a98c4d23dbee91e538319b`.
+- PR #55 `Issue #2: add contributor glossary` was squash-merged into `main` as `cbb1ecf8e10b0c8bb7ecd509aba2c35f1670e16f`.
 - Issues #16, #15, #14, #13, #12, #10, #11 and #7 are closed with source-backed evidence.
 - Issue #29 remains open for physical-device validation.
 
 ## What exists on `main`
 
-- README, roadmap, governance, contribution, support, security and conduct docs
+- README, roadmap, governance, contribution, support, security, conduct and glossary docs
 - Phase 0 source verification, Apple API, local runtime, model strategy, validation and workflow docs
 - Brand and community docs plus accessible SVG identity and social assets
-- Public identity sources: `docs/brand/BRAND.md`, `docs/brand/BRAND_ASSET_MANIFEST.md`, `assets/social/instagram-profile-v3.svg`, `docs/community/COMMUNITY_STRATEGY.md`
 - GitHub control, workflow lint, PR quality, repo audit, docs consistency and validation workflows
 - Swift Package under `ios/`
 - `AgentCore` policy, approval, audit, routing, risk, memory, delegation and synthetic diagnostic components
 - typed policy reason metadata without loosening policy outcomes
-- lock-protected AuditLog metadata snapshots, filters and counts
+- lock-protected AuditLog storage plus metadata projections, filters and counts
 - validated metadata-only ToolRegistry definitions with deterministic invalid/duplicate handling
 - metadata-only RuntimeBudget planning classes and deterministic diagnostic metadata
 - metadata-only `ApprovalReceipt`, `DiagnosticSnapshot`, `ScenarioReport` and diagnostic view state
@@ -52,7 +52,8 @@ ChatGPT works through the GitHub Connector on small, reviewable branches and pul
 
 - Privacy and policy are implemented before app actions.
 - `AuditLog` reads and writes remain lock-protected.
-- Audit diagnostic snapshots exclude raw messages and identifiers.
+- The full current `AuditEvent` is not metadata-only: it contains a message, and task-received events currently record `task.userText`.
+- `AuditEventMetadata` projections and diagnostic snapshots exclude raw messages and identifiers.
 - Approval handling is a first-class gate before tool routing.
 - Approval receipts, diagnostic snapshots and reports remain metadata-only.
 - Policy decisions expose stable typed reason codes while preserving existing explanations.
@@ -65,28 +66,32 @@ ChatGPT works through the GitHub Connector on small, reviewable branches and pul
 
 ## Current active candidate
 
-No new implementation candidate is selected yet.
+PR #56 `Clarify current AuditLog privacy behavior` is the only active candidate.
 
-The next iGentic cycle must select at most one small deterministic or simulator-verifiable safety slice from current open issues and repository evidence. The open Dependabot PR #49 is maintenance work and must not automatically displace the next explicit product target.
+- Scope: `docs/GLOSSARY.md` only.
+- It corrects the overbroad metadata-only description introduced by PR #55.
+- Current verified head: `1aabf68a77c9c03ccec46b9fc29360e5b894ab7f`.
+- It remains Draft while the full current-head workflow set is incomplete.
+- No new product implementation slice should be selected until PR #56 is merged or explicitly closed.
 
 ## Current validation contract
 
-For any new Swift product slice:
+For PR #56, final merge requires:
+
+- base remains `main`,
+- head SHA remains stable,
+- changed files remain exactly `docs/GLOSSARY.md`,
+- required current-head workflows pass,
+- no unresolved review thread or source-backed blocker remains,
+- Ready transition is followed by a fresh review/thread re-check before merge.
+
+For any later Swift product slice:
 
 ```bash
 python3 scripts/validate_repo_structure.py
 cd ios && swift test
 cd ios && swift build
 ```
-
-A pull request may be marked ready or merged only when:
-
-- base remains `main`,
-- head SHA is stable during the final gate,
-- changed files match the declared scope,
-- required current-head workflows pass,
-- no unresolved review thread or source-backed blocker remains,
-- the change preserves the privacy and safety boundaries below.
 
 ## Evidence boundary
 
@@ -110,10 +115,11 @@ Signing material, account identifiers, certificates, provisioning profiles and d
 
 ## Next sequence
 
-1. Keep Issue #29 open as an owner/device boundary.
-2. Re-read open product issues and select exactly one smallest safe deterministic or simulator-verifiable slice.
-3. Open at most one narrow Draft PR with explicit scope and validation.
-4. Keep unrelated maintenance PRs outside the product target unless intentionally selected.
+1. Finish the final gate for PR #56 without bypassing queued or failed current-head evidence.
+2. Re-check newly triggered automated review after Ready transition.
+3. Merge PR #56 only with stable head and clean evidence.
+4. Keep Issue #29 open as an owner/device boundary.
+5. Then select exactly one smallest safe deterministic or simulator-verifiable product slice.
 
 ## Important constraint
 
