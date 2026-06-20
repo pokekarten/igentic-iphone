@@ -18,8 +18,7 @@ Last updated: 2026-06-20
 - PR #56 corrected AuditLog privacy documentation.
 - PR #60 removed raw task text from task-received audit events.
 - PR #61 added the metadata-only `LocalModelRuntime` contract and deterministic pre-invocation rejection tests; merge commit `a7ff62463a27e707b2fd5f1b431cbb426ffba35d`.
-- Issues #58 and #59 are closed as completed.
-- Issue #29 preparation scope is closed as completed: the repeatable real-device checklist and report template exist, while actual physical-device evidence remains pending and is not claimed.
+- Issues #25, #29, #58 and #59 are closed completed for their documented scope.
 
 ## Current baseline
 
@@ -45,16 +44,15 @@ Last updated: 2026-06-20
 
 ## Current active target
 
-Issue #25 `MVP Masterplan: Local-only iPhone diagnostic app` is the current verification and state-synchronization target.
+Issue #6 `Research: Add App Intents safety notes for draft-first action patterns` is the single current documentation target.
 
-The next autonomous cycle must verify the masterplan acceptance criteria against current source:
+The task is research and documentation only:
 
-1. `PROJECT_STATE.md` accurately describes the local-only diagnostic MVP.
-2. Roadmap material reflects the current Phase 0-4 sequence.
-3. `docs/CHATGPT_NEXT_TASK.md` names exactly one unblocked next step.
-4. The MVP remains usable without secrets, external services, real private data or network dependency.
-
-If the criteria are already satisfied, close or synchronize Issue #25 accurately. If one detail is missing, apply only the smallest documentation fix. Do not open a parallel implementation PR.
+1. explain draft-before-execute and approval-before-critical-action patterns,
+2. use synthetic examples only,
+3. cite current official Apple sources for platform-dependent claims,
+4. state clearly that App Intents and real actions are not implemented,
+5. preserve privacy, policy and audit boundaries.
 
 ## Validation contract
 
@@ -64,18 +62,19 @@ cd ios && swift test
 cd ios && swift build
 ```
 
-Docs-only state verification may use current source inspection. Any Swift, app-wrapper or workflow change still requires current-head validation.
+For the current docs-only target, repository-structure validation is required when links or required files change. Swift validation is required only if Swift source changes, which is outside Issue #6 scope.
 
 ## Evidence boundary
 
-The repository proves deterministic software contracts and simulator-tested behavior. It does not yet prove actual model compatibility, memory use, latency, battery, thermal behavior, signing or physical-device readiness. Those observations remain owner/device evidence.
+The repository proves deterministic software contracts and simulator-tested behavior. It does not yet prove actual model compatibility, memory use, latency, battery, thermal behavior, signing, App Intents execution or physical-device readiness. Those observations remain owner/device evidence.
 
 ## Next sequence
 
-1. Verify and synchronize Issue #25 against current source.
-2. Close it if its planning acceptance criteria are already met, or apply one smallest missing documentation fix.
-3. Select exactly one next unblocked product or safety issue.
-4. Keep signing and physical-device execution outside autonomous claims.
+1. Verify whether an equivalent App Intents safety document already exists.
+2. Produce one narrow source-linked documentation artifact for Issue #6.
+3. Review privacy, approval and current-vs-future wording independently.
+4. Close Issue #6 only after its acceptance criteria are satisfied.
+5. Keep signing, entitlements, real actions and physical-device execution outside autonomous claims.
 
 ## Current next task
 
