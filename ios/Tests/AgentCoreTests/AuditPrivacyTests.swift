@@ -18,13 +18,15 @@ final class AuditPrivacyTests: XCTestCase {
 
         _ = kernel.handle(task, privacyMode: .localOnly)
 
+        let events = kernel.auditEvents()
         let taskReceived = try XCTUnwrap(
-            kernel.auditEvents().first { $0.type == .taskReceived }
+            events.first { $0.type == .taskReceived }
         )
 
+        XCTAssertEqual(events.filter { $0.type == .taskReceived }.count, 1)
         XCTAssertEqual(taskReceived.message, "Task received.")
         XCTAssertEqual(taskReceived.dataSensitivity, classification.level)
         XCTAssertFalse(taskReceived.message.contains(rawTaskText))
-        XCTAssertFalse(kernel.auditEvents().contains { $0.message.contains(rawTaskText) })
+        XCTAssertFalse(events.contains { $0.message.contains(rawTaskText) })
     }
 }
