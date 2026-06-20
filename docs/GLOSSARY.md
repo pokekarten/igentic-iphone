@@ -24,7 +24,7 @@ A restricted handoff from the local controller to another runtime only when poli
 
 ## Audit Log
 
-A metadata-only record of meaningful safety decisions. Audit entries should help explain what happened without storing raw private user content.
+A record of safety-related events. The current `AuditEvent` includes a message string, and `AgentKernel` currently records `task.userText` for task-received events, so the full AuditLog must not be treated as metadata-only. Use `AuditEventMetadata` projections for metadata-only diagnostics; future privacy work should redact or avoid raw task text.
 
 ## Data Classification
 
