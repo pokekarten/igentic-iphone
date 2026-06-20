@@ -12,52 +12,54 @@ The private Brain may point here, but detailed live truth must be re-read from t
 
 ## Current operating mode
 
-Mode: `IGENTIC_CLOSE_AUDIT_TASK_TEXT_REDACTION`.
+Mode: `IGENTIC_DEFINE_LOCAL_MODEL_RUNTIME_CONTRACT`.
 
 - iGentic is handled by the first half of the continuous ten-slot hourly cycle.
 - Pokekartenkiste remains outside this task.
 - Public GitHub Actions remain the independent validation environment.
 - Exactly one active implementation candidate is allowed.
-- Do not select another slice while PR #60 remains open.
+- Issue #58 is the selected product slice; do not select a parallel implementation target.
 
 ## Recently completed
 
-- PR #55 `Issue #2: add contributor glossary` was squash-merged into `main` as `cbb1ecf8e10b0c8bb7ecd509aba2c35f1670e16f`.
 - PR #56 `Clarify current AuditLog privacy behavior` was squash-merged into `main` as `421524c0709de166e0ab1e75ceb8585e3c98e1ef`.
-- PR #57 was closed without merge because it was a parallel process-documentation candidate and must not displace product work.
+- PR #60 `Issue #59: redact raw task text from AuditLog` passed all current-head workflows and was squash-merged as `ba562376fdb019ab20af19d2d8f68a1e6d626c90`.
+- Issue #59 closed automatically as completed.
 - Issue #29 remains an owner/device boundary.
 
 ## Active target
 
-Draft PR #60 `Issue #59: redact raw task text from AuditLog` is the only active iGentic implementation target.
+Issue #58 `MODEL-01: Define local model runtime and derivative model workspace` is the only active iGentic implementation target.
 
-Current head at creation: `8b5e3576c78206ac18e6bb0dab6dc252eda7efe9`.
+First slice scope:
 
-Scope:
+- `ios/Sources/AgentCore/LocalModelRuntime.swift`
+- `ios/Tests/AgentCoreTests/LocalModelRuntimeTests.swift`
 
-- `ios/Sources/AgentCore/AgentKernel.swift`
-- `ios/Tests/AgentCoreTests/AuditPrivacyTests.swift`
+Required behavior:
 
-Behavior:
+- typed runtime identifier and model family,
+- typed local/system/delegated execution kind,
+- typed supported capabilities,
+- maximum supported data-sensitivity ceiling,
+- typed context and memory budget classes,
+- typed availability reason,
+- deterministic request rejection before any model invocation,
+- one fake runtime defined only in tests.
 
-- `.taskReceived` audit events use the fixed metadata-safe message `Task received.` instead of `task.userText`.
-- Event type and data-sensitivity metadata remain available.
-- Policy, approval and routing outcomes remain unchanged.
-- A focused Swift regression test proves raw synthetic task text is absent from emitted audit messages.
+The contract is metadata-only. It must not load, call, download or benchmark any real model.
 
-## Required close gate for PR #60
+## Required implementation gate
 
-Before merge:
+The first Draft PR must:
 
-1. base remains `main`,
-2. head SHA remains stable,
-3. changed files remain exactly the two scoped Swift files,
-4. repository structure validation succeeds,
-5. Swift tests and Swift build succeed on the current head,
-6. PR quality and change-scope checks succeed,
-7. no unresolved review thread or new source-backed blocker remains,
-8. mark Ready only after the draft gate is satisfied,
-9. re-check the same head and newly triggered automated review before merge.
+1. branch from current `main`,
+2. change only the two scoped Swift files unless a source-backed validator fix is required,
+3. reject an unavailable runtime deterministically,
+4. reject an unsupported capability deterministically,
+5. reject requests above the data-class ceiling deterministically,
+6. preserve all existing policy, approval, delegation and audit boundaries,
+7. include no networking, persistence, model framework, weights, tool execution or device claims.
 
 Required validation:
 
@@ -67,33 +69,35 @@ cd ios && swift test
 cd ios && swift build
 ```
 
-Do not treat an earlier failed superseded run as current if a later run for the same stable head succeeds.
+Before merge:
 
-## Sequence after PR #60
+- head SHA remains stable,
+- changed files remain in scope,
+- all current-head workflows pass,
+- no unresolved review thread or new blocker remains,
+- mark Ready only after the Draft gate passes,
+- re-check the same head after Ready.
 
-Only after PR #60 is merged or explicitly closed:
+## Evidence boundary
 
-1. keep Issue #29 classified as an owner/device boundary,
-2. inspect current open product issues and repository state,
-3. select exactly one smallest safe deterministic or simulator-verifiable product slice,
-4. do not revive PR #57 automatically; Issue #35 remains separate process work.
+This slice proves only a software contract for future local/system/delegated model runtimes. It does not prove that Qwen, Apple Foundation Models or another model runs acceptably on iPhone Air. Memory, latency, battery and thermal evidence remain owned by Issue #29.
 
 ## Safety rules
 
 Do not add:
 
-- hardware probing or real performance measurements,
-- CoreML, MLX, model weights or model loading,
-- routing behavior or automatic external delegation,
-- file access, databases or persistence,
-- networking, external providers or model calls,
-- secrets or real private data,
-- App Intents, signing or physical-device success claims.
+- CoreML, MLX, Foundation Models or other real model invocation,
+- model weights, automatic downloads or network calls,
+- persistence, external providers or real tool execution,
+- hardware probing, benchmarks or physical-device success claims,
+- secrets, signing material or real private data,
+- changes to Pokekartenkiste.
 
 ## Expected terminal result
 
 One of:
 
+- `PR_OPENED`
 - `MERGED`
 - `REVIEW_BLOCKER_FOUND`
 - `WAITING_CURRENT_HEAD_CHECKS`
