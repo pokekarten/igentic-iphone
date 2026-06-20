@@ -6,101 +6,76 @@ Stand: 2026-06-20
 
 ## Source-of-truth contract
 
-This file is the current work source for AI-assisted repository work in `pokekarten/igentic-iphone`.
-
-The private Brain may point here, but detailed live truth must be re-read from this repository. Before reporting or acting, verify current PR state, current `main`, workflow evidence, review threads and issue acceptance criteria.
+Current GitHub source overrides this file, Brain and remembered context. A merged PR or closed issue may never be selected again because this file is stale.
 
 ## Current operating mode
 
-Mode: `IGENTIC_DEFINE_LOCAL_MODEL_RUNTIME_CONTRACT`.
+Mode: `IGENTIC_VERIFY_DEVICE_PREPARATION_SCOPE`.
 
 - iGentic is handled by the first half of the continuous ten-slot hourly cycle.
+- Exactly one ACTIVE target is allowed.
+- Public GitHub Actions remain the independent code-validation environment.
 - Pokekartenkiste remains outside this task.
-- Public GitHub Actions remain the independent validation environment.
-- Exactly one active implementation candidate is allowed.
-- Issue #58 is the selected product slice; do not select a parallel implementation target.
 
 ## Recently completed
 
-- PR #56 `Clarify current AuditLog privacy behavior` was squash-merged into `main` as `421524c0709de166e0ab1e75ceb8585e3c98e1ef`.
-- PR #60 `Issue #59: redact raw task text from AuditLog` passed all current-head workflows and was squash-merged as `ba562376fdb019ab20af19d2d8f68a1e6d626c90`.
-- Issue #59 closed automatically as completed.
-- Issue #29 remains an owner/device boundary.
+- PR #60 removed raw task text from AuditLog and merged as `ba562376fdb019ab20af19d2d8f68a1e6d626c90`.
+- PR #61 added the two-file metadata-only LocalModelRuntime contract and merged as `a7ff62463a27e707b2fd5f1b431cbb426ffba35d`.
+- Issues #58 and #59 are closed completed.
 
 ## Active target
 
-Issue #58 `MODEL-01: Define local model runtime and derivative model workspace` is the only active iGentic implementation target.
+Issue #29 `MVP-04: Prepare real-device validation report for iPhone Air readiness`.
 
-First slice scope:
+Current repository artifacts already include:
 
-- `ios/Sources/AgentCore/LocalModelRuntime.swift`
-- `ios/Tests/AgentCoreTests/LocalModelRuntimeTests.swift`
+- `docs/device-test-checklist.md`,
+- `docs/reports/iphone-air-validation-template.md`.
 
-Required behavior:
+The next cycle must independently verify the issue acceptance criteria against current source.
 
-- typed runtime identifier and model family,
-- typed local/system/delegated execution kind,
-- typed supported capabilities,
-- maximum supported data-sensitivity ceiling,
-- typed context and memory budget classes,
-- typed availability reason,
-- deterministic request rejection before any model invocation,
-- one fake runtime defined only in tests.
+## Allowed autonomous result
 
-The contract is metadata-only. It must not load, call, download or benchmark any real model.
+Exactly one of:
 
-## Required implementation gate
+1. `ISSUE_CLOSED` when the preparation acceptance criteria are fully satisfied by current files;
+2. `DOC_FIX_APPLIED` for one smallest missing preparation detail;
+3. `STATE_SYNCED` when only project control files are stale;
+4. `OWNER_DEVICE_STEP` when the remaining work is actual signing, installation or physical-device observation;
+5. `WRITE_SKIPPED` when the same-cycle parent/write gate is missing.
 
-The first Draft PR must:
+## Verification checklist
 
-1. branch from current `main`,
-2. change only the two scoped Swift files unless a source-backed validator fix is required,
-3. reject an unavailable runtime deterministically,
-4. reject an unsupported capability deterministically,
-5. reject requests above the data-class ceiling deterministically,
-6. preserve all existing policy, approval, delegation and audit boundaries,
-7. include no networking, persistence, model framework, weights, tool execution or device claims.
-
-Required validation:
-
-```bash
-python3 scripts/validate_repo_structure.py
-cd ios && swift test
-cd ios && swift build
-```
-
-Before merge:
-
-- head SHA remains stable,
-- changed files remain in scope,
-- all current-head workflows pass,
-- no unresolved review thread or new blocker remains,
-- mark Ready only after the Draft gate passes,
-- re-check the same head after Ready.
-
-## Evidence boundary
-
-This slice proves only a software contract for future local/system/delegated model runtimes. It does not prove that Qwen, Apple Foundation Models or another model runs acceptably on iPhone Air. Memory, latency, battery and thermal evidence remain owned by Issue #29.
+- The report template exists and separates observed facts, automated evidence, assumptions, unavailable prerequisites and failures.
+- The checklist covers repository baseline, app-wrapper prerequisite, device/toolchain, build/install/launch, diagnostic UI, synthetic scenarios, privacy boundaries and qualitative performance.
+- No private identifiers, secrets, signing material or unsupported device claim is requested.
+- Current project state says real-device validation remains pending.
+- No physical-device success is claimed without direct dated evidence.
 
 ## Safety rules
 
-Do not add:
+Do not add or claim:
 
-- CoreML, MLX, Foundation Models or other real model invocation,
-- model weights, automatic downloads or network calls,
+- CoreML, MLX, Foundation Models or real model invocation,
+- model weights, downloads or network calls,
 - persistence, external providers or real tool execution,
-- hardware probing, benchmarks or physical-device success claims,
-- secrets, signing material or real private data,
-- changes to Pokekartenkiste.
+- signing material, device identifiers or private data,
+- benchmark, battery, memory, thermal or readiness results not directly observed,
+- Pokekartenkiste changes.
+
+## Merge/state gate
+
+- Current GitHub issue/file state must be re-read immediately before acting.
+- Reviewer decision must be same-cycle and write-confirmed.
+- Closer may mutate only after `READY_FOR_CLOSE` or `STATE_SYNC_READY`.
+- At most one repository mutation.
+- After completion, select no new implementation target in the same closer slot.
 
 ## Expected terminal result
 
-One of:
-
-- `PR_OPENED`
-- `MERGED`
-- `REVIEW_BLOCKER_FOUND`
-- `WAITING_CURRENT_HEAD_CHECKS`
-- `FIX_APPLIED`
+- `ISSUE_CLOSED`
+- `DOC_FIX_APPLIED`
+- `STATE_SYNCED`
 - `OWNER_DEVICE_STEP`
+- `REVIEW_BLOCKER_FOUND`
 - `WRITE_SKIPPED`
