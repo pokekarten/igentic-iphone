@@ -10,9 +10,9 @@ Current GitHub source overrides this file, Brain and memory. A merged PR or clos
 
 ## Current operating mode
 
-Mode: `IGENTIC_VERIFY_MVP_MASTERPLAN_STATE`.
+Mode: `HYBRID_PERSISTENT_LANE_V5`.
 
-- iGentic is handled by the first half of the continuous V4 ten-slot cycle.
+- iGentic uses Brain issue #25 as its persistent lane bus.
 - Exactly one ACTIVE target is allowed.
 - Public GitHub Actions remain the independent code-validation environment.
 - Pokekartenkiste remains outside this task.
@@ -28,26 +28,20 @@ Mode: `IGENTIC_VERIFY_MVP_MASTERPLAN_STATE`.
 
 Issue #25 `MVP Masterplan: Local-only iPhone diagnostic app`.
 
-The next cycle must independently verify its planning acceptance criteria against current source.
-
-## Verification checklist
+Current source review shows its planning acceptance criteria are satisfied:
 
 - `PROJECT_STATE.md` describes the MVP as a local-only diagnostic and trust/control layer rather than a finished personal agent.
-- Roadmap material places current work in the Phase 0-4 sequence.
-- This file names exactly one next unblocked target.
+- `ROADMAP.md` documents the Phase 0-4 sequence and keeps device/model evidence separate from current software claims.
+- This file names exactly one target.
 - The documented MVP requires no secrets, external service, real private data or network dependency.
-- Completed child work and closed issues are not still presented as active.
-- Physical-device signing and observation remain an owner/device boundary.
+- Validation commands are documented.
+- Physical-device signing and observation remain owner/device boundaries.
 
 ## Allowed autonomous result
 
-Exactly one of:
+The current V5 lane should independently review this evidence and, if unchanged, close Issue #25 as completed planning/state synchronization.
 
-1. `ISSUE_CLOSED` when Issue #25 planning acceptance criteria are fully satisfied;
-2. `DOC_FIX_APPLIED` for one smallest missing state or roadmap detail;
-3. `STATE_SYNCED` when only control files or issue text are stale;
-4. `REVIEW_BLOCKER_FOUND` when current source contradicts the masterplan;
-5. `WRITE_SKIPPED` when the same-cycle parent or bus write gate is missing.
+Do not select the next implementation target in the same closer step. After completion, a later context run must re-read current open issues and choose exactly one source-backed unblocked target.
 
 ## Safety rules
 
@@ -64,16 +58,15 @@ Do not add or claim:
 ## Merge/state gate
 
 - Re-read Issue #25 and relevant files immediately before acting.
-- Reviewer decision must be same-cycle and write-confirmed.
-- Closer may mutate only after `READY_FOR_CLOSE` or `STATE_SYNC_READY`.
+- Reviewer decision must be current-source and write-confirmed.
+- Closer may mutate only after `STATE_SYNC_READY`.
 - At most one repository mutation.
-- After completion, select no new implementation target in the same closer slot.
+- After completion, select no new implementation target in the same closer step.
 
 ## Expected terminal result
 
 ```text
 ISSUE_CLOSED
-DOC_FIX_APPLIED
 STATE_SYNCED
 REVIEW_BLOCKER_FOUND
 WRITE_SKIPPED
