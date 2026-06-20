@@ -6,7 +6,7 @@ Stand: 2026-06-20
 
 ## Source-of-truth contract
 
-Current GitHub source overrides this file, Brain and memory. A merged PR or closed issue may never be selected again from stale control text.
+Current GitHub source overrides this file, Brain and memory. A merged or closed target may never be selected again from stale control text.
 
 ## Current operating mode
 
@@ -14,7 +14,8 @@ Mode: `HYBRID_PERSISTENT_LANE_V5`.
 
 - iGentic uses Brain issue #25 as its persistent lane bus.
 - Exactly one ACTIVE target is allowed.
-- Public GitHub Actions remain the independent code-validation environment.
+- An existing open PR takes priority over selecting a new implementation or documentation target.
+- Public GitHub Actions remain independent validation evidence.
 - Pokekartenkiste remains outside this task.
 
 ## Recently completed
@@ -26,55 +27,64 @@ Mode: `HYBRID_PERSISTENT_LANE_V5`.
 
 ## ACTIVE target
 
-Issue #6 `Research: Add App Intents safety notes for draft-first action patterns`.
+PR #49 `chore(deps): bump actions/checkout from 6 to 7`.
 
-This is a documentation-only Phase 4 preparation task. It must explain safe future patterns without adding App Intents code or implying that real actions are implemented.
+Verified current state:
 
-## Producer question
+- Base: `main`
+- Head branch: `dependabot/github_actions/actions/checkout-7`
+- Head SHA: `60a1821c975d18fe9a4b466891276c3340462f65`
+- Scope: exactly `.github/workflows/unpack-bootstrap-zip.yml`
+- Diff: `actions/checkout@v6` to `actions/checkout@v7`
+- PR is open and not Draft.
+- Branch is diverged: one commit ahead and 39 commits behind current `main`.
+- Current-head workflow evidence includes successful PR Change Scope, Pull Request Quality, Docs Consistency, Repo Audit, Workflow Lint, Phase 0 CI Validation and Swift runs.
+- GitHub currently does not report the PR as mergeable; refresh or conflict resolution is required before any merge decision.
 
-Create or update one source-linked safety document that covers:
+## Current producer question
 
-- draft before execute,
-- approval before critical actions,
-- synthetic examples only,
-- privacy and data-minimization boundaries,
-- explicit separation between future research and current implemented behavior,
-- what is not implemented.
+Determine the safest in-place path for PR #49:
+
+1. re-read current PR head, diff, review threads and workflow evidence,
+2. verify whether Dependabot can refresh the branch automatically,
+3. otherwise prepare an exact refresh/recreate recommendation without creating a parallel PR,
+4. preserve the one-file workflow dependency scope,
+5. move the lane to independent review only after the branch is current and mergeability is resolved.
 
 ## Allowed scope
 
-Preferred file:
+- PR #49 metadata, branch state, current workflow evidence and the one-line checkout reference.
+- No product Swift implementation.
+- No unrelated workflow edits.
+
+## Stop rules
+
+Do not:
+
+- merge while `mergeable` is false or branch state is unresolved,
+- create a duplicate PR for the same dependency bump,
+- claim checks that were not observed for the current head,
+- add secrets, signing files, private data, networking, providers, persistence, model calls or App Intents,
+- touch Pokekartenkiste.
+
+## QUEUED next target
+
+Issue #6 `Research: Add App Intents safety notes for draft-first action patterns` remains the next documentation candidate only after PR #49 is merged, closed or explicitly blocked.
+
+Preferred future file:
 
 ```text
 docs/app-intents-safety.md
 ```
 
-Update `README.md`, `ROADMAP.md` or `scripts/validate_repo_structure.py` only when a link or validation requirement is clearly necessary.
-
-## Required evidence
-
-- Re-read Issue #6 immediately before writing.
-- Verify whether an equivalent document already exists.
-- Use current official Apple documentation for claims about App Intents or platform behavior.
-- Run or require `python3 scripts/validate_repo_structure.py` when repository structure changes.
-
-## Stop rules
-
-Do not add:
-
-- App Intents code,
-- signing files, entitlements or provisioning profiles,
-- real actions or tool execution,
-- networking, persistence or external providers,
-- model calls or weights,
-- secrets, device identifiers or real private data,
-- Pokekartenkiste changes.
+Issue #6 must remain documentation-only and source-linked; it must not add App Intents code or imply that real actions are implemented.
 
 ## Expected terminal result
 
 ```text
-DOC_FIX_APPLIED
-PR_OPENED
-REVIEW_BLOCKER_FOUND
+PR_REFRESHED
+READY_FOR_REVIEW
+WAITING_RUNNER
+FIX_NEEDED
 WRITE_SKIPPED
 ```
