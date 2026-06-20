@@ -6,85 +6,135 @@ Stand: 2026-06-20
 
 ## Source-of-truth contract
 
-Current GitHub source overrides this file, Brain and memory. A merged or closed target may never be selected again from stale control text.
+Current GitHub source overrides this file, Brain and memory for PR, issue, branch, check and merge state.
 
-## Current operating mode
+The only mutable source for the active iGentic target and lane stage is:
 
-Mode: `HYBRID_PERSISTENT_LANE_V5`.
+```text
+pokekarten/agentic-private-brain issue #25
+```
 
-- iGentic uses Brain issue #25 as its persistent lane bus.
+This file defines durable execution rules. It must not store a live PR number, current head SHA, mergeability result or current lane stage. A merged or closed target may never be selected again from stale text.
+
+## Operating mode
+
+Mode: `HYBRID_PERSISTENT_LANE_V5` with single-target-source hardening.
+
 - Exactly one ACTIVE target is allowed.
-- An existing open PR takes priority over selecting a new implementation or documentation target.
+- An existing open PR takes priority over selecting new work.
+- When no open PR exists, choose one smallest safe source-backed issue.
 - Public GitHub Actions remain independent validation evidence.
 - Pokekartenkiste remains outside this task.
 
-## Recently completed
+## Mandatory reconciliation preflight
 
-- PR #60 removed raw task text from AuditLog and merged as `ba562376fdb019ab20af19d2d8f68a1e6d626c90`.
-- PR #61 added the metadata-only LocalModelRuntime contract and merged as `a7ff62463a27e707b2fd5f1b431cbb426ffba35d`.
-- Issues #25, #29, #58 and #59 are closed completed for their documented scope.
-- No physical-device, signing, benchmark or real model result is claimed.
-
-## ACTIVE target
-
-PR #49 `chore(deps): bump actions/checkout from 6 to 7`.
-
-Verified current state:
-
-- Base: `main`
-- Head branch: `dependabot/github_actions/actions/checkout-7`
-- Head SHA: `60a1821c975d18fe9a4b466891276c3340462f65`
-- Scope: exactly `.github/workflows/unpack-bootstrap-zip.yml`
-- Diff: `actions/checkout@v6` to `actions/checkout@v7`
-- PR is open and not Draft.
-- Branch is diverged: one commit ahead and 39 commits behind current `main`.
-- Current-head workflow evidence includes successful PR Change Scope, Pull Request Quality, Docs Consistency, Repo Audit, Workflow Lint, Phase 0 CI Validation and Swift runs.
-- GitHub currently does not report the PR as mergeable; refresh or conflict resolution is required before any merge decision.
-
-## Current producer question
-
-Determine the safest in-place path for PR #49:
-
-1. re-read current PR head, diff, review threads and workflow evidence,
-2. verify whether Dependabot can refresh the branch automatically,
-3. otherwise prepare an exact refresh/recreate recommendation without creating a parallel PR,
-4. preserve the one-file workflow dependency scope,
-5. move the lane to independent review only after the branch is current and mergeability is resolved.
-
-## Allowed scope
-
-- PR #49 metadata, branch state, current workflow evidence and the one-line checkout reference.
-- No product Swift implementation.
-- No unrelated workflow edits.
-
-## Stop rules
-
-Do not:
-
-- merge while `mergeable` is false or branch state is unresolved,
-- create a duplicate PR for the same dependency bump,
-- claim checks that were not observed for the current head,
-- add secrets, signing files, private data, networking, providers, persistence, model calls or App Intents,
-- touch Pokekartenkiste.
-
-## QUEUED next target
-
-Issue #6 `Research: Add App Intents safety notes for draft-first action patterns` remains the next documentation candidate only after PR #49 is merged, closed or explicitly blocked.
-
-Preferred future file:
+Every iGentic slot must perform this check before acting:
 
 ```text
-docs/app-intents-safety.md
+1. Read Brain issue #25.
+2. Read the named GitHub target.
+3. Confirm target state, kind and repository.
+4. For PRs, confirm current head and changed-file scope.
+5. Confirm the lane stage authorizes this role.
+6. If target is merged, closed, missing or mismatched: do no product mutation and repair/route the lane.
 ```
 
-Issue #6 must remain documentation-only and source-linked; it must not add App Intents code or imply that real actions are implemented.
+Current GitHub source wins over all copied or remembered state.
 
-## Expected terminal result
+## Lane roles
+
+- Context selects one verified target and sets `PRODUCER_PENDING`.
+- Producer creates at most one artifact or mutation and routes to review.
+- Reviewer independently verifies and never implements.
+- Closer merges, closes or synchronizes only after explicit reviewer authorization.
+- Director and sequencer reconcile stale targets and invalid transitions; they do not implement product work.
+
+## Target envelope
+
+The lane issue must carry:
 
 ```text
-PR_REFRESHED
-READY_FOR_REVIEW
+TARGET_REPO
+TARGET_KIND
+TARGET_NUMBER
+TARGET_HEAD
+TARGET_STATE
+LANE_ID
+STAGE
+REVISION
+LAST_VERIFIED_AT
+NEXT_ALLOWED_ROLE
+```
+
+For issue targets, `TARGET_HEAD=none`. For PR targets, evidence and mutations must match the current head SHA.
+
+## Evidence envelope
+
+Before review or closure, record the applicable fields:
+
+```text
+TARGET_HEAD
+CHANGED_FILES
+COMMANDS_EXECUTED
+COMMAND_RESULTS
+WORKFLOW_RESULTS
+REVIEW_THREADS
+DRAFT_STATE
+MERGEABILITY
+EVIDENCE_SOURCE
+```
+
+Never claim commands or device behavior that were not actually observed.
+
+## Safety boundaries
+
+Do not add or claim:
+
+- networking, providers or model calls,
+- persistence of private data,
+- App Intents implementation or real action execution,
+- signing files, entitlements or provisioning profiles,
+- physical-device performance or readiness,
+- secrets or real private data,
+- Pokekartenkiste changes.
+
+## Validation contract
+
+```bash
+python3 scripts/validate_repo_structure.py
+cd ios && swift test
+cd ios && swift build
+```
+
+Use only the validation required by the changed scope. Documentation-only work normally requires repository-structure validation; Swift validation is required when Swift source changes.
+
+## Completion transaction
+
+After merge or issue closure:
+
+```text
+1. Re-read the target and confirm completion from GitHub.
+2. Record the terminal artifact and merge/closure evidence.
+3. Set the lane to COMPLETE.
+4. Clear any assumption that the completed target remains active.
+5. Re-read the lane and confirm revision/stage persistence.
+6. Allow Context to select the next target.
+```
+
+## Expected terminal results
+
+```text
+PR_OPENED
+FILE_CHANGED
+ISSUE_UPDATED
+VALIDATION_EVIDENCE
+REVIEW_EVIDENCE
+READY_FOR_CLOSE
+MERGED
+CLOSED
+STATE_SYNC
 WAITING_RUNNER
-FIX_NEEDED
-WRITE_SKIPPED
+OWNER_BOUNDARY
+NEXT_TARGET_NEEDED
+NO_TRIGGER
 ```
