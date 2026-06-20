@@ -10,24 +10,15 @@ Last updated: 2026-06-20
 - Visibility: public
 - Validation: GitHub Actions on macOS and Linux
 - Primary target device: iPhone Air as trust/control plane
-- Master brand: `iGentic`
-- Community model: GitHub-first, social-supported
 - Current phase: diagnostic shell and safe local-model boundary design
-
-## Canonical sources
-
-- `docs/brand/BRAND.md`
-- `docs/brand/BRAND_ASSET_MANIFEST.md`
-- `assets/social/instagram-profile-v3.svg`
-- `docs/community/COMMUNITY_STRATEGY.md`
 
 ## Recently completed
 
 - PR #52 added metadata-only RuntimeBudget planning.
 - PR #56 corrected AuditLog privacy documentation.
-- PR #60 removed raw task text from task-received audit events and merged as `ba562376fdb019ab20af19d2d8f68a1e6d626c90`.
-- Issue #59 is closed as completed.
-- Issue #29 remains open for physical-device evidence.
+- PR #60 removed raw task text from task-received audit events.
+- PR #61 added the metadata-only `LocalModelRuntime` contract and deterministic pre-invocation rejection tests; merge commit `a7ff62463a27e707b2fd5f1b431cbb426ffba35d`.
+- Issues #58 and #59 are closed as completed.
 
 ## Current baseline
 
@@ -35,34 +26,30 @@ Last updated: 2026-06-20
 
 - AgentCore policy, approval, audit, routing, risk, memory and delegation components,
 - lock-protected AuditLog storage and metadata projections,
-- task-received audit events that do not retain raw task text,
-- validated ToolRegistry definitions,
-- metadata-only RuntimeBudget, ApprovalReceipt and DiagnosticSnapshot models,
+- task-received events that do not retain raw task text,
+- metadata-only RuntimeBudget, ApprovalReceipt, DiagnosticSnapshot and LocalModelRuntime contracts,
+- deterministic runtime rejection before model invocation,
 - synthetic scenario and diagnostic UI support,
-- an installable unsigned simulator wrapper and automated validation workflows.
+- an unsigned simulator wrapper and automated validation workflows.
 
 ## Current safety posture
 
 - Policy and approval remain authoritative before action.
-- AuditLog task-received events use a fixed metadata-safe message.
-- Diagnostic projections remain metadata-only.
+- Diagnostic and runtime contracts remain metadata-only.
 - Restricted sensitive data remains blocked before automatic external delegation.
-- No real model loading, networking, persistence or tool execution exists.
-- RuntimeBudget is planning metadata, not hardware measurement.
+- No real model loading, networking, persistence, provider call or tool execution exists.
+- RuntimeBudget and LocalModelRuntime are software contracts, not device-performance evidence.
 
 ## Current active target
 
-Issue #58 `MODEL-01: Define local model runtime and derivative model workspace` is the only active implementation target.
+Issue #29 `MVP-04: Prepare real-device validation report for iPhone Air readiness` is the current verification/state-sync target.
 
-First slice:
+The repository already contains:
 
-- add `ios/Sources/AgentCore/LocalModelRuntime.swift`,
-- add `ios/Tests/AgentCoreTests/LocalModelRuntimeTests.swift`,
-- define typed runtime metadata, execution kind, capabilities, data ceiling, context and memory classes, availability and rejection reasons,
-- reject unavailable runtimes, unsupported capabilities and excessive data sensitivity before any model invocation,
-- keep the deterministic fake runtime in tests only.
+- `docs/device-test-checklist.md`,
+- `docs/reports/iphone-air-validation-template.md`.
 
-This slice adds no model framework, model artifact, network access, persistence, provider call, hardware probe or performance claim.
+The next autonomous cycle must verify Issue #29 acceptance criteria against current files. If the preparation scope is fully satisfied, close/synchronize the issue accurately. If not, apply only the smallest missing documentation fix. Do not claim that a physical-device run occurred.
 
 ## Validation contract
 
@@ -72,19 +59,18 @@ cd ios && swift test
 cd ios && swift build
 ```
 
-Merge requires a stable head, scoped changed files, successful current-head workflows and no unresolved review blocker. A Ready transition must be followed by another check of the same head.
+For docs-only Issue #29 verification, current source inspection may establish document existence and scope. Any code or app-wrapper change still requires current-head workflows.
 
 ## Evidence boundary
 
-The repository can prove deterministic software contracts and simulator-tested behavior. It does not yet prove actual model compatibility, memory use, latency, battery, thermal behavior, signing or physical-device readiness. Those observations remain owned by Issue #29.
+The repository proves deterministic software contracts and simulator-tested behavior. It does not yet prove actual model compatibility, memory use, latency, battery, thermal behavior, signing or physical-device readiness. Those observations remain owner/device evidence.
 
 ## Next sequence
 
-1. Implement the two-file LocalModelRuntime contract.
-2. Open one Draft PR from current `main`.
-3. Run repository and Swift validation.
-4. Apply only source-backed fixes.
-5. Mark Ready and merge only with clean evidence.
+1. Verify Issue #29 preparation artifacts and acceptance criteria.
+2. Close or minimally repair the preparation scope using source evidence only.
+3. Select exactly one next unblocked issue.
+4. Keep actual signing and physical-device execution outside autonomous claims.
 
 ## Current next task
 
