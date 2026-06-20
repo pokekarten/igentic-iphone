@@ -31,7 +31,7 @@ public final class AgentKernel: @unchecked Sendable {
     }
 
     public func handle(_ task: TaskRequest, privacyMode: PrivacyMode) -> AgentResponse {
-        auditLog.record(AuditEvent(type: .taskReceived, message: task.userText, dataSensitivity: task.dataClassification.level))
+        auditLog.record(AuditEvent(type: .taskReceived, message: "Task received.", dataSensitivity: task.dataClassification.level))
 
         let decision = policyEngine.decide(
             PolicyRequest(
