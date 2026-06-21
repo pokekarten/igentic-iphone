@@ -15,7 +15,7 @@ The gate does not replace review. It does not decide product direction, approve 
 | GitHub Issues | Public task scope, acceptance criteria and stop rules |
 | Pull Requests | Reviewable implementation unit and current head SHA |
 | Existing GitHub Actions | Build, tests, repository structure, documentation, PR quality and changed-file validation |
-| PR Autonomy Gate | Aggregate the latest required workflow result for the exact PR head |
+| PR Autonomy Gate | Test its candidate evaluator read-only, then aggregate latest required exact-head evidence after merge |
 | Scheduled Context/Producer slots | Select one target and implement one narrow change |
 | Scheduled Reviewer slot | Review scope, diff, issue fit, safety and current technical evidence |
 | Scheduled Closer slot | Re-check stable head, discussion and evidence before one controlled merge |
@@ -73,33 +73,48 @@ The gate owns one PR comment containing this hidden marker:
 
 A later run updates that comment only when its content changed. It never creates a stream of duplicate status comments.
 
-## Security model
+## Two-job security model
 
-The workflow is privileged only enough to read repository metadata and maintain the single shadow comment.
+The workflow separates candidate validation from the privileged shadow controller.
 
-It must:
+### Candidate test job
 
-- execute only the evaluator stored on the trusted default branch;
-- fetch `main`, never the pull-request head;
-- avoid `pull_request_target` checkout;
-- avoid workflow artifacts and executable content from pull requests;
-- use only the automatic `GITHUB_TOKEN`;
-- restrict permissions to Actions read, contents read, pull requests read and issues write;
-- perform GitHub API requests only against the current repository;
-- use concurrency to avoid overlapping reconciliation writes.
+On a pull request, the candidate merge ref is checked out only to run `scripts/autonomy/test_evaluate_pr.py`.
 
-It must never:
+- job permission: contents read only;
+- no `GITHUB_TOKEN` environment variable is passed to the evaluator;
+- no issue, pull-request, Actions or branch write permission is available;
+- no additional secrets are available;
+- the job cannot publish the shadow comment.
+
+This gives pre-merge test evidence without giving candidate code a repository write token.
+
+### Privileged shadow job
+
+On `workflow_run`, schedule or manual dispatch, the job:
+
+- executes only the evaluator stored on the trusted default branch;
+- fetches the default branch, never the pull-request head;
+- avoids `pull_request_target` checkout;
+- avoids workflow artifacts and executable content from pull requests;
+- uses only the automatic `GITHUB_TOKEN`;
+- restricts permissions to Actions read, contents read, pull requests read and issues write;
+- performs GitHub API requests only against the current repository;
+- uses concurrency to avoid overlapping reconciliation writes.
+
+The privileged job must never:
 
 - merge or enable auto-merge;
 - change a branch or commit;
 - close an issue or pull request;
 - create or remove labels;
 - write to the private Brain or another repository;
-- execute untrusted PR code;
+- execute untrusted PR code or artifacts;
 - claim signing, device or real model evidence.
 
 ## Triggers
 
+- `pull_request` for the read-only candidate evaluator tests;
 - `workflow_run` after relevant PR validation workflows complete;
 - `workflow_dispatch` for explicit reconciliation;
 - a low-frequency schedule as recovery when an event or external lane update was missed.
@@ -126,4 +141,4 @@ cd ios && swift test
 cd ios && swift build
 ```
 
-A workflow-changing PR must additionally pass Workflow Lint and all other checks required by `docs/WORKFLOWS.md` for its exact head.
+A workflow-changing PR must additionally pass the PR Autonomy Gate candidate test, Workflow Lint and all other checks required by `docs/WORKFLOWS.md` for its exact head.
