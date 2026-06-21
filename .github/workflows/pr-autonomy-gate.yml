@@ -9,7 +9,6 @@ on:
       - "Phase 0 CI Validation"
       - "Docs Consistency"
       - "Workflow Lint"
-      - "Swift"
     types:
       - completed
   workflow_dispatch:
@@ -19,7 +18,7 @@ on:
         required: false
         type: string
   schedule:
-    - cron: "17,47 * * * *"
+    - cron: "17 * * * *"
 
 permissions: {}
 
