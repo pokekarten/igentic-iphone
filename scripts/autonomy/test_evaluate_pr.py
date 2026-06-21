@@ -9,11 +9,17 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from evaluate_pr import evaluate, latest_runs_by_name, required_workflows  # noqa: E402
+from evaluate_pr import (  # noqa: E402
+    evaluate,
+    find_owned_gate_comment,
+    latest_runs_by_name,
+    required_workflows,
+)
 
 
 HEAD = "current-head"
 OLD_HEAD = "old-head"
+MARKER = "<!-- igentic-pr-autonomy-gate -->"
 
 
 def run(
@@ -94,6 +100,48 @@ class LatestRunTests(unittest.TestCase):
         latest = latest_runs_by_name(runs, HEAD)
         self.assertEqual(latest["Repo Audit"]["run_number"], 2)
         self.assertEqual(latest["Repo Audit"]["conclusion"], "success")
+
+
+class CommentOwnershipTests(unittest.TestCase):
+    def test_contributor_marker_is_ignored(self) -> None:
+        comments = [
+            {
+                "id": 1,
+                "body": f"Copied example {MARKER}",
+                "user": {"login": "contributor"},
+            }
+        ]
+        self.assertIsNone(find_owned_gate_comment(comments))
+
+    def test_github_actions_marker_is_selected(self) -> None:
+        comments = [
+            {
+                "id": 1,
+                "body": f"Copied example {MARKER}",
+                "user": {"login": "contributor"},
+            },
+            {
+                "id": 2,
+                "body": f"{MARKER}\nGate state",
+                "user": {"login": "github-actions[bot]"},
+            },
+        ]
+        selected = find_owned_gate_comment(comments)
+        self.assertIsNotNone(selected)
+        self.assertEqual(selected["id"], 2)
+
+    def test_github_actions_app_slug_is_selected(self) -> None:
+        comments = [
+            {
+                "id": 3,
+                "body": f"{MARKER}\nGate state",
+                "user": {"login": "github-actions"},
+                "performed_via_github_app": {"slug": "github-actions"},
+            }
+        ]
+        selected = find_owned_gate_comment(comments)
+        self.assertIsNotNone(selected)
+        self.assertEqual(selected["id"], 3)
 
 
 class EvaluationTests(unittest.TestCase):
