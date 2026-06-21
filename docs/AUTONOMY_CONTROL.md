@@ -15,7 +15,8 @@ The gate does not replace review. It does not decide product direction, approve 
 | GitHub Issues | Public task scope, acceptance criteria and stop rules |
 | Pull Requests | Reviewable implementation unit and current head SHA |
 | Existing GitHub Actions | Build, tests, repository structure, documentation, PR quality and changed-file validation |
-| PR Autonomy Gate | Test its candidate evaluator read-only, then aggregate latest required exact-head evidence after merge |
+| Repo Audit | Execute evaluator unit tests on candidate PR code with contents-read permission only |
+| PR Autonomy Gate | Aggregate latest required exact-head evidence after trusted code reaches the default branch |
 | Scheduled Context/Producer slots | Select one target and implement one narrow change |
 | Scheduled Reviewer slot | Review scope, diff, issue fit, safety and current technical evidence |
 | Scheduled Closer slot | Re-check stable head, discussion and evidence before one controlled merge |
@@ -71,31 +72,37 @@ The gate owns one PR comment containing this hidden marker:
 <!-- igentic-pr-autonomy-gate -->
 ```
 
-A later run updates that comment only when its content changed. It never creates a stream of duplicate status comments.
+A later run updates that comment only when its content changed. It selects only a marker comment owned by GitHub Actions, so copied marker text in contributor comments is not overwritten.
 
-## Two-job security model
+## Separated trust boundaries
 
-The workflow separates candidate validation from the privileged shadow controller.
+Candidate code and privileged reconciliation are intentionally handled by different workflows.
 
-### Candidate test job
+### Read-only candidate tests
 
-On a pull request, the candidate merge ref is checked out only to run `scripts/autonomy/test_evaluate_pr.py`.
+`Repo Audit` runs on pull requests and checks out the candidate merge ref. It executes:
 
-- job permission: contents read only;
-- the job does not reference or pass an additional secret or repository write token to PR code;
-- no issue, pull-request, Actions or branch write permission is granted;
-- the job cannot publish the shadow comment.
+```bash
+python3 scripts/validate_repo_structure.py
+python3 scripts/autonomy/test_evaluate_pr.py
+```
 
-This gives pre-merge test evidence without giving candidate code a repository write token.
+Its workflow permission is `contents: read` only. It does not grant issue, pull-request, Actions or branch write permission, and it does not reference or pass an additional secret to candidate code.
 
-### Privileged shadow job
+### Privileged shadow gate
 
-On `workflow_run`, schedule or manual dispatch, the job:
+`PR Autonomy Gate` has no `pull_request` or `pull_request_target` trigger. It runs only on:
+
+- completion of relevant validation workflows;
+- manual dispatch;
+- low-frequency scheduled reconciliation.
+
+The privileged job:
 
 - executes only the evaluator stored on the trusted default branch;
 - fetches the default branch, never the pull-request head;
-- avoids `pull_request_target` checkout;
-- avoids workflow artifacts and executable content from pull requests;
+- does not restore or consume pull-request caches;
+- does not download or execute pull-request artifacts;
 - uses only the automatic `GITHUB_TOKEN`;
 - restricts permissions to Actions read, contents read, pull requests read and issues write;
 - performs GitHub API requests only against the current repository;
@@ -108,17 +115,8 @@ The privileged job must never:
 - close an issue or pull request;
 - create or remove labels;
 - write to the private Brain or another repository;
-- execute untrusted PR code or artifacts;
+- execute untrusted PR code, caches or artifacts;
 - claim signing, device or real model evidence.
-
-## Triggers
-
-- `pull_request` for the read-only candidate evaluator tests;
-- `workflow_run` after relevant PR validation workflows complete;
-- `workflow_dispatch` for explicit reconciliation;
-- a low-frequency schedule as recovery when an event or external lane update was missed.
-
-The scheduled trigger is a repair path, not a replacement for event-driven processing.
 
 ## Slot integration
 
@@ -140,4 +138,4 @@ cd ios && swift test
 cd ios && swift build
 ```
 
-A workflow-changing PR must additionally pass the PR Autonomy Gate candidate test, Workflow Lint and all other checks required by `docs/WORKFLOWS.md` for its exact head.
+A workflow-changing PR must additionally pass Repo Audit with the evaluator tests, Workflow Lint and all other checks required by `docs/WORKFLOWS.md` for its exact head. No earlier-head result may authorize the current head.
