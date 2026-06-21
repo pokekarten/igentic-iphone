@@ -165,25 +165,28 @@ File: `.github/workflows/pr-autonomy-gate.yml`
 
 Purpose:
 
-- aggregate the latest required workflow result for the exact head of each open PR;
+- run the candidate evaluator tests before merge with contents-read permission only;
+- after merge, aggregate the latest required workflow result for the exact head of each open PR;
 - distinguish `WAITING_CI`, `FIX_NEEDED`, `CI_GREEN` and `UNSUPPORTED_SCOPE`;
 - maintain one idempotent marker comment on the PR;
 - repair status drift through event-driven runs plus a low-frequency schedule.
 
 Triggers:
 
-- completion of PR Change Scope, Pull Request Quality, Repo Audit, Phase 0 CI Validation, Docs Consistency, Workflow Lint or Swift;
-- manual dispatch, optionally for one open PR;
-- scheduled reconciliation at minutes 17 and 47.
+- pull requests changing the gate workflow, evaluator, tests or control docs: read-only candidate test job;
+- completion of PR Change Scope, Pull Request Quality, Repo Audit, Phase 0 CI Validation, Docs Consistency, Workflow Lint or Swift: privileged shadow job;
+- manual dispatch, optionally for one open PR: privileged shadow job;
+- scheduled reconciliation at minutes 17 and 47: privileged shadow job.
 
 Security rules:
 
-- shadow mode only;
-- execute trusted evaluator code from the default branch;
-- never check out or execute PR-head code;
-- Actions read, contents read, pull requests read and issues write permissions only;
-- no merge, auto-merge, branch update, issue closure, labels, cross-repository write or private Brain write;
-- no PR artifact execution or additional secrets.
+- top-level permissions are empty;
+- candidate PR code runs only in a job with contents-read permission and no extra secret;
+- the candidate job cannot publish or update the shadow comment;
+- the privileged shadow job checks out trusted default-branch code only;
+- the privileged job has Actions read, contents read, pull requests read and issues write permissions;
+- no `pull_request_target` checkout, PR artifact execution or cross-repository token;
+- no merge, auto-merge, branch update, issue closure, labels, cross-repository write or private Brain write.
 
 `CI_GREEN` is technical evidence only. Scheduled Reviewer and Closer roles still perform semantic review, discussion checks and stable-head merge control. See `docs/AUTONOMY_CONTROL.md`.
 
@@ -218,8 +221,8 @@ A stale private lane or rollup never overrides newer current GitHub evidence. Th
 ## Recommended rollout
 
 1. Open the shadow-gate Draft PR from Issue #64.
-2. Verify Workflow Lint, PR Change Scope, Pull Request Quality, Repo Audit, Docs Consistency and Phase 0 CI Validation on the exact PR head.
-3. Independently inspect workflow permissions and confirm that only trusted default-branch code is executed.
+2. Verify the read-only PR Autonomy Gate candidate test, Workflow Lint, PR Change Scope, Pull Request Quality, Repo Audit, Docs Consistency and Phase 0 CI Validation on the exact PR head.
+3. Independently inspect both job permission boundaries and confirm that only the read-only candidate job executes PR code.
 4. Merge only after a stable-head security review.
 5. Observe at least three real PR transitions: waiting, failing and green.
 6. Confirm repeated runs update one marker comment without duplicate noise.
