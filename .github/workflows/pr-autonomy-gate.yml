@@ -67,7 +67,7 @@ jobs:
             echo "## PR Autonomy Gate candidate tests"
             echo ""
             echo "The candidate evaluator ran with contents-read permission only."
-            echo "No repository write token or additional secret was available to PR code."
+            echo "This job did not reference or pass an additional secret or repository write token to PR code."
           } >> "${GITHUB_STEP_SUMMARY}"
 
   shadow-gate:
