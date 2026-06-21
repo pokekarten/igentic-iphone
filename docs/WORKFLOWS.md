@@ -4,21 +4,34 @@ This document explains the GitHub Actions workflows that support the public open
 
 ## CI principle
 
-CI is the baseline for repository control. A pull request is not considered safe just because the changed files look small. The workflows must show which case applies and whether the relevant checks passed for the exact commit under review.
+CI is the baseline for repository control. A pull request is not considered safe just because the changed files look small. Workflow evidence must match the exact commit under review.
 
-Documentation-only changes usually do not alter runtime or build behavior, but they can and should still trigger CI when they touch validation docs, workflow docs, repository-control files or PR templates.
+Documentation-only changes usually do not alter runtime behavior, but they still require the checks that protect validation docs, workflow docs, repository-control files and contributor templates.
 
 ## Review decision principle
 
-Review classifications should separate actual defects from missing or partially unavailable evidence.
+Use `MERGE-CANDIDATE` when scope is correct, the diff is safe, issue context is clear, required exact-head CI is green or equivalent evidence is sufficient, and no security, privacy, architecture or runtime regression is found. A clean Draft may be classified as `MERGE-CANDIDATE (Draft)`.
 
-Use `MERGE-CANDIDATE` when the scope is correct, the diff is safe, linked issue context is clear, required CI is green or enough equivalent validation evidence is available, and no security, privacy, architecture or runtime regression is found. A draft PR with otherwise clean evidence may be recorded as `MERGE-CANDIDATE (Draft)` instead of `FIX-NEEDED`.
+Use `FIX-NEEDED` only for a concrete defect: a failing required check, scope mismatch, missing tests for changed runtime behavior, unsafe diff, broken documentation contract or actionable review finding.
 
-Use `FIX-NEEDED` only when there is a concrete problem that should be changed before merge, such as a failing required check, a scope mismatch, missing tests for changed runtime behavior, an unsafe diff, broken documentation contracts or a review finding that can be acted on in the PR.
+Use `BLOCKED` when a safe judgement cannot be made because required evidence is unavailable, contradictory or outside current visibility. Missing local logs alone are not a defect when GitHub Actions evidence is sufficient.
 
-Use `BLOCKED` when the reviewer cannot make a safe judgement because required evidence is unavailable, contradictory or outside the connector's visibility. Missing local validation logs alone do not make a PR `FIX-NEEDED` when GitHub Actions evidence is present and sufficient for the changed scope.
+Use `NO-PR` when no open pull request is available.
 
-Use `NO-PR` when no open pull request is available for review.
+## Required checks by change type
+
+| Change case | Required CI evidence | Notes |
+| --- | --- | --- |
+| Any pull request | PR Change Scope, Pull Request Quality, Repo Audit, Phase 0 CI Validation | Baseline for review and merge readiness. |
+| Documentation / project-control docs | Docs Consistency, Repo Audit, Phase 0 CI Validation | Docs-only does not mean no CI. |
+| GitHub workflow changes | Workflow Lint, PR Change Scope, Repo Audit, Phase 0 CI Validation | Workflow syntax and scope must be checked. |
+| Swift / iOS runtime or test code | Phase 0 CI Validation | Includes repo structure, Swift build and Swift tests. |
+| Scripts / automation code | Repo Audit and Phase 0 CI Validation | Automation must remain reviewable and non-destructive. |
+| Issue templates / PR template | PR Change Scope, Docs Consistency, Repo Audit | Contributor intake affects evidence quality. |
+| Forbidden artifacts or secrets | PR Change Scope must fail | Remove ZIPs, `.env` files, signing files, build products and private data. |
+| Latest `main` validation | Phase 0 CI Validation on current `main` | Required before closing Issue #1. |
+
+The shadow PR Autonomy Gate summarizes these requirements but never replaces semantic review or merge gates.
 
 ## Core validation
 
@@ -28,19 +41,30 @@ File: `.github/workflows/ci-phase-0-validation.yml`
 
 Purpose:
 
-- Validate repository structure.
-- Build the Swift package.
-- Run Swift tests.
+- validate repository structure;
+- build the Swift package on supported runners;
+- run Swift tests.
 
 Triggers:
 
-- Pull requests.
-- Pushes to `main`.
-- Manual workflow runs.
+- pull requests;
+- pushes to `main`;
+- manual runs.
 
-This is the main validation source for Issue #1 and the baseline check for every PR.
+This is the main validation source for Issue #1 and the required Swift/iOS technical gate for pull requests.
 
-## CI case coverage
+### Swift
+
+File: `.github/workflows/swift.yml`
+
+Purpose:
+
+- provide an additional Swift build and test signal;
+- expose runner-specific failures independently from the combined Phase 0 workflow.
+
+The standalone Swift workflow is supporting evidence only. It does not become a merge blocker when the required exact-head Phase 0 CI Validation is successful.
+
+## Scope and repository checks
 
 ### PR Change Scope
 
@@ -48,34 +72,59 @@ File: `.github/workflows/pr-change-scope.yml`
 
 Purpose:
 
-- Classify changed files into documentation, workflow, Swift/iOS, scripts, repo-control, other and forbidden-artifact buckets.
-- Produce a GitHub Actions summary that tells reviewers which validation expectations apply.
-- Fail early when forbidden artifacts are introduced, such as ZIP imports, local build products, signing files or environment files.
+- classify documentation, workflow, Swift/iOS, scripts, repo-control, other and forbidden-artifact changes;
+- summarize which validation expectations apply;
+- fail when ZIP imports, environment files, signing files, local build products or other forbidden artifacts are introduced.
 
-Triggers:
+Safety:
 
-- Pull requests opened, edited, synchronized, reopened or marked ready for review.
-- Manual workflow runs.
+- read-only permissions;
+- no marketplace checkout action;
+- no file modifications or generated commits.
 
-Safety rules:
+### Repo Audit
 
-- Read-only permissions.
-- No marketplace checkout action.
-- No file modifications.
-- No generated commits.
+File: `.github/workflows/repo-audit.yml`
 
-### Required checks by change type
+Purpose:
 
-| Change case | Required CI evidence | Notes |
-| --- | --- | --- |
-| Any pull request | PR Change Scope, Pull Request Quality, Repo Audit, Phase 0 CI Validation | Baseline for review and merge readiness. |
-| Documentation / project-control docs | Docs Consistency, Repo Audit, Phase 0 CI Validation | Docs-only does not mean no CI; docs can affect validation contracts. |
-| GitHub workflow changes | Workflow Lint, PR Change Scope, Repo Audit, Phase 0 CI Validation | Workflow syntax must be checked before merge. |
-| Swift / iOS runtime or test code | Phase 0 CI Validation | Includes repo structure, Swift build and Swift tests. |
-| Scripts / automation code | Repo Audit and Phase 0 CI Validation | Automation must stay reviewable and non-destructive unless explicitly scoped. |
-| Issue templates / PR template | PR Change Scope, Docs Consistency, Repo Audit | These files affect contributor intake and validation evidence. |
-| Forbidden artifacts or secrets | PR Change Scope must fail | Remove ZIPs, `.env` files, signing files, local build products and private data. |
-| Latest `main` validation | Phase 0 CI Validation on the current `main` commit | Required before closing Issue #1. |
+- run the repository structure validator;
+- execute `scripts/autonomy/test_evaluate_pr.py` on candidate PR code with contents-read permission only;
+- check required public project-control files;
+- publish a concise Actions summary.
+
+Repo Audit is the only pull-request workflow that executes the autonomy evaluator tests. It has no issue, pull-request, Actions or branch write permission.
+
+### Docs Consistency
+
+File: `.github/workflows/docs-consistency.yml`
+
+Purpose:
+
+- check local markdown references;
+- protect README and validation-contract markers.
+
+It runs for documentation, workflow and contributor-template changes.
+
+### Pull Request Quality
+
+File: `.github/workflows/pr-quality.yml`
+
+Purpose:
+
+- require Summary, Scope, Validation, Safety and Follow-up context;
+- keep PRs small, reviewable and evidence-backed.
+
+### Workflow Lint
+
+File: `.github/workflows/workflow-lint.yml`
+
+Purpose:
+
+- lint GitHub Actions YAML with actionlint;
+- catch syntax and expression errors before merge.
+
+It is required whenever `.github/workflows/**` changes.
 
 ## Repository control workflows
 
@@ -85,53 +134,11 @@ File: `.github/workflows/control-dashboard.yml`
 
 Purpose:
 
-- Collect a read-only repository-state snapshot.
-- Collect recent GitHub Actions workflow runs.
-- Render the latest control report into the workflow workspace.
-- Expose the report through `$GITHUB_STEP_SUMMARY`.
+- collect a read-only repository snapshot;
+- collect recent workflow runs;
+- render a control report in `$GITHUB_STEP_SUMMARY`.
 
-Triggers:
-
-- Manual workflow runs.
-- Weekly schedule at `03:17 UTC` on Tuesdays.
-- Repository dispatch events: `project-control`, `repo-audit`, `run-validation`.
-
-Safety rules:
-
-- No marketplace checkout action.
-- No mutation of issues, pull requests, refs, workflow runs or repository files.
-- No generated reports committed back to `main` in this first version.
-
-### Repo Audit
-
-File: `.github/workflows/repo-audit.yml`
-
-Purpose:
-
-- Run the repo structure validator.
-- Check that required public project control files exist.
-- Produce a GitHub Actions summary.
-
-Triggers:
-
-- Pull requests.
-- Manual workflow runs.
-- Weekly schedule.
-
-### Docs Consistency
-
-File: `.github/workflows/docs-consistency.yml`
-
-Purpose:
-
-- Check that local markdown references point to existing files.
-- Check that README and validation docs keep required control markers.
-
-Triggers:
-
-- Pull requests that touch docs, workflows or templates.
-- Pushes to `main` that touch docs, workflows or templates.
-- Manual workflow runs.
+It does not mutate issues, pull requests, refs, runs or repository files.
 
 ### Main Health Reporter
 
@@ -139,14 +146,11 @@ File: `.github/workflows/main-health.yml`
 
 Purpose:
 
-- React to completed validation, audit or docs consistency workflows.
-- Fail when an upstream workflow did not pass.
-- Produce a concise health summary.
+- react to selected completed validation workflows;
+- fail when the triggering upstream workflow did not pass;
+- publish a concise health summary.
 
-Triggers:
-
-- Completed runs of Phase 0 CI Validation, Repo Audit or Docs Consistency.
-- Manual workflow runs.
+This reporter evaluates the triggering workflow only. It is not the complete PR evidence aggregator.
 
 ### Project Control
 
@@ -154,15 +158,54 @@ File: `.github/workflows/project-control.yml`
 
 Purpose:
 
-- Check that the main control files exist.
-- Produce a project-control summary and recommended next action.
-- Support manual, scheduled and external dispatch usage.
+- verify that durable control files exist;
+- publish project-control guidance;
+- support manual, scheduled and repository-dispatch entry points.
+
+### PR Autonomy Gate
+
+File: `.github/workflows/pr-autonomy-gate.yml`
+
+Purpose:
+
+- aggregate the latest required workflow result for the exact head of each open PR;
+- distinguish `WAITING_CI`, `FIX_NEEDED`, `CI_GREEN` and `UNSUPPORTED_SCOPE`;
+- maintain one idempotent marker comment owned by GitHub Actions;
+- repair status drift through event-driven runs plus one low-frequency scheduled fallback.
 
 Triggers:
 
-- Manual workflow runs.
-- Weekly schedule.
-- Repository dispatch events: `project-control`, `repo-audit`, `run-validation`.
+- completion of PR Change Scope, Pull Request Quality, Repo Audit, Phase 0 CI Validation, Docs Consistency or Workflow Lint;
+- manual dispatch, optionally for one open PR;
+- scheduled reconciliation once per hour at minute 17.
+
+The standalone Swift workflow does not trigger the gate because it is supporting rather than required evidence. Phase 0 completion and the hourly recovery run are sufficient to reconcile the required state.
+
+Security rules:
+
+- no `pull_request` or `pull_request_target` trigger;
+- top-level permissions are empty;
+- the job checks out trusted default-branch code only;
+- the job never downloads or executes PR code, caches or artifacts;
+- the job has Actions read, contents read, pull requests read and issues write permissions only;
+- no merge, auto-merge, branch update, issue closure, labels, cross-repository write or private Brain write.
+
+Candidate evaluator tests are intentionally outside this privileged workflow and run in Repo Audit.
+
+`CI_GREEN` is technical evidence only. Scheduled Reviewer and Closer roles still perform semantic review, discussion checks and stable-head merge control. See `docs/AUTONOMY_CONTROL.md`.
+
+## Resource-aware workflow policy
+
+- Exactly one implementation PR is active so scarce macOS capacity is not split across parallel targets.
+- Broad and inexpensive validation runs on Linux before the required macOS result is considered.
+- A queued or running job is a resource wait, not a code defect. It does not justify a no-op commit or branch rewrite.
+- Phase 0 is the required macOS/Swift gate; standalone Swift is supporting evidence.
+- `workflow_run` is the event-driven path. The minute-17 schedule is recovery only and must not be treated as exact-time delivery.
+- Per-PR concurrency cancels superseded gate runs while keeping different PRs isolated.
+- Successful job logs are not downloaded. Detailed logs are inspected only for a concrete latest-head failure.
+- GitHub API and connector reads are role-gated and serial. Non-authorized slots stop after the lane read.
+- API `403` or `429` responses stop the current operation. The system respects reset or retry guidance rather than probing repeatedly.
+- Each authorized slot performs at most one product mutation and then re-reads the changed resource.
 
 ## Collaboration workflows
 
@@ -172,69 +215,36 @@ File: `.github/workflows/issue-triage.yml`
 
 Purpose:
 
-- Inspect new or updated issues.
-- Add basic labels based on issue content when possible.
-- Comment when important planning fields are missing.
-
-Triggers:
-
-- Issues opened, edited or reopened.
-
-### Pull Request Quality
-
-File: `.github/workflows/pr-quality.yml`
-
-Purpose:
-
-- Check PR descriptions for core planning, validation and safety sections.
-- Encourage small, reviewable PRs with clear evidence.
-
-Triggers:
-
-- Pull requests opened, edited, synchronized, reopened or marked ready for review.
-
-### Workflow Lint
-
-File: `.github/workflows/workflow-lint.yml`
-
-Purpose:
-
-- Lint GitHub Actions workflow YAML files.
-- Catch workflow syntax and actionlint problems early.
-- Make workflow edits safer before merging.
-
-Triggers:
-
-- Pull requests that change `.github/workflows/**`.
-- Pushes to `main` that change `.github/workflows/**`.
-- Manual workflow runs.
-
-Safety rules:
-
-- Read-only permissions.
-- No file modifications.
-- No generated commits.
-
-## Dependency workflow
+- inspect new or updated issues;
+- add basic labels when possible;
+- comment when important planning fields are missing.
 
 ### Dependabot
 
 File: `.github/dependabot.yml`
 
-Purpose:
+Dependabot may open controlled GitHub Actions update PRs. Do not auto-merge dependency PRs until validation and repository protection rules are proven stable.
 
-- Open controlled update PRs for GitHub Actions dependencies.
+## GitHub Actions and scheduled slots
 
-Rule:
+GitHub Actions own deterministic validation and exact-head technical aggregation. Scheduled slots own target selection, implementation, semantic review, blocker escape and controlled closure.
 
-- Do not auto-merge dependency PRs until validation is stable and branch protection is configured.
+```text
+Issue -> Context -> Producer -> PR Actions -> PR Autonomy Gate -> Reviewer -> Closer -> next Context
+```
 
-## Recommended next steps
+A stale private lane or rollup never overrides newer current GitHub evidence. The shadow comment is an index, not a substitute for reading the PR, changed files, issue, comments, reviews and review threads.
 
-1. Open the CI case coverage PR and inspect its PR Change Scope summary.
-2. Let Phase 0 CI Validation, Repo Audit, Docs Consistency, Workflow Lint and PR Quality run on the PR.
-3. Merge only if the workflow changes are green and the PR summary matches the intended scope.
-4. Run Phase 0 CI Validation on the latest `main` commit after merge.
-5. Record the result in `PROJECT_STATE.md` and Issue #1.
-6. Configure branch protection for `main` in GitHub UI.
-7. Convert selected good-first backlog items into real issues after Issue #1 is resolved.
+## Recommended rollout
+
+1. Open the shadow-gate Draft PR from Issue #64.
+2. Verify Repo Audit including evaluator tests, Workflow Lint, PR Change Scope, Pull Request Quality, Docs Consistency and Phase 0 CI Validation on the exact PR head.
+3. Treat standalone Swift as supporting evidence rather than an additional required macOS gate.
+4. Confirm that the privileged gate has no PR trigger and that Repo Audit is the only workflow executing candidate evaluator code.
+5. Resolve all security review threads before Ready or merge.
+6. Merge only after a stable-head security review.
+7. Verify the first trusted default-branch shadow run while Issue #64 remains open.
+8. Observe at least three real PR transitions: waiting, failing and green.
+9. Confirm repeated runs update one marker comment without duplicate noise.
+10. Keep auto-merge, automatic task selection and cross-repository writes out of version 1.
+11. Configure repository rules or branch protection separately when owner settings are available.
