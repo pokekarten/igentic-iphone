@@ -27,6 +27,30 @@ Mode: `IGENTIC_FOCUSED_LANE_V6` with one target, exact-head evidence and resourc
 - `agentic-dev-playbook` and `agentic-slm-lab` are separate support tracks. Their issues or PRs are never implicit iGentic product targets.
 - Current GitHub source always overrides copied lane, project-file or remembered state.
 
+## Core-canary activation
+
+After the first live Autonomy Gate canary is verified, enable only these six core slots:
+
+```text
+00 Director + Context
+12 Producer
+18 Reviewer
+24 Closer
+30 Validation Watcher
+54 Sequencer
+```
+
+Keep these four expansion slots disabled during the first three complete source-backed product cycles:
+
+```text
+06 Dedicated Context
+36 Blocker Escape
+42 Backlog Failover
+48 Hygiene Auditor
+```
+
+Slot54 records complete consecutive cycles and may set `EXPANSION_READY=yes` after three. It does not enable expansion slots. Expansion requires a separate explicit automation update after evidence review.
+
 ## Mandatory reconciliation preflight
 
 Every iGentic slot must perform this check before acting:
@@ -43,12 +67,21 @@ Every iGentic slot must perform this check before acting:
 
 ## Lane roles
 
-- Context selects one verified target and sets `PRODUCER_PENDING`.
+Core-canary roles:
+
+- Director + Context repairs routing, reconciles terminal or stale targets and selects one verified next target.
 - Producer creates at most one verifiable artifact or product mutation and routes to review.
 - Validation Watcher reconciles required exact-head workflow summaries and never implements.
 - Reviewer independently verifies scope, semantics, required checks, comments, reviews and threads; it never implements.
 - Closer marks Ready and merges only after explicit reviewer authorization and a stable-head recheck.
-- Director, Blocker Escape, Context Failover, Hygiene Auditor and Sequencer repair routing without creating parallel implementation scope.
+- Sequencer validates transitions, synchronizes compact rollup state and counts complete core cycles.
+
+Expansion roles remain configured but disabled until the evidence threshold is reached:
+
+- Dedicated Context separates target selection from Slot00 when additional capacity is justified.
+- Blocker Escape preserves blocked work as watched and selects one safe alternative.
+- Backlog Failover may self-seed one precise issue only when no suitable target exists.
+- Hygiene Auditor repairs proven lane drift without implementing product work.
 
 ## Target envelope
 
@@ -159,7 +192,8 @@ After merge or issue closure:
 3. Set the lane to COMPLETE and increment REVISION.
 4. Clear any assumption that the completed target remains active.
 5. Re-read the lane and confirm persistence.
-6. Allow Context to select the next target only after any explicit restore guard is complete.
+6. Complete any explicit restore guard before selecting the next target.
+7. For the initial V6 restore, enable the six core slots, keep expansion slots disabled and disable the migration watcher.
 ```
 
 ## Expected terminal results
