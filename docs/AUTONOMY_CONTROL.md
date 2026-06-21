@@ -51,7 +51,7 @@ Additional cases:
 - Documentation and project-control changes require Docs Consistency.
 - Changes under `.github/workflows/**` also require Workflow Lint.
 
-The standalone Swift workflow may be displayed or used as supporting evidence, but the shadow gate does not invent requirements that are absent from the repository workflow contract.
+The standalone Swift workflow is supporting evidence only. Phase 0 CI Validation is the required Swift/iOS gate because it already performs repository validation, Swift build and Swift tests on the supported runners.
 
 ## Exact-head rule
 
@@ -93,9 +93,11 @@ Its workflow permission is `contents: read` only. It does not grant issue, pull-
 
 `PR Autonomy Gate` has no `pull_request` or `pull_request_target` trigger. It runs only on:
 
-- completion of relevant validation workflows;
+- completion of required validation workflows;
 - manual dispatch;
-- low-frequency scheduled reconciliation.
+- one scheduled reconciliation at minute 17 each hour.
+
+The scheduled run is recovery only. Event-driven `workflow_run` completion is the normal path.
 
 The privileged job:
 
@@ -106,7 +108,7 @@ The privileged job:
 - uses only the automatic `GITHUB_TOKEN`;
 - restricts permissions to Actions read, contents read, pull requests read and issues write;
 - performs GitHub API requests only against the current repository;
-- uses concurrency to avoid overlapping reconciliation writes.
+- uses per-PR concurrency to avoid overlapping reconciliation writes.
 
 The privileged job must never:
 
@@ -118,14 +120,33 @@ The privileged job must never:
 - execute untrusted PR code, caches or artifacts;
 - claim signing, device or real model evidence.
 
+## Resource-aware operation
+
+GitHub and the GitHub connector are finite resources. The control plane therefore follows these rules:
+
+1. Exactly one product target and one implementation PR may be active.
+2. Linux checks perform broad validation first; macOS is reserved for the required Phase 0 Swift/iOS evidence.
+3. A queued or running runner is a wait state, not a defect. It must not trigger a no-op commit, branch rewrite or automatic retry.
+4. Standalone Swift is supporting evidence and cannot block merge when the required Phase 0 exact-head evidence is successful.
+5. The gate runs event-first and uses only one hourly scheduled recovery run, away from minute zero.
+6. Successful workflow logs are not downloaded. Status is sufficient; detailed logs are fetched only for a concrete current-head failure.
+7. Connector calls are serial and role-gated. A non-authorized slot stops after reading the lane and returns `NO_TRIGGER`.
+8. On API `403` or `429`, the system stops, records `WAITING_API`, respects retry/reset guidance and does not probe through alternate mutation endpoints.
+9. One authorized slot performs at most one product mutation, followed by readback.
+10. Concurrency may cancel superseded gate runs for the same PR, but different PRs must not share a collision-prone group.
+
+The internal operating target is to keep normal connector usage far below GitHub's published limits. This target is a safety budget, not a claim about the connector's exact authentication bucket.
+
 ## Slot integration
 
 Until the shadow gate is proven in repeated real cycles:
 
-1. Slot30 continues to reconcile raw current-head workflow evidence.
+1. Slot30 continues to reconcile raw current-head required workflow evidence.
 2. Slot18 may use the gate as a compact index but must independently inspect the PR, changed files, issue, comments, reviews and review threads.
 3. Slot24 may merge only after a stable-head recheck and an explicit semantic `READY_FOR_CLOSE` decision.
 4. A stale private lane cannot overrule newer current GitHub evidence.
+5. Successful logs are not fetched; only failed current-head jobs justify log retrieval.
+6. `WAITING_RUNNER` and `WAITING_API` do not authorize implementation changes.
 
 Promotion beyond shadow mode requires separate reviewed scope and evidence from multiple correct cycles. Auto-merge, automatic target selection and cross-repository writes are explicitly outside version 1.
 
@@ -138,4 +159,4 @@ cd ios && swift test
 cd ios && swift build
 ```
 
-A workflow-changing PR must additionally pass Repo Audit with the evaluator tests, Workflow Lint and all other checks required by `docs/WORKFLOWS.md` for its exact head. No earlier-head result may authorize the current head.
+A workflow-changing PR must additionally pass Repo Audit with the evaluator tests, Workflow Lint and all other required checks in `docs/WORKFLOWS.md` for its exact head. No earlier-head result may authorize the current head.
