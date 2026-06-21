@@ -1,43 +1,56 @@
-# iGentic FAQ
+# Frequently Asked Questions
 
-This FAQ answers early contributor and user questions about iGentic. It is intentionally plain-language and points back to the repository as the source of truth.
+## Is iGentic a finished app?
 
-## Is this a finished app?
+No. iGentic iPhone is an experimental research prototype for a privacy-first iPhone AI runtime layer. It is not a production assistant, medical device, financial system, legal advisor or identity wallet.
 
-No. iGentic is an experimental research prototype. The repository is being built in small, reviewable slices so the safety model, documentation, and validation can stay ahead of product behavior.
+## Does iGentic automatically send my data to external AI services?
 
-## Does iGentic send my data to external AI?
+No. Local-only behavior is the default research mode. Private raw data must not be sent to external models automatically. Any future external delegation must be explicit, minimized, policy-checked, approval-gated and auditable.
 
-The current repository should not be treated as a finished app or a live personal-data processor. Design and implementation work follows a privacy-first rule: do not add networking, external AI providers, model calls, persistence, secrets, or real private data unless a future reviewed issue explicitly allows that scope.
+## What does “approval-gated” mean?
+
+Critical actions must wait for explicit user approval before execution. The project prefers drafting and previewing over immediately sending, changing or executing something.
+
+## What does “controlled delegation” mean?
+
+Larger work may eventually be delegated to trusted devices or external AI only when policy allows it. Delegation should minimize and redact data, preserve local control and record a useful audit trail without turning logs into private-data dumps.
 
 ## Why is GitHub the source of truth?
 
-GitHub issues, pull requests, workflow checks, and repository documentation provide the auditable project record. Decisions should be traceable to repository artifacts instead of private chat, social posts, or informal status updates.
+GitHub is the canonical place for project decisions, issues, pull requests, validation evidence and roadmap changes. Social channels may explain progress or help people discover the project, but they do not replace repository records.
 
-## Can I contribute without Swift?
+## Can I contribute without Swift experience?
 
-Yes. Helpful non-Swift contributions include documentation, issue triage, validation notes, workflow-safe examples, and contributor clarity improvements. Start with small issues that list exact files, validation, and stop rules.
+Yes. Useful contributions include documentation improvements, source-verification notes, issue triage, reproducible test reports, design work that follows the brand rules and social drafts that link back to GitHub.
+
+Start with:
+
+- `CONTRIBUTING.md`
+- `GOVERNANCE.md`
+- `SECURITY.md`
+- `ROADMAP.md`
+- `docs/community/CONTRIBUTOR_STARTER_GUIDE.md`
+- `docs/community/GOOD_FIRST_ISSUES.md`
 
 ## Why are model weights not committed?
 
-Model weights are not committed because they can be large, sensitive, licensing-bound, or unsuitable for public repository history. The repository should document expected behavior and safe boundaries without embedding heavyweight or private model artifacts.
+Model weights are intentionally outside this repository’s current scope. The repository focuses on architecture, policy, safety controls, validation and small reviewable runtime components. Candidate models are evaluated separately, and no model weights should be added in a normal contribution.
 
 ## Why is social media not a decision authority?
 
-Social media can be useful for awareness, but it is not a durable project record. Project decisions, acceptance criteria, validation evidence, and follow-up work belong in GitHub issues, pull requests, and documentation.
+Instagram, X and LinkedIn are discovery and build-in-public channels. Actionable decisions, feature proposals, code changes, security handling and roadmap updates belong on GitHub so they remain reviewable and traceable.
 
-## What does approval-gated mean?
+## What should not be posted in public issues or pull requests?
 
-Approval-gated means higher-risk behavior should not be added silently. Changes that could affect user data, external services, automation authority, or runtime behavior need explicit review scope and evidence before they are accepted.
+Do not post secrets, tokens, credentials, real user messages, contacts, calendars, health data, financial data, private logs, exploit details or privacy-sensitive proofs of concept. Use synthetic examples whenever possible.
 
-## What does controlled delegation mean?
+For a sensitive security report, follow `SECURITY.md` and avoid publishing the sensitive details in a public issue.
 
-Controlled delegation means automated or assisted work must stay within the exact target, file scope, validation steps, and stop rules. It should not create parallel work, widen scope, or claim unobserved results.
+## Does the project claim production or device readiness?
 
-## What should not be posted in public issues?
+No. Real iPhone testing is required before making device-performance or usability claims. Missing production deployment, signing, App Store configuration or full model integration are expected limitations at this stage.
 
-Do not post secrets, tokens, private messages, real personal data, proprietary model files, private datasets, device identifiers, signing credentials, or anything that would be unsafe to keep in public repository history.
+## Where should I ask questions or propose changes?
 
-## Where should contributors look next?
-
-Use the README, issues, pull requests, and documentation in this repository. Prefer small, source-backed changes with clear validation steps and a narrow review surface.
+Use GitHub Issues for bugs, questions, research tasks and feature proposals. Use pull requests for small reviewable changes. Keep the project’s experimental status, privacy rules and stop conditions explicit.
