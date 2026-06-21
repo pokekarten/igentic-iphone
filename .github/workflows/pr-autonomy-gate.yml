@@ -1,6 +1,12 @@
 name: PR Autonomy Gate
 
 on:
+  pull_request:
+    paths:
+      - ".github/workflows/pr-autonomy-gate.yml"
+      - "scripts/autonomy/**"
+      - "docs/AUTONOMY_CONTROL.md"
+      - "docs/WORKFLOWS.md"
   workflow_run:
     workflows:
       - "PR Change Scope"
@@ -21,14 +27,10 @@ on:
   schedule:
     - cron: "17,47 * * * *"
 
-permissions:
-  actions: read
-  contents: read
-  issues: write
-  pull-requests: read
+permissions: {}
 
 concurrency:
-  group: pr-autonomy-gate
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || 'shadow' }}
   cancel-in-progress: true
 
 defaults:
@@ -36,7 +38,45 @@ defaults:
     shell: bash
 
 jobs:
+  candidate-tests:
+    if: ${{ github.event_name == 'pull_request' }}
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    steps:
+      - name: Checkout candidate merge ref without marketplace actions
+        run: |
+          set -euo pipefail
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git fetch --no-tags --depth=1 origin "pull/${PR_NUMBER}/merge"
+          git checkout --force FETCH_HEAD
+          git clean -fdx
+          git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+
+      - name: Test evaluator logic with read-only permissions
+        run: python3 scripts/autonomy/test_evaluate_pr.py
+
+      - name: Summarize candidate boundary
+        if: ${{ always() }}
+        run: |
+          {
+            echo "## PR Autonomy Gate candidate tests"
+            echo ""
+            echo "The candidate evaluator ran with contents-read permission only."
+            echo "No repository write token or additional secret was available to PR code."
+          } >> "${GITHUB_STEP_SUMMARY}"
+
   shadow-gate:
+    if: ${{ github.event_name != 'pull_request' }}
+    permissions:
+      actions: read
+      contents: read
+      issues: write
+      pull-requests: read
     runs-on: ubuntu-latest
     timeout-minutes: 8
     env:
@@ -55,7 +95,7 @@ jobs:
           git clean -fdx
           git config --global --add safe.directory "${GITHUB_WORKSPACE}"
 
-      - name: Verify evaluator logic
+      - name: Verify trusted evaluator logic
         run: python3 scripts/autonomy/test_evaluate_pr.py
 
       - name: Reconcile open pull request evidence
@@ -72,5 +112,5 @@ jobs:
             echo "Repository: ${GITHUB_REPOSITORY}"
             echo ""
             echo "This workflow aggregates exact-head GitHub Actions evidence only."
-            echo "It does not merge, update branches, close issues, write to Brain or execute PR-head code."
+            echo "It does not merge, update branches, close issues, write to Brain or execute PR-head code with write permissions."
           } >> "${GITHUB_STEP_SUMMARY}"
