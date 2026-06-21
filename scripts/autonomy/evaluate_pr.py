@@ -18,6 +18,8 @@ from dataclasses import dataclass
 from typing import Any, Iterable, Mapping, Sequence
 
 MARKER = "<!-- igentic-pr-autonomy-gate -->"
+BOT_LOGIN = "github-actions[bot]"
+BOT_APP_SLUG = "github-actions"
 BASE_REQUIRED = (
     "PR Change Scope",
     "Pull Request Quality",
@@ -145,6 +147,27 @@ def evaluate(files: Sequence[str], runs: Iterable[Mapping[str, Any]], head: str)
     return GateResult(state=state, required=required, evidence=tuple(evidence))
 
 
+def find_owned_gate_comment(
+    comments: Iterable[Mapping[str, Any]],
+) -> Mapping[str, Any] | None:
+    """Return only the marker comment owned by GitHub Actions.
+
+    A contributor may quote or copy the hidden marker. Such a comment must never be
+    selected for update because it could cause a permission failure or overwrite
+    contributor content.
+    """
+    for comment in comments:
+        if MARKER not in str(comment.get("body") or ""):
+            continue
+        user_login = str((comment.get("user") or {}).get("login") or "")
+        app_slug = str(
+            (comment.get("performed_via_github_app") or {}).get("slug") or ""
+        )
+        if user_login == BOT_LOGIN or app_slug == BOT_APP_SLUG:
+            return comment
+    return None
+
+
 class GitHubClient:
     def __init__(self, repository: str, token: str) -> None:
         self.repository = repository
@@ -219,14 +242,7 @@ class GitHubClient:
         return self.paged(f"/repos/{self.repository}/issues/{number}/comments")
 
     def upsert_gate_comment(self, number: int, body: str) -> str:
-        existing = next(
-            (
-                comment
-                for comment in self.comments(number)
-                if MARKER in str(comment.get("body") or "")
-            ),
-            None,
-        )
+        existing = find_owned_gate_comment(self.comments(number))
         if existing is not None:
             if str(existing.get("body") or "") == body:
                 return "unchanged"
