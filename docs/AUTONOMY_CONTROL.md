@@ -82,9 +82,8 @@ The workflow separates candidate validation from the privileged shadow controlle
 On a pull request, the candidate merge ref is checked out only to run `scripts/autonomy/test_evaluate_pr.py`.
 
 - job permission: contents read only;
-- no `GITHUB_TOKEN` environment variable is passed to the evaluator;
-- no issue, pull-request, Actions or branch write permission is available;
-- no additional secrets are available;
+- the job does not reference or pass an additional secret or repository write token to PR code;
+- no issue, pull-request, Actions or branch write permission is granted;
 - the job cannot publish the shadow comment.
 
 This gives pre-merge test evidence without giving candidate code a repository write token.
