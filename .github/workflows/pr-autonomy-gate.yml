@@ -30,7 +30,7 @@ on:
 permissions: {}
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || 'shadow' }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.workflow_run.pull_requests[0].number || github.event.inputs.pr_number || 'reconcile' }}
   cancel-in-progress: true
 
 defaults:
