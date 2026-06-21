@@ -51,7 +51,7 @@ Triggers:
 - pushes to `main`;
 - manual runs.
 
-This is the main validation source for Issue #1 and the baseline technical check for every PR.
+This is the main validation source for Issue #1 and the required Swift/iOS technical gate for pull requests.
 
 ### Swift
 
@@ -62,7 +62,7 @@ Purpose:
 - provide an additional Swift build and test signal;
 - expose runner-specific failures independently from the combined Phase 0 workflow.
 
-The standalone Swift workflow is supporting evidence. The required-check table remains the canonical scope contract.
+The standalone Swift workflow is supporting evidence only. It does not become a merge blocker when the required exact-head Phase 0 CI Validation is successful.
 
 ## Scope and repository checks
 
@@ -171,13 +171,15 @@ Purpose:
 - aggregate the latest required workflow result for the exact head of each open PR;
 - distinguish `WAITING_CI`, `FIX_NEEDED`, `CI_GREEN` and `UNSUPPORTED_SCOPE`;
 - maintain one idempotent marker comment owned by GitHub Actions;
-- repair status drift through event-driven runs plus a low-frequency schedule.
+- repair status drift through event-driven runs plus one low-frequency scheduled fallback.
 
 Triggers:
 
-- completion of PR Change Scope, Pull Request Quality, Repo Audit, Phase 0 CI Validation, Docs Consistency, Workflow Lint or Swift;
+- completion of PR Change Scope, Pull Request Quality, Repo Audit, Phase 0 CI Validation, Docs Consistency or Workflow Lint;
 - manual dispatch, optionally for one open PR;
-- scheduled reconciliation at minutes 17 and 47.
+- scheduled reconciliation once per hour at minute 17.
+
+The standalone Swift workflow does not trigger the gate because it is supporting rather than required evidence. Phase 0 completion and the hourly recovery run are sufficient to reconcile the required state.
 
 Security rules:
 
@@ -191,6 +193,19 @@ Security rules:
 Candidate evaluator tests are intentionally outside this privileged workflow and run in Repo Audit.
 
 `CI_GREEN` is technical evidence only. Scheduled Reviewer and Closer roles still perform semantic review, discussion checks and stable-head merge control. See `docs/AUTONOMY_CONTROL.md`.
+
+## Resource-aware workflow policy
+
+- Exactly one implementation PR is active so scarce macOS capacity is not split across parallel targets.
+- Broad and inexpensive validation runs on Linux before the required macOS result is considered.
+- A queued or running job is a resource wait, not a code defect. It does not justify a no-op commit or branch rewrite.
+- Phase 0 is the required macOS/Swift gate; standalone Swift is supporting evidence.
+- `workflow_run` is the event-driven path. The minute-17 schedule is recovery only and must not be treated as exact-time delivery.
+- Per-PR concurrency cancels superseded gate runs while keeping different PRs isolated.
+- Successful job logs are not downloaded. Detailed logs are inspected only for a concrete latest-head failure.
+- GitHub API and connector reads are role-gated and serial. Non-authorized slots stop after the lane read.
+- API `403` or `429` responses stop the current operation. The system respects reset or retry guidance rather than probing repeatedly.
+- Each authorized slot performs at most one product mutation and then re-reads the changed resource.
 
 ## Collaboration workflows
 
@@ -223,12 +238,13 @@ A stale private lane or rollup never overrides newer current GitHub evidence. Th
 ## Recommended rollout
 
 1. Open the shadow-gate Draft PR from Issue #64.
-2. Verify Repo Audit including evaluator tests, Workflow Lint, PR Change Scope, Pull Request Quality, Docs Consistency, Phase 0 CI Validation and Swift on the exact PR head.
-3. Confirm that the privileged gate has no PR trigger and that Repo Audit is the only workflow executing candidate evaluator code.
-4. Resolve all security review threads before Ready or merge.
-5. Merge only after a stable-head security review.
-6. Verify the first trusted default-branch shadow run while Issue #64 remains open.
-7. Observe at least three real PR transitions: waiting, failing and green.
-8. Confirm repeated runs update one marker comment without duplicate noise.
-9. Keep auto-merge, automatic task selection and cross-repository writes out of version 1.
-10. Configure repository rules or branch protection separately when owner settings are available.
+2. Verify Repo Audit including evaluator tests, Workflow Lint, PR Change Scope, Pull Request Quality, Docs Consistency and Phase 0 CI Validation on the exact PR head.
+3. Treat standalone Swift as supporting evidence rather than an additional required macOS gate.
+4. Confirm that the privileged gate has no PR trigger and that Repo Audit is the only workflow executing candidate evaluator code.
+5. Resolve all security review threads before Ready or merge.
+6. Merge only after a stable-head security review.
+7. Verify the first trusted default-branch shadow run while Issue #64 remains open.
+8. Observe at least three real PR transitions: waiting, failing and green.
+9. Confirm repeated runs update one marker comment without duplicate noise.
+10. Keep auto-merge, automatic task selection and cross-repository writes out of version 1.
+11. Configure repository rules or branch protection separately when owner settings are available.
