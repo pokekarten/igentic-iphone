@@ -1,6 +1,6 @@
 # Project State
 
-Last updated: 2026-06-20
+Last updated: 2026-06-21
 
 ## Current status
 
@@ -11,6 +11,17 @@ Last updated: 2026-06-20
 - Validation: GitHub Actions on macOS and Linux
 - Primary target device: iPhone Air as trust/control plane
 - Current phase: diagnostic shell and safe local-model boundary design
+
+## Identity and community anchors
+
+- Master brand: `iGentic`
+- Community model: GitHub-first, social-supported
+- Brand guidance: `docs/brand/BRAND.md`
+- Brand asset manifest: `docs/brand/BRAND_ASSET_MANIFEST.md`
+- Social profile asset: `assets/social/instagram-profile-v3.svg`
+- Community strategy: `docs/community/COMMUNITY_STRATEGY.md`
+
+These are durable project anchors required by repository validation. They do not describe a live work target.
 
 ## Source-of-truth contract
 
