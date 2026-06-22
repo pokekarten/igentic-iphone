@@ -189,6 +189,14 @@ def validate_benchmark_records(records: list[dict[str, Any]]) -> list[str]:
             errors.append(
                 f"{prefix}: expected_missing_arguments must be a subset of required_arguments"
             )
+        for key in required_arguments:
+            has_expected_value = key in arguments and _non_empty(arguments[key])
+            is_expected_missing = key in missing_arguments
+            if has_expected_value == is_expected_missing:
+                errors.append(
+                    f"{prefix}: required argument '{key}' must have exactly one "
+                    "expected state: a non-empty value or expected missing"
+                )
         for key in missing_arguments:
             if key in arguments and _non_empty(arguments[key]):
                 errors.append(f"{prefix}: missing argument '{key}' must not have a value")
