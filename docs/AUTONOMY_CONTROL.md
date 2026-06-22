@@ -1,45 +1,80 @@
 # GitHub Actions Autonomy Control
 
-Issue: #64
+Last reviewed: 2026-06-22
 
 ## Purpose
 
-The PR Autonomy Gate is a GitHub-native, metadata-only shadow controller for open iGentic pull requests. It closes the gap between individual validation workflows and the scheduled agent lane by publishing one exact-head technical summary directly on the pull request.
+The iGentic autonomy control plane combines deterministic GitHub Actions with five scheduled tasks. GitHub Actions provide exact-head technical evidence. Scheduled tasks select one target, implement one bounded change, perform independent semantic review, close safely and reconcile state.
 
-The gate does not replace review. It does not decide product direction, approve semantics or merge code.
+The control plane does not permit models or scheduled tasks to bypass deterministic policy, approval, schema validation, audit or execution boundaries.
 
 ## Responsibility split
 
 | Surface | Responsibility |
 | --- | --- |
-| GitHub Issues | Public task scope, acceptance criteria and stop rules |
-| Pull Requests | Reviewable implementation unit and current head SHA |
-| Existing GitHub Actions | Build, tests, repository structure, documentation, PR quality and changed-file validation |
-| Repo Audit | Execute evaluator unit tests on candidate PR code with contents-read permission only |
-| PR Autonomy Gate | Aggregate latest required exact-head evidence after trusted code reaches the default branch |
-| Scheduled Context/Producer slots | Select one target and implement one narrow change |
-| Scheduled Reviewer slot | Review scope, diff, issue fit, safety and current technical evidence |
-| Scheduled Closer slot | Re-check stable head, discussion and evidence before one controlled merge |
-| Private Brain | Compact routing, durable rules and cross-project rollup only |
+| GitHub issues | Public scope, acceptance criteria, validation and stop rules |
+| Pull requests | Reviewable implementation unit and current head SHA |
+| GitHub Actions | Build, tests, repository structure, documentation, PR quality and changed-file validation |
+| PR Autonomy Gate | Aggregate required exact-head technical evidence into one idempotent marker |
+| Slot00 Director | Reconcile state and select exactly one target |
+| Slot12 Producer | Implement one bounded artifact and open/adopt one Draft PR |
+| Slot30 Validate + Review | Reconcile required checks and independently review semantics and safety |
+| Slot42 Closer | Mark Ready, re-check stable head, merge once and synchronize terminal state |
+| Slot54 Sequencer | Reconcile lane/rollup and count complete autonomous cycles |
+| Private Brain | Compact mutable routing and rollup state only |
 
-Current GitHub PR and issue state always overrides copied lane or rollup text.
+Current GitHub source always overrides copied lane, rollup or repository text.
 
-## Shadow states
+## Five-task platform contract
 
-The gate reports exactly one state:
+The active scheduled product cycle is:
 
-- `WAITING_CI`: at least one required workflow is missing, queued, running, cancelled, skipped or otherwise not successfully completed for the exact head.
-- `FIX_NEEDED`: at least one required latest exact-head workflow has a concrete failing conclusion.
-- `CI_GREEN`: every required workflow for the changed scope has a successful latest run for the exact head.
-- `UNSUPPORTED_SCOPE`: the gate cannot safely classify the PR scope, for example because the changed-file list is empty.
+```text
+00 Director
+12 Producer
+30 Validate + Review
+42 Closer
+54 Sequencer
+```
 
-`CI_GREEN` is technical evidence only. It is not semantic approval, merge authorization, physical-device evidence or permission to bypass Reviewer and Closer.
+The platform limit is five active tasks. A new active role requires replacing one of these five through an explicit reviewed automation update. Historical dedicated Reviewer, Validation Watcher, Context, Blocker Escape, Backlog Failover and Hygiene tasks remain disabled.
+
+Exactly one product target and at most one implementation PR may be active.
+
+## Legal transition contract
+
+```text
+CONTEXT_PENDING/CONTEXT
+-> PRODUCER_PENDING/PRODUCER
+-> REVIEW_PENDING/REVIEWER
+-> CLOSER_PENDING/CLOSER
+-> COMPLETE/CONTEXT
+```
+
+- Slot00 owns context selection and routing repair.
+- Slot12 owns implementation only.
+- Slot30 owns both technical reconciliation and independent semantic review.
+- Slot42 owns Ready, merge and terminal synchronization.
+- Slot54 owns rollup reconciliation and cycle measurement.
+
+No task may perform the next role's work in the same run.
+
+## PR Autonomy Gate
+
+The metadata-only gate reports one state for the exact PR head:
+
+- `WAITING_CI`: one or more required workflows are missing, queued, running, cancelled, skipped or otherwise incomplete;
+- `FIX_NEEDED`: a required latest exact-head workflow has a concrete failure;
+- `CI_GREEN`: all required workflows for the changed scope succeeded;
+- `UNSUPPORTED_SCOPE`: the gate cannot safely classify the changed scope.
+
+`CI_GREEN` is technical evidence only. It is not semantic approval, merge authorization, physical-device evidence or permission to bypass Slot30 or Slot42.
 
 ## Required evidence
 
 The source contract is `docs/WORKFLOWS.md`.
 
-Baseline for every PR:
+Required for every PR:
 
 - PR Change Scope
 - Pull Request Quality
@@ -48,115 +83,117 @@ Baseline for every PR:
 
 Additional cases:
 
-- Documentation and project-control changes require Docs Consistency.
-- Changes under `.github/workflows/**` also require Workflow Lint.
+- Docs Consistency for documentation and project-control changes;
+- Workflow Lint for workflow changes.
 
-The standalone Swift workflow is supporting evidence only. Phase 0 CI Validation is the required Swift/iOS gate because it already performs repository validation, Swift build and Swift tests on the supported runners.
+Standalone Swift is supporting evidence only. It cannot block when the required exact-head Phase 0 result is successful.
 
 ## Exact-head rule
 
-The evaluator requests workflow runs for the current pull-request head SHA and filters every run again by `head_sha`. For each required workflow name, only the newest exact-head run is used.
+Only the newest workflow run for the current PR head may be used.
 
 Consequences:
 
-- a green old-head run cannot authorize a changed PR;
-- a newer queued or failed run supersedes an older successful run with the same name;
-- cancelled or skipped required runs remain `WAITING_CI` rather than being treated as success;
-- repeated workflow completions recompute the whole required set instead of trusting only the triggering workflow.
+- old-head success never authorizes a changed PR;
+- a newer queued or failed run supersedes earlier success;
+- cancelled or skipped required runs remain incomplete;
+- Ready or merge requires a fresh same-head recheck;
+- merge uses `expected_head_sha`.
 
-## Idempotent status comment
+## Trust boundaries
 
-The gate owns one PR comment containing this hidden marker:
+Candidate PR code and privileged gate reconciliation remain separated.
 
-```html
-<!-- igentic-pr-autonomy-gate -->
-```
+The privileged gate:
 
-A later run updates that comment only when its content changed. It selects only a marker comment owned by GitHub Actions, so copied marker text in contributor comments is not overwritten.
+- runs trusted default-branch code only;
+- never checks out or executes PR code, caches or artifacts;
+- may read Actions, contents and PR metadata and update its single marker comment;
+- cannot merge, mutate refs, close issues, select targets or write private Brain state;
+- cannot claim model, signing or physical-device evidence.
 
-## Separated trust boundaries
+Scheduled tasks:
 
-Candidate code and privileged reconciliation are intentionally handled by different workflows.
+- use current GitHub source before Brain or memory;
+- act only in their authorized stage;
+- make at most one product mutation before readback;
+- do not download successful logs;
+- fetch detailed logs only for a concrete current-head failure;
+- stop on API `403` or `429` without probing alternate mutation endpoints.
 
-### Read-only candidate tests
+## Combined Slot30 gate
 
-`Repo Audit` runs on pull requests and checks out the candidate merge ref. It executes:
+Slot30 replaces the old split Validation Watcher and Reviewer roles.
 
-```bash
-python3 scripts/validate_repo_structure.py
-python3 scripts/autonomy/test_evaluate_pr.py
-```
+It must:
 
-Its workflow permission is `contents: read` only. It does not grant issue, pull-request, Actions or branch write permission, and it does not reference or pass an additional secret to candidate code.
+1. verify exact target, head, draft state and complete scope;
+2. reconcile all required current-head workflow results;
+3. independently inspect the issue, PR body, full diff, comments, reviews and threads;
+4. review acceptance criteria, safety, privacy, fail-closed behavior and tests;
+5. route one result:
+   - `WAITING_RUNNER`;
+   - `FIX_NEEDED` back to Producer;
+   - `READY_FOR_CLOSE` to Closer;
+   - `STATE_SYNC_READY` to Closer;
+   - `WAITING_API` or `OWNER_BOUNDARY` when proven.
 
-### Privileged shadow gate
+It never implements or merges.
 
-`PR Autonomy Gate` has no `pull_request` or `pull_request_target` trigger. It runs only on:
+## Slot42 closure gate
 
-- completion of required validation workflows;
-- manual dispatch;
-- one scheduled reconciliation at minute 17 each hour.
+Slot42 replaces the old Slot24 closer number.
 
-The scheduled run is recovery only. Event-driven `workflow_run` completion is the normal path.
+It must:
 
-The privileged job:
+1. require same-head `READY_FOR_CLOSE` or `STATE_SYNC_READY` authorization;
+2. re-read the exact PR and current required evidence;
+3. mark Draft Ready only when all gates pass;
+4. re-check the unchanged head and discussion state;
+5. squash-merge at most one PR with expected-head protection;
+6. confirm terminal GitHub state and changed content on `main`;
+7. close the linked issue only when acceptance criteria are source-backed;
+8. route the lane to `COMPLETE/CONTEXT`.
 
-- executes only the evaluator stored on the trusted default branch;
-- fetches the default branch, never the pull-request head;
-- does not restore or consume pull-request caches;
-- does not download or execute pull-request artifacts;
-- uses only the automatic `GITHUB_TOKEN`;
-- restricts permissions to Actions read, contents read, pull requests read and issues write;
-- performs GitHub API requests only against the current repository;
-- uses per-PR concurrency to avoid overlapping reconciliation writes.
+It never selects the next target.
 
-The privileged job must never:
+## Autonomous-cycle measurement
 
-- merge or enable auto-merge;
-- change a branch or commit;
-- close an issue or pull request;
-- create or remove labels;
-- write to the private Brain or another repository;
-- execute untrusted PR code, caches or artifacts;
-- claim signing, device or real model evidence.
+Slot54 counts a complete autonomous cycle only when all of these are source-backed:
+
+- one target selected without duplicate scope;
+- at most one implementation PR;
+- bounded allowlisted files;
+- persisted Producer result;
+- current-head required technical checks;
+- independent Slot30 semantic review;
+- expected-head closure or accurate terminal synchronization;
+- final GitHub readback;
+- private lane and rollup synchronization;
+- no interactive repair during the counted cycle.
+
+The consecutive count resets for duplicate PRs, stale-head authorization, unsafe mutation, missing terminal readback or unrepaired lane/rollup drift.
+
+After three consecutive complete untouched cycles, Slot54 may record `AUTONOMY_PROVEN=three_cycles` and notify the owner once. It does not enable additional tasks.
 
 ## Resource-aware operation
 
-GitHub and the GitHub connector are finite resources. The control plane therefore follows these rules:
-
-1. Exactly one product target and one implementation PR may be active.
-2. Linux checks perform broad validation first; macOS is reserved for the required Phase 0 Swift/iOS evidence.
-3. A queued or running runner is a wait state, not a defect. It must not trigger a no-op commit, branch rewrite or automatic retry.
-4. Standalone Swift is supporting evidence and cannot block merge when the required Phase 0 exact-head evidence is successful.
-5. The gate runs event-first and uses only one hourly scheduled recovery run, away from minute zero.
-6. Successful workflow logs are not downloaded. Status is sufficient; detailed logs are fetched only for a concrete current-head failure.
-7. Connector calls are serial and role-gated. A non-authorized slot stops after reading the lane and returns `NO_TRIGGER`.
-8. On API `403` or `429`, the system stops, records `WAITING_API`, respects retry/reset guidance and does not probe through alternate mutation endpoints.
-9. One authorized slot performs at most one product mutation, followed by readback.
-10. Concurrency may cancel superseded gate runs for the same PR, but different PRs must not share a collision-prone group.
-
-The internal operating target is to keep normal connector usage far below GitHub's published limits. This target is a safety budget, not a claim about the connector's exact authentication bucket.
-
-## Slot integration
-
-Until the shadow gate is proven in repeated real cycles:
-
-1. Slot30 continues to reconcile raw current-head required workflow evidence.
-2. Slot18 may use the gate as a compact index but must independently inspect the PR, changed files, issue, comments, reviews and review threads.
-3. Slot24 may merge only after a stable-head recheck and an explicit semantic `READY_FOR_CLOSE` decision.
-4. A stale private lane cannot overrule newer current GitHub evidence.
-5. Successful logs are not fetched; only failed current-head jobs justify log retrieval.
-6. `WAITING_RUNNER` and `WAITING_API` do not authorize implementation changes.
-
-Promotion beyond shadow mode requires separate reviewed scope and evidence from multiple correct cycles. Auto-merge, automatic target selection and cross-repository writes are explicitly outside version 1.
+1. Exactly one target and one implementation PR maximum.
+2. Queued runners are `WAITING_RUNNER`, not defects.
+3. No no-op commit, branch rewrite or retry solely to trigger CI.
+4. Connector operations stay serial and lane-first.
+5. Successful logs are not downloaded.
+6. API `403` or `429` stops the run as `WAITING_API`.
+7. Adding a sixth role is impossible without replacing one active task.
+8. Pokekartenkiste remains paused and cannot consume an iGentic task.
+9. Playbook and SLM Lab remain support repositories and cannot become implicit product targets.
 
 ## Validation
 
 ```bash
-python3 scripts/autonomy/test_evaluate_pr.py
 python3 scripts/validate_repo_structure.py
 cd ios && swift test
 cd ios && swift build
 ```
 
-A workflow-changing PR must additionally pass Repo Audit with the evaluator tests, Workflow Lint and all other required checks in `docs/WORKFLOWS.md` for its exact head. No earlier-head result may authorize the current head.
+Documentation changes must pass the exact-head checks defined in `docs/WORKFLOWS.md`. No earlier-head result may authorize the current head.
