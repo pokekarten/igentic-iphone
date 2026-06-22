@@ -21,12 +21,12 @@ Current GitHub evidence always overrides stale documentation, Brain state or rem
 
 | Repository | Stores | Must not store |
 | --- | --- | --- |
-| `pokekarten/igentic-iphone` | Product architecture, safety contracts, model strategy, benchmark and evaluator contracts, public decisions and verified evidence rules | Secrets, private user data, raw chats, model weights, transient lane state |
-| `pokekarten/agentic-private-brain` | Compact private target routing, verified handoff state and durable private coordination rules | Product documentation, copied diffs, research reports, credentials or raw conversations |
-| `pokekarten/agentic-dev-playbook` | Sanitized reusable methods only after they are proven in project work | Live iGentic status or project-private details |
-| `pokekarten/agentic-slm-lab` | Reusable public-safe model, dataset and evaluation patterns | iGentic private data, product state or unreviewed exports |
+| `pokekarten/igentic-iphone` (public) | Product architecture, safety contracts, model strategy, benchmark and evaluator contracts, public decisions and verified evidence rules | Secrets, private user data, raw chats, model weights, transient lane state |
+| `pokekarten/agentic-private-brain` (private) | Compact private target routing, verified handoff state and durable private coordination rules | Product documentation, copied diffs, research reports, credentials or raw conversations |
+| `pokekarten/agentic-dev-playbook` (public) | Sanitized reusable methods only after they are proven in project work | Live iGentic status or project-private details |
+| `pokekarten/agentic-slm-lab` (private) | Reusable model, dataset and evaluation patterns that remain abstracted and safe for later publication | Raw iGentic data, product state, secrets or unreviewed exports |
 
-No additional repository is required merely to preserve current iGentic research knowledge.
+These visibility labels were verified from current GitHub repository metadata on 2026-06-22. No additional repository is required merely to preserve current iGentic research knowledge.
 
 ## Canonical product documents
 
@@ -69,27 +69,32 @@ Mutable state belongs in current GitHub resources and compact Brain routing. Do 
 
 ## Evidence classes
 
-Always label or clearly distinguish these classes:
+Evidence classes are not interchangeable:
 
-1. **Source evidence** — what an official source, model card or license states.
-2. **Repository evidence** — what current code, tests, workflows and merged files prove.
-3. **Runtime compatibility evidence** — a model or operator can be converted, built or loaded in a named runtime.
-4. **Simulator or host evidence** — behavior observed on Mac, CI or simulator.
-5. **Physical-device evidence** — behavior observed on a named iPhone, OS and build.
+1. **Source claim** — what a primary or official source states; it does not prove that iGentic reproduced the claim.
+2. **Software contract** — what deterministic types, schemas, validators and tests require; it does not prove model quality or device performance.
+3. **Simulator or host result** — behavior observed in a named CI, Mac or simulator environment; it does not prove physical iPhone Air execution.
+4. **Runtime result** — an exact artifact loads or runs with an exact runtime and configuration; it does not prove another artifact, runtime or device works.
+5. **Physical-device result** — behavior observed on a named physical iPhone, OS and build; it does not prove general readiness across devices.
 6. **Decision** — the chosen project direction based on the available evidence.
 7. **Assumption** — an unresolved claim that must not be presented as verified.
 
-Runtime support, a vendor benchmark, a Mac run or simulator success is not physical iPhone Air evidence.
+Runtime source support is not successful export. Successful export is not host execution. Host execution is not physical iPhone execution. Physical execution is not automatically acceptable product behavior.
 
 ## Update and anti-duplication rules
 
 - Update the canonical topic file instead of creating a second summary.
 - Link to detailed contracts; do not copy their complete contents into indexes.
-- Record a verification date for time-sensitive platform, model and license claims.
+- Record a verification date for time-sensitive platform, model, license and repository-visibility claims.
 - Preserve old benchmark and schema versions. Corrections require a new version or explicit migration note.
 - Store raw experiment output outside the durable contract unless it is reviewed, public-safe and tied to an immutable configuration.
-- Never commit model weights, provider credentials, real messages, contacts, files, device identifiers or other private data.
 - When a source changes, update the affected decision and its review trigger; do not rewrite historical evidence silently.
+
+## Publication boundary
+
+Public iGentic sources may contain synthetic examples, public source links, schemas, validators, evaluation rules and reviewed metadata-only evidence. They must not contain private Brain identifiers, real user content, raw conversations, credentials, access material, repository dumps, unredacted personal logs, device identifiers, model weights, adapters or checkpoints.
+
+Reusable lessons must be sanitized before entering the public playbook. Model, dataset and evaluation patterns entering the private SLM lab must be abstracted from product-private data and remain suitable for later reviewed publication.
 
 ## Work selection
 
