@@ -30,11 +30,9 @@ Defines:
 
 Defines the first source-aligned action-routing benchmark for the current iGentic intents and proposal schema. It includes deterministic component metrics and an immutable-test policy.
 
-### Immutable benchmark data
+### Immutable benchmark records
 
-`docs/model-research/igentic-action-benchmark-v0.jsonl`
-
-Contains exactly 40 synthetic records:
+The JSONL file in this directory contains exactly 40 synthetic records:
 
 - 20 German;
 - 20 English;
