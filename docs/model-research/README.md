@@ -7,14 +7,14 @@ This directory contains public-safe, source-backed contracts for selecting, eval
 
 ## Read in this order
 
-1. [`../../MODEL_STRATEGY.md`](../../MODEL_STRATEGY.md) — permanent safety and model-authority rules.
-2. [`../local-runtime-review.md`](../local-runtime-review.md) — runtime prerequisites and comparison boundary.
-3. [`IPHONE_AIR_MODEL_CANDIDATES.md`](IPHONE_AIR_MODEL_CANDIDATES.md) — candidate, license, runtime and evidence manifest.
-4. [`IGENTIC_ACTION_BENCHMARK_V0.md`](IGENTIC_ACTION_BENCHMARK_V0.md) — immutable action-routing benchmark contract.
-5. [`igentic-action-benchmark-v0.jsonl`](igentic-action-benchmark-v0.jsonl) — 40 synthetic German/English V0 cases.
+1. [`MODEL_STRATEGY.md`](../../MODEL_STRATEGY.md) — permanent safety and model-authority rules.
+2. [`docs/local-runtime-review.md`](../local-runtime-review.md) — runtime prerequisites and comparison boundary.
+3. [`docs/model-research/IPHONE_AIR_MODEL_CANDIDATES.md`](IPHONE_AIR_MODEL_CANDIDATES.md) — candidate, license, runtime and evidence manifest.
+4. [`docs/model-research/IGENTIC_ACTION_BENCHMARK_V0.md`](IGENTIC_ACTION_BENCHMARK_V0.md) — immutable action-routing benchmark contract.
+5. [The V0 JSONL dataset](igentic-action-benchmark-v0.jsonl) — 40 synthetic German/English V0 cases.
 6. Parent research issue `#74` and knowledge-export roadmap `#79` — current source-backed follow-up sequence.
 
-The product-wide routing rules are in [`../KNOWLEDGE_MAP.md`](../KNOWLEDGE_MAP.md).
+The product-wide routing rules are in [`docs/KNOWLEDGE_MAP.md`](../KNOWLEDGE_MAP.md).
 
 ## Fixed safety boundary
 
