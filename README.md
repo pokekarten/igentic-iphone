@@ -78,6 +78,8 @@ See:
 - `docs/CODEX_NEXT_TASK.md`
 - `docs/SPARSAMKEIT.md`
 - `docs/SOURCE_VERIFICATION.md`
+- `docs/KNOWLEDGE_MAP.md`
+- `docs/model-research/README.md`
 
 ## Brand and community
 
