@@ -42,7 +42,7 @@ No additional repository is required merely to preserve current iGentic research
 | App-action safety | `docs/app-intents-safety.md` | Draft-first and approval-gated action rules |
 | Validation and workflows | `docs/VALIDATION.md`, `docs/WORKFLOWS.md` | Required repository checks and evidence |
 | Durable execution protocol | `docs/CHATGPT_NEXT_TASK.md` | Stable lane rules, not the live target |
-| Live iGentic target and lane stage | private Brain issue `#25` | Mutable routing state only |
+| Live iGentic target and lane stage | current GitHub issue or pull request, with authorized private Brain routing where applicable | Mutable routing state only; never copy private identifiers into public docs |
 | Model research index | `docs/model-research/README.md` | Entry point for candidates, benchmarks and future evidence |
 
 When two durable files disagree, open one narrow reconciliation issue. Do not silently choose the more convenient statement.
@@ -95,8 +95,8 @@ Runtime support, a vendor benchmark, a Mac run or simulator success is not physi
 
 Before implementing:
 
-1. read private Brain issue `#25`;
-2. verify the named issue or pull request from current GitHub source;
+1. verify the named issue or pull request from current GitHub source;
+2. authorized controllers additionally verify the current private Brain routing without copying private identifiers into public artifacts;
 3. confirm there is only one active iGentic implementation PR;
 4. read the canonical files for the target topic;
 5. change only the allowed files;
