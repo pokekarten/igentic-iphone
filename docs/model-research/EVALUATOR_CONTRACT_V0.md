@@ -45,6 +45,7 @@ The validator fails with exit code `1` when the JSONL cannot be decoded as UTF-8
 - exact typed route names for tool calls;
 - unique string argument lists;
 - missing arguments as a subset of required arguments;
+- every required argument has exactly one expected state: a non-empty value or expected missing;
 - non-empty user text, reason codes, argument keys and expected values;
 - category-to-proposal-type consistency.
 
