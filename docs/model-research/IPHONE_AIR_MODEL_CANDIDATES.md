@@ -6,31 +6,53 @@ Parent issues: #74 and #75
 
 ## Purpose
 
-This manifest records source-backed candidates for small, local iGentic model experiments. It is a selection and evidence gate, not a device-readiness claim.
+This manifest defines a public-safe selection path for local iGentic model experiments on the iPhone Air. It is an evidence and planning artifact, not a device-readiness claim.
 
-Models are helpers. `PolicyEngine`, `ApprovalManager`, schema validation, audit boundaries and deterministic rejection remain authoritative. A model may propose an intent, tool or draft response; it must not authorize or execute an action.
+The product boundary is fixed:
 
-Simulator, Mac, vendor, model-card and runtime-repository results are not iPhone Air evidence. `IPHONE_AIR_EVIDENCE` remains `none` until the exact model artifact and runtime are observed on a physical target device.
+1. deterministic Swift code remains authoritative for policy, approvals, schema validation, audit and execution;
+2. a model may only return a proposal;
+3. Apple system-model evidence, custom-runtime evidence and physical iPhone Air evidence are separate evidence classes;
+4. no model weights, adapters, private prompts, credentials, messages, contacts, device identifiers or real user data belong in this repository.
 
-Do not commit model weights, adapters, private prompts, credentials, messages, contacts, device identifiers or real user data to this repository.
+Simulator, Mac, Android, vendor and runtime-repository results are not iPhone Air evidence. Unknown facts are written as `unknown`, `unverified` or `none`.
 
-## Advancement gate
+## Architecture paths
 
-A candidate does not advance to training or app integration until all of the following are recorded:
+### Path A — deterministic Swift authority
 
-1. exact model repository and immutable revision;
-2. applicable license and release implications;
-3. tokenizer and chat/tool template revision;
-4. untouched baseline on the immutable synthetic test set;
-5. supported export and runtime path;
-6. failure, cancellation and rollback behavior;
-7. physical-device evidence before any iPhone Air performance claim.
+`PolicyEngine`, `ApprovalManager`, schema validation and audit boundaries remain authoritative. No prompt, adapter or model output may override these controls.
 
-Unknown information is written as `unknown` or `unverified` rather than inferred.
+### Path B — Apple Foundation Models system backend
+
+Evaluate Apple's Foundation Models framework as a system-provided backend that does not require iGentic to ship its own large assistant weights.
+
+```text
+BACKEND_ID: apple-foundation-models
+BACKEND_ROLE: system-provided assistant and structured-generation comparison
+STATUS: evaluation candidate
+OWNED_MODEL_WEIGHTS: none
+AVAILABILITY: device, OS, Apple Intelligence and locale requirements must be verified in the app
+ADAPTER_PATH: available capabilities and distribution requirements must be verified before commitment
+IPHONE_AIR_EVIDENCE: none
+KNOWN_RISKS: platform availability, API/version coupling, limited portability, no independently redistributable iGentic base model
+NEXT_TEST: compile-only capability spike after the benchmark contract is merged
+ROLLBACK: deterministic fallback and custom-model path remain independent
+SOURCES_CHECKED_AT: 2026-06-22
+```
+
+Primary sources:
+
+- https://developer.apple.com/documentation/foundationmodels
+- https://machinelearning.apple.com/research/apple-foundation-models-2025-updates
+
+### Path C — custom open-weight models
+
+Custom models advance only after license, immutable revision, tokenizer/chat template, untouched baseline, export/runtime compatibility, cancellation and rollback are documented.
 
 ## Manifest fields
 
-Each primary candidate uses the following fields:
+Every primary custom candidate uses:
 
 ```text
 MODEL_ID
@@ -54,65 +76,89 @@ ROLLBACK
 SOURCES_CHECKED_AT
 ```
 
-## Primary candidates
+## Primary custom candidates
 
-### 1. Qwen3 0.6B
+### 1. FunctionGemma 270M
+
+```text
+MODEL_ID: google/functiongemma-270m-it
+MODEL_REVISION: unpinned; pin before download, evaluation or training
+MODEL_ROLE: first specialization candidate for a fixed iGentic action router
+STATUS: first training candidate, license-gated
+PARAMETER_SCALE: 270M advertised
+MODALITY: text
+LANGUAGES: exact multilingual and German quality must be measured; vendor safety evaluation is not a German benchmark
+CONTEXT_ADVERTISED: 32,768 tokens
+LICENSE: Gemma terms
+LICENSE_GATE: required before downloading gated files, publishing adapters or redistribution
+NATIVE_TOOL_FORMAT: FunctionGemma-specific function-call tokens generated from JSON tool definitions
+TRAINING_PATH: official Mobile Actions dataset and fine-tuning recipe; Colab and Kaggle entry points are linked by the publisher
+KNOWN_PORTABLE_FORMATS: Hugging Face safetensors; community quantizations are discovery pointers only
+RUNTIME_EVIDENCE: quantizations exist for llama.cpp-compatible applications; exact iOS artifact and tokenizer integration are untested
+IPHONE_AIR_EVIDENCE: none
+KNOWN_RISKS: not intended as a general dialogue model, task specialization required, Gemma license, custom parser/template, German quality unknown
+NEXT_TEST: untouched 512/1,024-token action-routing baseline with 32–64 output tokens
+ROLLBACK: deterministic router or Qwen3 0.6B comparison; model-specific syntax must not become the public app API
+SOURCES_CHECKED_AT: 2026-06-22
+```
+
+Decision: this is the first model to specialize because it is purpose-built for function calling and small enough for a realistic free-tier experiment. Publisher Android measurements and Mobile Actions scores are orientation only, not iPhone Air evidence.
+
+Primary source: https://huggingface.co/google/functiongemma-270m-it
+
+### 2. Qwen3 0.6B
 
 ```text
 MODEL_ID: Qwen/Qwen3-0.6B
-MODEL_REVISION: unpinned; pin before download or evaluation
-MODEL_ROLE: smallest multilingual text router and structured-proposal baseline
-STATUS: first baseline candidate
+MODEL_REVISION: unpinned; pin before download, evaluation or training
+MODEL_ROLE: first Apache-2.0 multilingual router and short-assistant comparison
+STATUS: first license-simple custom comparison
 PARAMETER_SCALE: 0.6B advertised; 0.44B non-embedding advertised
 MODALITY: text
-LANGUAGES: 100+ languages and dialects advertised
+LANGUAGES: 100+ languages and dialects advertised; German must be measured
 CONTEXT_ADVERTISED: 32,768 tokens
 LICENSE: Apache-2.0
-LICENSE_GATE: low friction, but exact artifact and notices still require review
-NATIVE_TOOL_FORMAT: Qwen chat template and Qwen-Agent tool flow; normalize and validate outside the model
-TRAINING_PATH: Transformers plus PEFT/TRL LoRA or QLoRA feasibility to verify; no iGentic training run yet
-KNOWN_PORTABLE_FORMATS: Hugging Face safetensors; llama.cpp ecosystem conversion/quantization path
-RUNTIME_EVIDENCE: Qwen3 is listed as supported by llama.cpp and other local applications; exact iOS artifact untested
+LICENSE_GATE: verify exact artifact, notices and derivative packaging
+NATIVE_TOOL_FORMAT: Qwen chat template and tool flow; normalize into the iGentic proposal schema
+TRAINING_PATH: Transformers plus PEFT/TRL LoRA or QLoRA feasibility to verify
+KNOWN_PORTABLE_FORMATS: Hugging Face safetensors; llama.cpp conversion and quantization path
+RUNTIME_EVIDENCE: Qwen3 family support exists in llama.cpp and ExecuTorch examples; exact iOS artifact untested
 IPHONE_AIR_EVIDENCE: none
-KNOWN_RISKS: small-model quality ceiling, repetition, language mixing under some sampling settings, malformed or invented arguments
-NEXT_TEST: untouched non-thinking text-only baseline at 1,024 and 2,048 context tokens
-ROLLBACK: deterministic router/fallback; remove model adapter without changing policy or approval logic
+KNOWN_RISKS: repetition, language mixing, malformed arguments and higher cost than FunctionGemma
+NEXT_TEST: untouched non-thinking text-only baseline at 512/1,024 tokens
+ROLLBACK: deterministic router or omit the custom model
 SOURCES_CHECKED_AT: 2026-06-22
 ```
-
-Decision note: this is the default first candidate when baseline quality is close because it is the smallest current Apache-2.0 text/tool candidate in the shortlist and has a mature local-runtime path.
 
 Primary source: https://huggingface.co/Qwen/Qwen3-0.6B
 
-### 2. LFM2 1.2B Tool
+### 3. LFM2 1.2B Tool
 
 ```text
 MODEL_ID: LiquidAI/LFM2-1.2B-Tool
-MODEL_REVISION: unpinned; pin before download or evaluation
+MODEL_REVISION: unpinned; pin before download, evaluation or training
 MODEL_ROLE: dedicated non-thinking tool-router comparison
-STATUS: first comparison candidate, license-gated
-PARAMETER_SCALE: 1.2B family name; exact pinned configuration must be recorded
+STATUS: later comparison, license-gated
+PARAMETER_SCALE: 1.2B family name; exact pinned configuration required
 MODALITY: text
-LANGUAGES: German is explicitly supported; model-card language-count metadata should be reconciled before release documentation
+LANGUAGES: German is advertised; exact quality must be measured
 CONTEXT_ADVERTISED: unverified for the exact pinned artifact
 LICENSE: lfm1.0
 LICENSE_GATE: required before adapter publication, redistribution or product release
-NATIVE_TOOL_FORMAT: JSON function definitions and model-specific tool-call special tokens; output is Python-like and must be parsed into a strict iGentic schema
-TRAINING_PATH: official model card links LoRA/SFT examples for TRL, Axolotl and Unsloth
-KNOWN_PORTABLE_FORMATS: Hugging Face safetensors; linked GGUF variant for llama.cpp
-RUNTIME_EVIDENCE: LFM2 family implementation and conversion support exist in llama.cpp and ExecuTorch source; exact iOS artifact untested
+NATIVE_TOOL_FORMAT: model-specific tool-call special tokens and Python-like output; strict normalization required
+TRAINING_PATH: publisher-linked LoRA/SFT examples for TRL, Axolotl and Unsloth
+KNOWN_PORTABLE_FORMATS: Hugging Face safetensors; publisher-linked GGUF path
+RUNTIME_EVIDENCE: LFM2 family implementations exist in llama.cpp and ExecuTorch source; exact iOS artifact untested
 IPHONE_AIR_EVIDENCE: none
-KNOWN_RISKS: custom license, model-specific tool syntax, parser complexity, possible mismatch with JSON-only product contracts
-NEXT_TEST: untouched native-template baseline with temperature 0, after license gate is recorded
-ROLLBACK: deterministic router/fallback; do not make the model-specific tool format a public API
+KNOWN_RISKS: custom license, parser complexity, larger footprint, public schema leakage
+NEXT_TEST: untouched native-template baseline only after the license gate
+ROLLBACK: FunctionGemma, Qwen3 or deterministic routing
 SOURCES_CHECKED_AT: 2026-06-22
 ```
 
-Decision note: this candidate advances only if it materially outperforms Qwen3 0.6B on structured output and the `lfm1.0` license is acceptable for the intended distribution.
-
 Primary source: https://huggingface.co/LiquidAI/LFM2-1.2B-Tool
 
-### 3. Qwen3 1.7B
+### 4. Qwen3 1.7B
 
 ```text
 MODEL_ID: Qwen/Qwen3-1.7B
@@ -121,29 +167,29 @@ MODEL_ROLE: higher-quality text assistant and router comparison
 STATUS: second-stage text candidate
 PARAMETER_SCALE: 1.7B advertised
 MODALITY: text
-LANGUAGES: 100+ languages and dialects advertised for Qwen3
+LANGUAGES: 100+ languages and dialects advertised
 CONTEXT_ADVERTISED: 32,768 tokens
 LICENSE: Apache-2.0
-LICENSE_GATE: low friction, exact artifact and notices still require review
-NATIVE_TOOL_FORMAT: Qwen chat template and Qwen-Agent tool flow
-TRAINING_PATH: Transformers plus PEFT/TRL LoRA or QLoRA feasibility to verify
-KNOWN_PORTABLE_FORMATS: Hugging Face safetensors; llama.cpp ecosystem conversion/quantization path
-RUNTIME_EVIDENCE: Qwen3 family is supported by llama.cpp and ExecuTorch examples; exact iOS artifact untested
+LICENSE_GATE: verify exact artifact and notices
+NATIVE_TOOL_FORMAT: Qwen chat and tool template
+TRAINING_PATH: PEFT/TRL LoRA or QLoRA feasibility to verify
+KNOWN_PORTABLE_FORMATS: Hugging Face safetensors; llama.cpp conversion and quantization path
+RUNTIME_EVIDENCE: Qwen3 family runtime support exists; exact iOS artifact untested
 IPHONE_AIR_EVIDENCE: none
-KNOWN_RISKS: higher memory, loading time, energy and thermal cost than 0.6B; repetition and malformed arguments remain possible
-NEXT_TEST: run only after the 0.6B baseline shows a measurable quality gap that may justify a larger model
-ROLLBACK: return to Qwen3 0.6B or deterministic routing
+KNOWN_RISKS: memory, load time, energy and thermal cost relative to smaller candidates
+NEXT_TEST: only when smaller candidates fail a defined quality gate
+ROLLBACK: return to Qwen3 0.6B or FunctionGemma
 SOURCES_CHECKED_AT: 2026-06-22
 ```
 
 Primary source: https://huggingface.co/Qwen/Qwen3-1.7B
 
-### 4. LFM2.5 1.2B Instruct
+### 5. LFM2.5 1.2B Instruct
 
 ```text
 MODEL_ID: LiquidAI/LFM2.5-1.2B-Instruct
 MODEL_REVISION: unpinned; pin before download or evaluation
-MODEL_ROLE: local assistant, extraction, summarization and retrieval-augmented response candidate
+MODEL_ROLE: local assistant, extraction, summarization and RAG candidate
 STATUS: role-specific candidate, license-gated
 PARAMETER_SCALE: approximately 1.2B family; exact pinned configuration required
 MODALITY: text
@@ -151,94 +197,92 @@ LANGUAGES: multilingual with German support advertised
 CONTEXT_ADVERTISED: 32,768 tokens advertised
 LICENSE: lfm1.0
 LICENSE_GATE: required before adapter publication, redistribution or product release
-NATIVE_TOOL_FORMAT: native function/tool flow documented by Liquid AI; exact pinned template required
-TRAINING_PATH: LoRA/QLoRA feasibility through Transformers ecosystem; use official examples where applicable
-KNOWN_PORTABLE_FORMATS: Hugging Face safetensors; official or publisher-linked GGUF and ONNX variants exist
-RUNTIME_EVIDENCE: LFM2 family support exists in llama.cpp and ExecuTorch source; exact iOS artifact untested
+NATIVE_TOOL_FORMAT: publisher-native function/tool flow; exact template must be pinned
+TRAINING_PATH: LoRA/QLoRA feasibility through the Transformers ecosystem
+KNOWN_PORTABLE_FORMATS: safetensors; publisher-linked GGUF and ONNX variants
+RUNTIME_EVIDENCE: LFM2 family runtime support exists; exact iOS artifact untested
 IPHONE_AIR_EVIDENCE: none
-KNOWN_RISKS: custom license, less task-specific than LFM2 Tool, runtime/operator compatibility, output-schema drift
-NEXT_TEST: assistant-only baseline after the router candidate is selected
-ROLLBACK: disable assistant profile and keep deterministic/local non-generative helpers
+KNOWN_RISKS: custom license, assistant scope larger than router need, schema drift
+NEXT_TEST: assistant-only baseline after the router is selected
+ROLLBACK: disable assistant profile and keep deterministic helpers
 SOURCES_CHECKED_AT: 2026-06-22
 ```
 
 Primary source: https://huggingface.co/LiquidAI/LFM2.5-1.2B-Instruct
 
-### 5. LFM2.5 VL 450M
+### 6. LFM2.5 VL 450M
 
 ```text
 MODEL_ID: LiquidAI/LFM2.5-VL-450M
 MODEL_REVISION: unpinned; pin before download or evaluation
-MODEL_ROLE: optional separately loaded OCR, document and vision sidecar
-STATUS: role-specific multimodal candidate, license-gated
+MODEL_ROLE: optional separately loaded OCR and vision sidecar
+STATUS: later role-specific candidate, license-gated
 PARAMETER_SCALE: 450M advertised
 MODALITY: image and text
-LANGUAGES: multilingual vision understanding including German advertised
+LANGUAGES: multilingual vision understanding advertised; German must be measured
 CONTEXT_ADVERTISED: unverified for the exact pinned artifact
 LICENSE: lfm1.0
 LICENSE_GATE: required before adapter publication, redistribution or product release
-NATIVE_TOOL_FORMAT: tool use is documented for text input; exact multimodal/tool combination must be verified
-TRAINING_PATH: publisher links LoRA examples; no iGentic training run yet
-KNOWN_PORTABLE_FORMATS: Hugging Face safetensors; GGUF and ONNX variants; WebGPU demonstration path
-RUNTIME_EVIDENCE: LFM2-VL is listed by llama.cpp; exact iOS multimodal packaging untested
+NATIVE_TOOL_FORMAT: tool use is documented for text input; multimodal/tool combination must be verified
+TRAINING_PATH: publisher-linked LoRA examples; no iGentic training run
+KNOWN_PORTABLE_FORMATS: safetensors; GGUF and ONNX variants; WebGPU demonstration path
+RUNTIME_EVIDENCE: family support is listed by llama.cpp; exact iOS multimodal packaging untested
 IPHONE_AIR_EVIDENCE: none
-KNOWN_RISKS: custom license, image preprocessing cost, OCR hallucination, extra encoder memory, larger app/model packaging surface
-NEXT_TEST: synthetic image/document evaluation only after the text router path is stable
-ROLLBACK: unload or omit the sidecar; keep text path independent
+KNOWN_RISKS: custom license, preprocessing and encoder memory, OCR hallucination, larger package surface
+NEXT_TEST: synthetic document evaluation only after the text path is stable
+ROLLBACK: omit the sidecar and prefer deterministic Apple Vision APIs where suitable
 SOURCES_CHECKED_AT: 2026-06-22
 ```
 
 Primary source: https://huggingface.co/LiquidAI/LFM2.5-VL-450M
 
-### 6. Qwen3.5 0.8B
+### 7. Qwen3.5 0.8B
 
 ```text
 MODEL_ID: Qwen/Qwen3.5-0.8B
 MODEL_REVISION: unpinned; pin before download or evaluation
-MODEL_ROLE: experimental compact multimodal/router candidate
+MODEL_ROLE: experimental compact multimodal and router candidate
 STATUS: experimental second-wave candidate
-PARAMETER_SCALE: 0.8B language model advertised, plus vision encoder packaging
-MODALITY: image and text; text-only serving mode is documented
+PARAMETER_SCALE: 0.8B language model advertised plus vision packaging
+MODALITY: image and text; text-only serving is documented
 LANGUAGES: 201 languages and dialects advertised
 CONTEXT_ADVERTISED: 262,144 tokens
 LICENSE: Apache-2.0
-LICENSE_GATE: low friction, exact artifact and notices still require review
-NATIVE_TOOL_FORMAT: qwen3_coder tool-call parser documented for serving frameworks
-TRAINING_PATH: model card identifies task-specific fine-tuning as an intended use; exact LoRA support for the pinned architecture must be verified
-KNOWN_PORTABLE_FORMATS: Hugging Face safetensors; llama.cpp ecosystem quantizations are discoverable
-RUNTIME_EVIDENCE: Qwen3.5 implementation exists in current llama.cpp and ExecuTorch source; exact iOS build untested
+LICENSE_GATE: verify exact artifact and notices
+NATIVE_TOOL_FORMAT: Qwen tool parser/template for the pinned runtime must be verified
+TRAINING_PATH: task-specific fine-tuning is an intended use; exact adapter support must be verified
+KNOWN_PORTABLE_FORMATS: safetensors; llama.cpp ecosystem quantizations are discoverable
+RUNTIME_EVIDENCE: current llama.cpp and ExecuTorch source contain Qwen3.5 work; exact iOS build untested
 IPHONE_AIR_EVIDENCE: none
-KNOWN_RISKS: newer hybrid architecture, very large vocabulary and advertised context, vision packaging, low 0.8B agent benchmark scores relative to the 2B sibling, main-branch/nightly framework requirements in documented server paths
-NEXT_TEST: text-only baseline after mature Qwen3/LFM2 candidates; do not begin with advertised maximum context
-ROLLBACK: return to Qwen3 text baseline; omit vision encoder and model artifact
+KNOWN_RISKS: newer architecture, vision packaging, oversized advertised context, runtime churn
+NEXT_TEST: text-only after mature small baselines; never begin at maximum context
+ROLLBACK: Qwen3 0.6B or FunctionGemma
 SOURCES_CHECKED_AT: 2026-06-22
 ```
 
-Decision note: the model is interesting because it combines a compact language model with multimodal support, but it is not the first baseline. The model card itself positions this scale for prototyping and task-specific fine-tuning, and its published agent scores are materially below the 2B sibling.
-
 Primary source: https://huggingface.co/Qwen/Qwen3.5-0.8B
 
-### 7. Gemma 4 E2B Mobile QAT
+### 8. Gemma 4 E2B Mobile QAT
 
 ```text
 MODEL_ID: google/gemma-4-E2B-it-qat-mobile-transformers
 MODEL_REVISION: unpinned; pin before download or evaluation
 MODEL_ROLE: later multimodal quality-mode candidate
 STATUS: later mobile-QAT experiment
-PARAMETER_SCALE: E2B architecture label; exact active/total parameter accounting must be taken from the pinned config and model card
-MODALITY: multimodal; exact text, image and audio packaging for the selected runtime must be verified
-LANGUAGES: multilingual; exact supported-language statement must be captured from the pinned model card
-CONTEXT_ADVERTISED: up to 128K for the small Gemma 4 family, subject to exact checkpoint verification
-LICENSE: Apache-2.0 on the referenced repository
-LICENSE_GATE: review model card and bundled terms for the exact revision before redistribution
-NATIVE_TOOL_FORMAT: native function-calling capability is advertised; exact runtime parser must be verified
-TRAINING_PATH: start from the mobile QAT checkpoint; do not assume a second aggressive quantization preserves quality
-KNOWN_PORTABLE_FORMATS: Transformers mobile-QAT checkpoint; Gemma 4 support exists in llama.cpp source
-RUNTIME_EVIDENCE: current llama.cpp contains Gemma 4 architecture implementation; the WebGPU demo is a separate experimental browser path
+PARAMETER_SCALE: E2B architecture label; exact active and total parameters must be read from the pinned artifact
+MODALITY: multimodal; exact runtime packaging must be verified
+LANGUAGES: multilingual; exact pinned model statement required
+CONTEXT_ADVERTISED: up to 128K for the family, subject to exact checkpoint verification
+LICENSE: repository advertises Apache-2.0; exact revision and bundled terms require review
+LICENSE_GATE: mandatory before redistribution
+NATIVE_TOOL_FORMAT: native function-calling capability is advertised; parser must be verified
+TRAINING_PATH: start from the mobile QAT checkpoint; no blind second aggressive quantization
+KNOWN_PORTABLE_FORMATS: Transformers mobile-QAT checkpoint; Gemma 4 runtime work exists in llama.cpp
+RUNTIME_EVIDENCE: architecture implementation is not iPhone execution evidence
 IPHONE_AIR_EVIDENCE: none
-KNOWN_RISKS: larger package and working memory than first candidates, multimodal encoder cost, architecture/runtime conversion risk, thermal cost, vendor mobile optimization not specific to iPhone Air
-NEXT_TEST: compatibility and short-context load test only after Tier A text candidates; begin text-only where possible
-ROLLBACK: omit quality profile and use the selected smaller text model
+KNOWN_RISKS: package size, working memory, multimodal encoder cost, conversion and thermal risk
+NEXT_TEST: short-context text-only compatibility after smaller candidates
+ROLLBACK: omit the quality profile
 SOURCES_CHECKED_AT: 2026-06-22
 ```
 
@@ -246,129 +290,118 @@ Primary source: https://huggingface.co/google/gemma-4-E2B-it-qat-mobile-transfor
 
 ## Reference-only candidates
 
-These models remain comparison points. They do not displace the smallest viable candidates without measured evidence.
-
 | Model | License gate | Reference value | Why not first |
 | --- | --- | --- | --- |
-| `Qwen/Qwen3.5-2B` | Apache-2.0 | stronger Qwen3.5 quality and agent comparison | larger memory and thermal target than 0.8B/0.6B |
-| `HuggingFaceTB/SmolLM3-3B` | Apache-2.0 | multilingual text and tool-calling quality reference | 3B scale is too large for the first iPhone Air baseline |
-| `ibm-granite/granite-4.0-micro` | Apache-2.0 | enterprise, RAG and function-calling reference | 3B scale and no current device evidence |
-| `microsoft/Phi-4-mini-instruct` | MIT | reasoning and tool-format reference | approximately 3.8B and model card warns that hallucinated function names or URLs can occur |
-| `meta-llama/Llama-3.2-1B-Instruct` | Llama 3.2 Community License | mature mobile/runtime comparison | gated/custom terms and attribution requirements add release friction |
-| `google/gemma-3-1b-it` | Gemma terms | mature small Gemma deployment comparison | custom terms and less direct tool-router focus than Tier A |
-
-Primary sources:
-
-- https://huggingface.co/Qwen/Qwen3.5-2B
-- https://huggingface.co/HuggingFaceTB/SmolLM3-3B
-- https://huggingface.co/ibm-granite/granite-4.0-micro
-- https://huggingface.co/microsoft/Phi-4-mini-instruct
-- https://huggingface.co/meta-llama/Llama-3.2-1B-Instruct
-- https://huggingface.co/google/gemma-3-1b-it
+| `Qwen/Qwen3.5-2B` | Apache-2.0 | stronger same-family quality comparison | larger memory and thermal target |
+| `HuggingFaceTB/SmolLM3-3B` | Apache-2.0 | multilingual text/tool reference | 3B scale |
+| `ibm-granite/granite-4.0-micro` | Apache-2.0 | enterprise/RAG/function reference | 3B scale and no device evidence |
+| `microsoft/Phi-4-mini-instruct` | MIT | reasoning and function reference | approximately 3.8B |
+| `meta-llama/Llama-3.2-1B-Instruct` | Llama Community License | mature runtime comparison | custom terms and attribution |
+| `google/gemma-3-1b-it` | Gemma terms | mature small Gemma comparison | custom terms and less router focus |
 
 ## Runtime research order
 
-### 1. llama.cpp and GGUF compatibility baseline
+1. **Apple Foundation Models** for the system-provided path. Availability and behavior must be tested in-app.
+2. **llama.cpp/GGUF** for the first portable custom-model compatibility baseline and Swift XCFramework path.
+3. **ExecuTorch** as an experimental second native adapter.
+4. **Core ML** only after exact graph, tokenizer and stateful-cache conversion feasibility.
+5. **MLC-LLM** as a later packaging/runtime comparison.
+6. **WebGPU** as a separate browser/PWA experiment, not a Neural Engine claim.
 
-Use first for portable compatibility, quantization and initial device measurement because the project provides GGUF tooling, Apple Silicon/Metal support, broad model-family support and an XCFramework build script.
+Runtime source presence proves implementation support only. It does not prove that an artifact loads or performs acceptably on iPhone Air.
 
-Architecture presence or a successful desktop run proves only implementation compatibility. It does not prove that the exact artifact loads, remains stable or performs acceptably on iPhone Air.
-
-Sources:
+Primary runtime sources:
 
 - https://github.com/ggml-org/llama.cpp
 - https://github.com/ggml-org/llama.cpp/blob/master/build-xcframework.sh
-
-### 2. ExecuTorch experimental adapter spike
-
-Use second behind the existing `LocalModelRuntime` boundary. ExecuTorch documents Objective-C and Swift LLM components, token streaming and stopping, but explicitly describes the iOS LLM API as experimental and subject to change.
-
-Sources:
-
 - https://docs.pytorch.org/executorch/stable/llm/run-on-ios.html
-- https://github.com/pytorch/executorch/tree/main/examples/models/qwen3
-- https://github.com/pytorch/executorch/tree/main/examples/models/qwen3_5
-- https://github.com/pytorch/executorch/tree/main/examples/models/lfm2
-
-### 3. MLC-LLM comparison
-
-Evaluate later as an iOS Swift and custom-model deployment alternative. Treat conversion, generated libraries, model packaging and conversation templates as additional integration surface.
-
-Source: https://llm.mlc.ai/docs/deploy/ios.html
-
-### 4. Core ML feasibility
-
-Attempt only after the selected model graph and tokenizer path are understood. A successful conversion is a compatibility result, not physical-device performance evidence. Stateful KV-cache and mixed-precision experiments are subsequent optimization steps, not assumptions.
-
-Sources:
-
+- https://llm.mlc.ai/docs/deploy/ios.html
 - https://apple.github.io/coremltools/docs-guides/source/stateful-models.html
 - https://apple.github.io/coremltools/docs-guides/source/opt-overview.html
 
-### 5. WebGPU browser path
+## First untouched benchmark contract
 
-Keep WebGPU as a separate PWA/browser experiment. WebGPU execution is not equivalent to a native Core ML or Neural Engine path, and browser-kernel results on another Apple chip are not iPhone Air evidence.
+No training run is selected until comparable untouched results exist for:
 
-## First untouched baseline selection gate
+1. Apple Foundation Models without an iGentic adapter;
+2. FunctionGemma 270M;
+3. Qwen3 0.6B in non-thinking mode.
 
-No LoRA or QLoRA run is selected until both first candidates have complete, comparable untouched results.
+LFM2 Tool may enter only after its license gate.
 
-| Profile | Context | Maximum output | Purpose |
+### Evaluation set
+
+- 120 synthetic cases: 60 German and 60 English;
+- 8–12 fixed tool schemas;
+- categories: direct call, missing argument, ambiguous intent, unsupported tool, no-tool response, safe refusal and malformed-output recovery;
+- immutable test cases are never copied into training data;
+- no real personal or device data.
+
+### Shared proposal schema
+
+```json
+{
+  "proposalType": "tool_call | clarify | no_tool | refuse",
+  "tool": "string | null",
+  "arguments": {},
+  "missingArguments": [],
+  "reasonCode": "string"
+}
+```
+
+The model does not return authoritative policy level, approval or execution decisions. Swift computes those after validation.
+
+### Profiles
+
+| Profile | Input context | Maximum output | Purpose |
 | --- | ---: | ---: | --- |
-| Router-small | 1,024 | 64 | intent, tool and required arguments |
-| Router-normal | 2,048 | 96 | ambiguous and multi-argument requests |
-| Assistant-check | 2,048 | 192 | short German summarization and extraction only |
+| Router-small | 512 | 32 | direct tool and arguments |
+| Router-normal | 1,024 | 64 | ambiguity and missing fields |
+| Assistant-check | 2,048 | 192 | short summary/extraction comparison |
 
-Candidates:
+### Selection metrics
 
-1. `Qwen/Qwen3-0.6B` in non-thinking, text-only mode;
-2. `LiquidAI/LFM2-1.2B-Tool` with its native tool format, only after the license gate is recorded.
-
-Required metrics:
-
-- schema-valid output rate;
-- correct intent and tool rate;
+- schema-valid proposal rate;
+- correct tool and intent rate;
 - required-argument accuracy;
-- invented or unsupported tool/argument rate;
+- invented tool or argument rate;
+- clarification accuracy;
 - safe-failure and refusal accuracy;
 - German/English consistency;
 - repetition and truncation rate;
-- artifact size and host peak memory where actually observed.
+- artifact size and host memory only when actually observed.
 
-When scores are close, prefer Qwen3 0.6B because Apache-2.0 and the smaller scale reduce initial release and device risk. LFM2 Tool advances only when it demonstrates a material structured-output advantage and its license gate passes.
+FunctionGemma is the default first specialization candidate. Qwen3 0.6B wins when results are close and license simplicity or multilingual behavior is decisive.
 
-## Training artifact contract
+## Free-tier training artifact contract
 
-Every later training run must record:
+Free GPU availability is opportunistic and not guaranteed. Kaggle, Colab or other credits are interchangeable executors.
 
-- immutable model revision;
-- license reference;
-- dataset revision and split hashes;
+Every run must be resumable and record:
+
+- immutable model revision and license reference;
+- dataset revision plus train/validation hashes;
 - immutable test-set identifier;
 - prompt and chat-template revision;
 - dependency lock or exported environment;
-- random seed;
-- context length;
-- batch and gradient-accumulation settings;
-- LoRA target modules and rank settings;
-- quantization configuration;
-- resumable checkpoints;
-- baseline and post-training evaluation;
+- random seed, context, batch and gradient accumulation;
+- LoRA target modules, rank and quantization settings;
+- checkpoint after each useful stage;
+- untouched and post-training evaluation;
 - explicit `KEEP`, `REWORK` or `REJECT` decision.
 
-Free GPU services and credits are opportunistic executors, not guaranteed dependencies. Training must be resumable and provider-independent.
+First training target: 200–500 separate synthetic examples for FunctionGemma with short inputs and 32–64 output tokens. Qwen3 training begins only when the untouched comparison justifies it.
 
 ## Stop conditions
 
-Stop a candidate before app integration when any of the following is true:
+Stop before app integration when:
 
 - license or redistribution terms are unresolved;
-- the exact tokenizer or chat/tool template cannot be reproduced;
-- the model cannot reliably stop or be cancelled;
-- structured output cannot be validated before returning a proposal;
-- the runtime requires policy or approval logic to move into the prompt;
-- export requires unsupported operators or custom kernels without a bounded maintenance plan;
-- the candidate fails the immutable test set without a measured benefit over the smaller baseline;
-- physical-device memory, crash, battery or thermal behavior is unacceptable.
+- tokenizer or tool template cannot be reproduced;
+- output cannot be stopped, cancelled or validated;
+- a runtime requires policy or approval authority to move into the prompt;
+- export depends on unsupported operators or kernels without a bounded maintenance plan;
+- the candidate does not beat the smaller baseline on the immutable test;
+- physical-device crash, memory, battery or thermal behavior is unacceptable.
 
 No performance or readiness claim may be made until the exact artifact, runtime, configuration and physical iPhone Air measurement are recorded.
