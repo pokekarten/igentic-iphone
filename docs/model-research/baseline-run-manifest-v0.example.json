@@ -1,0 +1,91 @@
+{
+  "schema_version": "igentic-baseline-run-v0",
+  "run_id": "synthetic-apple-host-baseline-001",
+  "untouched_baseline": true,
+  "benchmark": {
+    "version": "V0",
+    "path": "docs/model-research/igentic-action-benchmark-v0.jsonl",
+    "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+  },
+  "evaluator": {
+    "contract_version": "V0",
+    "contract_path": "docs/model-research/EVALUATOR_CONTRACT_V0.md",
+    "contract_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "benchmark_validator_path": "scripts/validate_action_benchmark.py",
+    "benchmark_validator_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+    "evaluator_path": "scripts/evaluate_action_proposals.py",
+    "evaluator_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+  },
+  "backend": {
+    "class": "apple_system",
+    "framework": "Apple Foundation Models",
+    "framework_version": "synthetic-os-build-0",
+    "model_id": null,
+    "model_revision": null,
+    "system_model_identifier": "synthetic-system-model-0",
+    "license_reference": "synthetic-platform-terms-reference",
+    "license_review_date": "2026-06-22",
+    "license_gate_status": "approved"
+  },
+  "input": {
+    "tokenizer_id": "system-managed",
+    "tokenizer_revision": "system:synthetic-os-build-0",
+    "prompt_template_id": "igentic-router-v0",
+    "prompt_template_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+    "normalized_input_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+  },
+  "normalizer": {
+    "id": "igentic-normalized-proposal-v0",
+    "revision": "7777777777777777777777777777777777777777"
+  },
+  "profile": {
+    "name": "Router-small",
+    "context_limit_tokens": 4096,
+    "input_limit_tokens": 1024,
+    "output_limit_tokens": 256
+  },
+  "decoding": {
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "max_output_tokens": 256,
+    "seed_supported": false,
+    "seed": null
+  },
+  "execution": {
+    "environment": "synthetic-host-environment",
+    "os": "syntheticOS 0",
+    "architecture": "arm64",
+    "evidence_class": "host",
+    "physical_device_run": false,
+    "device_model": null,
+    "device_os_build": null
+  },
+  "artifacts": {
+    "normalized_proposals_path": "artifacts/synthetic-normalized-proposals.jsonl",
+    "normalized_proposals_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+    "evaluator_result_path": "artifacts/synthetic-evaluator-result.json",
+    "evaluator_result_sha256": "9999999999999999999999999999999999999999999999999999999999999999"
+  },
+  "observations": {
+    "repetition_observed": false,
+    "truncation_observed": false,
+    "timeout_observed": false,
+    "cancellation_observed": false,
+    "termination_reason": "completed"
+  },
+  "specialization": {
+    "training_performed": false,
+    "fine_tuning_performed": false,
+    "model_adapter_applied": false,
+    "model_adapter_id": null,
+    "model_adapter_revision": null
+  },
+  "claims": {
+    "physical_device_readiness_claimed": false
+  },
+  "known_limitations": [
+    "Synthetic example only; no model was run.",
+    "Host evidence does not establish physical iPhone Air behavior."
+  ],
+  "next_decision": "unverified"
+}
