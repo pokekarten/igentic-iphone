@@ -12,7 +12,7 @@ It does not contain model weights, adapters, checkpoints, private prompts, real 
 
 ### Candidate manifest
 
-`IPHONE_AIR_MODEL_CANDIDATES.md`
+`docs/model-research/IPHONE_AIR_MODEL_CANDIDATES.md`
 
 Defines:
 
@@ -26,13 +26,13 @@ Defines:
 
 ### Immutable benchmark contract
 
-`IGENTIC_ACTION_BENCHMARK_V0.md`
+`docs/model-research/IGENTIC_ACTION_BENCHMARK_V0.md`
 
 Defines the first source-aligned action-routing benchmark for the current iGentic intents and proposal schema. It includes deterministic component metrics and an immutable-test policy.
 
 ### Immutable benchmark data
 
-`igentic-action-benchmark-v0.jsonl`
+`docs/model-research/igentic-action-benchmark-v0.jsonl`
 
 Contains exactly 40 synthetic records:
 
@@ -122,10 +122,10 @@ Benchmark V0 is immutable after merge. Corrections require a new version and mig
 
 ## Related project sources
 
-- `../../MODEL_STRATEGY.md`
-- `../SOURCE_VERIFICATION.md`
-- `../local-runtime-review.md`
-- `../apple-api-review.md`
-- `../KNOWLEDGE_MAP.md`
-- `../../PROJECT_STATE.md`
-- `../../ROADMAP.md`
+- `MODEL_STRATEGY.md`
+- `docs/SOURCE_VERIFICATION.md`
+- `docs/local-runtime-review.md`
+- `docs/apple-api-review.md`
+- `docs/KNOWLEDGE_MAP.md`
+- `PROJECT_STATE.md`
+- `ROADMAP.md`
