@@ -21,6 +21,8 @@ REQUIRED_FILES = [
     "MODEL_STRATEGY.md",
     "docs/CODEX_NEXT_TASK.md",
     "docs/CHATGPT_NEXT_TASK.md",
+    "docs/FAQ.md",
+    "docs/GLOSSARY.md",
     "docs/SPARSAMKEIT.md",
     "docs/SOURCE_VERIFICATION.md",
     "docs/apple-api-review.md",
