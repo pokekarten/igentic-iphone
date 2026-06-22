@@ -488,6 +488,12 @@ def validate_manifest(manifest: dict[str, Any]) -> list[str]:
         errors.append(
             "cancellation_observed=true requires termination_reason='cancelled'"
         )
+    if termination_reason == "timeout" and timeout is not True:
+        errors.append("termination_reason='timeout' requires timeout_observed=true")
+    if termination_reason == "cancelled" and cancelled is not True:
+        errors.append(
+            "termination_reason='cancelled' requires cancellation_observed=true"
+        )
     if termination_reason == "completed" and (timeout is True or cancelled is True):
         errors.append("completed termination cannot report timeout or cancellation")
 
