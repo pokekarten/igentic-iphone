@@ -103,6 +103,8 @@ Before implementing:
 6. re-read the exact written resource;
 7. use GitHub Actions as the authoritative execution evidence for repository checks.
 
+Every pull request body must retain the repository's `Summary`, `Scope`, `Validation`, `Safety` and `Follow-up` markers. It must mention `python3 scripts/validate_repo_structure.py` and either `cd ios && swift test` or an explicit reason that Swift tests are not applicable. These markers are part of the executable evidence contract, not optional prose.
+
 ## Knowledge-export sequence
 
 The current model-research sequence is:
