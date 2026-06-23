@@ -4,6 +4,8 @@ Last updated: 2026-06-12
 
 This file lists safe starter tasks for new contributors. It is intentionally written as a backlog that can be converted into GitHub issues.
 
+Status legend: `OPEN` means available for issue selection; `COMPLETED` means a canonical artifact already exists. Only source-verified completed entries are annotated below; unannotated entries are not reclassified by this update.
+
 ## Rules for all starter tasks
 
 - Keep the change small.
@@ -13,10 +15,13 @@ This file lists safe starter tasks for new contributors. It is intentionally wri
 - Do not add persistence unless the task explicitly says so.
 - Explain privacy impact in the PR.
 - Update docs or tests when behavior changes.
+- Before creating an issue from an `OPEN` entry, verify current repository files and open/closed issues and PRs.
 
 ## Documentation tasks
 
 ### 1. Add a glossary
+
+**Status: COMPLETED — canonical artifact:** [`docs/GLOSSARY.md`](../GLOSSARY.md)
 
 **Goal:** Create the project glossary at docs/GLOSSARY.md explaining project terms.
 
@@ -46,6 +51,8 @@ Scope:
 **Validation:** Manual docs review.
 
 ### 3. Add a FAQ
+
+**Status: COMPLETED — canonical artifact:** [`docs/FAQ.md`](../FAQ.md)
 
 **Goal:** Create docs/FAQ.md for common early questions.
 
@@ -156,6 +163,8 @@ Requirements:
 
 ### 11. Add App Intents safety notes
 
+**Status: COMPLETED — canonical artifact:** [`docs/app-intents-safety.md`](../app-intents-safety.md)
+
 **Goal:** Create or extend a doc explaining safe App Intents patterns.
 
 Focus:
@@ -168,6 +177,8 @@ Focus:
 **Validation:** Source-linked doc review.
 
 ### 12. Add device test checklist
+
+**Status: COMPLETED — canonical artifact:** [`docs/device-test-checklist.md`](../device-test-checklist.md)
 
 **Goal:** Create a checklist for real iPhone testing.
 
