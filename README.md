@@ -111,6 +111,8 @@ Start with:
 
 - `docs/community/CONTRIBUTOR_STARTER_GUIDE.md`
 - `docs/community/GOOD_FIRST_ISSUES.md`
+- [FAQ](docs/FAQ.md)
+- [Glossary](docs/GLOSSARY.md)
 - `CONTRIBUTING.md`
 - `GOVERNANCE.md`
 - `docs/GITHUB_CONTROL.md`
