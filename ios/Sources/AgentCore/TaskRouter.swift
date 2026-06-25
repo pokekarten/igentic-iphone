@@ -41,7 +41,7 @@ public struct TaskRouter: Sendable {
         self.policyEngine = policyEngine
     }
 
-    public func route(_ task: TaskRequest, privacyMode: PrivacyMode) -> TaskRoute {
+    func route(_ task: TaskRequest, privacyMode: PrivacyMode) -> TaskRoute {
         guard task.intent != .unknown else {
             return .askClarification(reason: "Intent is unclear.")
         }
