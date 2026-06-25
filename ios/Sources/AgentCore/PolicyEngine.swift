@@ -68,7 +68,7 @@ public struct PolicyEngine: Sendable {
             )
         )
 
-        if request.privacyMode == .localOnly && request.requestedDelegationTarget != .none && request.requestedDelegationTarget != .localDevice {
+        if request.privacyMode == .localOnly && request.requestedDelegationTarget.leavesLocalDevice {
             return PolicyDecision(
                 isAllowed: false,
                 requiresApproval: false,
@@ -78,7 +78,7 @@ public struct PolicyEngine: Sendable {
             )
         }
 
-        if request.dataClassification.level.blocksAutomaticExternalDelegation && request.requestedDelegationTarget != .none && request.requestedDelegationTarget != .localDevice {
+        if request.dataClassification.level.blocksAutomaticExternalDelegation && request.requestedDelegationTarget.leavesLocalDevice {
             return PolicyDecision(
                 isAllowed: false,
                 requiresApproval: true,
