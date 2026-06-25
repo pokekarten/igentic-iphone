@@ -31,47 +31,41 @@ public struct MemoryEntry: Identifiable, Equatable, Sendable {
 }
 
 public final class MemoryStore: @unchecked Sendable {
-    private let lock = NSLock()
-    private var entriesByScope: [MemoryScope: [String: MemoryEntry]] = [:]
+    private let entriesByScope = LockedBox<[MemoryScope: [String: MemoryEntry]]>([:])
 
     public init(entries: [MemoryEntry] = []) {
         for entry in entries {
-            entriesByScope[entry.scope, default: [:]][entry.key] = entry
+            entriesByScope.withValue { $0[entry.scope, default: [:]][entry.key] = entry }
         }
     }
 
     @discardableResult
     public func save(key: String, value: String, scope: MemoryScope) -> MemoryEntry {
-        lock.lock()
-        defer { lock.unlock() }
-
-        let now = Date()
-        let existingEntry = entriesByScope[scope]?[key]
-        let entry = MemoryEntry(
-            id: existingEntry?.id ?? UUID(),
-            scope: scope,
-            key: key,
-            value: value,
-            createdAt: existingEntry?.createdAt ?? now,
-            updatedAt: now
-        )
-        entriesByScope[scope, default: [:]][key] = entry
-        return entry
+        entriesByScope.withValue { entriesByScope in
+            let now = Date()
+            let existingEntry = entriesByScope[scope]?[key]
+            let entry = MemoryEntry(
+                id: existingEntry?.id ?? UUID(),
+                scope: scope,
+                key: key,
+                value: value,
+                createdAt: existingEntry?.createdAt ?? now,
+                updatedAt: now
+            )
+            entriesByScope[scope, default: [:]][key] = entry
+            return entry
+        }
     }
 
     public func entries(in scope: MemoryScope) -> [MemoryEntry] {
-        lock.lock()
-        defer { lock.unlock() }
-
-        return entriesByScope[scope, default: [:]].values.sorted { lhs, rhs in
-            lhs.key < rhs.key
+        entriesByScope.withValue { entriesByScope in
+            entriesByScope[scope, default: [:]].values.sorted { lhs, rhs in
+                lhs.key < rhs.key
+            }
         }
     }
 
     public func delete(scope: MemoryScope) {
-        lock.lock()
-        defer { lock.unlock() }
-
-        entriesByScope[scope] = nil
+        entriesByScope.withValue { $0[scope] = nil }
     }
 }
