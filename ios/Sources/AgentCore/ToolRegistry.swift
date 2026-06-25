@@ -51,8 +51,7 @@ public struct ToolDefinition: Equatable, Sendable {
 }
 
 public final class ToolRegistry: @unchecked Sendable {
-    private let lock = NSLock()
-    private var toolsByName: [String: ToolDefinition] = [:]
+    private let toolsByName = LockedBox<[String: ToolDefinition]>([:])
 
     public init(tools: [ToolDefinition] = []) {
         for tool in tools {
@@ -69,15 +68,14 @@ public final class ToolRegistry: @unchecked Sendable {
 
         let normalizedTool = tool.normalized
 
-        lock.lock()
-        defer { lock.unlock() }
+        return toolsByName.withValue { toolsByName in
+            guard toolsByName[normalizedTool.name] == nil else {
+                return .rejectedDuplicateName
+            }
 
-        guard toolsByName[normalizedTool.name] == nil else {
-            return .rejectedDuplicateName
+            toolsByName[normalizedTool.name] = normalizedTool
+            return .registered
         }
-
-        toolsByName[normalizedTool.name] = normalizedTool
-        return .registered
     }
 
     public func tool(named name: String) -> ToolDefinition? {
@@ -86,14 +84,12 @@ public final class ToolRegistry: @unchecked Sendable {
             return nil
         }
 
-        lock.lock()
-        defer { lock.unlock() }
-        return toolsByName[canonicalName]
+        return toolsByName.withValue { $0[canonicalName] }
     }
 
     public func allTools() -> [ToolDefinition] {
-        lock.lock()
-        defer { lock.unlock() }
-        return toolsByName.values.sorted { $0.name < $1.name }
+        toolsByName.withValue { toolsByName in
+            toolsByName.values.sorted { $0.name < $1.name }
+        }
     }
 }
