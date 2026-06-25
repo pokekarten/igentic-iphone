@@ -27,10 +27,10 @@ The decision must include a reason. `KEEP` is allowed only when baseline, post-t
 
 ## Model and license fields
 
-Every run must record the immutable model identity:
+Every run must record the canonical immutable model identity:
 
 - model family;
-- model ID;
+- canonical model ID;
 - exact revision, commit or release tag;
 - source registry;
 - license reference;
