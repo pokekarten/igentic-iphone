@@ -1,6 +1,9 @@
 {
   "schema_version": "training-run-manifest-v0",
   "run_id": "example-functiongemma-270m-synthetic-lora-0001",
+  "run_owner": "automation-lane-placeholder",
+  "created_at": "creation-time-placeholder",
+  "resume_time": null,
   "status": "PLANNED",
   "linked_issue": 82,
   "objective": "Document a provider-independent synthetic-data LoRA planning manifest without claiming that training has run.",
@@ -14,7 +17,7 @@
   "model": {
     "default_first_candidate": true,
     "family": "FunctionGemma",
-    "model_id": "functiongemma-270m",
+    "model_id": "google/functiongemma-270m-it",
     "revision": "immutable-revision-placeholder",
     "source_registry": "model-registry-placeholder",
     "license_reference": "license-url-or-document-placeholder",
