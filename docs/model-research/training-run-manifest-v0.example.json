@@ -1,0 +1,142 @@
+{
+  "schema_version": "training-run-manifest-v0",
+  "run_id": "example-functiongemma-270m-synthetic-lora-0001",
+  "run_owner": "automation-lane-placeholder",
+  "created_at": "creation-time-placeholder",
+  "resume_time": null,
+  "status": "PLANNED",
+  "linked_issue": 82,
+  "objective": "Document a provider-independent synthetic-data LoRA planning manifest without claiming that training has run.",
+  "stop_rules": [
+    "Do not begin training from this example manifest.",
+    "Do not download gated artifacts from this repository.",
+    "Do not commit credentials, weights, adapters, checkpoints or private data.",
+    "Do not alter the immutable benchmark test set.",
+    "Do not claim free-compute availability or device readiness."
+  ],
+  "model": {
+    "default_first_candidate": true,
+    "family": "FunctionGemma",
+    "model_id": "google/functiongemma-270m-it",
+    "revision": "immutable-revision-placeholder",
+    "source_registry": "model-registry-placeholder",
+    "license_reference": "license-url-or-document-placeholder",
+    "gate_status": "to_verify_before_run",
+    "qwen3_0_6b_policy": "Qwen3 0.6B may be considered only after untouched baseline comparison evidence exists."
+  },
+  "datasets": {
+    "governance_document": "docs/model-research/DATASET_GOVERNANCE.md",
+    "training": {
+      "dataset_id": "synthetic-training-v0-placeholder",
+      "revision": "rev-placeholder",
+      "hash": "sha256-placeholder",
+      "source_type": "synthetic_only",
+      "review_status": "pending",
+      "rejected_records_excluded": true
+    },
+    "validation": {
+      "dataset_id": "synthetic-validation-v0-placeholder",
+      "revision": "rev-placeholder",
+      "hash": "sha256-placeholder",
+      "review_status": "pending"
+    },
+    "test": {
+      "immutable_test_set_id": "benchmark-v0-placeholder",
+      "revision": "immutable-revision-placeholder",
+      "hash": "sha256-placeholder",
+      "use_policy": "untouched_evaluation_only"
+    },
+    "contamination_review": {
+      "benchmark_isolation_required": true,
+      "copying_paraphrasing_or_generating_from_test_cases_prohibited": true,
+      "status": "pending"
+    }
+  },
+  "templates": {
+    "tokenizer_revision": "tokenizer-revision-placeholder",
+    "chat_template_revision": "chat-template-revision-placeholder",
+    "tool_template_revision": "tool-template-revision-placeholder",
+    "prompt_format_revision": "prompt-format-revision-placeholder",
+    "context_length": 2048,
+    "output_limit": 512,
+    "truncation_policy": "reject_or_explicitly_record"
+  },
+  "environment": {
+    "executor": "provider_interchangeable",
+    "allowed_executor_examples": [
+      "kaggle",
+      "colab",
+      "local"
+    ],
+    "required_provider": null,
+    "hardware_class": "to_record_before_run_without_device_readiness_claims",
+    "os_image": "placeholder",
+    "python_version": "placeholder",
+    "dependency_lock": "path-or-hash-placeholder",
+    "seed": 42,
+    "deterministic_flags": []
+  },
+  "training_parameters": {
+    "method": "LoRA_or_QLoRA_planning_placeholder",
+    "batch_size": 1,
+    "gradient_accumulation": 8,
+    "learning_rate": "placeholder",
+    "schedule": "placeholder",
+    "epochs_or_steps": "placeholder",
+    "sequence_length": 2048,
+    "optimizer": "placeholder",
+    "precision": "placeholder",
+    "quantization": {
+      "enabled": false,
+      "mode": "none_or_placeholder"
+    },
+    "lora": {
+      "target_modules": [
+        "placeholder"
+      ],
+      "rank": 8,
+      "alpha": 16,
+      "dropout": 0.05
+    },
+    "checkpointing": {
+      "cadence": "placeholder",
+      "resume_location": "credential_free_artifact_reference_placeholder"
+    }
+  },
+  "metrics": {
+    "baseline": {
+      "captured_before_training": false,
+      "evaluator_contract_revision": "placeholder",
+      "immutable_test_set_id": "benchmark-v0-placeholder",
+      "results": []
+    },
+    "post_training": {
+      "captured": false,
+      "results": []
+    },
+    "comparison_policy": "Do not claim improvement without untouched baseline and post-training metrics using the same evaluator contract."
+  },
+  "exports": {
+    "planned_targets": [],
+    "actual_targets": [],
+    "runtime_compatibility_status": "not_tested",
+    "artifact_locations": []
+  },
+  "decision": {
+    "status": "PLANNED",
+    "allowed_final_values": [
+      "KEEP",
+      "REWORK",
+      "REJECT"
+    ],
+    "reason": "Example manifest only; no run has been executed."
+  },
+  "safety": {
+    "private_data_committed": false,
+    "credentials_committed": false,
+    "weights_or_checkpoints_committed": false,
+    "training_result_claimed": false,
+    "free_compute_availability_claimed": false,
+    "device_readiness_claimed": false
+  }
+}
