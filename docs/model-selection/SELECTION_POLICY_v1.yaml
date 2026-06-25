@@ -1,0 +1,19 @@
+policy_version: v1
+
+filters:
+
+  hard_constraints:
+    - context_size <= model.max_context_tokens
+    - latency_budget >= model.constraints.latency_class
+    - tool_requirements must be satisfied
+
+ranking_weights:
+
+  evaluation_score: 0.50
+  latency_score: 0.20
+  capability_match: 0.30
+
+fallback_policy:
+
+  primary: lowest_latency_valid_model
+  secondary: safe_refusal_model
