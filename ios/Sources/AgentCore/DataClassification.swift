@@ -67,3 +67,9 @@ public enum DelegationTarget: String, Sendable {
     case privateCloudCompute
     case externalProvider
 }
+
+extension DelegationTarget {
+    var leavesLocalDevice: Bool {
+        self != .none && self != .localDevice
+    }
+}
