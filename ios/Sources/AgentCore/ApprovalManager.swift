@@ -34,6 +34,9 @@ public struct ApprovalManager: Sendable {
     }
 
     public func requestApproval(_ request: ApprovalRequest) -> ApprovalStatus {
+        // Placeholder policy: this manager currently returns the configured
+        // default status. Real approval evaluation is deferred until the
+        // project defines the approval policy.
         defaultStatus
     }
 
