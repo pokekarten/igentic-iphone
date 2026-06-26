@@ -34,29 +34,20 @@ public enum TaskRoute: Equatable, Sendable {
     case blocked(reason: String)
 }
 
+/// Maps an already policy-approved task intent to a concrete local route.
+///
+/// `TaskRouter` intentionally does not compute or re-check policy or
+/// approval decisions. The caller (`AgentKernel.handle`) must obtain a
+/// `PolicyDecision` from `PolicyEngine`, confirm `isAllowed`, and resolve
+/// any required approval before calling `route`. Keeping that check in a
+/// single place avoids two independent code paths disagreeing about
+/// whether a task may proceed.
 public struct TaskRouter: Sendable {
-    private let policyEngine: PolicyEngine
+    public init() {}
 
-    public init(policyEngine: PolicyEngine = PolicyEngine()) {
-        self.policyEngine = policyEngine
-    }
-
-    func route(_ task: TaskRequest, privacyMode: PrivacyMode) -> TaskRoute {
+    func route(_ task: TaskRequest) -> TaskRoute {
         guard task.intent != .unknown else {
             return .askClarification(reason: "Intent is unclear.")
-        }
-
-        let decision = policyEngine.decide(
-            PolicyRequest(
-                privacyMode: privacyMode,
-                dataClassification: task.dataClassification,
-                actionRisk: task.actionRisk,
-                requestedDelegationTarget: .localDevice
-            )
-        )
-
-        guard decision.isAllowed else {
-            return .blocked(reason: decision.reason)
         }
 
         switch task.intent {
