@@ -33,19 +33,27 @@ public struct ApprovalManager: Sendable {
         self.defaultStatus = defaultStatus
     }
 
-    public func requestApproval(_ request: ApprovalRequest) -> ApprovalStatus {
-        // Placeholder policy: this manager currently returns the configured
-        // default status. Real approval evaluation is deferred until the
-        // project defines the approval policy.
+    /// Placeholder policy.
+    ///
+    /// This currently returns the configured default status.
+    /// Future implementations can evaluate RiskScore, DataClassification
+    /// or an interactive approval flow here.
+    private func evaluate(_ request: ApprovalRequest) -> ApprovalStatus {
         defaultStatus
     }
 
+    public func requestApproval(_ request: ApprovalRequest) -> ApprovalStatus {
+        evaluate(request)
+    }
+
     public func approvalReceipt(for request: ApprovalRequest) -> ApprovalReceipt {
-        ApprovalReceipt(
-            status: defaultStatus,
+        let status = requestApproval(request)
+
+        return ApprovalReceipt(
+            status: status,
             requestID: UUID().uuidString,
             reasonCode: request.reason,
-            mayContinueRouting: defaultStatus == .approved || defaultStatus == .notRequired
+            mayContinueRouting: status == .approved || status == .notRequired
         )
     }
 }
