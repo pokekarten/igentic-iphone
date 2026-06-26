@@ -71,7 +71,7 @@ public final class AgentKernel: @unchecked Sendable {
             }
         }
 
-        let route = taskRouter.route(task, privacyMode: privacyMode)
+        let route = taskRouter.route(task)
         auditLog.record(AuditEvent(type: .routeSelected, message: String(describing: route), dataSensitivity: task.dataClassification.level))
 
         return AgentResponse(route: route, policyDecision: decision, approvalStatus: approvalStatus)
