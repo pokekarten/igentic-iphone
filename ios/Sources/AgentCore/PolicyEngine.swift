@@ -34,6 +34,19 @@ public struct PolicyDecision: Equatable, Sendable {
     public let requiresApproval: Bool
     public let reasonCode: PolicyDecisionReason
     public let reason: String
+    /// Informational risk signal from `RiskScorer`.
+    ///
+    /// This is intentionally metadata-only for the current project phase.
+    /// `isAllowed` and `requiresApproval` are derived solely from
+    /// `dataClassification` and `actionRisk` (see `PolicyEngine.decide`),
+    /// never from `riskScore`. `RiskScore.requiresExplicitApproval` is a
+    /// candidate signal for a possible future policy, not an active gate.
+    ///
+    /// This is deliberately pinned by
+    /// `SmokeTests.testPolicyRiskScoreDoesNotAddApprovalByItself`. Do not
+    /// make `riskScore` influence `isAllowed`/`requiresApproval` without
+    /// first updating that test name and assertion to match the new
+    /// intent — it exists specifically to catch this change.
     public let riskScore: RiskScore
 
     public init(
