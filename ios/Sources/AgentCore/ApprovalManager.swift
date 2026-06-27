@@ -49,13 +49,15 @@ public struct RiskScoreApprovalPolicy: ApprovalDecisionPolicy {
     public init() {}
 
     public func decide(_ request: ApprovalRequest) -> ApprovalStatus {
-        // Uses RiskScore if available in system
-        // Assumption: RiskScore.requiresExplicitApproval exists
-        if let score = try? RiskScore(request: request), score.requiresExplicitApproval {
-            return .pending
-        } else {
-            return .approved
-        }
+        let riskRequest = RiskScoringRequest(
+            privacyMode: .localOnly,
+            dataClassification: request.dataClassification,
+            actionRisk: request.actionRisk,
+            delegationTarget: .none,
+            sensitiveDataFindings: []
+        )
+        let score = RiskScorer().score(riskRequest)
+        return score.requiresExplicitApproval ? .pending : .approved
     }
 }
 
