@@ -65,6 +65,10 @@ public struct ApprovalManager: Sendable {
     private let defaultStatus: ApprovalStatus
     private let policy: ApprovalDecisionPolicy
 
+    /// The default decision policy is intentionally fixed to
+    /// `FixedApprovalDecisionPolicy` so approval routing stays deterministic.
+    /// `RiskScoreApprovalPolicy` remains available as an opt-in alternative,
+    /// but it is not the default wiring here.
     public init(
         defaultStatus: ApprovalStatus = .pending,
         policy: ApprovalDecisionPolicy? = nil
