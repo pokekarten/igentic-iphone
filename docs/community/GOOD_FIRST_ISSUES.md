@@ -1,6 +1,6 @@
 # Good First Issues
 
-Last updated: 2026-06-12
+Last updated: 2026-06-27
 
 This file lists safe starter tasks for new contributors. It is intentionally written as a backlog that can be converted into GitHub issues.
 
@@ -120,6 +120,8 @@ Ideas:
 
 ### 8. Add policy edge-case tests
 
+**Status: COMPLETED — canonical artifact:** [`ios/Tests/AgentCoreTests/PolicyEngineEdgeCaseTests.swift`](../../ios/Tests/AgentCoreTests/PolicyEngineEdgeCaseTests.swift)
+
 **Goal:** Add smoke tests for edge cases in `PolicyEngine`.
 
 Examples:
@@ -134,6 +136,8 @@ Examples:
 
 ### 9. Add MemoryStore safe stub
 
+**Status: COMPLETED — canonical artifact:** [`ios/Sources/AgentCore/MemoryStore.swift`](../../ios/Sources/AgentCore/MemoryStore.swift) (tests in `SmokeTests.swift`)
+
 **Goal:** Add in-memory scoped memory without persistence.
 
 Requirements:
@@ -147,6 +151,8 @@ Requirements:
 **Validation:** Run the Swift test command.
 
 ### 10. Add DelegationBroker policy-gated stub tests
+
+**Status: COMPLETED — canonical artifact:** [`ios/Sources/AgentCore/DelegationBroker.swift`](../../ios/Sources/AgentCore/DelegationBroker.swift) (tests in `SmokeTests.swift`)
 
 **Goal:** Ensure delegation remains metadata-only and policy-gated.
 
