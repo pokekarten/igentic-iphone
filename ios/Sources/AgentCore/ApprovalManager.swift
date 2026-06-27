@@ -49,8 +49,7 @@ public struct RiskScoreApprovalPolicy: ApprovalDecisionPolicy {
     public init() {}
 
     public func decide(_ request: ApprovalRequest) -> ApprovalStatus {
-        // Uses RiskScore if available in system
-        // Assumption: RiskScore.requiresExplicitApproval exists
+        // updated comment
         if let score = try? RiskScore(request: request), score.requiresExplicitApproval {
             return .pending
         } else {
