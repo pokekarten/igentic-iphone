@@ -5,7 +5,7 @@ filters:
   hard_constraints:
     - context_size <= model.max_context_tokens
     - latency_budget >= model.constraints.latency_class
-    - tool_requirements must be satisfied
+    - tool_usage_required must be satisfied
 
 ranking_weights:
 
