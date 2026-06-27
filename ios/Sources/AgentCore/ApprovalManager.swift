@@ -26,20 +26,56 @@ public struct ApprovalRequest: Equatable, Sendable {
     }
 }
 
-public struct ApprovalManager: Sendable {
+// MARK: - Decision Policy
+
+public protocol ApprovalDecisionPolicy: Sendable {
+    func decide(_ request: ApprovalRequest) -> ApprovalStatus
+}
+
+public struct FixedApprovalDecisionPolicy: ApprovalDecisionPolicy {
     private let defaultStatus: ApprovalStatus
 
-    public init(defaultStatus: ApprovalStatus = .pending) {
+    public init(defaultStatus: ApprovalStatus) {
         self.defaultStatus = defaultStatus
+    }
+
+    public func decide(_ request: ApprovalRequest) -> ApprovalStatus {
+        defaultStatus
+    }
+}
+
+/// Optional policy using risk signals (not default-wired)
+public struct RiskScoreApprovalPolicy: ApprovalDecisionPolicy {
+    public init() {}
+
+    public func decide(_ request: ApprovalRequest) -> ApprovalStatus {
+        // Uses RiskScore if available in system
+        // Assumption: RiskScore.requiresExplicitApproval exists
+        if let score = try? RiskScore(request: request), score.requiresExplicitApproval {
+            return .pending
+        } else {
+            return .approved
+        }
+    }
+}
+
+public struct ApprovalManager: Sendable {
+    private let defaultStatus: ApprovalStatus
+    private let policy: ApprovalDecisionPolicy
+
+    public init(
+        defaultStatus: ApprovalStatus = .pending,
+        policy: ApprovalDecisionPolicy? = nil
+    ) {
+        self.defaultStatus = defaultStatus
+        self.policy = policy ?? FixedApprovalDecisionPolicy(defaultStatus: defaultStatus)
     }
 
     /// Placeholder policy.
     ///
-    /// This currently returns the configured default status.
-    /// Future implementations can evaluate RiskScore, DataClassification
-    /// or an interactive approval flow here.
+    /// This currently delegates to the configured decision policy.
     private func evaluate(_ request: ApprovalRequest) -> ApprovalStatus {
-        defaultStatus
+        policy.decide(request)
     }
 
     public func requestApproval(_ request: ApprovalRequest) -> ApprovalStatus {
