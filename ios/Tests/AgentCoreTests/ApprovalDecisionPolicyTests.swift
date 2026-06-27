@@ -3,27 +3,27 @@ import XCTest
 
 final class ApprovalDecisionPolicyTests: XCTestCase {
 
-    func testFixedApprovalDecisionPolicyReturnsConfiguredDefaultStatus() {
-        let policy = FixedApprovalDecisionPolicy(defaultStatus: .pending)
-        let request = ApprovalRequest()
-        let result = policy.decide(request)
-        
-        XCTAssertEqual(result, .pending)
+    private func sampleRequest() -> ApprovalRequest {
+        ApprovalRequest(
+            taskSummary: "Sample task",
+            dataClassification: .publicDefault,
+            actionRisk: .execute,
+            reason: "test"
+        )
     }
 
-    func testApprovalManagerDefaultUsesFixedPolicyAndIsStable() {
+    func testFixedApprovalDecisionPolicyReturnsConfiguredDefaultStatus() {
+        let policy = FixedApprovalDecisionPolicy(defaultStatus: .pending)
+        XCTAssertEqual(policy.decide(sampleRequest()), .pending)
+    }
+
+    func testApprovalManagerDefaultIsStableAndUsesFixedPolicy() {
         let manager = ApprovalManager()
-        let request = ApprovalRequest()
-        let result = manager.evaluate(request)
-        
-        XCTAssertEqual(result, .pending)
+        XCTAssertEqual(manager.requestApproval(sampleRequest()), .pending)
     }
 
     func testRiskScorePolicyDoesNotCrash() {
         let policy = RiskScoreApprovalPolicy()
-        let request = ApprovalRequest()
-        _ = policy.decide(request)
-        
-        XCTAssertTrue(true)
+        _ = policy.decide(sampleRequest())
     }
 }
