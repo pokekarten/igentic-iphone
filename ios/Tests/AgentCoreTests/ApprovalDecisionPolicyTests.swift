@@ -17,6 +17,11 @@ final class ApprovalDecisionPolicyTests: XCTestCase {
         XCTAssertEqual(policy.decide(sampleRequest()), .pending)
     }
 
+    func testApprovalDecisionPolicyDefaultIsIntentional() {
+        let manager = ApprovalManager(defaultStatus: .rejected)
+        XCTAssertEqual(manager.requestApproval(sampleRequest()), .rejected)
+    }
+
     func testApprovalManagerDefaultIsStableAndUsesFixedPolicy() {
         let manager = ApprovalManager()
         XCTAssertEqual(manager.requestApproval(sampleRequest()), .pending)
