@@ -69,6 +69,7 @@ REQUIRED_FILES = [
     ".github/ISSUE_TEMPLATE/device_test_report.md",
     ".github/ISSUE_TEMPLATE/good_first_issue.md",
     ".github/ISSUE_TEMPLATE/social_content.md",
+    "scripts/validation_summary.py",
     "ios/Package.swift",
     "ios/Sources/AgentCore/DataClassification.swift",
     "ios/Sources/AgentCore/PolicyEngine.swift",
