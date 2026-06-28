@@ -10,11 +10,14 @@ Run these commands from the repository root unless noted otherwise:
 
 ```bash
 python3 scripts/validate_repo_structure.py
+python3 scripts/validation_summary.py
 cd ios && swift test
 cd ios && swift build
 ```
 
-A task that claims to complete Issue #1 or any validation-gated milestone must record the exact result of all three commands.
+`python3 scripts/validation_summary.py` is a read-only preflight helper. It does not replace the canonical checks; it only makes the validation path easier to copy into PRs and comments.
+
+A task that claims to complete Issue #1 or any validation-gated milestone must record the exact result of all four commands.
 
 ## GitHub Actions validation
 
@@ -55,6 +58,7 @@ A validation report is complete only when it records:
 | Check | Required evidence |
 | --- | --- |
 | Repo structure | The repo-structure validation command exits 0 |
+| Validation summary | The summary helper runs successfully |
 | Swift tests | The Swift test command exits 0 |
 | Swift build | The Swift build command exits 0 |
 | CI | GitHub Actions workflow conclusion is `success` for the relevant commit |
