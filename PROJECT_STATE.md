@@ -78,9 +78,12 @@ Before acting:
 
 ```bash
 python3 scripts/validate_repo_structure.py
+python3 scripts/validation_summary.py
 cd ios && swift test
 cd ios && swift build
 ```
+
+`python3 scripts/validation_summary.py` is a read-only preflight helper. It does not replace the canonical checks; it keeps the validation path easy to copy into PRs and comments.
 
 Documentation-only work requires repository-structure validation when required files or links change. Swift validation is required when Swift source changes.
 
