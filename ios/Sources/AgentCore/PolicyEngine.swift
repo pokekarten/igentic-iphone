@@ -27,6 +27,7 @@ public enum PolicyDecisionReason: String, Equatable, Sendable {
     case dataRequiresApproval
     case actionRequiresApproval
     case dataAndActionRequireApproval
+    case externalProviderRequiresApproval
 }
 
 public struct PolicyDecision: Equatable, Sendable {
@@ -38,9 +39,10 @@ public struct PolicyDecision: Equatable, Sendable {
     ///
     /// This is intentionally metadata-only for the current project phase.
     /// `isAllowed` and `requiresApproval` are derived solely from
-    /// `dataClassification` and `actionRisk` (see `PolicyEngine.decide`),
-    /// never from `riskScore`. `RiskScore.requiresExplicitApproval` is a
-    /// candidate signal for a possible future policy, not an active gate.
+    /// `dataClassification`, `actionRisk`, and `requestedDelegationTarget`
+    /// (see `PolicyEngine.decide`), never from `riskScore`.
+    /// `RiskScore.requiresExplicitApproval` is a candidate signal for a
+    /// possible future policy, not an active gate.
     ///
     /// This is deliberately pinned by
     /// `SmokeTests.testPolicyRiskScoreDoesNotAddApprovalByItself`. Do not
@@ -101,16 +103,18 @@ public struct PolicyEngine: Sendable {
             )
         }
 
+        let externalProviderRequiresApproval = request.requestedDelegationTarget == .externalProvider
         let dataRequiresApproval = request.dataClassification.level.requiresExplicitApproval
         let actionRequiresApproval = request.actionRisk.requiresApproval
-        let requiresApproval = dataRequiresApproval || actionRequiresApproval
+        let requiresApproval = externalProviderRequiresApproval || dataRequiresApproval || actionRequiresApproval
 
         return PolicyDecision(
             isAllowed: true,
             requiresApproval: requiresApproval,
             reasonCode: reasonCode(
                 dataRequiresApproval: dataRequiresApproval,
-                actionRequiresApproval: actionRequiresApproval
+                actionRequiresApproval: actionRequiresApproval,
+                externalProviderRequiresApproval: externalProviderRequiresApproval
             ),
             reason: "Policy allows task with current safeguards.",
             riskScore: riskScore
@@ -119,16 +123,19 @@ public struct PolicyEngine: Sendable {
 
     private func reasonCode(
         dataRequiresApproval: Bool,
-        actionRequiresApproval: Bool
+        actionRequiresApproval: Bool,
+        externalProviderRequiresApproval: Bool
     ) -> PolicyDecisionReason {
-        switch (dataRequiresApproval, actionRequiresApproval) {
-        case (false, false):
+        switch (externalProviderRequiresApproval, dataRequiresApproval, actionRequiresApproval) {
+        case (true, _, _):
+            return .externalProviderRequiresApproval
+        case (false, false, false):
             return .allowedWithCurrentSafeguards
-        case (true, false):
+        case (false, true, false):
             return .dataRequiresApproval
-        case (false, true):
+        case (false, false, true):
             return .actionRequiresApproval
-        case (true, true):
+        case (false, true, true):
             return .dataAndActionRequireApproval
         }
     }
