@@ -38,7 +38,7 @@ public final class AgentKernel: @unchecked Sendable {
                 privacyMode: privacyMode,
                 dataClassification: task.dataClassification,
                 actionRisk: task.actionRisk,
-                requestedDelegationTarget: .localDevice
+                requestedDelegationTarget: task.requestedDelegationTarget
             )
         )
 
