@@ -68,4 +68,14 @@ final class TaskRouterTests: XCTestCase {
 
         XCTAssertEqual(router.route(lowRisk), router.route(highRisk))
     }
+
+    func testRequestedDelegationTargetRoundTripsOnTaskRequest() {
+        let task = TaskRequest(
+            userText: "Delegate this",
+            intent: .requestApproval,
+            requestedDelegationTarget: .externalProvider
+        )
+
+        XCTAssertEqual(task.requestedDelegationTarget, .externalProvider)
+    }
 }
