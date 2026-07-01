@@ -15,7 +15,8 @@ public enum SyntheticScenarioCatalog {
             task: TaskRequest(
                 userText: "Synthetic local summary dry run",
                 intent: .summarizeNote,
-                actionRisk: .read
+                actionRisk: .read,
+                requestedDelegationTarget: .trustedMac
             ),
             privacyMode: .localOnly,
             delegationTarget: .trustedMac
@@ -25,7 +26,8 @@ public enum SyntheticScenarioCatalog {
             task: TaskRequest(
                 userText: "Synthetic critical reminder dry run",
                 intent: .createReminder,
-                actionRisk: .critical
+                actionRisk: .critical,
+                requestedDelegationTarget: .trustedMac
             ),
             privacyMode: .trustedDevices,
             delegationTarget: .trustedMac
@@ -35,7 +37,8 @@ public enum SyntheticScenarioCatalog {
             task: TaskRequest(
                 userText: "Synthetic external provider dry run",
                 intent: .summarizeNote,
-                actionRisk: .prepare
+                actionRisk: .prepare,
+                requestedDelegationTarget: .externalProvider
             ),
             privacyMode: .trustedDevices,
             delegationTarget: .externalProvider
@@ -45,7 +48,8 @@ public enum SyntheticScenarioCatalog {
             task: TaskRequest(
                 userText: "Synthetic trusted-device metadata dry run",
                 intent: .findFile,
-                actionRisk: .prepare
+                actionRisk: .prepare,
+                requestedDelegationTarget: .trustedMac
             ),
             privacyMode: .trustedDevices,
             delegationTarget: .trustedMac
@@ -62,7 +66,8 @@ public enum SyntheticScenarioCatalog {
                     level: .restrictedSensitiveData,
                     reason: "Synthetic restricted classification for delegation smoke testing."
                 ),
-                actionRisk: .prepare
+                actionRisk: .prepare,
+                requestedDelegationTarget: .externalProvider
             ),
             privacyMode: .trustedDevices,
             delegationTarget: .externalProvider
@@ -73,7 +78,8 @@ public enum SyntheticScenarioCatalog {
                 userText: syntheticSensitiveText,
                 intent: .summarizeNote,
                 dataClassification: syntheticSensitiveClassification,
-                actionRisk: .read
+                actionRisk: .read,
+                requestedDelegationTarget: .trustedMac
             ),
             privacyMode: .trustedDevices,
             delegationTarget: .trustedMac
