@@ -46,6 +46,12 @@ public enum DelegationDecision: Equatable, Sendable {
     }
 }
 
+/// Diagnostics/scenario-only delegation broker.
+///
+/// `ScenarioRunner` uses this to surface a metadata-only delegation decision
+/// alongside live kernel behavior for smoke tests and reports.
+/// It is intentionally not part of the live authorization path; `AgentKernel`
+/// continues to route through `PolicyEngine` and `ApprovalManager`.
 public struct DelegationBroker: Sendable {
     public init() {}
 
