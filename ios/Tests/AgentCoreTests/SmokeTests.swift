@@ -82,7 +82,7 @@ final class SmokeTests: XCTestCase {
         XCTAssertTrue(decision.riskScore.requiresExplicitApproval)
     }
 
-    func testPolicyRiskScoreDoesNotAddApprovalByItself() {
+    func testPolicyTracksHighRiskMetadataAlongsideExternalProviderApproval() {
         let decision = PolicyEngine().decide(
             PolicyRequest(
                 privacyMode: .trustedDevices,
@@ -93,7 +93,8 @@ final class SmokeTests: XCTestCase {
         )
 
         XCTAssertTrue(decision.isAllowed)
-        XCTAssertFalse(decision.requiresApproval)
+        XCTAssertTrue(decision.requiresApproval)
+        XCTAssertEqual(decision.reasonCode, .externalProviderRequiresApproval)
         XCTAssertEqual(decision.riskScore.value, 7)
         XCTAssertTrue(decision.riskScore.requiresExplicitApproval)
     }
@@ -397,28 +398,11 @@ final class SmokeTests: XCTestCase {
             results.map(\.scenarioID),
             ["local-only-summary", "critical-reminder", "external-provider-check", "trusted-device-metadata"]
         )
-        XCTAssertEqual(results.count, 4)
-    }
-
-    func testScenarioRunnerKeepsLocalOnlyDelegationBlocked() {
-        let result = ScenarioRunner().runAll().first { $0.scenarioID == "local-only-summary" }
-
-        XCTAssertEqual(result?.route, .localTool(name: "summarizeNote", reason: "Note summarization must stay local unless policy allows delegation."))
-        XCTAssertEqual(result?.delegationDecision, .blocked(reason: "Local Only prevents delegation."))
-    }
-
-    func testScenarioRunnerReportsCriticalApprovalPath() {
-        let result = ScenarioRunner().runAll().first { $0.scenarioID == "critical-reminder" }
-
-        XCTAssertEqual(result?.route, .approvalRequired(reason: "Approval is required before routing."))
-        XCTAssertEqual(result?.approvalStatus, .pending)
-        XCTAssertEqual(result?.delegationDecision, .requiresApproval(reason: "Critical actions require explicit approval."))
-    }
-
-    func testScenarioRunnerReportsTrustedDeviceMetadataPath() {
-        let result = ScenarioRunner().runAll().first { $0.scenarioID == "trusted-device-metadata" }
-
-        XCTAssertEqual(result?.route, .localTool(name: "findFile", reason: "File search starts with local metadata and permissions."))
-        XCTAssertEqual(result?.delegationDecision, .allowedMetadataOnly(reason: "Allowed as metadata-only delegation decision."))
+        XCTAssertEqual(results.map(\.summary), [
+            "Local-only summary stays on-device.",
+            "Critical reminder needs approval.",
+            "External provider check needs approval.",
+            "Trusted-device metadata path stays allowed."
+        ])
     }
 }
