@@ -34,6 +34,32 @@ final class ScenarioReportTests: XCTestCase {
         XCTAssertEqual(trustedDevice?.delegation, .allowedMetadataOnly)
     }
 
+    func testKernelSeesPropagatedDelegationTargetForSyntheticScenarios() {
+        let scenario = SyntheticScenarioCatalog.baseline.first { $0.id == "external-provider-check" }
+        XCTAssertNotNil(scenario)
+        guard let scenario else { return }
+
+        XCTAssertEqual(scenario.task.requestedDelegationTarget, scenario.delegationTarget)
+
+        let kernel = AgentKernel()
+        let propagatedDecision = kernel.handle(scenario.task, privacyMode: scenario.privacyMode).policyDecision
+
+        let localDeviceTask = TaskRequest(
+            userText: scenario.task.userText,
+            intent: scenario.task.intent,
+            dataClassification: scenario.task.dataClassification,
+            actionRisk: scenario.task.actionRisk,
+            requestedDelegationTarget: .localDevice
+        )
+        let localDeviceDecision = kernel.handle(localDeviceTask, privacyMode: scenario.privacyMode).policyDecision
+
+        XCTAssertNotEqual(propagatedDecision, localDeviceDecision)
+        XCTAssertEqual(propagatedDecision.reasonCode, .externalProviderRequiresApproval)
+        XCTAssertEqual(propagatedDecision.requiresApproval, true)
+        XCTAssertEqual(localDeviceDecision.reasonCode, .allowedWithCurrentSafeguards)
+        XCTAssertEqual(localDeviceDecision.requiresApproval, false)
+    }
+
     func testScenarioReportSummaryIsDeterministicAndMetadataOnly() {
         let summary = ScenarioRunner().report().textSummary
 
