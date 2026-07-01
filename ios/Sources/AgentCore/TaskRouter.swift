@@ -13,17 +13,20 @@ public struct TaskRequest: Equatable, Sendable {
     public let intent: TaskIntent
     public let dataClassification: DataClassification
     public let actionRisk: ActionRisk
+    public let requestedDelegationTarget: DelegationTarget
 
     public init(
         userText: String,
         intent: TaskIntent,
         dataClassification: DataClassification = .publicDefault,
-        actionRisk: ActionRisk = .prepare
+        actionRisk: ActionRisk = .prepare,
+        requestedDelegationTarget: DelegationTarget = .localDevice
     ) {
         self.userText = userText
         self.intent = intent
         self.dataClassification = dataClassification
         self.actionRisk = actionRisk
+        self.requestedDelegationTarget = requestedDelegationTarget
     }
 }
 
