@@ -31,6 +31,27 @@ final class PolicyEngineEdgeCaseTests: XCTestCase {
         XCTAssertEqual(response.route, .blocked(reason: "Local Only blocks non-local delegation."))
     }
 
+    func testKernelBlocksRestrictedDataDelegationBeforeApprovalEscalation() {
+        let response = AgentKernel().handle(
+            TaskRequest(
+                userText: "Delegate this",
+                intent: .requestApproval,
+                dataClassification: DataClassification(level: .restrictedSensitiveData, reason: "Synthetic restricted metadata."),
+                actionRisk: .prepare,
+                requestedDelegationTarget: .trustedMac
+            ),
+            privacyMode: .trustedDevices
+        )
+
+        XCTAssertFalse(response.policyDecision.isAllowed)
+        XCTAssertTrue(response.policyDecision.requiresApproval)
+        XCTAssertEqual(response.policyDecision.reasonCode, .restrictedDataBlocksAutomaticExternalDelegation)
+        XCTAssertEqual(
+            response.route,
+            .blocked(reason: "Restricted sensitive data cannot be delegated automatically.")
+        )
+    }
+
     func testLocalOnlyBlocksExternalProviderBeforeApprovalEscalation() {
         let decision = PolicyEngine().decide(
             PolicyRequest(
