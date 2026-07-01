@@ -52,6 +52,22 @@ final class PolicyEngineEdgeCaseTests: XCTestCase {
         )
     }
 
+    func testExternalProviderRequiresApprovalForPublicDefaultPrepareAction() {
+        let decision = PolicyEngine().decide(
+            PolicyRequest(
+                privacyMode: .trustedDevices,
+                dataClassification: .publicDefault,
+                actionRisk: .prepare,
+                requestedDelegationTarget: .externalProvider
+            )
+        )
+
+        XCTAssertTrue(decision.isAllowed)
+        XCTAssertTrue(decision.requiresApproval)
+        XCTAssertEqual(decision.reasonCode, .externalProviderRequiresApproval)
+        XCTAssertEqual(decision.reason, "Policy allows task with current safeguards.")
+    }
+
     func testLocalOnlyBlocksExternalProviderBeforeApprovalEscalation() {
         let decision = PolicyEngine().decide(
             PolicyRequest(
