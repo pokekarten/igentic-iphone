@@ -2,6 +2,35 @@ import XCTest
 @testable import AgentCore
 
 final class PolicyEngineEdgeCaseTests: XCTestCase {
+    func testKernelPreservesLocalDeviceDefaultDelegationTarget() {
+        let response = AgentKernel().handle(
+            TaskRequest(userText: "Remind me", intent: .createReminder),
+            privacyMode: .localOnly
+        )
+
+        XCTAssertTrue(response.policyDecision.isAllowed)
+        XCTAssertEqual(response.policyDecision.reasonCode, .allowedWithCurrentSafeguards)
+        XCTAssertEqual(
+            response.route,
+            .localTool(name: "createReminder", reason: "Reminder creation is a typed local action.")
+        )
+    }
+
+    func testKernelBlocksExternalProviderDelegationUnderLocalOnlyPrivacyMode() {
+        let response = AgentKernel().handle(
+            TaskRequest(
+                userText: "Delegate this",
+                intent: .requestApproval,
+                requestedDelegationTarget: .externalProvider
+            ),
+            privacyMode: .localOnly
+        )
+
+        XCTAssertFalse(response.policyDecision.isAllowed)
+        XCTAssertEqual(response.policyDecision.reasonCode, .localOnlyBlocksNonLocalDelegation)
+        XCTAssertEqual(response.route, .blocked(reason: "Local Only blocks non-local delegation."))
+    }
+
     func testLocalOnlyBlocksExternalProviderBeforeApprovalEscalation() {
         let decision = PolicyEngine().decide(
             PolicyRequest(
