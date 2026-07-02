@@ -15,7 +15,7 @@ final class ScenarioReportTests: XCTestCase {
         XCTAssertEqual(report.entries.count, 4)
 
         let localOnly = report.entries.first { $0.scenarioID == "local-only-summary" }
-        XCTAssertEqual(localOnly?.route, .localTool)
+        XCTAssertEqual(localOnly?.route, .blocked)
         XCTAssertEqual(localOnly?.approvalStatus, .notRequired)
         XCTAssertEqual(localOnly?.delegation, .blocked)
 
@@ -26,7 +26,8 @@ final class ScenarioReportTests: XCTestCase {
         XCTAssertEqual(critical?.delegation, .approvalRequired)
 
         let external = report.entries.first { $0.scenarioID == "external-provider-check" }
-        XCTAssertEqual(external?.route, .localTool)
+        XCTAssertEqual(external?.route, .approvalRequired)
+        XCTAssertEqual(external?.policyRequiresApproval, true)
         XCTAssertEqual(external?.delegation, .approvalRequired)
 
         let trustedDevice = report.entries.first { $0.scenarioID == "trusted-device-metadata" }
@@ -64,10 +65,10 @@ final class ScenarioReportTests: XCTestCase {
         let summary = ScenarioRunner().report().textSummary
 
         XCTAssertEqual(summary.components(separatedBy: "\n").count, 4)
-        XCTAssertTrue(summary.contains("local-only-summary: route=localTool"))
+        XCTAssertTrue(summary.contains("local-only-summary: route=blocked"))
         XCTAssertTrue(summary.contains("critical-reminder: route=approvalRequired"))
-        XCTAssertTrue(summary.contains("external-provider-check"))
-        XCTAssertTrue(summary.contains("trusted-device-metadata"))
+        XCTAssertTrue(summary.contains("external-provider-check: route=approvalRequired"))
+        XCTAssertTrue(summary.contains("trusted-device-metadata: route=localTool"))
         XCTAssertFalse(summary.contains("Synthetic local summary dry run"))
         XCTAssertFalse(summary.contains("Synthetic critical reminder dry run"))
     }
