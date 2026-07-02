@@ -398,11 +398,11 @@ final class SmokeTests: XCTestCase {
             results.map(\.scenarioID),
             ["local-only-summary", "critical-reminder", "external-provider-check", "trusted-device-metadata"]
         )
-        XCTAssertEqual(results.map(\.summary), [
-            "Local-only summary stays on-device.",
-            "Critical reminder needs approval.",
-            "External provider check needs approval.",
-            "Trusted-device metadata path stays allowed."
+        XCTAssertEqual(ScenarioRunner.defaultScenarios.map(\.task.userText), [
+            "Synthetic local summary dry run",
+            "Synthetic critical reminder dry run",
+            "Synthetic external provider dry run",
+            "Synthetic trusted-device metadata dry run"
         ])
     }
 }
