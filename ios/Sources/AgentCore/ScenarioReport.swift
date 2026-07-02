@@ -46,6 +46,9 @@ public struct ScenarioReport: Equatable, Sendable {
     }
 
     public var textSummary: String {
+        // This is a derived, display-only summary built from the structured
+        // scenario result fields above. It is intentionally not a separate source
+        // of truth.
         entries
             .map {
                 "\($0.scenarioID): route=\($0.route.rawValue), policyAllowed=\($0.policyAllowed), policyApproval=\($0.policyRequiresApproval), approval=\($0.approvalStatus.rawValue), delegation=\($0.delegation.rawValue)"
