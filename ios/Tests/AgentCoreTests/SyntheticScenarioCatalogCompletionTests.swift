@@ -33,6 +33,8 @@ final class SyntheticScenarioCatalogCompletionTests: XCTestCase {
         )
         let result = ScenarioRunner().run(scenario)
 
+        // Restricted data should be stopped by policy before any approval flow can
+        // continue into a delegated route.
         XCTAssertEqual(scenario.task.dataClassification.level, .restrictedSensitiveData)
         XCTAssertEqual(result.route, .blocked(reason: "Restricted sensitive data cannot be delegated automatically."))
         XCTAssertFalse(result.policyDecision.isAllowed)
@@ -76,6 +78,8 @@ final class SyntheticScenarioCatalogCompletionTests: XCTestCase {
         XCTAssertFalse(summary.contains("Synthetic restricted metadata delegation dry run"))
         XCTAssertFalse(summary.contains("scenario@example.com"))
 
+        // The report intentionally stores normalized kinds, not the full
+        // associated-value payload from the live scenario result.
         let restricted = report.entries.first { $0.scenarioID == "restricted-external-delegation" }
         XCTAssertEqual(restricted?.route, .blocked)
         XCTAssertEqual(restricted?.delegation, .blocked)
