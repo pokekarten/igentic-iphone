@@ -34,10 +34,10 @@ final class SyntheticScenarioCatalogCompletionTests: XCTestCase {
         let result = ScenarioRunner().run(scenario)
 
         XCTAssertEqual(scenario.task.dataClassification.level, .restrictedSensitiveData)
-        XCTAssertEqual(result.route, .approvalRequired(reason: "Approval is required before routing."))
-        XCTAssertTrue(result.policyDecision.isAllowed)
+        XCTAssertEqual(result.route, .blocked(reason: "Restricted sensitive data cannot be delegated automatically."))
+        XCTAssertFalse(result.policyDecision.isAllowed)
         XCTAssertTrue(result.policyDecision.requiresApproval)
-        XCTAssertEqual(result.approvalStatus, .pending)
+        XCTAssertEqual(result.approvalStatus, .notRequired)
         XCTAssertEqual(
             result.delegationDecision,
             .blocked(reason: "Restricted sensitive data cannot be delegated automatically.")
@@ -77,7 +77,7 @@ final class SyntheticScenarioCatalogCompletionTests: XCTestCase {
         XCTAssertFalse(summary.contains("scenario@example.com"))
 
         let restricted = report.entries.first { $0.scenarioID == "restricted-external-delegation" }
-        XCTAssertEqual(restricted?.route, .approvalRequired)
+        XCTAssertEqual(restricted?.route, .blocked)
         XCTAssertEqual(restricted?.delegation, .blocked)
 
         let sensitive = report.entries.first { $0.scenarioID == "sensitive-data-detection" }
