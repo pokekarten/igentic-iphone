@@ -15,11 +15,14 @@ final class ScenarioReportTests: XCTestCase {
         XCTAssertEqual(report.entries.count, 4)
 
         let localOnly = report.entries.first { $0.scenarioID == "local-only-summary" }
+        // Local-only privacy mode blocks non-local delegation before routing.
         XCTAssertEqual(localOnly?.route, .blocked)
         XCTAssertEqual(localOnly?.approvalStatus, .notRequired)
         XCTAssertEqual(localOnly?.delegation, .blocked)
 
         let critical = report.entries.first { $0.scenarioID == "critical-reminder" }
+        // Critical actions are allowed only with approval and therefore stop at
+        // the approval-required route until the receipt is resolved.
         XCTAssertEqual(critical?.route, .approvalRequired)
         XCTAssertEqual(critical?.policyRequiresApproval, true)
         XCTAssertEqual(critical?.approvalStatus, .pending)
