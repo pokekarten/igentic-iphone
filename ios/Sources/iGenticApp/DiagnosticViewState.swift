@@ -11,6 +11,8 @@ public struct DiagnosticStatusRow: Identifiable, Equatable, Sendable {
 
     public init(entry: ScenarioReportEntry) {
         self.id = entry.scenarioID
+        // The diagnostic UI mirrors the structured report and keeps user task
+        // text out of the visible surface.
         self.title = Self.displayText(entry.scenarioID)
         self.route = Self.displayText(entry.route.rawValue)
         self.policy = entry.policyAllowed
