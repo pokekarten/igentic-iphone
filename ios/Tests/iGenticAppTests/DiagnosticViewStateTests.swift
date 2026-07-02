@@ -11,8 +11,8 @@ final class DiagnosticViewStateTests: XCTestCase {
         XCTAssertEqual(state.auditStatus, "Synthetic metadata only")
 
         let localOnly = state.rows.first { $0.id == "local-only-summary" }
-        XCTAssertEqual(localOnly?.route, "Local Tool")
-        XCTAssertEqual(localOnly?.policy, "Allowed")
+        XCTAssertEqual(localOnly?.route, "Blocked")
+        XCTAssertEqual(localOnly?.policy, "Blocked")
         XCTAssertEqual(localOnly?.approval, "Not Required")
         XCTAssertEqual(localOnly?.delegation, "Blocked")
 
@@ -21,6 +21,18 @@ final class DiagnosticViewStateTests: XCTestCase {
         XCTAssertEqual(critical?.policy, "Approval required")
         XCTAssertEqual(critical?.approval, "Pending")
         XCTAssertEqual(critical?.delegation, "Approval Required")
+
+        let external = state.rows.first { $0.id == "external-provider-check" }
+        XCTAssertEqual(external?.route, "Approval Required")
+        XCTAssertEqual(external?.policy, "Approval required")
+        XCTAssertEqual(external?.approval, "Pending")
+        XCTAssertEqual(external?.delegation, "Approval Required")
+
+        let trustedDevice = state.rows.first { $0.id == "trusted-device-metadata" }
+        XCTAssertEqual(trustedDevice?.route, "Local Tool")
+        XCTAssertEqual(trustedDevice?.policy, "Allowed")
+        XCTAssertEqual(trustedDevice?.approval, "Not Required")
+        XCTAssertEqual(trustedDevice?.delegation, "Allowed Metadata Only")
     }
 
     func testDiagnosticViewStateDoesNotExposeSyntheticTaskText() {
