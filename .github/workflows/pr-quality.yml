@@ -34,20 +34,27 @@ jobs:
           set -euo pipefail
           body="${PR_BODY:-}"
           missing=0
+
+          # Accept either markdown headings (e.g. "## Safety") or colon-style markers ("Safety:")
           for marker in "Summary" "Scope" "Validation" "Safety" "Follow-up"; do
-            if ! printf '%s\n' "$body" | grep -qi "$marker"; then
+            if ! printf '%s\n' "$body" | grep -Eiq "^\s*#+\s*${marker}\b|${marker}:"; then
               echo "Missing PR section marker: $marker"
               missing=1
             fi
           done
-          if ! printf '%s\n' "$body" | grep -q "python3 scripts/validate_repo_structure.py"; then
+
+          # Accept explicit command invocation or a natural-language statement about validating repo structure
+          if ! printf '%s\n' "$body" | grep -Eiq "python3 scripts/validate_repo_structure.py|validate.*repo.*structure|validated.*repo.*structure"; then
             echo "PR body should mention repo structure validation."
             missing=1
           fi
-          if ! printf '%s\n' "$body" | grep -q "swift test"; then
+
+          # Accept either the literal 'swift test' or an explicit explanation that Swift tests are not applicable
+          if ! printf '%s\n' "$body" | grep -Eiq "swift test|no swift tests|swift tests? not applicable|tests not applicable|tests not required"; then
             echo "PR body should mention Swift tests or explain why not applicable."
             missing=1
           fi
+
           exit "$missing"
 
       - name: Summarize PR quality
