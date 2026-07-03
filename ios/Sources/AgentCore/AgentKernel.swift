@@ -17,32 +17,45 @@ public final class AgentKernel: @unchecked Sendable {
     private let taskRouter: TaskRouter
     private let auditLog: AuditLog
     private let approvalManager: ApprovalManager
+    private let sensitiveDataDetector: SensitiveDataDetector
 
     public init(
         policyEngine: PolicyEngine = PolicyEngine(),
         taskRouter: TaskRouter = TaskRouter(),
         auditLog: AuditLog = AuditLog(),
-        approvalManager: ApprovalManager = ApprovalManager()
+        approvalManager: ApprovalManager = ApprovalManager(),
+        sensitiveDataDetector: SensitiveDataDetector = SensitiveDataDetector()
     ) {
         self.policyEngine = policyEngine
         self.taskRouter = taskRouter
         self.auditLog = auditLog
         self.approvalManager = approvalManager
+        self.sensitiveDataDetector = sensitiveDataDetector
     }
 
     public func handle(_ task: TaskRequest, privacyMode: PrivacyMode) -> AgentResponse {
-        auditLog.record(AuditEvent(type: .taskReceived, message: "Task received.", dataSensitivity: task.dataClassification.level))
+        let detection = sensitiveDataDetector.detect(in: task.userText)
+        let effectiveClassification = task.dataClassification.raised(byDetected: detection.suggestedDataClassification)
+        let effectiveTask = TaskRequest(
+            userText: task.userText,
+            intent: task.intent,
+            dataClassification: effectiveClassification,
+            actionRisk: task.actionRisk
+        )
+
+        auditLog.record(AuditEvent(type: .taskReceived, message: "Task received.", dataSensitivity: effectiveClassification.level))
 
         let decision = policyEngine.decide(
             PolicyRequest(
                 privacyMode: privacyMode,
-                dataClassification: task.dataClassification,
+                dataClassification: effectiveClassification,
                 actionRisk: task.actionRisk,
-                requestedDelegationTarget: .localDevice
+                requestedDelegationTarget: .localDevice,
+                sensitiveDataFindings: detection.findings
             )
         )
 
-        auditLog.record(AuditEvent(type: decision.isAllowed ? .policyDecision : .blocked, message: decision.reason, dataSensitivity: task.dataClassification.level))
+        auditLog.record(AuditEvent(type: decision.isAllowed ? .policyDecision : .blocked, message: decision.reason, dataSensitivity: effectiveClassification.level))
 
         guard decision.isAllowed else {
             return AgentResponse(route: .blocked(reason: decision.reason), policyDecision: decision)
@@ -54,13 +67,13 @@ public final class AgentKernel: @unchecked Sendable {
             approvalStatus = approvalManager.requestApproval(
                 ApprovalRequest(
                     taskSummary: task.userText,
-                    dataClassification: task.dataClassification,
+                    dataClassification: effectiveClassification,
                     actionRisk: task.actionRisk,
                     reason: decision.reason
                 )
             )
 
-            auditLog.record(AuditEvent(type: .approvalRequired, message: "Approval status: \(approvalStatus.rawValue)", dataSensitivity: task.dataClassification.level))
+            auditLog.record(AuditEvent(type: .approvalRequired, message: "Approval status: \(approvalStatus.rawValue)", dataSensitivity: effectiveClassification.level))
 
             guard approvalStatus == .approved else {
                 return AgentResponse(
@@ -71,8 +84,8 @@ public final class AgentKernel: @unchecked Sendable {
             }
         }
 
-        let route = taskRouter.route(task, privacyMode: privacyMode)
-        auditLog.record(AuditEvent(type: .routeSelected, message: String(describing: route), dataSensitivity: task.dataClassification.level))
+        let route = taskRouter.route(effectiveTask, privacyMode: privacyMode)
+        auditLog.record(AuditEvent(type: .routeSelected, message: String(describing: route), dataSensitivity: effectiveClassification.level))
 
         return AgentResponse(route: route, policyDecision: decision, approvalStatus: approvalStatus)
     }
