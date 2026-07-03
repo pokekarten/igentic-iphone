@@ -4,7 +4,7 @@ Last updated: 2026-06-27
 
 This file lists safe starter tasks for new contributors. It is intentionally written as a backlog that can be converted into GitHub issues.
 
-Status legend: `OPEN` means available for issue selection; `COMPLETED` means a canonical artifact already exists. Only source-verified completed entries are annotated below; unannotated entries are not reclassified by this update.
+Status legend: `OPEN` means available for issue selection; `COMPLETED` means a canonical artifact already exists. Only source-verified completed entries are annotated below; unannotated entries are[...]
 
 ## Rules for all starter tasks
 
@@ -136,7 +136,7 @@ Examples:
 
 ### 9. Add MemoryStore safe stub
 
-**Status: COMPLETED — canonical artifact:** [`ios/Sources/AgentCore/MemoryStore.swift`](../../ios/Sources/AgentCore/MemoryStore.swift) (tests in `SmokeTests.swift`)
+**Status: COMPLETED — canonical artifact:** [`ios/Sources/AgentCore/MemoryStore.swift`](../../ios/Sources/AgentCore/MemoryStore.swift) (tests in [`ios/Tests/AgentCoreTests/SmokeTests.swift`](../../ios/Tests/AgentCoreTests/SmokeTests.swift))
 
 **Goal:** Add in-memory scoped memory without persistence.
 
@@ -152,7 +152,7 @@ Requirements:
 
 ### 10. Add DelegationBroker policy-gated stub tests
 
-**Status: COMPLETED — canonical artifact:** [`ios/Sources/AgentCore/DelegationBroker.swift`](../../ios/Sources/AgentCore/DelegationBroker.swift) (tests in `SmokeTests.swift`)
+**Status: COMPLETED — canonical artifact:** [`ios/Sources/AgentCore/DelegationBroker.swift`](../../ios/Sources/AgentCore/DelegationBroker.swift) (tests in [`ios/Tests/AgentCoreTests/SmokeTests.swift`](../../ios/Tests/AgentCoreTests/SmokeTests.swift))
 
 **Goal:** Ensure delegation remains metadata-only and policy-gated.
 
