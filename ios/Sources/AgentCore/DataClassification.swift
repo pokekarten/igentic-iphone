@@ -33,6 +33,21 @@ public struct DataClassification: Equatable, Sendable {
         level: .publicData,
         reason: "No private user context required."
     )
+
+    /// Returns this classification unless `detected` carries a strictly higher
+    /// sensitivity level, in which case `detected`'s level is used.
+    ///
+    /// This never lowers a caller-declared classification — a detector can only
+    /// raise the effective level, never override a stricter caller-supplied one.
+    /// The combined reason names the detected category only, never raw matched
+    /// text.
+    public func raised(byDetected detected: DataClassification) -> DataClassification {
+        guard detected.level > level else { return self }
+        return DataClassification(
+            level: detected.level,
+            reason: "\(reason) Raised: \(detected.reason)"
+        )
+    }
 }
 
 public enum PrivacyMode: String, CaseIterable, Sendable {
