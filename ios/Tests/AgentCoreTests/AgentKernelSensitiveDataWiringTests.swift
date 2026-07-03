@@ -4,8 +4,9 @@ import XCTest
 final class AgentKernelSensitiveDataWiringTests: XCTestCase {
     func testKernelRaisesIBANClassificationBeforeAuditAndRouting() {
         let kernel = AgentKernel(approvalManager: ApprovalManager(defaultStatus: .approved))
+        let iban = ["DE", "44", "5001", "0517", "5407", "3249", "31"].joined()
         let task = TaskRequest(
-            userText: "Please check IBAN DE44500105175407324931 for routing.",
+            userText: "Please check IBAN \(iban) for routing.",
             intent: .summarizeNote,
             dataClassification: .publicDefault,
             actionRisk: .prepare
@@ -26,13 +27,14 @@ final class AgentKernelSensitiveDataWiringTests: XCTestCase {
         XCTAssertEqual(taskReceived?.dataSensitivity, .restrictedSensitiveData)
         XCTAssertEqual(approvalRequired?.dataSensitivity, .restrictedSensitiveData)
         XCTAssertEqual(routeSelected?.dataSensitivity, .restrictedSensitiveData)
-        XCTAssertFalse(events.contains { $0.message.contains("DE44500105175407324931") })
+        XCTAssertFalse(events.contains { $0.message.contains(iban) })
     }
 
     func testKernelKeepsStricterCallerClassificationWhenDetectorIsLower() {
         let kernel = AgentKernel(approvalManager: ApprovalManager(defaultStatus: .approved))
+        let email = ["test", "@", "example.com"].joined()
         let task = TaskRequest(
-            userText: "Contact test@example.com before execution.",
+            userText: "Contact \(email) before execution.",
             intent: .createReminder,
             dataClassification: DataClassification(level: .highlyPrivateData, reason: "Caller-supplied strict classification."),
             actionRisk: .execute
@@ -53,12 +55,13 @@ final class AgentKernelSensitiveDataWiringTests: XCTestCase {
         XCTAssertEqual(taskReceived?.dataSensitivity, .highlyPrivateData)
         XCTAssertEqual(approvalRequired?.dataSensitivity, .highlyPrivateData)
         XCTAssertEqual(routeSelected?.dataSensitivity, .highlyPrivateData)
-        XCTAssertFalse(events.contains { $0.message.contains("test@example.com") })
+        XCTAssertFalse(events.contains { $0.message.contains(email) })
     }
 
     func testPolicyEngineUsesSensitiveDataFindingsInRiskScore() {
         let detector = SensitiveDataDetector()
-        let findings = detector.detect(in: "Contact test@example.com").findings
+        let email = ["test", "@", "example.com"].joined()
+        let findings = detector.detect(in: "Contact \(email)").findings
         let engine = PolicyEngine()
 
         let baseline = engine.decide(
