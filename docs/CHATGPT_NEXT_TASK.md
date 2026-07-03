@@ -2,8 +2,6 @@
 
 Repository: `pokekarten/igentic-iphone`
 
-Last reviewed: 2026-06-22
-
 ## Source-of-truth contract
 
 Current verified GitHub source overrides this file, Brain and memory for pull-request, issue, branch, check and merge state.
@@ -232,7 +230,9 @@ After merge or source-backed issue closure:
 
 ## Current migration rule
 
-The five-task control migration is a prerequisite repair because stale six-slot documentation could misroute active automation. The untouched baseline provenance scope in Issue #88 remains the next product target after the migration is terminal; it must not be implemented in the migration PR.
+The active control repair is iGentic PR #99 on branch `phase2/model-selection-engine-v3`. It is the sole active implementation track.
+
+Issue #88 is already terminal (`closed` / `completed`). Its untouched-baseline provenance scope is closed history, not the next active target, and it must not be implemented in the migration PR.
 
 ## Expected terminal results
 
