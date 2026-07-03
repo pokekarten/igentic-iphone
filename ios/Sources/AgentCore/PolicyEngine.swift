@@ -5,17 +5,23 @@ public struct PolicyRequest: Equatable, Sendable {
     public let dataClassification: DataClassification
     public let actionRisk: ActionRisk
     public let requestedDelegationTarget: DelegationTarget
+    /// Detector findings for the current task, if any. Defaulted to `[]` so
+    /// existing call sites and tests keep compiling unchanged. `PolicyEngine`
+    /// forwards these to `RiskScorer` for informational risk scoring only.
+    public let sensitiveDataFindings: [SensitiveDataFinding]
 
     public init(
         privacyMode: PrivacyMode,
         dataClassification: DataClassification,
         actionRisk: ActionRisk,
-        requestedDelegationTarget: DelegationTarget
+        requestedDelegationTarget: DelegationTarget,
+        sensitiveDataFindings: [SensitiveDataFinding] = []
     ) {
         self.privacyMode = privacyMode
         self.dataClassification = dataClassification
         self.actionRisk = actionRisk
         self.requestedDelegationTarget = requestedDelegationTarget
+        self.sensitiveDataFindings = sensitiveDataFindings
     }
 }
 
@@ -64,7 +70,8 @@ public struct PolicyEngine: Sendable {
                 privacyMode: request.privacyMode,
                 dataClassification: request.dataClassification,
                 actionRisk: request.actionRisk,
-                delegationTarget: request.requestedDelegationTarget
+                delegationTarget: request.requestedDelegationTarget,
+                sensitiveDataFindings: request.sensitiveDataFindings
             )
         )
 
