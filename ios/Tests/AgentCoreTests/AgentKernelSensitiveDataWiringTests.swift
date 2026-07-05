@@ -49,7 +49,7 @@ final class AgentKernelSensitiveDataWiringTests: XCTestCase {
         XCTAssertTrue(response.policyDecision.requiresApproval)
         XCTAssertEqual(response.approvalStatus, .approved)
         XCTAssertEqual(response.route, .localTool(name: "createReminder", reason: "Reminder creation is a typed local action."))
-        XCTAssertEqual(response.policyDecision.riskScore.value, 5)
+        XCTAssertEqual(response.policyDecision.riskScore.value, 7)
 
         let taskReceived = events.first { $0.type == .taskReceived }
         let approvalRequired = events.first { $0.type == .approvalRequired }
