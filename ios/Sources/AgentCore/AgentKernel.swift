@@ -62,7 +62,7 @@ public final class AgentKernel: @unchecked Sendable {
         if decision.requiresApproval {
             approvalStatus = approvalManager.requestApproval(
                 ApprovalRequest(
-                    taskSummary: task.userText,
+                    taskSummary: "classification=\(effectiveDataClassification.level), risk=\(task.actionRisk)",
                     dataClassification: effectiveDataClassification,
                     actionRisk: task.actionRisk,
                     reason: decision.reason
