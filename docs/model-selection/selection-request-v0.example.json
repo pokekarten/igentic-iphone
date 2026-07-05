@@ -1,0 +1,13 @@
+{
+  "task_type": "reasoning",
+  "latency_budget": "low",
+  "context_size": 2048,
+  "tool_usage_required": true,
+  "safety_level_required": "high",
+  "language_requirements": ["de", "en"],
+  "result": {
+    "selected_model_id": null,
+    "selected_model_revision": null,
+    "selection_reason": null
+  }
+}

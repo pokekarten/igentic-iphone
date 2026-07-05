@@ -46,7 +46,8 @@ public final class AgentKernel: @unchecked Sendable {
                 privacyMode: privacyMode,
                 dataClassification: effectiveDataClassification,
                 actionRisk: task.actionRisk,
-                requestedDelegationTarget: task.requestedDelegationTarget
+                requestedDelegationTarget: task.requestedDelegationTarget,
+                sensitiveDataFindings: detection.findings
             )
         )
 
