@@ -39,6 +39,7 @@ This file stores durable project state only. It must not store a live PR number,
 
 - Metadata-only RuntimeBudget, ApprovalReceipt, DiagnosticSnapshot and LocalModelRuntime contracts are on `main`.
 - Raw task text was removed from task-received AuditLog events.
+- ApprovalRequest no longer carries raw user task text; task summary is now metadata-only (classification/risk only).
 - Deterministic runtime rejection occurs before model invocation.
 - The workflow dependency reference used by the bootstrap ZIP workflow was updated from `actions/checkout@v6` to `@v7`.
 - Issues #25, #29, #58 and #59 are closed for their documented scope.
