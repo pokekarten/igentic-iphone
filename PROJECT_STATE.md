@@ -1,6 +1,6 @@
 # Project State
 
-Last updated: 2026-06-21
+Last updated: 2026-07-05
 
 ## Current status
 
@@ -42,6 +42,7 @@ This file stores durable project state only. It must not store a live PR number,
 - ApprovalRequest no longer carries raw user task text; task summary is now metadata-only (classification/risk only).
 - Deterministic runtime rejection occurs before model invocation.
 - The workflow dependency reference used by the bootstrap ZIP workflow was updated from `actions/checkout@v6` to `@v7`.
+- Repository hygiene now treats undocumented root placeholder artifacts as cleanup candidates rather than durable content.
 - Issues #25, #29, #58 and #59 are closed for their documented scope.
 
 ## Current baseline
