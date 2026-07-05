@@ -58,6 +58,18 @@ Every issue should include:
 
 Use `good first issue` only when a new contributor can complete the task without understanding the full runtime architecture.
 
+## Issue triage rule
+
+When reviewing an open issue, classify it into one of three buckets before deciding what to do next:
+
+- **Still open** — the work is still relevant and not yet completed.
+- **Already done** — the goal was implemented in a later PR or by other changes, but the issue was never closed.
+- **Superseded** — the original goal is no longer the best target because later architecture or process decisions replaced it.
+
+Close an issue only after checking the current `main` branch and the latest merged PRs.
+
+When closing an issue, add a short note that says whether it was completed, replaced, or no longer needed.
+
 ## ChatGPT control rules
 
 ChatGPT may safely do:
