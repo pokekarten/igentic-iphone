@@ -43,7 +43,7 @@ public struct SensitiveDataDetectionResult: Equatable, Sendable {
     public init(findings: [SensitiveDataFinding]) {
         self.findings = findings
         let highestLevel = findings
-            .map(\.$category.suggestedLevel)
+            .map(\.category.suggestedLevel)
             .max() ?? .publicData
         self.suggestedDataClassification = DataClassification(
             level: highestLevel,
