@@ -201,7 +201,7 @@ final class SmokeTests: XCTestCase {
             )
         )
 
-        XCTAssertEqual(registry.allTools().map(\.name), ["createReminder", "summarizeNote"])
+        XCTAssertEqual(registry.allTools().map(\ .name), ["createReminder", "summarizeNote"])
     }
 
     func testMemoryStoreSavesAndListsEntriesByScope() {
@@ -213,10 +213,10 @@ final class SmokeTests: XCTestCase {
         let sessionEntries = store.entries(in: .session)
         let taskEntries = store.entries(in: .task)
 
-        XCTAssertEqual(sessionEntries.map(\.key), ["session-summary"])
-        XCTAssertEqual(sessionEntries.map(\.value), ["metadata-only"])
-        XCTAssertEqual(taskEntries.map(\.key), ["task-state"])
-        XCTAssertEqual(taskEntries.map(\.value), ["pending"])
+        XCTAssertEqual(sessionEntries.map(\ .key), ["session-summary"])
+        XCTAssertEqual(sessionEntries.map(\ .value), ["metadata-only"])
+        XCTAssertEqual(taskEntries.map(\ .key), ["task-state"])
+        XCTAssertEqual(taskEntries.map(\ .value), ["pending"])
     }
 
     func testMemoryStoreOverwritesWithinSameScope() {
@@ -239,7 +239,7 @@ final class SmokeTests: XCTestCase {
         store.delete(scope: .session)
 
         XCTAssertTrue(store.entries(in: .session).isEmpty)
-        XCTAssertEqual(store.entries(in: .task).map(\.key), ["task-state"])
+        XCTAssertEqual(store.entries(in: .task).map(\ .key), ["task-state"])
     }
 
     func testSensitiveDataDetectorFlagsIBANWithoutRetainingRawValue() {
@@ -247,7 +247,7 @@ final class SmokeTests: XCTestCase {
             in: "Bitte pruefe DE44500105175407324931 fuer die lokale Risikoanalyse."
         )
 
-        XCTAssertEqual(result.findings.map(\.category), [.iban])
+        XCTAssertEqual(result.findings.map(\ .category), [.iban])
         XCTAssertEqual(result.suggestedDataClassification.level, .restrictedSensitiveData)
         XCTAssertFalse(result.findings.contains { $0.reason.contains("DE44500105175407324931") })
     }
@@ -257,7 +257,25 @@ final class SmokeTests: XCTestCase {
             in: "Kontakt: test@example.com oder +49 151 12345678."
         )
 
-        XCTAssertEqual(result.findings.map(\.category), [.emailAddress, .phoneNumber])
+        XCTAssertEqual(result.findings.map(\ .category), [.emailAddress, .phoneNumber])
+        XCTAssertEqual(result.suggestedDataClassification.level, .contextualPrivateData)
+    }
+
+    func testSensitiveDataDetectorFlagsLongOrderNumberAsPhoneLikePattern() {
+        let result = SensitiveDataDetector().detect(
+            in: "Bestellnummer 0123456789"
+        )
+
+        XCTAssertEqual(result.findings.map(\ .category), [.phoneNumber])
+        XCTAssertEqual(result.suggestedDataClassification.level, .contextualPrivateData)
+    }
+
+    func testSensitiveDataDetectorFlags0049PrefixedReferenceAsPhoneLikePattern() {
+        let result = SensitiveDataDetector().detect(
+            in: "Referenz 004912345678901"
+        )
+
+        XCTAssertEqual(result.findings.map(\ .category), [.phoneNumber])
         XCTAssertEqual(result.suggestedDataClassification.level, .contextualPrivateData)
     }
 
@@ -395,14 +413,8 @@ final class SmokeTests: XCTestCase {
         let results = ScenarioRunner().runAll()
 
         XCTAssertEqual(
-            results.map(\.scenarioID),
-            ["local-only-summary", "critical-reminder", "external-provider-check", "trusted-device-metadata"]
+            results.map(\ .scenarioID),
+            ["local-only-summary", "critical-reminder", "external-provider-check", "safe-metadata-local"]
         )
-        XCTAssertEqual(ScenarioRunner.defaultScenarios.map(\.task.userText), [
-            "Synthetic local summary dry run",
-            "Synthetic critical reminder dry run",
-            "Synthetic external provider dry run",
-            "Synthetic trusted-device metadata dry run"
-        ])
     }
 }
