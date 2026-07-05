@@ -43,7 +43,7 @@ public struct SensitiveDataDetectionResult: Equatable, Sendable {
     public init(findings: [SensitiveDataFinding]) {
         self.findings = findings
         let highestLevel = findings
-            .map(\.category.suggestedLevel)
+            .map(\.$category.suggestedLevel)
             .max() ?? .publicData
         self.suggestedDataClassification = DataClassification(
             level: highestLevel,
@@ -64,21 +64,25 @@ public struct SensitiveDataDetector: Sendable {
     public func detect(in text: String) -> SensitiveDataDetectionResult {
         var findings: [SensitiveDataFinding] = []
 
-        if containsIBANLikePattern(in: text) {
-            findings.append(
-                SensitiveDataFinding(category: .iban, reason: SensitiveDataCategory.iban.detectionReason)
-            )
-        }
-
+        // Email detection first (keeps expected ordering in tests)
         if contains(pattern: #"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b"#, in: text) {
             findings.append(
                 SensitiveDataFinding(category: .emailAddress, reason: SensitiveDataCategory.emailAddress.detectionReason)
             )
         }
 
+        // Phone detection next
         if containsGermanPhoneLikePattern(in: text) {
             findings.append(
                 SensitiveDataFinding(category: .phoneNumber, reason: SensitiveDataCategory.phoneNumber.detectionReason)
+            )
+        }
+
+        // IBAN detection last and stricter: require word boundaries to avoid
+        // accidental matches across adjacent text fragments.
+        if containsIBANLikePattern(in: text) {
+            findings.append(
+                SensitiveDataFinding(category: .iban, reason: SensitiveDataCategory.iban.detectionReason)
             )
         }
 
@@ -86,8 +90,11 @@ public struct SensitiveDataDetector: Sendable {
     }
 
     private func containsIBANLikePattern(in text: String) -> Bool {
+        // Require a word boundary before and after the IBAN to avoid matching
+        // across adjacent words (e.g. "REFERENZ 0049..."). Match typical IBAN
+        // form: two letters, two digits, then 11–30 alphanumeric characters.
         let uppercasedText = text.uppercased()
-        return contains(pattern: #"[A-Z]{2}\s?[0-9]{2}(?:\s?[A-Z0-9]){11,30}"#, in: uppercasedText)
+        return contains(pattern: #"\b[A-Z]{2}\s?[0-9]{2}(?:\s?[A-Z0-9]){11,30}\b"#, in: uppercasedText)
     }
 
     private func containsGermanPhoneLikePattern(in text: String) -> Bool {
