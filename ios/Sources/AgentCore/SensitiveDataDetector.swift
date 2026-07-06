@@ -99,11 +99,16 @@ public struct SensitiveDataDetector: Sendable {
 
     private func containsGermanPhoneLikePattern(in text: String) -> Bool {
         let allowedSeparators = CharacterSet(charactersIn: " ()/.-")
+        let maxNormalizedLength = 20
         var normalized = ""
 
         for scalar in text.unicodeScalars {
             if CharacterSet.decimalDigits.contains(scalar) || scalar == "+" {
                 normalized.unicodeScalars.append(scalar)
+                if normalized.count > maxNormalizedLength {
+                    normalized.removeAll(keepingCapacity: true)
+                    continue
+                }
             } else if allowedSeparators.contains(scalar) {
                 continue
             } else if !normalized.isEmpty {
