@@ -94,4 +94,13 @@ final class AuditPrivacyTests: XCTestCase {
         XCTAssertFalse(events.contains { $0.message.contains(rawTaskText) })
         XCTAssertFalse(events.contains { $0.message.contains("max.mustermann@example.com") })
     }
+
+    func testLongDigitRunDoesNotTriggerPhoneDetection() {
+        let detector = SensitiveDataDetector()
+        let longDigitRun = String(repeating: "1234567890", count: 50)
+        let result = detector.detect(in: "prefix \(longDigitRun) suffix")
+
+        XCTAssertFalse(result.hasFindings)
+        XCTAssertTrue(result.findings.isEmpty)
+    }
 }
