@@ -60,15 +60,15 @@ public struct DiagnosticViewState: Equatable, Sendable {
         let activeSnapshot = snapshot ?? DiagnosticPreviewData.sampleSnapshot
 
         self.operatingMode = "Local and trusted-device dry runs"
-        self.runtimeStatus = activeSnapshot == nil
+        self.runtimeStatus = snapshot == nil
             ? "No live diagnostic snapshot available"
             : "Preview snapshot loaded"
         self.auditStatus = "Synthetic metadata only"
         self.validationStatus = "Use current GitHub Actions evidence"
         self.privacyNotice = "No private content"
-        self.snapshotSource = activeSnapshot == nil ? "Not available" : "Sample / preview data"
-        self.snapshotFields = Self.makeSnapshotFields(activeSnapshot)
-        self.auditEventsDescription = activeSnapshot == nil
+        self.snapshotSource = snapshot == nil ? "Not available" : "Sample / preview data"
+        self.snapshotFields = Self.makeSnapshotFields(snapshot)
+        self.auditEventsDescription = snapshot == nil
             ? "Not available"
             : "Detailed audit events are not available in this shell"
         self.rows = report.entries.map(DiagnosticStatusRow.init)
