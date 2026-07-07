@@ -18,19 +18,31 @@ public final class AgentKernel: @unchecked Sendable {
     private let auditLog: AuditLog
     private let approvalManager: ApprovalManager
     private let sensitiveDataDetector: SensitiveDataDetector
+    private let localModelRuntime: LocalModelRuntime?
 
     public init(
         policyEngine: PolicyEngine = PolicyEngine(),
         taskRouter: TaskRouter = TaskRouter(),
         auditLog: AuditLog = AuditLog(),
         approvalManager: ApprovalManager = ApprovalManager(),
-        sensitiveDataDetector: SensitiveDataDetector = SensitiveDataDetector()
+        sensitiveDataDetector: SensitiveDataDetector = SensitiveDataDetector(),
+        localModelRuntime: LocalModelRuntime? = nil
     ) {
         self.policyEngine = policyEngine
         self.taskRouter = taskRouter
         self.auditLog = auditLog
         self.approvalManager = approvalManager
         self.sensitiveDataDetector = sensitiveDataDetector
+        self.localModelRuntime = localModelRuntime
+    }
+
+    private func requiredLocalModelCapability(for intent: TaskIntent) -> LocalModelCapability? {
+        switch intent {
+        case .summarizeNote:
+            return .summarization
+        case .createReminder, .findFile, .requestApproval, .unknown:
+            return nil
+        }
     }
 
     public func handle(_ task: TaskRequest, privacyMode: PrivacyMode) -> AgentResponse {
@@ -74,6 +86,28 @@ public final class AgentKernel: @unchecked Sendable {
             guard approvalStatus == .approved else {
                 return AgentResponse(
                     route: .approvalRequired(reason: "Approval is required before routing."),
+                    policyDecision: decision,
+                    approvalStatus: approvalStatus
+                )
+            }
+        }
+
+        if let localModelRuntime,
+           let requiredCapability = requiredLocalModelCapability(for: task.intent) {
+            let modelDecision = localModelRuntime.assess(
+                LocalModelRequest(capability: requiredCapability, dataSensitivity: effectiveDataClassification.level)
+            )
+
+            if case let .rejected(reason) = modelDecision {
+                auditLog.record(
+                    AuditEvent(
+                        type: .blocked,
+                        message: "Local model runtime rejected request: \(reason)",
+                        dataSensitivity: effectiveDataClassification.level
+                    )
+                )
+                return AgentResponse(
+                    route: .blocked(reason: "Local model runtime unavailable for this capability."),
                     policyDecision: decision,
                     approvalStatus: approvalStatus
                 )
