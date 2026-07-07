@@ -13,9 +13,20 @@ public struct DiagnosticView: View {
             List {
                 Section("Safety") {
                     LabeledContent("Operating mode", value: state.operatingMode)
+                    LabeledContent("Runtime status", value: state.runtimeStatus)
                     LabeledContent("Audit", value: state.auditStatus)
                     LabeledContent("Validation", value: state.validationStatus)
                     LabeledContent("Privacy", value: state.privacyNotice)
+                }
+
+                Section("Sample / preview snapshot") {
+                    LabeledContent("Source", value: state.snapshotSource)
+
+                    ForEach(state.snapshotFields) { field in
+                        DiagnosticMetric(label: field.label, value: field.value)
+                    }
+
+                    DiagnosticMetric(label: "Audit events", value: state.auditEventsDescription)
                 }
 
                 Section("Synthetic scenarios") {
