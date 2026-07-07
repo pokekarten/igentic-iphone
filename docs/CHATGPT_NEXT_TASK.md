@@ -14,7 +14,9 @@ A merged or closed target must never be revived from stale text.
 
 Mode: `IGENTIC_FIVE_TASK_AUTONOMY`.
 
-The platform currently permits five active scheduled tasks. The complete product cycle is therefore:
+Status note: the five-slot autonomy system is currently suspended and must not be treated as active until explicitly resumed.
+
+The platform defines five scheduled task slots. The complete product cycle is therefore:
 
 ```text
 00 Director
@@ -230,7 +232,7 @@ After merge or source-backed issue closure:
 
 ## Current migration rule
 
-The active control repair is iGentic PR #99 on branch `phase2/model-selection-engine-v3`. It is the sole active implementation track.
+The previous control repair, iGentic PR #99 on branch `phase2/model-selection-engine-v3`, is closed on GitHub and was not merged. There is currently no active implementation target, so the repo is in manual mode until a new source-backed target is explicitly authorized.
 
 Issue #88 is already terminal (`closed` / `completed`). Its untouched-baseline provenance scope is closed history, not the next active target, and it must not be implemented in the migration PR.
 
