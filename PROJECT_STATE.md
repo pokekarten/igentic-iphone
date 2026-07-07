@@ -1,6 +1,6 @@
 # Project State
 
-Last updated: 2026-07-05
+Last updated: 2026-07-07
 
 ## Current status
 
@@ -37,10 +37,11 @@ This file stores durable project state only. It must not store a live PR number,
 
 ## Recently completed
 
+- Phase 2 model-selection PR #99 (`phase2/model-selection-engine-v3`) is closed on GitHub and was not merged; it is no longer the active implementation target.
 - Metadata-only RuntimeBudget, ApprovalReceipt, DiagnosticSnapshot and LocalModelRuntime contracts are on `main`.
 - Raw task text was removed from task-received AuditLog events.
 - ApprovalRequest no longer carries raw user task text; task summary is now metadata-only (classification/risk only).
-- Deterministic runtime rejection occurs before model invocation.
+- Deterministic runtime rejection occurs before model invocation in the `LocalModelRuntime` unit-test contract (`LocalModelRuntimeTests.swift`); this is not yet live `AgentKernel` wiring because `LocalModelRuntime.assess()` is not called from `AgentKernel.handle()`.
 - The workflow dependency reference used by the bootstrap ZIP workflow was updated from `actions/checkout@v6` to `@v7`.
 - Repository hygiene now treats undocumented root placeholder artifacts as cleanup candidates rather than durable content.
 - Issues #25, #29, #58 and #59 are closed for their documented scope.
@@ -103,4 +104,4 @@ The repository proves deterministic software contracts and simulator-tested beha
 
 ## Current next task
 
-Read `docs/CHATGPT_NEXT_TASK.md` for the durable execution contract and Brain issue #25 for the live target.
+There is currently no active implementation target; the repo is in manual mode. Read `docs/CHATGPT_NEXT_TASK.md` and Brain issue #25 as the current control record before taking any action.
