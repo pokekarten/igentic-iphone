@@ -39,6 +39,22 @@ FunctionGemma is the first very-small task-specialization candidate for a fixed 
 
 Qwen3 0.6B is the first Apache-2.0 multilingual custom-model comparison. Use non-thinking mode and short router profiles first. Runtime support or conversion does not establish acceptable iPhone Air memory, latency, battery or thermal behavior.
 
+### Compact candidate snapshot
+
+Already listed in the manifest, in practical research order:
+
+1. FunctionGemma 270M
+2. Qwen3 0.6B
+3. LFM2 1.2B Tool
+4. Qwen3 1.7B
+5. LFM2.5 1.2B Instruct
+6. LFM2.5 VL 450M
+7. Qwen3.5 0.8B
+8. Gemma 4 E2B Mobile QAT
+
+Reference-only models also remain available for later comparison:
+`Qwen3.5 2B`, `SmolLM3 3B`, `Granite 4.0 Micro`, `Phi-4-mini-instruct`, `Llama 3.2 1B Instruct`, `Gemma 3 1B it`.
+
 The newest, largest or most multimodal model does not advance automatically. License, structured-output reliability, deterministic stopping, export compatibility and physical-device evidence are mandatory gates.
 
 ## Versioned research flow
