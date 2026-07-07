@@ -41,7 +41,7 @@ This file stores durable project state only. It must not store a live PR number,
 - Metadata-only RuntimeBudget, ApprovalReceipt, DiagnosticSnapshot and LocalModelRuntime contracts are on `main`.
 - Raw task text was removed from task-received AuditLog events.
 - ApprovalRequest no longer carries raw user task text; task summary is now metadata-only (classification/risk only).
-- Deterministic runtime rejection occurs before model invocation in the `LocalModelRuntime` unit-test contract (`LocalModelRuntimeTests.swift`); this is not yet live `AgentKernel` wiring because `LocalModelRuntime.assess()` is not called from `AgentKernel.handle()`.
+- LocalModelRuntime.assess() is called from AgentKernel.handle(); rejection blocks routing and is recorded in the audit log. Covered end-to-end by AgentKernelLocalModelRuntimeWiringTests.swift.
 - The workflow dependency reference used by the bootstrap ZIP workflow was updated from `actions/checkout@v6` to `@v7`.
 - Repository hygiene now treats undocumented root placeholder artifacts as cleanup candidates rather than durable content.
 - Issues #25, #29, #58 and #59 are closed for their documented scope.
