@@ -101,18 +101,25 @@ public struct SensitiveDataDetector: Sendable {
         let allowedSeparators = CharacterSet(charactersIn: " ()/.-")
         let maxNormalizedLength = 20
         var normalized = ""
+        var exceededMaximumLength = false
 
         for scalar in text.unicodeScalars {
             if CharacterSet.decimalDigits.contains(scalar) || scalar == "+" {
+                if exceededMaximumLength {
+                    continue
+                }
+
                 normalized.unicodeScalars.append(scalar)
                 if normalized.count > maxNormalizedLength {
                     normalized.removeAll(keepingCapacity: true)
+                    exceededMaximumLength = true
                     continue
                 }
             } else if allowedSeparators.contains(scalar) {
                 continue
-            } else if !normalized.isEmpty {
+            } else {
                 normalized.removeAll(keepingCapacity: true)
+                exceededMaximumLength = false
             }
 
             let nationalPrefix = "0"
