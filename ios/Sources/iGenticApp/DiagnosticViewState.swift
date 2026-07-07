@@ -55,18 +55,20 @@ public struct DiagnosticViewState: Equatable, Sendable {
 
     public init(
         report: ScenarioReport = ScenarioRunner().report(),
-        snapshot: DiagnosticSnapshot? = DiagnosticPreviewData.sampleSnapshot
+        snapshot: DiagnosticSnapshot? = nil
     ) {
+        let activeSnapshot = snapshot ?? DiagnosticPreviewData.sampleSnapshot
+
         self.operatingMode = "Local and trusted-device dry runs"
-        self.runtimeStatus = snapshot == nil
+        self.runtimeStatus = activeSnapshot == nil
             ? "No live diagnostic snapshot available"
             : "Preview snapshot loaded"
         self.auditStatus = "Synthetic metadata only"
         self.validationStatus = "Use current GitHub Actions evidence"
         self.privacyNotice = "No private content"
-        self.snapshotSource = snapshot == nil ? "Not available" : "Sample / preview data"
-        self.snapshotFields = Self.makeSnapshotFields(snapshot)
-        self.auditEventsDescription = snapshot == nil
+        self.snapshotSource = activeSnapshot == nil ? "Not available" : "Sample / preview data"
+        self.snapshotFields = Self.makeSnapshotFields(activeSnapshot)
+        self.auditEventsDescription = activeSnapshot == nil
             ? "Not available"
             : "Detailed audit events are not available in this shell"
         self.rows = report.entries.map(DiagnosticStatusRow.init)
@@ -98,7 +100,7 @@ public struct DiagnosticViewState: Equatable, Sendable {
             DiagnosticSnapshotField(label: "Approval status", value: Self.displayText(snapshot.approval.status.rawValue)),
             DiagnosticSnapshotField(label: "Approval may continue routing", value: Self.boolText(snapshot.approval.mayContinueRouting)),
             DiagnosticSnapshotField(label: "Audit event count", value: "\(snapshot.audit.eventCount)"),
-            DiagnosticSnapshotField(label: "Audit highest sensitivity", value: snapshot.audit.highestDataSensitivityDescription),
+            DiagnosticSnapshotField(label: "Audit highest sensitivity", value: snapshot.audit.highestDataSensitivity.highestDataSensitivityDescription),
             DiagnosticSnapshotField(label: "Delegation outcome", value: Self.displayText(snapshot.delegation.outcome.rawValue)),
             DiagnosticSnapshotField(label: "Risk value", value: "\(snapshot.risk.value)"),
             DiagnosticSnapshotField(label: "Risk requires explicit approval", value: Self.boolText(snapshot.risk.requiresExplicitApproval)),
@@ -117,12 +119,12 @@ public struct DiagnosticViewState: Equatable, Sendable {
         value ? "Yes" : "No"
     }
 
-    private static let iso8601: ISO8601DateFormatter = {
+    private static var iso8601: ISO8601DateFormatter {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime]
         formatter.timeZone = TimeZone(secondsFromGMT: 0)
         return formatter
-    }()
+    }
 }
 
 private extension DataSensitivityLevel {
