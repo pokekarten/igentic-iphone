@@ -98,7 +98,7 @@ public struct DiagnosticViewState: Equatable, Sendable {
             DiagnosticSnapshotField(label: "Approval status", value: Self.displayText(snapshot.approval.status.rawValue)),
             DiagnosticSnapshotField(label: "Approval may continue routing", value: Self.boolText(snapshot.approval.mayContinueRouting)),
             DiagnosticSnapshotField(label: "Audit event count", value: "\(snapshot.audit.eventCount)"),
-            DiagnosticSnapshotField(label: "Audit highest sensitivity", value: Self.displayText(snapshot.audit.highestDataSensitivityDescription)),
+            DiagnosticSnapshotField(label: "Audit highest sensitivity", value: snapshot.audit.highestDataSensitivityDescription),
             DiagnosticSnapshotField(label: "Delegation outcome", value: Self.displayText(snapshot.delegation.outcome.rawValue)),
             DiagnosticSnapshotField(label: "Risk value", value: "\(snapshot.risk.value)"),
             DiagnosticSnapshotField(label: "Risk requires explicit approval", value: Self.boolText(snapshot.risk.requiresExplicitApproval)),
