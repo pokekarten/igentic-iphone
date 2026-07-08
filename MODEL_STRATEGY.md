@@ -34,6 +34,8 @@ A model may propose, classify, summarize, route, or draft. It must not bypass po
 | Phi small models | Router/helper candidates | Research only; license and device tests required |
 | External frontier models | Strong delegated reasoning | Only explicit, approval-gated delegation |
 
+Provider-level evaluations for external delegation live in `docs/provider-research/README.md` and must stay separate from local model-candidate research.
+
 ## Data rules
 
 - Level 0 and Level 1 data may be used for local tests.
