@@ -38,6 +38,7 @@ These visibility labels were verified from current GitHub repository metadata on
 | Agent and contribution rules | `AGENTS.md`, `CONTRIBUTING.md`, `GOVERNANCE.md` | Human and automation behavior |
 | Privacy and model authority | `MODEL_STRATEGY.md` | Models propose; deterministic policy and approval remain authoritative |
 | Runtime comparison | `docs/local-runtime-review.md` | Runtime research and prerequisites |
+| Provider research index | `docs/provider-research/README.md` | External delegation providers and cloud fallbacks |
 | Apple API evidence | `docs/apple-api-review.md`, `docs/SOURCE_VERIFICATION.md` | Source-backed platform claims |
 | App-action safety | `docs/app-intents-safety.md` | Draft-first and approval-gated action rules |
 | Validation and workflows | `docs/VALIDATION.md`, `docs/WORKFLOWS.md` | Required repository checks and evidence |
