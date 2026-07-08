@@ -70,6 +70,7 @@ See:
 - `MODEL_STRATEGY.md`
 - `docs/KNOWLEDGE_MAP.md`
 - `docs/model-research/README.md`
+- `docs/provider-research/README.md`
 - `docs/GITHUB_CONTROL.md`
 - `docs/VALIDATION.md`
 - `docs/WORKFLOWS.md`
