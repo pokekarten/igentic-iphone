@@ -1,6 +1,6 @@
 # Project State
 
-Last updated: 2026-07-07
+Last updated: 2026-07-08
 
 ## Current status
 
@@ -39,6 +39,9 @@ This file stores durable project state only. It must not store a live PR number,
 
 - Phase 2 model-selection PR #99 (`phase2/model-selection-engine-v3`) is closed on GitHub and was not merged; it is no longer the active implementation target.
 - Metadata-only RuntimeBudget, ApprovalReceipt, DiagnosticSnapshot and LocalModelRuntime contracts are on `main`.
+- `ios/Tests/AgentCoreTests/RiskScorerTests.swift` now covers the full approval-gate scoring surface: baseline score, action-risk contributions, delegation-target contributions including the `trustedDevices` + `externalProvider` coupling, sensitive-data accumulation, clamping to 10, and the approval threshold boundary.
+- `ios/Tests/AgentCoreTests/SensitiveDataDetectorTests.swift` now includes the regression coverage for the `containsGermanPhoneLikePattern` length cap, plus reset and no-reset behavior around accumulation.
+- `ios/Tests/AgentCoreTests/AgentKernelSensitiveDataWiringTests.swift` now covers the end-to-end sensitive-data wiring in `AgentKernel.handle()` and audit propagation.
 - Raw task text was removed from task-received AuditLog events.
 - ApprovalRequest no longer carries raw user task text; task summary is now metadata-only (classification/risk only).
 - LocalModelRuntime.assess() is called from AgentKernel.handle(); rejection blocks routing and is recorded in the audit log. Covered end-to-end by AgentKernelLocalModelRuntimeWiringTests.swift.
