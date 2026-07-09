@@ -6,10 +6,10 @@ This directory holds source-backed, public-safe assessments of external AI provi
 
 ## Read in this order
 
-1. `../../MODEL_STRATEGY.md` — model authority and delegation rules.
-2. `../local-runtime-review.md` — local vs delegated runtime boundary.
-3. `GOOGLE_GEMINI.md` — current Google Gemini / AI Studio assessment.
-4. `GROQ.md` — current Groq provider assessment.
+1. `MODEL_STRATEGY.md` — model authority and delegation rules.
+2. `docs/local-runtime-review.md` — local vs delegated runtime boundary.
+3. `docs/provider-research/GOOGLE_GEMINI.md` — current Google Gemini / AI Studio assessment.
+4. `docs/provider-research/GROQ.md` — current Groq provider assessment.
 
 ## Boundary
 
