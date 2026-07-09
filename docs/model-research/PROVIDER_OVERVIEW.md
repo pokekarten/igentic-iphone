@@ -100,45 +100,21 @@ Nur beobachten, nicht als Backend standardisieren.
 | Brave Leo | Kein eigenständiges Developer-API | Interessant für Privacy-UX, nicht als Agent-Runtime |
 | Xprivo / Ask Safely / Confer.to / Ellydee.ai | Technisch ungeklärt | Vor jeder Integration: API, Audit und Privacy prüfen |
 
-## 7. Mistral AI — verifizierte Kernaussagen
+## 7. Mistral AI — Kurzbewertung
 
-### API und Developer-Plattform
+Mistral ist für iGentic ein starker Tier-3-Kandidat mit klarer API, EU-Hosting als Standard und belastbaren Privacy-Controls. Wichtig ist die saubere Trennung zwischen API, Studio und Consumer-Produkten.
 
-- Die offizielle API nutzt Chat Completions unter `/v1/chat/completions`.
-- Die API unterstützt Streaming als Server-Sent Events.
-- Der Chat-Endpunkt unterstützt `response_format` mit JSON-Mode und JSON-Schema-Mode.
-- Tool Calling ist dokumentiert; `parallel_tool_calls` ist aktivierbar.
-- Die API-Dokumentation führt außerdem Endpunkte für Models, Batch, OCR, Audio Transcriptions, Audio Speech, Audio Voices, Classifiers, Files, Workflows sowie öffentliche Preview-Bereiche wie Agents, Conversations, Libraries, Connectors und Admin-Objekte.
-- Studio ist die Entwicklerplattform für AI-Anwendungen, Agenten, Dokumentenintelligenz und RAG.
-
-### Datenschutz und Datenresidenz
+### Für iGentic relevant
 
 - API-Daten werden laut Doku nicht für Training verwendet.
-- Vibe Free kann zur Verbesserung der Modelle verwendet werden; das lässt sich im Admin Panel opt-outen.
-- Vibe Pro, Team und Enterprise sind standardmäßig nicht fürs Training aktiviert.
-- Für Studio und API gibt es getrennte Privacy Controls im Admin Panel.
-- Labs-Modelle können Trainingseinstellungen übersteuern.
-- ZDR ist nur auf dem Scale plan verfügbar und gilt nur für stateless API calls.
+- ZDR ist nur im Scale-Plan und nur für stateless API-Calls verfügbar.
 - ZDR gilt nicht für stateful Produkte wie Agents, Batch Files, Conversations, Libraries oder `/v1/files`.
-- Standardmäßig ist EU-Hosting aktiv; ein US-API-Endpunkt ist optional.
-- Für Transfers außerhalb der EU verweist Mistral auf SCCs nach Art. 46 DSGVO.
-- Enterprise kann bestimmte Feature-Transfers außerhalb der EU auf Organisationsebene deaktivieren.
-- Uploaded Documents in Libraries werden sicher gespeichert und nicht zum Training verwendet.
+- Für EU-Transfers verweist Mistral auf SCCs; zusätzliche Feature-Transfers können organisationsseitig begrenzt werden.
+- Labs-Modelle können Trainingseinstellungen übersteuern und müssen im Adapter separat behandelt werden.
 
-### Sicherheit und Compliance
+### Kurzfazit
 
-- Mistral gibt in seinem Help Center SOC 2 Type II sowie ISO 27001/27701 als erfüllt an.
-- Die DPA und der Trust Center sind öffentlich verlinkt.
-- Audit Logs und SAML SSO sind Enterprise-Features.
-
-### Pricing und Plan-Signale
-
-- Die Consumer-Pläne auf der offiziellen Pricing-Seite heißen Free, Pro, Team und Enterprise.
-- Pro kostet offiziell $14.99 / Monat.
-- Team kostet offiziell $24.99 / Nutzer / Monat plus $50 / Monat Basisgebühr.
-- Für Studierende gibt es einen Education-Plan für $5.99 / Monat.
-- Die API wird pro Million Tokens berechnet; Batch Processing bekommt 50% Rabatt.
-- Die Pricing-Seite nennt als aktuelle Modell-Empfehlung: Mistral Large für die meisten Aufgaben, Mistral Medium 3.5 für Coding, OCR für Dokumentextraktion und Mistral Small für kostensensitive Projekte.
+Mistral ist als Cloud-Fallback gut geeignet, aber nur mit planabhängiger Prüfung von ZDR, Training-Opt-outs und Statefulness. Für diese Übersichtsdatei reicht die Kurzbewertung; Detailanalyse, Pricing-Details und Adapterfragen sollten in ein separates Research-Dokument ausgelagert werden.
 
 ## 8. iGentic-Eignung
 
@@ -175,9 +151,9 @@ struct MistralProvider: ModelProvider {
 ```
 
 **Zu normalisieren:**
-- Mistrals `tools`-Array unterstützt klassische Function-Tools sowie integrierte Werkzeuge wie Web-Suche, Code-Interpreter, Bildgenerierung, Dokument-Bibliothek und Custom Connectors.
-- Der Adapter sollte zwischen externen Tools und Mistral-eigenen Tools unterscheiden, damit `DelegationBroker` sauber entscheiden kann, was lokal vs. remote ausgeführt wird.
-- Plan-abhängige Features wie ZDR sollten im Adapter geprüft und im `AuditLog` vermerkt werden, etwa mit `zdrActive: Bool`.
+- `tools`-Unterstützung und integrierte Werkzeuge getrennt von externen Tools behandeln.
+- Plan-abhängige Features wie ZDR im Adapter prüfen und im `AuditLog` vermerken.
+- Der `DelegationBroker` sollte entscheiden können, was lokal und was remote ausgeführt wird.
 
 ## 10. Gesamtbewertung
 
