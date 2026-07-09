@@ -4,7 +4,7 @@ Last updated: 2026-06-27
 
 This file lists safe starter tasks for new contributors. It is intentionally written as a backlog that can be converted into GitHub issues.
 
-Status legend: `OPEN` means available for issue selection; `COMPLETED` means a canonical artifact already exists. Only source-verified completed entries are annotated below; unannotated entries are[...]
+Status legend: `OPEN` means available for issue selection; `COMPLETED` means a canonical artifact already exists. Only source-verified completed entries are annotated below; unannotated entries are open.
 
 ## Rules for all starter tasks
 
@@ -83,6 +83,8 @@ Must keep:
 
 ### 5. Create a monochrome logo SVG
 
+**Status: COMPLETED — canonical artifact:** [`assets/brand/logo-mark-mono.svg`](../../assets/brand/logo-mark-mono.svg)
+
 **Goal:** Add `assets/brand/logo-mark-monochrome.svg`.
 
 Requirements:
@@ -95,6 +97,8 @@ Requirements:
 **Validation:** Manual SVG review.
 
 ### 6. Create an Instagram carousel template
+
+**Status: COMPLETED — canonical artifact:** [`assets/social/instagram-carousel-template-v1.svg`](../../assets/social/instagram-carousel-template-v1.svg)
 
 **Goal:** Add `assets/social/instagram-carousel-template.svg` or a markdown brief in `docs/community/`.
 
