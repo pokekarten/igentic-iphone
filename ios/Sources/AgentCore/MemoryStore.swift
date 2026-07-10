@@ -30,6 +30,12 @@ public struct MemoryEntry: Identifiable, Equatable, Sendable {
     }
 }
 
+/// Deliberate pre-integration stub.
+///
+/// `MemoryStore` is intentionally not wired into `AgentKernel` or any
+/// other live authorization path. See
+/// `docs/reports/memory-store-integration-decision.md` for the
+/// rationale and the required follow-up issue before integration.
 public final class MemoryStore: @unchecked Sendable {
     private let entriesByScope = LockedBox<[MemoryScope: [String: MemoryEntry]]>([:])
 
