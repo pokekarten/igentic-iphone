@@ -14,7 +14,7 @@ following the same pattern as `DelegationBroker`.
   classification design (how a stored `value: String` gets a
   `DataClassification` before persistence) remains undecided.
 - Defers integration until the actual memory use case is concrete
-  enough to shape the scope design properly.
+enough to shape the scope design properly.
 - Keeps exactly one active iGentic implementation target free for the
   CoreML feasibility work.
 
@@ -27,6 +27,6 @@ A future issue must be opened before `MemoryStore` is wired into
 - whether `MemoryEntry` needs a `dataSensitivity` field akin to
   `AuditEvent`,
 - test coverage for classification thresholds and scope isolation,
-  in addition to baseline `MemoryStoreTests.swift` coverage.
+  in addition to baseline `MemoryStore` coverage.
 
 This decision does not authorize implementation.

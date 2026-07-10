@@ -32,6 +32,10 @@ The iPhone is not the strongest computer in the personal AI setup. It is the mos
 
 ## Architecture
 
+The architecture below is a simple control pipeline: intent comes in, context is interpreted, work is routed, and execution only happens after the control layer has made its decision.
+
+Read the diagram from top to bottom as a gated flow from user input to action and verification.
+
 ```text
 User / Siri / Shortcut / Widget / App
         ↓
