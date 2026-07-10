@@ -13,6 +13,17 @@ Scope: compile-only, no runtime integration
 
 `coremltools` stateful model guide: https://apple.github.io/coremltools/docs-guides/source/stateful-models.html
 
+## Preflight requirements
+
+Before a compile-only conversion can be recorded as a concrete pass/fail result, the validation environment must have:
+
+- a locally accessible model artifact outside git tracking
+- an unambiguous mapping to one approved candidate
+- license confirmation for the supplied artifact
+- the `coremltools` version used for the run
+
+The report must continue to avoid any claim of runtime integration, signing, App Intents, or device execution.
+
 ## Result
 
 **Status: blocked**
@@ -36,6 +47,13 @@ When a local artifact is available, the follow-up check should record:
 - whether stateful-cache support is available for the exported shape
 - whether any operator or graph rewrite is required
 - whether the candidate can be converted without touching runtime wiring
+
+### Result format for the follow-up run
+
+Use one of the following concrete outcomes after local validation:
+
+- `success` — compile-only conversion completed and the required compatibility notes were recorded
+- `failed` — compile-only conversion did not complete, but the failure was reproduced locally with evidence
 
 ## Follow-up
 
