@@ -37,6 +37,7 @@ This file stores durable project state only. It must not store a live PR number,
 
 ## Recently completed
 
+- MemoryStore integration decision: intentionally left as a pre-integration stub, matching DelegationBroker's pattern. See docs/reports/memory-store-integration-decision.md.
 - Phase 2 model-selection PR #99 (`phase2/model-selection-engine-v3`) is closed on GitHub and was not merged; it is no longer the active implementation target.
 - Metadata-only RuntimeBudget, ApprovalReceipt, DiagnosticSnapshot and LocalModelRuntime contracts are on `main`.
 - `ios/Tests/AgentCoreTests/RiskScorerTests.swift` now covers the full approval-gate scoring surface: baseline score, action-risk contributions, delegation-target contributions including the `trustedDevices` + `externalProvider` coupling, sensitive-data accumulation, clamping to 10, and the approval threshold boundary.
