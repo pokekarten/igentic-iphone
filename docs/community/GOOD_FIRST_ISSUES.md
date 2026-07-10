@@ -1,6 +1,6 @@
 # Good First Issues
 
-Last updated: 2026-06-27
+Last updated: 2026-07-10
 
 This file lists safe starter tasks for new contributors. It is intentionally written as a backlog that can be converted into GitHub issues.
 
@@ -85,7 +85,7 @@ Must keep:
 
 **Status: COMPLETED — canonical artifact:** [`assets/brand/logo-mark-mono.svg`](../../assets/brand/logo-mark-mono.svg)
 
-**Goal:** Add `assets/brand/logo-mark-monochrome.svg`.
+**Goal:** Add `assets/brand/logo-mark-mono.svg`.
 
 Requirements:
 
@@ -100,7 +100,7 @@ Requirements:
 
 **Status: COMPLETED — canonical artifact:** [`assets/social/instagram-carousel-template-v1.svg`](../../assets/social/instagram-carousel-template-v1.svg)
 
-**Goal:** Add `assets/social/instagram-carousel-template.svg` or a markdown brief in `docs/community/`.
+**Goal:** Add `assets/social/instagram-carousel-template-v1.svg`.
 
 Content should follow `docs/community/SOCIAL_MEDIA_PLAYBOOK.md`.
 
