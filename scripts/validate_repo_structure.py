@@ -154,6 +154,16 @@ def validate_non_empty_required_files() -> list[str]:
     return empty
 
 
+def validate_all_markdown_files() -> list[str]:
+    warnings = []
+    for path in sorted(ROOT.rglob("*.md")):
+        if not path.is_file():
+            continue
+        if path.read_text(encoding="utf-8").strip() == "":
+            warnings.append(str(path.relative_to(ROOT)))
+    return warnings
+
+
 def validate_readme_markers() -> list[str]:
     readme = read_text(ROOT / "README.md")
     return [marker for marker in REQUIRED_README_MARKERS if marker not in readme]
@@ -186,6 +196,11 @@ def main() -> int:
     if empty:
         errors.append("Required files are empty:")
         errors.extend(f"- {path}" for path in empty)
+
+    markdown_warnings = validate_all_markdown_files()
+    if markdown_warnings:
+        print("WARNING: Empty markdown files found:")
+        print("\n".join(f"- {path}" for path in markdown_warnings))
 
     forbidden = validate_no_forbidden_files()
     if forbidden:
