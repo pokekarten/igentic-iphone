@@ -34,7 +34,7 @@ final class MemoryStoreTests: XCTestCase {
 
         let entries = store.entries(in: .session)
 
-        XCTAssertEqual(entries.map(\/.key), ["alpha", "beta", "zeta"])
+        XCTAssertEqual(entries.map(\.key), ["alpha", "beta", "zeta"])
         XCTAssertTrue(entries.allSatisfy { $0.scope == .session })
     }
 
