@@ -27,6 +27,7 @@ jobs:
       - name: Inspect issue quality
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           ISSUE_TITLE: ${{ github.event.issue.title }}
           ISSUE_BODY: ${{ github.event.issue.body }}
@@ -59,13 +60,13 @@ jobs:
           fi
 
           for label in "${labels[@]:-}"; do
-            gh issue edit "$ISSUE_NUMBER" --add-label "$label" || true
+            gh issue edit "$ISSUE_NUMBER" --repo "$GH_REPO" --add-label "$label" || true
           done
 
           if [ "${#missing[@]}" -gt 0 ]; then
             printf -v joined '%s, ' "${missing[@]}"
             joined="${joined%, }"
-            gh issue comment "$ISSUE_NUMBER" --body "Thanks for opening this issue. To keep the public backlog easy to work on, please add the missing planning fields: ${joined}. Helpful structure: Goal, Scope, Forbidden changes, Validation target, Definition of Done."
+            gh issue comment "$ISSUE_NUMBER" --repo "$GH_REPO" --body "Thanks for opening this issue. To keep the public backlog easy to work on, please add the missing planning fields: ${joined}. Helpful structure: Goal, Scope, Forbidden changes, Validation target, Definition of Done."
           fi
 
       - name: Summarize triage
