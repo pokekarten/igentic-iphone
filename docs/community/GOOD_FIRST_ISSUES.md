@@ -1,6 +1,6 @@
 # Good First Issues
 
-Last updated: 2026-07-10
+Last updated: 2026-07-11
 
 This file lists safe starter tasks for new contributors. It is intentionally written as a backlog that can be converted into GitHub issues.
 
@@ -41,6 +41,8 @@ Include:
 
 ### 2. Improve architecture diagram text
 
+**Status: COMPLETED — canonical artifact:** [`README.md`](../../README.md)
+
 **Goal:** Make the README architecture easier for first-time visitors.
 
 Scope:
@@ -69,6 +71,8 @@ Questions:
 ## Design tasks
 
 ### 4. Refine the logo mark SVG
+
+**Status: COMPLETED — canonical artifact:** [`assets/brand/logo-mark.svg`](../../assets/brand/logo-mark.svg)
 
 **Goal:** Improve `assets/brand/logo-mark.svg` while keeping the same concept.
 
@@ -109,6 +113,8 @@ Content should follow `docs/community/SOCIAL_MEDIA_PLAYBOOK.md`.
 ## Test and validation tasks
 
 ### 7. Extend repo structure validation
+
+**Status: COMPLETED — canonical artifact:** [`scripts/validate_repo_structure.py`](../../scripts/validate_repo_structure.py)
 
 **Goal:** Improve `scripts/validate_repo_structure.py`.
 
@@ -217,6 +223,8 @@ Topic:
 **Validation:** Follow `docs/community/SOCIAL_MEDIA_PLAYBOOK.md`.
 
 ### 14. Draft first LinkedIn announcement
+
+**Status: COMPLETED — canonical artifact:** [`docs/community/linkedin-announcement-draft.md`](./linkedin-announcement-draft.md)
 
 **Goal:** Create a professional launch/update draft.
 
