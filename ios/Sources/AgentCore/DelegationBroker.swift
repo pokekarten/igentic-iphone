@@ -56,8 +56,10 @@ public struct DelegationBroker: Sendable {
     public init() {}
 
     public func decide(_ request: DelegationRequest) -> DelegationDecision {
-        if request.privacyMode == .localOnly {
-            return .blocked(reason: "Local Only prevents delegation.")
+        if request.privacyMode == .localOnly,
+           request.target != .none,
+           request.target != .localDevice {
+            return .blocked(reason: "Local Only blocks non-local delegation.")
         }
 
         if request.dataClassification.level.blocksAutomaticExternalDelegation,
