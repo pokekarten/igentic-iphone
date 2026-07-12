@@ -44,15 +44,36 @@ final class SmokeTests: XCTestCase {
         XCTAssertEqual(decision.reasonCode, .allowedWithCurrentSafeguards)
     }
 
-    /// Pins the current contract that `DelegationBroker` is a diagnostics /
-    /// scenario helper only: it produces metadata-only delegation decisions,
-    /// but live authorization continues to live in `PolicyEngine` and
-    /// `ApprovalManager`.
-    func testDelegationBrokerStaysMetadataOnlyAndDoesNotBlockLocalOnlyAuthorizationFlow() {
+    /// Pins the contract that `DelegationBroker` matches `PolicyEngine` for
+    /// `privacyMode: .localOnly` when the target stays local.
+    func testDelegationBrokerAllowsLocalOnlyForLocalTargets() {
+        let broker = DelegationBroker()
+
+        for target in [DelegationTarget.none, .localDevice] {
+            let request = DelegationRequest(
+                privacyMode: .localOnly,
+                target: target,
+                dataClassification: .publicDefault,
+                actionRisk: .prepare
+            )
+
+            let decision = broker.decide(request)
+
+            XCTAssertEqual(
+                decision,
+                .allowedMetadataOnly(reason: "Allowed as metadata-only delegation decision.")
+            )
+            XCTAssertTrue(decision.isAllowed)
+            XCTAssertFalse(decision.requiresExplicitApproval)
+        }
+    }
+
+    /// Pins the remaining Local Only guard: non-local targets still fail.
+    func testDelegationBrokerBlocksLocalOnlyForNonLocalTargets() {
         let broker = DelegationBroker()
         let request = DelegationRequest(
-            privacyMode: .trustedDevices,
-            target: .localDevice,
+            privacyMode: .localOnly,
+            target: .externalProvider,
             dataClassification: .publicDefault,
             actionRisk: .prepare
         )
@@ -61,9 +82,9 @@ final class SmokeTests: XCTestCase {
 
         XCTAssertEqual(
             decision,
-            .allowedMetadataOnly(reason: "Allowed as metadata-only delegation decision.")
+            .blocked(reason: "Local Only blocks non-local delegation.")
         )
-        XCTAssertTrue(decision.isAllowed)
+        XCTAssertFalse(decision.isAllowed)
         XCTAssertFalse(decision.requiresExplicitApproval)
     }
 }
