@@ -1,20 +1,17 @@
 import Foundation
 
 public struct DiagnosticSnapshotProducer: Sendable {
-    private let kernel: AgentKernel
     private let approvalManager: ApprovalManager
     private let riskScorer: RiskScorer
     private let delegationBroker: DelegationBroker
     private let sensitiveDataDetector: SensitiveDataDetector
 
     public init(
-        kernel: AgentKernel = AgentKernel(),
         approvalManager: ApprovalManager = ApprovalManager(),
         riskScorer: RiskScorer = RiskScorer(),
         delegationBroker: DelegationBroker = DelegationBroker(),
         sensitiveDataDetector: SensitiveDataDetector = SensitiveDataDetector()
     ) {
-        self.kernel = kernel
         self.approvalManager = approvalManager
         self.riskScorer = riskScorer
         self.delegationBroker = delegationBroker
@@ -32,6 +29,7 @@ public struct DiagnosticSnapshotProducer: Sendable {
             ? task.dataClassification
             : detection.suggestedDataClassification
 
+        let kernel = AgentKernel(approvalManager: approvalManager)
         let response = kernel.handle(task, privacyMode: privacyMode)
         let auditEvents = kernel.auditEvents()
 
