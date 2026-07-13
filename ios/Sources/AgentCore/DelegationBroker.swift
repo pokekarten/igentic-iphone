@@ -72,8 +72,12 @@ public struct DelegationBroker: Sendable {
             return .requiresApproval(reason: "External provider delegation requires explicit approval.")
         }
 
-        if request.actionRisk == .critical {
-            return .requiresApproval(reason: "Critical actions require explicit approval.")
+        if request.dataClassification.level.requiresExplicitApproval {
+            return .requiresApproval(reason: "Highly private data requires explicit approval.")
+        }
+
+        if request.actionRisk.requiresApproval {
+            return .requiresApproval(reason: "Action risk requires explicit approval.")
         }
 
         return .allowedMetadataOnly(reason: "Allowed as metadata-only delegation decision.")
