@@ -17,7 +17,7 @@ final class DelegationBrokerPinningTests: XCTestCase {
 
         XCTAssertEqual(
             Mirror(reflecting: response).children.compactMap(\.label),
-            ["route", "policyDecision", "approvalStatus"]
+            ["route", "policyDecision", "approvalStatus", "approvalReceipt"]
         )
     }
 }
