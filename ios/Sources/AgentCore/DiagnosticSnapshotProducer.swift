@@ -53,17 +53,21 @@ public struct DiagnosticSnapshotProducer: Sendable {
             )
         )
 
-        let approvalStatus = response.approvalReceipt.map(ApprovalStatusSummary.init)
-            ?? ApprovalStatusSummary(
+        let approvalStatusSummary: ApprovalStatusSummary
+        if let approvalReceipt = response.approvalReceipt {
+            approvalStatusSummary = ApprovalStatusSummary(approvalReceipt)
+        } else {
+            approvalStatusSummary = ApprovalStatusSummary(
                 status: response.approvalStatus,
                 mayContinueRouting: response.approvalStatus == .approved || response.approvalStatus == .notRequired
             )
+        }
 
         return DiagnosticSnapshot(
             generatedAt: generatedAt,
             privacyMode: privacyMode,
             policy: PolicyDecisionSummary(response.policyDecision),
-            approval: approvalStatus,
+            approval: approvalStatusSummary,
             audit: AuditSummary(events: auditEvents),
             delegation: DelegationDecisionSummary(delegationDecision),
             risk: RiskScoreSummary(riskScore)
