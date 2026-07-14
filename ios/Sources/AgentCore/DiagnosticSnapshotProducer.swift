@@ -53,30 +53,17 @@ public struct DiagnosticSnapshotProducer: Sendable {
             )
         )
 
-        let approvalReceipt: ApprovalReceipt
-        if response.policyDecision.requiresApproval {
-            approvalReceipt = approvalManager.approvalReceipt(
-                for: ApprovalRequest(
-                    taskSummary: "classification=\(effectiveDataClassification.level), risk=\(task.actionRisk)",
-                    dataClassification: effectiveDataClassification,
-                    actionRisk: task.actionRisk,
-                    reason: response.policyDecision.reason
-                )
-            )
-        } else {
-            approvalReceipt = ApprovalReceipt(
+        let approvalStatus = response.approvalReceipt.map(ApprovalStatusSummary.init)
+            ?? ApprovalStatusSummary(
                 status: response.approvalStatus,
-                requestID: UUID().uuidString,
-                reasonCode: response.policyDecision.reasonCode.rawValue,
-                mayContinueRouting: true
+                mayContinueRouting: response.approvalStatus == .approved || response.approvalStatus == .notRequired
             )
-        }
 
         return DiagnosticSnapshot(
             generatedAt: generatedAt,
             privacyMode: privacyMode,
             policy: PolicyDecisionSummary(response.policyDecision),
-            approval: ApprovalStatusSummary(approvalReceipt),
+            approval: approvalStatus,
             audit: AuditSummary(events: auditEvents),
             delegation: DelegationDecisionSummary(delegationDecision),
             risk: RiskScoreSummary(riskScore)
