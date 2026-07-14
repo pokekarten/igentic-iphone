@@ -52,7 +52,7 @@ The component that represents whether metadata-only delegation is blocked, requi
 
 ## MemoryStore
 
-The current in-memory storage stub. It is volatile and does not add persistence, databases or file storage.
+The current in-memory storage stub. It is volatile and does not add persistence, databases or file storage. See `docs/reports/memory-store-integration-decision.md` for the deliberate pre-integration stub decision.
 
 ## RiskScorer
 
@@ -60,4 +60,4 @@ The component that summarizes risk as a bounded score with reasons so tests and 
 
 ## RuntimeBudget
 
-A metadata-only planning model for execution class, expected locality and estimated memory class. It does not measure hardware, load models or prove iPhone performance.
+A metadata-only planning model for execution class, expected locality and estimated memory class. It does not measure hardware, load models or prove iPhone performance. See `docs/reports/runtime-budget-integration-decision.md` for the deliberate pre-integration stub decision.
