@@ -16,9 +16,9 @@ Status: decided — integrated into live AgentKernel path
 
 Existing regression coverage already exercises this integration boundary in:
 
-- `AgentKernelApprovalReceiptWiringTests.swift`
-- `ApprovalReceiptTests.swift`
+- AgentKernelApprovalReceiptWiringTests.swift
+- ApprovalReceiptTests.swift
 
 ## Follow-up
 
-No follow-up work is required for `ApprovalReceipt` itself. This document exists only to close the documentation gap and does not authorize additional implementation.
+No follow-up work is required for ApprovalReceipt itself. This document exists only to close the documentation gap and does not authorize additional implementation.
