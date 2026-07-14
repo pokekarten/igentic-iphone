@@ -4,11 +4,20 @@ public struct AgentResponse: Equatable, Sendable {
     public let route: TaskRoute
     public let policyDecision: PolicyDecision
     public let approvalStatus: ApprovalStatus
+    /// Full approval receipt for this task, if approval was evaluated.
+    /// `nil` only when approval was never required (fast path).
+    public let approvalReceipt: ApprovalReceipt?
 
-    public init(route: TaskRoute, policyDecision: PolicyDecision, approvalStatus: ApprovalStatus = .notRequired) {
+    public init(
+        route: TaskRoute,
+        policyDecision: PolicyDecision,
+        approvalStatus: ApprovalStatus = .notRequired,
+        approvalReceipt: ApprovalReceipt? = nil
+    ) {
         self.route = route
         self.policyDecision = policyDecision
         self.approvalStatus = approvalStatus
+        self.approvalReceipt = approvalReceipt
     }
 }
 
@@ -70,16 +79,23 @@ public final class AgentKernel: @unchecked Sendable {
         }
 
         var approvalStatus: ApprovalStatus = .notRequired
+        var approvalReceipt: ApprovalReceipt?
 
         if decision.requiresApproval {
-            approvalStatus = approvalManager.requestApproval(
-                ApprovalRequest(
+            // Single source of truth: ask ApprovalManager for a full receipt
+            // (status + requestID + reasonCode) instead of just a bare status.
+            // Diagnostics used to reconstruct this receipt independently,
+            // which risked drifting out of sync with the live decision.
+            let receipt = approvalManager.approvalReceipt(
+                for: ApprovalRequest(
                     taskSummary: "classification=\(effectiveDataClassification.level), risk=\(task.actionRisk)",
                     dataClassification: effectiveDataClassification,
                     actionRisk: task.actionRisk,
                     reason: decision.reason
                 )
             )
+            approvalReceipt = receipt
+            approvalStatus = receipt.status
 
             auditLog.record(AuditEvent(type: .approvalRequired, message: "Approval status: \(approvalStatus.rawValue)", dataSensitivity: effectiveDataClassification.level))
 
@@ -87,7 +103,8 @@ public final class AgentKernel: @unchecked Sendable {
                 return AgentResponse(
                     route: .approvalRequired(reason: "Approval is required before routing."),
                     policyDecision: decision,
-                    approvalStatus: approvalStatus
+                    approvalStatus: approvalStatus,
+                    approvalReceipt: approvalReceipt
                 )
             }
         }
@@ -109,7 +126,8 @@ public final class AgentKernel: @unchecked Sendable {
                 return AgentResponse(
                     route: .blocked(reason: "Local model runtime unavailable for this capability."),
                     policyDecision: decision,
-                    approvalStatus: approvalStatus
+                    approvalStatus: approvalStatus,
+                    approvalReceipt: approvalReceipt
                 )
             }
         }
@@ -117,7 +135,7 @@ public final class AgentKernel: @unchecked Sendable {
         let route = taskRouter.route(task)
         auditLog.record(AuditEvent(type: .routeSelected, message: String(describing: route), dataSensitivity: effectiveDataClassification.level))
 
-        return AgentResponse(route: route, policyDecision: decision, approvalStatus: approvalStatus)
+        return AgentResponse(route: route, policyDecision: decision, approvalStatus: approvalStatus, approvalReceipt: approvalReceipt)
     }
 
     public func auditEvents() -> [AuditEvent] {
