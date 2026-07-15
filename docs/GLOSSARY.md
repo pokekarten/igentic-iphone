@@ -46,6 +46,10 @@ The AgentCore component that evaluates whether a request is allowed, blocked or 
 
 The component that records the current approval status and exposes whether routing may continue.
 
+## ApprovalReceipt
+
+The live receipt returned by `AgentKernel.handle()` whenever approval is evaluated, and the single source of truth for `DiagnosticSnapshotProducer`; see `docs/reports/approval-receipt-integration-decision.md`.
+
 ## DelegationBroker
 
 The component that represents whether metadata-only delegation is blocked, requires approval or is allowed under the current safety rules.
