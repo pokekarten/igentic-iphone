@@ -29,7 +29,7 @@ public struct DiagnosticSnapshotProducer: Sendable {
             ? task.dataClassification
             : detection.suggestedDataClassification
 
-        let kernel = AgentKernel(approvalManager: approvalManager)
+        let kernel = AgentKernel(approvalManager: approvalManager, sensitiveDataDetector: sensitiveDataDetector)
         let response = kernel.handle(task, privacyMode: privacyMode)
         let auditEvents = kernel.auditEvents()
 
