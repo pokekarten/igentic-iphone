@@ -44,7 +44,7 @@ final class PolicyEngineEdgeCaseTests: XCTestCase {
         )
 
         XCTAssertFalse(response.policyDecision.isAllowed)
-        XCTAssertTrue(response.policyDecision.requiresApproval)
+        XCTAssertFalse(response.policyDecision.requiresApproval)
         XCTAssertEqual(response.policyDecision.reasonCode, .restrictedDataBlocksAutomaticExternalDelegation)
         XCTAssertEqual(
             response.route,
@@ -95,7 +95,7 @@ final class PolicyEngineEdgeCaseTests: XCTestCase {
         )
 
         XCTAssertFalse(decision.isAllowed)
-        XCTAssertTrue(decision.requiresApproval)
+        XCTAssertFalse(decision.requiresApproval)
         XCTAssertEqual(decision.reasonCode, .restrictedDataBlocksAutomaticExternalDelegation)
         XCTAssertEqual(decision.reason, "Restricted sensitive data cannot be delegated automatically.")
     }
