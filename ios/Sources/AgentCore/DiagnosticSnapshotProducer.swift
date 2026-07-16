@@ -4,13 +4,13 @@ public struct DiagnosticSnapshotProducer: Sendable {
     private let approvalManager: ApprovalManager
     private let riskScorer: RiskScorer
     private let delegationBroker: DelegationBroker
-    private let sensitiveDataDetector: SensitiveDataDetector
+    private let sensitiveDataDetector: any SensitiveDataDetecting
 
     public init(
         approvalManager: ApprovalManager = ApprovalManager(),
         riskScorer: RiskScorer = RiskScorer(),
         delegationBroker: DelegationBroker = DelegationBroker(),
-        sensitiveDataDetector: SensitiveDataDetector = SensitiveDataDetector()
+        sensitiveDataDetector: any SensitiveDataDetecting = SensitiveDataDetector()
     ) {
         self.approvalManager = approvalManager
         self.riskScorer = riskScorer

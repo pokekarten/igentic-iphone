@@ -1,5 +1,9 @@
 import Foundation
 
+public protocol SensitiveDataDetecting: Sendable {
+    func detect(in text: String) -> SensitiveDataDetectionResult
+}
+
 public enum SensitiveDataCategory: String, CaseIterable, Sendable {
     case iban
     case emailAddress
@@ -58,7 +62,7 @@ public struct SensitiveDataDetectionResult: Equatable, Sendable {
     }
 }
 
-public struct SensitiveDataDetector: Sendable {
+public struct SensitiveDataDetector: SensitiveDataDetecting {
     public init() {}
 
     public func detect(in text: String) -> SensitiveDataDetectionResult {

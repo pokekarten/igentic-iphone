@@ -26,7 +26,7 @@ public final class AgentKernel: @unchecked Sendable {
     private let taskRouter: TaskRouter
     private let auditLog: AuditLog
     private let approvalManager: ApprovalManager
-    private let sensitiveDataDetector: SensitiveDataDetector
+    private let sensitiveDataDetector: any SensitiveDataDetecting
     private let localModelRuntime: LocalModelRuntime?
 
     public init(
@@ -34,7 +34,7 @@ public final class AgentKernel: @unchecked Sendable {
         taskRouter: TaskRouter = TaskRouter(),
         auditLog: AuditLog = AuditLog(),
         approvalManager: ApprovalManager = ApprovalManager(),
-        sensitiveDataDetector: SensitiveDataDetector = SensitiveDataDetector(),
+        sensitiveDataDetector: any SensitiveDataDetecting = SensitiveDataDetector(),
         localModelRuntime: LocalModelRuntime? = nil
     ) {
         self.policyEngine = policyEngine
