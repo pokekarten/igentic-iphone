@@ -105,7 +105,7 @@ public struct PolicyEngine: Sendable {
         if request.dataClassification.level.blocksAutomaticExternalDelegation && request.requestedDelegationTarget != .none && request.requestedDelegationTarget != .localDevice {
             return PolicyDecision(
                 isAllowed: false,
-                requiresApproval: true,
+                requiresApproval: false,
                 reasonCode: .restrictedDataBlocksAutomaticExternalDelegation,
                 reason: "Restricted sensitive data cannot be delegated automatically.",
                 riskScore: riskScore
