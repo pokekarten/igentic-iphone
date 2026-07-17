@@ -91,7 +91,10 @@ public final class AgentKernel: @unchecked Sendable {
                     taskSummary: "classification=\(effectiveDataClassification.level), risk=\(task.actionRisk)",
                     dataClassification: effectiveDataClassification,
                     actionRisk: task.actionRisk,
-                    reason: decision.reason
+                    reason: decision.reason,
+                    privacyMode: privacyMode,
+                    requestedDelegationTarget: task.requestedDelegationTarget,
+                    sensitiveDataFindings: detection.findings
                 )
             )
             approvalReceipt = receipt
