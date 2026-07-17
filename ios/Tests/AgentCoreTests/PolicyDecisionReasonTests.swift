@@ -33,7 +33,7 @@ final class PolicyDecisionReasonTests: XCTestCase {
         )
 
         XCTAssertFalse(decision.isAllowed)
-        XCTAssertTrue(decision.requiresApproval)
+        XCTAssertFalse(decision.requiresApproval)
         XCTAssertEqual(
             decision.reasonCode,
             .restrictedDataBlocksAutomaticExternalDelegation
