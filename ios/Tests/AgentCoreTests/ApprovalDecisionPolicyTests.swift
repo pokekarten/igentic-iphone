@@ -12,6 +12,14 @@ final class ApprovalDecisionPolicyTests: XCTestCase {
         )
     }
 
+    func testApprovalRequestDefaultsRemainBackwardsCompatible() {
+        let request = sampleRequest()
+
+        XCTAssertEqual(request.privacyMode, .localOnly)
+        XCTAssertEqual(request.requestedDelegationTarget, .none)
+        XCTAssertTrue(request.sensitiveDataFindings.isEmpty)
+    }
+
     func testFixedApprovalDecisionPolicyReturnsConfiguredDefaultStatus() {
         let policy = FixedApprovalDecisionPolicy(defaultStatus: .pending)
         XCTAssertEqual(policy.decide(sampleRequest()), .pending)
@@ -25,6 +33,11 @@ final class ApprovalDecisionPolicyTests: XCTestCase {
     func testApprovalManagerDefaultIsStableAndUsesFixedPolicy() {
         let manager = ApprovalManager()
         XCTAssertEqual(manager.requestApproval(sampleRequest()), .pending)
+    }
+
+    func testRiskScorePolicyKeepsBaselineRequestApproved() {
+        let policy = RiskScoreApprovalPolicy()
+        XCTAssertEqual(policy.decide(sampleRequest()), .approved)
     }
 
     func testRiskScorePolicyTreatsExternalProviderDelegationAsPending() {
