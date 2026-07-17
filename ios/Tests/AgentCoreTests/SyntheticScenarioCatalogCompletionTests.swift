@@ -38,7 +38,7 @@ final class SyntheticScenarioCatalogCompletionTests: XCTestCase {
         XCTAssertEqual(scenario.task.dataClassification.level, .restrictedSensitiveData)
         XCTAssertEqual(result.route, .blocked(reason: "Restricted sensitive data cannot be delegated automatically."))
         XCTAssertFalse(result.policyDecision.isAllowed)
-        XCTAssertTrue(result.policyDecision.requiresApproval)
+        XCTAssertFalse(result.policyDecision.requiresApproval)
         XCTAssertEqual(result.approvalStatus, .notRequired)
         XCTAssertEqual(
             result.delegationDecision,
