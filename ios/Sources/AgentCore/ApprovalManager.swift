@@ -12,17 +12,26 @@ public struct ApprovalRequest: Equatable, Sendable {
     public let dataClassification: DataClassification
     public let actionRisk: ActionRisk
     public let reason: String
+    public let privacyMode: PrivacyMode
+    public let requestedDelegationTarget: DelegationTarget
+    public let sensitiveDataFindings: [SensitiveDataFinding]
 
     public init(
         taskSummary: String,
         dataClassification: DataClassification,
         actionRisk: ActionRisk,
-        reason: String
+        reason: String,
+        privacyMode: PrivacyMode = .localOnly,
+        requestedDelegationTarget: DelegationTarget = .none,
+        sensitiveDataFindings: [SensitiveDataFinding] = []
     ) {
         self.taskSummary = taskSummary
         self.dataClassification = dataClassification
         self.actionRisk = actionRisk
         self.reason = reason
+        self.privacyMode = privacyMode
+        self.requestedDelegationTarget = requestedDelegationTarget
+        self.sensitiveDataFindings = sensitiveDataFindings
     }
 }
 
@@ -50,11 +59,11 @@ public struct RiskScoreApprovalPolicy: ApprovalDecisionPolicy {
 
     public func decide(_ request: ApprovalRequest) -> ApprovalStatus {
         let riskRequest = RiskScoringRequest(
-            privacyMode: .localOnly,
+            privacyMode: request.privacyMode,
             dataClassification: request.dataClassification,
             actionRisk: request.actionRisk,
-            delegationTarget: .none,
-            sensitiveDataFindings: []
+            delegationTarget: request.requestedDelegationTarget,
+            sensitiveDataFindings: request.sensitiveDataFindings
         )
         let score = RiskScorer().score(riskRequest)
         return score.requiresExplicitApproval ? .pending : .approved
