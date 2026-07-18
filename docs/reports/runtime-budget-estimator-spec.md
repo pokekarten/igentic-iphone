@@ -7,7 +7,7 @@ Status: proposed — documentation only, no implementation authorized.
 This document specifies the input contract and behavioral shape for the future
 `RuntimeBudgetAssessor` referenced by Issue #122. It does not add the
 assessor, does not wire `RuntimeBudget` into `AgentKernel` or
-`DiagnosticSnapshotProducer`, and does not change `RuntimeBudget.swift`.
+`DiagnosticSnapshotProducer`, and does not change the RuntimeBudget source file.
 
 The design must remain consistent with `docs/reports/runtime-budget-integration-decision.md`,
 which states that `RuntimeBudget` is a deliberate pre-integration stub until
@@ -154,7 +154,7 @@ model execution.
 ## Non-goals
 
 - No Swift implementation in this issue.
-- No change to `RuntimeBudget.swift`.
+- No change to the RuntimeBudget source file.
 - No change to `AgentKernel`, `DiagnosticSnapshotProducer`, `PolicyEngine`,
   `DelegationBroker`, or any approval path.
 - No invented thresholds without a follow-up implementation issue that owns
