@@ -92,22 +92,25 @@ public struct PolicyEngine: Sendable {
             )
         )
 
-        if request.privacyMode == .localOnly && request.requestedDelegationTarget != .none && request.requestedDelegationTarget != .localDevice {
-            return PolicyDecision(
-                isAllowed: false,
-                requiresApproval: false,
-                reasonCode: .localOnlyBlocksNonLocalDelegation,
-                reason: "Local Only blocks non-local delegation.",
-                riskScore: riskScore
-            )
-        }
-
+        // Prefer the stricter data-boundary reason when multiple policy gates
+        // would block the same request. This keeps blocked routes stable and
+        // makes diagnostics point at the most sensitive violation first.
         if request.dataClassification.level.blocksAutomaticExternalDelegation && request.requestedDelegationTarget != .none && request.requestedDelegationTarget != .localDevice {
             return PolicyDecision(
                 isAllowed: false,
                 requiresApproval: false,
                 reasonCode: .restrictedDataBlocksAutomaticExternalDelegation,
                 reason: "Restricted sensitive data cannot be delegated automatically.",
+                riskScore: riskScore
+            )
+        }
+
+        if request.privacyMode == .localOnly && request.requestedDelegationTarget != .none && request.requestedDelegationTarget != .localDevice {
+            return PolicyDecision(
+                isAllowed: false,
+                requiresApproval: false,
+                reasonCode: .localOnlyBlocksNonLocalDelegation,
+                reason: "Local Only blocks non-local delegation.",
                 riskScore: riskScore
             )
         }
