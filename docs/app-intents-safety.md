@@ -84,6 +84,7 @@ Before any real-action work, the implementation must define:
 
 As of this document:
 
+- the draft/approval pipeline now exists in `AgentCore` as a synthetic, local, side-effect-free precursor,
 - no `AppIntent` type exists in the repository,
 - no App Shortcuts provider exists,
 - no real system action is wired to `ApprovalManager`,
