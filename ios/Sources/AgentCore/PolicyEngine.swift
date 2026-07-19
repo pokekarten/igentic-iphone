@@ -92,7 +92,8 @@ public struct PolicyEngine: Sendable {
             )
         )
 
-        if request.privacyMode == .localOnly && request.requestedDelegationTarget != .none && request.requestedDelegationTarget != .localDevice {
+        if request.privacyMode == .localOnly,
+           request.requestedDelegationTarget == .externalProvider {
             return PolicyDecision(
                 isAllowed: false,
                 requiresApproval: false,
@@ -102,12 +103,26 @@ public struct PolicyEngine: Sendable {
             )
         }
 
-        if request.dataClassification.level.blocksAutomaticExternalDelegation && request.requestedDelegationTarget != .none && request.requestedDelegationTarget != .localDevice {
+        if request.dataClassification.level.blocksAutomaticExternalDelegation,
+           request.requestedDelegationTarget != .none,
+           request.requestedDelegationTarget != .localDevice {
             return PolicyDecision(
                 isAllowed: false,
                 requiresApproval: false,
                 reasonCode: .restrictedDataBlocksAutomaticExternalDelegation,
                 reason: "Restricted sensitive data cannot be delegated automatically.",
+                riskScore: riskScore
+            )
+        }
+
+        if request.privacyMode == .localOnly,
+           request.requestedDelegationTarget != .none,
+           request.requestedDelegationTarget != .localDevice {
+            return PolicyDecision(
+                isAllowed: false,
+                requiresApproval: false,
+                reasonCode: .localOnlyBlocksNonLocalDelegation,
+                reason: "Local Only blocks non-local delegation.",
                 riskScore: riskScore
             )
         }
