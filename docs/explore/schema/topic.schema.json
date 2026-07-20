@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/pokekarten/igentic-iphone/docs/explore/schema/topic.schema.json",
+  "title": "Explore Topic",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["title", "slug", "summary", "tags"],
+  "properties": {
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "slug": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 240
+    },
+    "tags": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "difficulty": {
+      "type": "string",
+      "enum": ["beginner", "intermediate", "advanced"]
+    },
+    "featured": {
+      "type": "boolean",
+      "default": false
+    },
+    "icon": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}
