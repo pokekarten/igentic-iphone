@@ -8,7 +8,7 @@ Status: living audit companion
 | #137 | open / blocked | high | Keep as the gating spec for ToolRegistry integration. |
 | #121 | open / blocked | high | Do not implement until #137 is settled. |
 | #101 | resolved / closed | medium | Regression coverage exists in `ios/Tests/AgentCoreTests/AgentKernelTaskRouterBypassRegressionTests.swift` (restricted-data bypass block, pending-approval block, approved-critical-action routing). No further action. |
-| #103 | open | medium | Add deterministic fixtures for model-selection tie-breaks. |
+| #103 | in progress | medium | Deterministic model-selection tie-break fixtures and the standalone validator were added under `docs/model-selection/` and `scripts/`. |
 | #114 | open | low | Keep as a docs-only starter issue. |
 | #117 | open | low | Keep as a content-only starter issue. |
 | #136 | open | low | Treat as UX polish; no behavior change required. |
