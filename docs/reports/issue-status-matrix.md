@@ -7,7 +7,7 @@ Status: living audit companion
 | #120 | open | high | Close the gap with a dedicated classification/retention decision before any MemoryStore wiring. |
 | #137 | open / blocked | high | Keep as the gating spec for ToolRegistry integration. |
 | #121 | open / blocked | high | Do not implement until #137 is settled. |
-| #101 | resolved / closed | medium | Regression coverage exists in `AgentKernelTaskRouterBypassRegressionTests.swift` (restricted-data bypass block, pending-approval block, approved-critical-action routing). No further action. |
+| #101 | resolved / closed | medium | Regression coverage exists in `ios/Tests/AgentCoreTests/AgentKernelTaskRouterBypassRegressionTests.swift` (restricted-data bypass block, pending-approval block, approved-critical-action routing). No further action. |
 | #103 | open | medium | Add deterministic fixtures for model-selection tie-breaks. |
 | #114 | open | low | Keep as a docs-only starter issue. |
 | #117 | open | low | Keep as a content-only starter issue. |
