@@ -1,0 +1,167 @@
+{
+  "schema_version": "v0",
+  "policy_ref": "SELECTION_POLICY_v1.yaml",
+  "fallbacks": {
+    "safe_refusal_model_id": "model-safe-refusal"
+  },
+  "fixtures": [
+    {
+      "name": "tie_break_lowest_latency",
+      "expected_selected_model_id": "model-beta",
+      "request": {
+        "task_type": "reasoning",
+        "latency_budget": "low",
+        "context_size": 2048,
+        "tool_usage_required": true
+      },
+      "candidates": [
+        {
+          "model_id": "model-alpha",
+          "evaluation_score": 0.90,
+          "latency_score": 0.80,
+          "capability_match": 0.40,
+          "latency_ms": 120,
+          "context_size": 2048,
+          "max_context_tokens": 8192,
+          "tool_usage_supported": true
+        },
+        {
+          "model_id": "model-beta",
+          "evaluation_score": 0.90,
+          "latency_score": 0.80,
+          "capability_match": 0.40,
+          "latency_ms": 80,
+          "context_size": 2048,
+          "max_context_tokens": 8192,
+          "tool_usage_supported": true
+        },
+        {
+          "model_id": "model-gamma",
+          "evaluation_score": 0.70,
+          "latency_score": 0.90,
+          "capability_match": 0.30,
+          "latency_ms": 40,
+          "context_size": 2048,
+          "max_context_tokens": 8192,
+          "tool_usage_supported": true
+        }
+      ]
+    },
+    {
+      "name": "tie_break_safe_refusal",
+      "expected_selected_model_id": "model-safe-refusal",
+      "request": {
+        "task_type": "reasoning",
+        "latency_budget": "low",
+        "context_size": 2048,
+        "tool_usage_required": true
+      },
+      "candidates": [
+        {
+          "model_id": "model-alpha",
+          "evaluation_score": 0.90,
+          "latency_score": 0.80,
+          "capability_match": 0.40,
+          "latency_ms": 100,
+          "context_size": 2048,
+          "max_context_tokens": 8192,
+          "tool_usage_supported": true
+        },
+        {
+          "model_id": "model-beta",
+          "evaluation_score": 0.90,
+          "latency_score": 0.80,
+          "capability_match": 0.40,
+          "latency_ms": 100,
+          "context_size": 2048,
+          "max_context_tokens": 8192,
+          "tool_usage_supported": true
+        },
+        {
+          "model_id": "model-gamma",
+          "evaluation_score": 0.60,
+          "latency_score": 0.70,
+          "capability_match": 0.30,
+          "latency_ms": 60,
+          "context_size": 2048,
+          "max_context_tokens": 8192,
+          "tool_usage_supported": true
+        }
+      ]
+    },
+    {
+      "name": "hard_constraint_excludes_best_score",
+      "expected_selected_model_id": "model-valid",
+      "request": {
+        "task_type": "reasoning",
+        "latency_budget": "low",
+        "context_size": 4096,
+        "tool_usage_required": true
+      },
+      "candidates": [
+        {
+          "model_id": "model-over-limit",
+          "evaluation_score": 0.99,
+          "latency_score": 0.99,
+          "capability_match": 1.00,
+          "latency_ms": 50,
+          "context_size": 4096,
+          "max_context_tokens": 2048,
+          "tool_usage_supported": true
+        },
+        {
+          "model_id": "model-valid",
+          "evaluation_score": 0.80,
+          "latency_score": 0.60,
+          "capability_match": 0.90,
+          "latency_ms": 70,
+          "context_size": 4096,
+          "max_context_tokens": 8192,
+          "tool_usage_supported": true
+        }
+      ]
+    },
+    {
+      "name": "unique_winner_control",
+      "expected_selected_model_id": "model-delta",
+      "request": {
+        "task_type": "reasoning",
+        "latency_budget": "low",
+        "context_size": 1024,
+        "tool_usage_required": true
+      },
+      "candidates": [
+        {
+          "model_id": "model-alpha",
+          "evaluation_score": 0.70,
+          "latency_score": 0.60,
+          "capability_match": 0.50,
+          "latency_ms": 90,
+          "context_size": 1024,
+          "max_context_tokens": 4096,
+          "tool_usage_supported": true
+        },
+        {
+          "model_id": "model-delta",
+          "evaluation_score": 0.95,
+          "latency_score": 0.90,
+          "capability_match": 0.95,
+          "latency_ms": 65,
+          "context_size": 1024,
+          "max_context_tokens": 4096,
+          "tool_usage_supported": true
+        },
+        {
+          "model_id": "model-epsilon",
+          "evaluation_score": 0.80,
+          "latency_score": 0.70,
+          "capability_match": 0.60,
+          "latency_ms": 60,
+          "context_size": 1024,
+          "max_context_tokens": 4096,
+          "tool_usage_supported": true
+        }
+      ]
+    }
+  ]
+}
