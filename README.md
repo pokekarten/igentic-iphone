@@ -85,6 +85,7 @@ See:
 - `docs/CODEX_NEXT_TASK.md`
 - `docs/SPARSAMKEIT.md`
 - `docs/SOURCE_VERIFICATION.md`
+- `docs/explore/README.md`
 
 ## Brand and community
 
