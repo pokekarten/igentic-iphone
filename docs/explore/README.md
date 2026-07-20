@@ -34,6 +34,16 @@ explore/
 - Prefer synthetic examples over private data.
 - Avoid runtime code inside this directory.
 
+## Validation
+
+Run the dependency-free content validator from the repository root:
+
+```bash
+python3 scripts/validate_explore_content.py
+```
+
+Use `--root <path>` when validating a checkout that is not the current working directory.
+
 ## Expected minimum fields
 
 Topics should define:
