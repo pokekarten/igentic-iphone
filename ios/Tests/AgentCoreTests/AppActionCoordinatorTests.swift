@@ -35,4 +35,21 @@ final class AppActionCoordinatorTests: XCTestCase {
         let approval = coordinator.approvalReceipt(for: draft(id: id, kind: .deleteRecord, payload: "payload-a"), privacyMode: .trustedDevices)
         XCTAssertEqual(coordinator.perform(draft(id: id, kind: .deleteRecord, payload: "payload-b"), privacyMode: .trustedDevices, approvalReceipt: approval), .blockedPendingApproval)
     }
+
+    func testSensitivePayloadEscalatesClassificationAndBlocksExternalDelegation() {
+        let log = AuditLog()
+        let coordinator = AppActionCoordinator(approvalManager: .init(defaultStatus: .approved), auditLog: log)
+        let benignDraft = draft(id: "EEEEEEEE-EEEE-EEEE-EEEE-EEEEEEEEEEEE", kind: .sendMessage, payload: "hello there", risk: .read)
+        let sensitiveDraft = draft(id: "FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF", kind: .sendMessage, payload: "Please use IBAN DE89 3704 0044 0532 0130 00", risk: .read)
+
+        let benignApproval = coordinator.approvalReceipt(for: benignDraft, privacyMode: .trustedDevices)
+        XCTAssertNotNil(benignApproval)
+        XCTAssertEqual(coordinator.perform(benignDraft, privacyMode: .trustedDevices, approvalReceipt: benignApproval), .approved(benignApproval!))
+
+        XCTAssertNil(coordinator.approvalReceipt(for: sensitiveDraft, privacyMode: .trustedDevices))
+        XCTAssertEqual(coordinator.perform(sensitiveDraft, privacyMode: .trustedDevices), .rejected)
+
+        let blockedEvents = log.allEvents().filter { $0.type == .blocked }
+        XCTAssertTrue(blockedEvents.contains(where: { $0.dataSensitivity == .restrictedSensitiveData }))
+    }
 }
