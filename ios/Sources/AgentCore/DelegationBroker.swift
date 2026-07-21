@@ -58,21 +58,17 @@ public struct DelegationBroker: Sendable {
     public func decide(_ request: DelegationRequest) -> DelegationDecision {
         // Keep the same observable precedence as PolicyEngine so diagnostics
         // and live policy report stable blocking reasons for the same request.
-        if request.privacyMode == .localOnly,
-           request.target == .externalProvider {
+        switch DataClassification.automaticDelegationBlockingOutcome(
+            privacyMode: request.privacyMode,
+            requestedDelegationTarget: request.target,
+            dataClassification: request.dataClassification
+        ) {
+        case .localOnlyBlocksNonLocalDelegation:
             return .blocked(reason: "Local Only blocks non-local delegation.")
-        }
-
-        if request.dataClassification.level.blocksAutomaticExternalDelegation,
-           request.target != .none,
-           request.target != .localDevice {
+        case .restrictedDataBlocksAutomaticExternalDelegation:
             return .blocked(reason: "Restricted sensitive data cannot be delegated automatically.")
-        }
-
-        if request.privacyMode == .localOnly,
-           request.target != .none,
-           request.target != .localDevice {
-            return .blocked(reason: "Local Only blocks non-local delegation.")
+        case .notBlocked:
+            break
         }
 
         if request.target == .externalProvider {
