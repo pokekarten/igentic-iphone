@@ -1,6 +1,13 @@
 import AgentCore
 import Foundation
 
+private func displayText(_ value: String) -> String {
+    value
+        .replacingOccurrences(of: "-", with: " ")
+        .replacingOccurrences(of: "([a-z])([A-Z])", with: "$1 $2", options: .regularExpression)
+        .capitalized
+}
+
 public struct DiagnosticStatusRow: Identifiable, Equatable, Sendable {
     public let id: String
     public let title: String
@@ -13,20 +20,13 @@ public struct DiagnosticStatusRow: Identifiable, Equatable, Sendable {
         self.id = entry.scenarioID
         // The diagnostic UI mirrors the structured report and keeps user task
         // text out of the visible surface.
-        self.title = Self.displayText(entry.scenarioID)
-        self.route = Self.displayText(entry.route.rawValue)
+        self.title = displayText(entry.scenarioID)
+        self.route = displayText(entry.route.rawValue)
         self.policy = entry.policyAllowed
             ? (entry.policyRequiresApproval ? "Approval required" : "Allowed")
             : "Blocked"
-        self.approval = Self.displayText(entry.approvalStatus.rawValue)
-        self.delegation = Self.displayText(entry.delegation.rawValue)
-    }
-
-    private static func displayText(_ value: String) -> String {
-        value
-            .replacingOccurrences(of: "-", with: " ")
-            .replacingOccurrences(of: "([a-z])([A-Z])", with: "$1 $2", options: .regularExpression)
-            .capitalized
+        self.approval = displayText(entry.approvalStatus.rawValue)
+        self.delegation = displayText(entry.delegation.rawValue)
     }
 }
 
@@ -95,22 +95,15 @@ public struct DiagnosticViewState: Equatable, Sendable {
             DiagnosticSnapshotField(label: "Privacy mode", value: snapshot.privacyMode.rawValue),
             DiagnosticSnapshotField(label: "Policy is allowed", value: Self.boolText(snapshot.policy.isAllowed)),
             DiagnosticSnapshotField(label: "Policy requires approval", value: Self.boolText(snapshot.policy.requiresApproval)),
-            DiagnosticSnapshotField(label: "Approval status", value: Self.displayText(snapshot.approval.status.rawValue)),
+            DiagnosticSnapshotField(label: "Approval status", value: displayText(snapshot.approval.status.rawValue)),
             DiagnosticSnapshotField(label: "Approval may continue routing", value: Self.boolText(snapshot.approval.mayContinueRouting)),
             DiagnosticSnapshotField(label: "Audit event count", value: "\(snapshot.audit.eventCount)"),
             DiagnosticSnapshotField(label: "Audit highest sensitivity", value: snapshot.audit.highestDataSensitivity.highestDataSensitivityDescription),
-            DiagnosticSnapshotField(label: "Delegation outcome", value: Self.displayText(snapshot.delegation.outcome.rawValue)),
+            DiagnosticSnapshotField(label: "Delegation outcome", value: displayText(snapshot.delegation.outcome.rawValue)),
             DiagnosticSnapshotField(label: "Risk value", value: "\(snapshot.risk.value)"),
             DiagnosticSnapshotField(label: "Risk requires explicit approval", value: Self.boolText(snapshot.risk.requiresExplicitApproval)),
             DiagnosticSnapshotField(label: "Risk reason count", value: "\(snapshot.risk.reasonCount)"),
         ]
-    }
-
-    private static func displayText(_ value: String) -> String {
-        value
-            .replacingOccurrences(of: "-", with: " ")
-            .replacingOccurrences(of: "([a-z])([A-Z])", with: "$1 $2", options: .regularExpression)
-            .capitalized
     }
 
     private static func boolText(_ value: Bool) -> String {
