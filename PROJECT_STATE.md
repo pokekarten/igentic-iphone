@@ -2,6 +2,15 @@
 
 This file stores durable project state only. It must not store a live PR number, current PR head SHA, mergeability result or lane stage. A completed target must never be revived from this file.
 
+## Required status markers
+
+- Master brand: `iGentic`
+- Community model: GitHub-first, social-supported
+- `docs/brand/BRAND.md`
+- `docs/brand/BRAND_ASSET_MANIFEST.md`
+- `assets/social/instagram-profile-v3.svg`
+- `docs/community/COMMUNITY_STRATEGY.md`
+
 ## Recently completed
 
 - PR #156 / issue #156 (`Consolidate trivial duplicated helpers and remove orphaned placeholder files`) is merged on GitHub; `ios/Tests/iGenticAppTests/DiagnosticViewStateTests.swift`, `scripts/evaluate_action_proposals.py`, `__branch_init__`, and `__noop_check__` are closed out.
