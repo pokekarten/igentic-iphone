@@ -24,10 +24,10 @@ public struct DiagnosticSnapshotProducer: Sendable {
         generatedAt: Date = Date()
     ) -> DiagnosticSnapshot {
         let detection = sensitiveDataDetector.detect(in: task.userText)
-        let effectiveDataClassification = max(task.dataClassification.level, detection.suggestedDataClassification.level)
-            == task.dataClassification.level
-            ? task.dataClassification
-            : detection.suggestedDataClassification
+        let effectiveDataClassification = DataClassification.effectiveClassification(
+            baseClassification: task.dataClassification,
+            detectorResult: detection
+        )
 
         let kernel = AgentKernel(approvalManager: approvalManager, sensitiveDataDetector: sensitiveDataDetector)
         let response = kernel.handle(task, privacyMode: privacyMode)
