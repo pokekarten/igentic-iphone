@@ -56,9 +56,10 @@ public final class AgentKernel: @unchecked Sendable {
 
     public func handle(_ task: TaskRequest, privacyMode: PrivacyMode) -> AgentResponse {
         let detection = sensitiveDataDetector.detect(in: task.userText)
-        let effectiveDataClassification = task.dataClassification.level >= detection.suggestedDataClassification.level
-            ? task.dataClassification
-            : detection.suggestedDataClassification
+        let effectiveDataClassification = DataClassification.effectiveClassification(
+            baseClassification: task.dataClassification,
+            detectorResult: detection
+        )
 
         auditLog.record(AuditEvent(type: .taskReceived, message: "Task received.", dataSensitivity: effectiveDataClassification.level))
 
