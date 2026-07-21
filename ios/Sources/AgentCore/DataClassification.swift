@@ -35,6 +35,17 @@ public struct DataClassification: Equatable, Sendable {
     )
 }
 
+public extension DataClassification {
+    static func effectiveClassification(
+        baseClassification: DataClassification,
+        detectorResult: SensitiveDataDetectionResult
+    ) -> DataClassification {
+        baseClassification.level >= detectorResult.suggestedDataClassification.level
+            ? baseClassification
+            : detectorResult.suggestedDataClassification
+    }
+}
+
 public enum PrivacyMode: String, CaseIterable, Sendable {
     case localOnly = "Local Only"
     case trustedDevices = "Trusted Devices"
