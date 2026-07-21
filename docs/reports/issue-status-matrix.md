@@ -12,6 +12,8 @@ Status: living audit companion
 | #114 | open | low | Keep as a docs-only starter issue. |
 | #117 | open | low | Keep as a content-only starter issue. |
 | #136 | open | low | Treat as UX polish; no behavior change required. |
+| #156 | resolved / closed | low | Regression coverage lives in `ios/Tests/iGenticAppTests/DiagnosticViewStateTests.swift`; keep `python3 scripts/validate_repo_structure.py` on the cleanup path. |
+| #158 | resolved / closed | medium | Regression coverage lives in `ios/Tests/AgentCoreTests/AppActionCoordinatorTests.swift`; it exercises sensitive-payload escalation and approval blocking. |
 
 ## Maintenance rule
 
