@@ -35,7 +35,49 @@ public struct DataClassification: Equatable, Sendable {
     )
 }
 
+public enum AutomaticDelegationBlockingOutcome: Equatable, Sendable {
+    case notBlocked
+    case localOnlyBlocksNonLocalDelegation
+    case restrictedDataBlocksAutomaticExternalDelegation
+
+    public var reason: String? {
+        switch self {
+        case .notBlocked:
+            return nil
+        case .localOnlyBlocksNonLocalDelegation:
+            return "Local Only blocks non-local delegation."
+        case .restrictedDataBlocksAutomaticExternalDelegation:
+            return "Restricted sensitive data cannot be delegated automatically."
+        }
+    }
+}
+
 public extension DataClassification {
+    static func automaticDelegationBlockingOutcome(
+        privacyMode: PrivacyMode,
+        requestedDelegationTarget: DelegationTarget,
+        dataClassification: DataClassification
+    ) -> AutomaticDelegationBlockingOutcome {
+        if privacyMode == .localOnly,
+           requestedDelegationTarget == .externalProvider {
+            return .localOnlyBlocksNonLocalDelegation
+        }
+
+        if dataClassification.level.blocksAutomaticExternalDelegation,
+           requestedDelegationTarget != .none,
+           requestedDelegationTarget != .localDevice {
+            return .restrictedDataBlocksAutomaticExternalDelegation
+        }
+
+        if privacyMode == .localOnly,
+           requestedDelegationTarget != .none,
+           requestedDelegationTarget != .localDevice {
+            return .localOnlyBlocksNonLocalDelegation
+        }
+
+        return .notBlocked
+    }
+
     static func effectiveClassification(
         baseClassification: DataClassification,
         detectorResult: SensitiveDataDetectionResult
