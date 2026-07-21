@@ -92,8 +92,12 @@ public struct PolicyEngine: Sendable {
             )
         )
 
-        if request.privacyMode == .localOnly,
-           request.requestedDelegationTarget == .externalProvider {
+        switch DataClassification.automaticDelegationBlockingOutcome(
+            privacyMode: request.privacyMode,
+            requestedDelegationTarget: request.requestedDelegationTarget,
+            dataClassification: request.dataClassification
+        ) {
+        case .localOnlyBlocksNonLocalDelegation:
             return PolicyDecision(
                 isAllowed: false,
                 requiresApproval: false,
@@ -101,11 +105,7 @@ public struct PolicyEngine: Sendable {
                 reason: "Local Only blocks non-local delegation.",
                 riskScore: riskScore
             )
-        }
-
-        if request.dataClassification.level.blocksAutomaticExternalDelegation,
-           request.requestedDelegationTarget != .none,
-           request.requestedDelegationTarget != .localDevice {
+        case .restrictedDataBlocksAutomaticExternalDelegation:
             return PolicyDecision(
                 isAllowed: false,
                 requiresApproval: false,
@@ -113,18 +113,8 @@ public struct PolicyEngine: Sendable {
                 reason: "Restricted sensitive data cannot be delegated automatically.",
                 riskScore: riskScore
             )
-        }
-
-        if request.privacyMode == .localOnly,
-           request.requestedDelegationTarget != .none,
-           request.requestedDelegationTarget != .localDevice {
-            return PolicyDecision(
-                isAllowed: false,
-                requiresApproval: false,
-                reasonCode: .localOnlyBlocksNonLocalDelegation,
-                reason: "Local Only blocks non-local delegation.",
-                riskScore: riskScore
-            )
+        case .notBlocked:
+            break
         }
 
         let externalProviderRequiresApproval = request.requestedDelegationTarget == .externalProvider
