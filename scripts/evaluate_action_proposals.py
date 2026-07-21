@@ -13,6 +13,8 @@ from validate_action_benchmark import (
     ALLOWED_PROPOSAL_TYPES,
     ALLOWED_TOOLS,
     ValidationError,
+    _non_empty,
+    _string_list,
     load_jsonl,
     validate_benchmark_records,
 )
@@ -28,24 +30,6 @@ REQUIRED_PROPOSAL_FIELDS = {
 }
 OPTIONAL_PROPOSAL_FIELDS = {"repetitionDetected", "truncationDetected"}
 ALLOWED_PROPOSAL_FIELDS = REQUIRED_PROPOSAL_FIELDS | OPTIONAL_PROPOSAL_FIELDS
-
-
-def _non_empty(value: Any) -> bool:
-    if value is None:
-        return False
-    if isinstance(value, str):
-        return bool(value.strip())
-    if isinstance(value, (list, dict)):
-        return bool(value)
-    return True
-
-
-def _string_list(value: Any) -> bool:
-    return (
-        isinstance(value, list)
-        and all(isinstance(item, str) and item.strip() for item in value)
-        and len(value) == len(set(value))
-    )
 
 
 def proposal_schema_errors(proposal: dict[str, Any]) -> list[str]:
