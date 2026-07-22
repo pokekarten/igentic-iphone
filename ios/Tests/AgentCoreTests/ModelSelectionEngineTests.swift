@@ -4,7 +4,7 @@ import XCTest
 final class ModelSelectionEngineTests: XCTestCase {
     private let policy = ModelSelectionPolicy.v1
 
-    func testTieBreakLowestLatency() {
+    func testTieBreakLowestLatency() throws {
         let request = ModelSelectionRequest(latencyBudget: .low, contextSize: 2048, toolUsageRequired: true)
         let candidates = [
             ModelCandidate(
@@ -46,10 +46,11 @@ final class ModelSelectionEngineTests: XCTestCase {
 
         XCTAssertEqual(result.selectedModelID, "model-beta")
         XCTAssertEqual(result.reason, .lowestLatencyValidModel)
-        XCTAssertEqual(result.score, 0.73, accuracy: 0.000001)
+        let score = try XCTUnwrap(result.score)
+        XCTAssertEqual(score, 0.73, accuracy: 0.000001)
     }
 
-    func testTieBreakSafeRefusal() {
+    func testTieBreakSafeRefusal() throws {
         let request = ModelSelectionRequest(latencyBudget: .low, contextSize: 2048, toolUsageRequired: true)
         let candidates = [
             ModelCandidate(
@@ -91,10 +92,11 @@ final class ModelSelectionEngineTests: XCTestCase {
 
         XCTAssertEqual(result.selectedModelID, "model-safe-refusal")
         XCTAssertEqual(result.reason, .safeRefusalModel)
-        XCTAssertEqual(result.score, 0.73, accuracy: 0.000001)
+        let score = try XCTUnwrap(result.score)
+        XCTAssertEqual(score, 0.73, accuracy: 0.000001)
     }
 
-    func testHardConstraintExcludesBestScore() {
+    func testHardConstraintExcludesBestScore() throws {
         let request = ModelSelectionRequest(latencyBudget: .low, contextSize: 4096, toolUsageRequired: true)
         let candidates = [
             ModelCandidate(
@@ -125,10 +127,11 @@ final class ModelSelectionEngineTests: XCTestCase {
 
         XCTAssertEqual(result.selectedModelID, "model-valid")
         XCTAssertEqual(result.reason, .highestWeightedScore)
-        XCTAssertEqual(result.score, 0.79, accuracy: 0.000001)
+        let score = try XCTUnwrap(result.score)
+        XCTAssertEqual(score, 0.79, accuracy: 0.000001)
     }
 
-    func testUniqueWinnerControl() {
+    func testUniqueWinnerControl() throws {
         let request = ModelSelectionRequest(latencyBudget: .low, contextSize: 1024, toolUsageRequired: true)
         let candidates = [
             ModelCandidate(
@@ -170,6 +173,7 @@ final class ModelSelectionEngineTests: XCTestCase {
 
         XCTAssertEqual(result.selectedModelID, "model-delta")
         XCTAssertEqual(result.reason, .highestWeightedScore)
-        XCTAssertEqual(result.score, 0.94, accuracy: 0.000001)
+        let score = try XCTUnwrap(result.score)
+        XCTAssertEqual(score, 0.94, accuracy: 0.000001)
     }
 }
