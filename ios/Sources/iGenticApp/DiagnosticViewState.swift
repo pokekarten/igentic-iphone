@@ -53,9 +53,16 @@ public struct DiagnosticViewState: Equatable, Sendable {
     public let auditEventsDescription: String
     public let rows: [DiagnosticStatusRow]
 
+    public init(report: ScenarioReport = ScenarioRunner().report()) {
+        self.init(
+            report: report,
+            snapshot: Self.syntheticScenarioSnapshot()
+        )
+    }
+
     public init(
         report: ScenarioReport = ScenarioRunner().report(),
-        snapshot: DiagnosticSnapshot? = DiagnosticPreviewData.sampleSnapshot
+        snapshot: DiagnosticSnapshot?
     ) {
         self.operatingMode = "Local and trusted-device dry runs"
         self.runtimeStatus = snapshot == nil
@@ -64,12 +71,24 @@ public struct DiagnosticViewState: Equatable, Sendable {
         self.auditStatus = "Synthetic metadata only"
         self.validationStatus = "Use current GitHub Actions evidence"
         self.privacyNotice = "No private content"
-        self.snapshotSource = snapshot == nil ? "Not available" : "Sample / preview data"
+        self.snapshotSource = snapshot == nil ? "Not available" : "Synthetic scenario result (critical-reminder)"
         self.snapshotFields = Self.makeSnapshotFields(snapshot)
         self.auditEventsDescription = snapshot == nil
             ? "Not available"
             : "Detailed audit events are not available in this shell"
         self.rows = report.entries.map(DiagnosticStatusRow.init)
+    }
+
+    private static func syntheticScenarioSnapshot() -> DiagnosticSnapshot {
+        guard let scenario = SyntheticScenarioCatalog.baseline.first(where: { $0.id == "critical-reminder" }) else {
+            return DiagnosticPreviewData.sampleSnapshot
+        }
+
+        return DiagnosticSnapshotProducer().produceSnapshot(
+            for: scenario.task,
+            privacyMode: scenario.privacyMode,
+            generatedAt: Self.iso8601.date(from: "2026-07-07T08:00:00Z") ?? Date(timeIntervalSince1970: 1_751_877_600)
+        )
     }
 
     private static func makeSnapshotFields(_ snapshot: DiagnosticSnapshot?) -> [DiagnosticSnapshotField] {

@@ -4,13 +4,13 @@ import XCTest
 
 final class DiagnosticViewStateTests: XCTestCase {
     func testDiagnosticViewStateMapsSyntheticScenarioReport() {
-        let state = DiagnosticViewState(report: ScenarioRunner().report())
+        let state = DiagnosticViewState()
 
         XCTAssertEqual(state.rows.count, 4)
         XCTAssertEqual(state.privacyNotice, "No private content")
         XCTAssertEqual(state.auditStatus, "Synthetic metadata only")
         XCTAssertEqual(state.runtimeStatus, "Preview snapshot loaded")
-        XCTAssertEqual(state.snapshotSource, "Sample / preview data")
+        XCTAssertEqual(state.snapshotSource, "Synthetic scenario result (critical-reminder)")
         XCTAssertEqual(state.auditEventsDescription, "Detailed audit events are not available in this shell")
 
         let generatedAt = state.snapshotFields.first { $0.label == "Generated at" }
@@ -35,7 +35,7 @@ final class DiagnosticViewStateTests: XCTestCase {
         XCTAssertEqual(auditEventCount?.value, "3")
 
         let auditHighestSensitivity = state.snapshotFields.first { $0.label == "Audit highest sensitivity" }
-        XCTAssertEqual(auditHighestSensitivity?.value, "Contextual private data")
+        XCTAssertEqual(auditHighestSensitivity?.value, "Public data")
 
         let delegationOutcome = state.snapshotFields.first { $0.label == "Delegation outcome" }
         XCTAssertEqual(delegationOutcome?.value, "Requires Approval")
@@ -47,7 +47,7 @@ final class DiagnosticViewStateTests: XCTestCase {
         XCTAssertEqual(riskRequiresApproval?.value, "Yes")
 
         let riskReasonCount = state.snapshotFields.first { $0.label == "Risk reason count" }
-        XCTAssertEqual(riskReasonCount?.value, "2")
+        XCTAssertEqual(riskReasonCount?.value, "3")
 
         let localOnly = state.rows.first { $0.id == "local-only-summary" }
         XCTAssertEqual(localOnly?.route, "Blocked")
