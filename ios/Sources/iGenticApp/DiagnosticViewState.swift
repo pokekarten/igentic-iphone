@@ -55,10 +55,8 @@ public struct DiagnosticViewState: Equatable, Sendable {
 
     public init(
         report: ScenarioReport = ScenarioRunner().report(),
-        snapshot: DiagnosticSnapshot? = nil
+        snapshot: DiagnosticSnapshot? = Self.syntheticScenarioSnapshot()
     ) {
-        let snapshot = snapshot ?? Self.syntheticScenarioSnapshot()
-
         self.operatingMode = "Local and trusted-device dry runs"
         self.runtimeStatus = snapshot == nil
             ? "No live diagnostic snapshot available"
@@ -74,7 +72,7 @@ public struct DiagnosticViewState: Equatable, Sendable {
         self.rows = report.entries.map(DiagnosticStatusRow.init)
     }
 
-    private static func syntheticScenarioSnapshot() -> DiagnosticSnapshot {
+    static func syntheticScenarioSnapshot() -> DiagnosticSnapshot {
         guard let scenario = SyntheticScenarioCatalog.baseline.first(where: { $0.id == "critical-reminder" }) else {
             return DiagnosticPreviewData.sampleSnapshot
         }
