@@ -49,6 +49,15 @@ final class DiagnosticViewStateTests: XCTestCase {
         let riskReasonCount = state.snapshotFields.first { $0.label == "Risk reason count" }
         XCTAssertEqual(riskReasonCount?.value, "3")
 
+        let modelSelectionSelected = state.modelSelectionFields.first { $0.label == "Selected model id" }
+        XCTAssertEqual(modelSelectionSelected?.value, "model-beta")
+
+        let modelSelectionReason = state.modelSelectionFields.first { $0.label == "Selection reason" }
+        XCTAssertEqual(modelSelectionReason?.value, "Lowest Latency Valid Model")
+
+        let modelSelectionScore = state.modelSelectionFields.first { $0.label == "Score" }
+        XCTAssertEqual(modelSelectionScore?.value, "0.73")
+
         let localOnly = state.rows.first { $0.id == "local-only-summary" }
         XCTAssertEqual(localOnly?.route, "Blocked")
         XCTAssertEqual(localOnly?.policy, "Blocked")
@@ -94,5 +103,6 @@ final class DiagnosticViewStateTests: XCTestCase {
         XCTAssertEqual(state.auditEventsDescription, "Not available")
         XCTAssertEqual(state.snapshotFields.first { $0.label == "Generated at" }?.value, "—")
         XCTAssertEqual(state.snapshotFields.first { $0.label == "Risk reason count" }?.value, "—")
+        XCTAssertEqual(state.modelSelectionFields.first { $0.label == "Selected model id" }?.value, "model-beta")
     }
 }
