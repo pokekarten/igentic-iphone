@@ -55,8 +55,10 @@ public struct DiagnosticViewState: Equatable, Sendable {
 
     public init(
         report: ScenarioReport = ScenarioRunner().report(),
-        snapshot: DiagnosticSnapshot? = Self.syntheticScenarioSnapshot()
+        snapshot: DiagnosticSnapshot? = nil
     ) {
+        let snapshot = snapshot ?? Self.syntheticScenarioSnapshot()
+
         self.operatingMode = "Local and trusted-device dry runs"
         self.runtimeStatus = snapshot == nil
             ? "No live diagnostic snapshot available"
