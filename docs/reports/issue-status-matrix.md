@@ -14,6 +14,8 @@ Status: living audit companion
 | #136 | open | low | Treat as UX polish; no behavior change required. |
 | #156 | resolved / closed | low | Regression coverage lives in `ios/Tests/iGenticAppTests/DiagnosticViewStateTests.swift`; docs-only cleanup is still validated by `python3 scripts/validate_repo_structure.py`. |
 | #158 | resolved / closed | medium | Regression coverage lives in `ios/Tests/AgentCoreTests/AppActionCoordinatorTests.swift`; it exercises sensitive-payload escalation and approval blocking. |
+| #175 | resolved / closed | low | Regression coverage lives in `ios/Tests/iGenticAppTests/DiagnosticViewStateTests.swift`; it covers the live `critical-reminder` synthetic snapshot. |
+| #176 | resolved / closed | low | Regression coverage lives in `ios/Tests/iGenticAppTests/DiagnosticViewStateTests.swift`; it covers the diagnostic-only model selection preview. |
 
 ## Maintenance rule
 
