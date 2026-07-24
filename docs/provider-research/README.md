@@ -10,6 +10,7 @@ This directory holds source-backed, public-safe assessments of external AI provi
 2. `docs/local-runtime-review.md` — local vs delegated runtime boundary.
 3. `docs/provider-research/GOOGLE_GEMINI.md` — current Google Gemini / AI Studio assessment.
 4. `docs/provider-research/GROQ.md` — current Groq provider assessment.
+5. `docs/provider-research/OPENROUTER.md` — current OpenRouter provider assessment.
 
 ## Boundary
 

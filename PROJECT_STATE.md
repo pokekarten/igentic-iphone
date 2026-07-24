@@ -87,7 +87,7 @@ When determining what to work on next, check sources in this order:
 - `ios/Tests/AgentCoreTests/AgentKernelSensitiveDataWiringTests.swift` now covers the end-to-end sensitive-data wiring in `AgentKernel.handle()` and audit propagation.
 - Raw task text was removed from task-received `AuditLog` events.
 - `ApprovalRequest` no longer carries raw user task text; task summary is now metadata-only (classification/risk only).
-- `LocalModelRuntime.assess()` is called from `AgentKernel.handle()`; rejection blocks routing and is recorded in the audit log. Covered end-to-end by `AgentKernelLocalModelRuntimeWiringTests.swift`.
+- `LocalModelRuntime.assess()` is called from `AgentKernel.handle()`; rejection blocks routing and is recorded in the audit log. Covered end-to-end by `ios/Tests/AgentCoreTests/AgentKernelLocalModelRuntimeWiringTests.swift`.
 - The workflow dependency reference used by the bootstrap ZIP workflow was updated from `actions/checkout@v6` to `@v7`.
 - Repository hygiene now treats undocumented root placeholder artifacts as cleanup candidates rather than durable content.
 - Issues #25, #29, #58 and #59 are closed for their documented scope.
