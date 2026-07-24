@@ -29,6 +29,13 @@ public struct DiagnosticView: View {
                     DiagnosticMetric(label: "Audit events", value: state.auditEventsDescription)
                 }
 
+                Section("Model selection preview (synthetic, diagnostic only - not wired to task execution)") {
+                    // Fixed diagnostic example; this does not come from any live candidate registry.
+                    ForEach(state.modelSelectionFields) { field in
+                        DiagnosticMetric(label: field.label, value: field.value)
+                    }
+                }
+
                 Section("Synthetic scenarios") {
                     ForEach(state.rows) { row in
                         VStack(alignment: .leading, spacing: 8) {

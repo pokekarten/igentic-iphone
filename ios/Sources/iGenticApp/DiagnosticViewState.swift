@@ -50,6 +50,7 @@ public struct DiagnosticViewState: Equatable, Sendable {
     public let privacyNotice: String
     public let snapshotSource: String
     public let snapshotFields: [DiagnosticSnapshotField]
+    public let modelSelectionFields: [DiagnosticSnapshotField]
     public let auditEventsDescription: String
     public let rows: [DiagnosticStatusRow]
 
@@ -73,6 +74,8 @@ public struct DiagnosticViewState: Equatable, Sendable {
         self.privacyNotice = "No private content"
         self.snapshotSource = snapshot == nil ? "Not available" : "Synthetic scenario result (critical-reminder)"
         self.snapshotFields = Self.makeSnapshotFields(snapshot)
+        // Fixed diagnostic example; this does not come from any live candidate registry.
+        self.modelSelectionFields = Self.makeModelSelectionFields()
         self.auditEventsDescription = snapshot == nil
             ? "Not available"
             : "Detailed audit events are not available in this shell"
@@ -123,6 +126,66 @@ public struct DiagnosticViewState: Equatable, Sendable {
             DiagnosticSnapshotField(label: "Risk requires explicit approval", value: Self.boolText(snapshot.risk.requiresExplicitApproval)),
             DiagnosticSnapshotField(label: "Risk reason count", value: "\(snapshot.risk.reasonCount)"),
         ]
+    }
+
+    private static func makeModelSelectionFields() -> [DiagnosticSnapshotField] {
+        let request = ModelSelectionRequest(latencyBudget: .low, contextSize: 2048, toolUsageRequired: true)
+        let candidates = [
+            ModelCandidate(
+                modelID: "model-alpha",
+                evaluationScore: 0.90,
+                latencyScore: 0.80,
+                capabilityMatch: 0.40,
+                latencyMS: 120,
+                contextSize: 2048,
+                maxContextTokens: 8192,
+                latencyBudgetClass: .high,
+                toolUsageSupported: true
+            ),
+            ModelCandidate(
+                modelID: "model-beta",
+                evaluationScore: 0.90,
+                latencyScore: 0.80,
+                capabilityMatch: 0.40,
+                latencyMS: 80,
+                contextSize: 2048,
+                maxContextTokens: 8192,
+                latencyBudgetClass: .high,
+                toolUsageSupported: true
+            ),
+            ModelCandidate(
+                modelID: "model-gamma",
+                evaluationScore: 0.70,
+                latencyScore: 0.90,
+                capabilityMatch: 0.30,
+                latencyMS: 40,
+                contextSize: 2048,
+                maxContextTokens: 8192,
+                latencyBudgetClass: .high,
+                toolUsageSupported: true
+            ),
+        ]
+
+        let result = ModelSelectionEngine.select(candidates: candidates, request: request, policy: .v1)
+        let reason = displayText(Self.selectionReasonText(result.reason))
+        let score = result.score.map { String(format: "%.2f", locale: Locale(identifier: "en_US_POSIX"), $0) } ?? "—"
+
+        return [
+            DiagnosticSnapshotField(label: "Selected model id", value: result.selectedModelID),
+            DiagnosticSnapshotField(label: "Selection reason", value: reason),
+            DiagnosticSnapshotField(label: "Score", value: score),
+        ]
+    }
+
+    private static func selectionReasonText(_ reason: ModelSelectionReason) -> String {
+        switch reason {
+        case .highestWeightedScore:
+            return "highestWeightedScore"
+        case .lowestLatencyValidModel:
+            return "lowestLatencyValidModel"
+        case .safeRefusalModel:
+            return "safeRefusalModel"
+        }
     }
 
     private static func boolText(_ value: Bool) -> String {
