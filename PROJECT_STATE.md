@@ -1,6 +1,6 @@
 # Project State
 
-Last updated: 2026-07-23
+Last updated: 2026-07-24
 
 ## Current status
 
@@ -79,6 +79,8 @@ When determining what to work on next, check sources in this order:
 
 - PR #156 / issue #156 (`Consolidate trivial duplicated helpers and remove orphaned placeholder files`) is merged on GitHub; `ios/Tests/iGenticAppTests/DiagnosticViewStateTests.swift`, `scripts/evaluate_action_proposals.py`, `__branch_init__`, and `__noop_check__` are closed out.
 - PR #158 / issue #158 (`Consolidate effective-classification logic and close sensitive-data scan gap in AppActionCoordinator`) is merged on GitHub; `DataClassification.effectiveClassification` now feeds `AgentKernel`, `DiagnosticSnapshotProducer`, and `AppActionCoordinator`.
+- PR #175 / issue #175 (`Replace static preview snapshot with a live DiagnosticSnapshotProducer result`) is merged on GitHub; `ios/Tests/iGenticAppTests/DiagnosticViewStateTests.swift` now covers the `critical-reminder` synthetic snapshot path.
+- PR #177 / issue #176 (`Surface ModelSelectionEngine as a diagnostic-only preview section`) is merged on GitHub; `ios/Tests/iGenticAppTests/DiagnosticViewStateTests.swift` now covers the diagnostic-only model selection preview.
 - MemoryStore integration decision: intentionally left as a pre-integration stub, matching DelegationBroker's pattern. See `docs/reports/memory-store-integration-decision.md`.
 - Phase 2 model-selection PR #99 (`phase2/model-selection-engine-v3`) is closed on GitHub and was not merged; it is no longer the active implementation target.
 - Metadata-only `RuntimeBudget`, `ApprovalReceipt`, `DiagnosticSnapshot` and `LocalModelRuntime` contracts are on `main`.
