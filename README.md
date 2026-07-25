@@ -54,6 +54,8 @@ Action Layer via App Intents / Shortcuts
 Audit Log / Approval / Result Verification
 ```
 
+The controller is the decision point between intent and action: it combines local context with policy before choosing local execution or delegation. The audit and approval layer closes the loop by recording meaningful decisions, requiring confirmation for sensitive actions and checking that the result matches the original intent.
+
 ## Repo operating model
 
 This repo follows the lessons learned from the Pokekartenkiste project:
