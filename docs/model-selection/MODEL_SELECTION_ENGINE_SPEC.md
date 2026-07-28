@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This system selects the best model for a task using the current registry and runtime constraints.
+This system selects the best model for a task from a fixed candidate list using runtime constraints.
 
 It stays selection-only:
 
@@ -12,14 +12,21 @@ It stays selection-only:
 - it may not execute runtime actions,
 - it may not bypass `PolicyEngine` or `ApprovalManager`.
 
+Current implementation notes:
+
+- the engine evaluates a provided candidate list,
+- there is no registry lookup yet,
+- `safety_level_required` is not modeled yet,
+- `language_requirements` is not modeled yet,
+- Issue #103 remains the tracking item for the fuller safety-aware expansion.
+
 ## Inputs
 
-- `task_type`
+The current request shape is intentionally small:
+
 - `latency_budget`
 - `context_size`
 - `tool_usage_required`
-- `safety_level_required`
-- `language_requirements`
 
 ## Selection Logic
 
