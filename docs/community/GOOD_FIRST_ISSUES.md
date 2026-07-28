@@ -146,7 +146,7 @@ Examples:
 
 ### 9. Add MemoryStore safe stub
 
-**Status: COMPLETED — canonical artifact:** [`ios/Sources/AgentCore/MemoryStore.swift`](../../ios/Sources/AgentCore/MemoryStore.swift) (tests in [`ios/Tests/AgentCoreTests/SmokeTests.swift`](../../ios/Tests/AgentCoreTests/SmokeTests.swift))
+**Status: COMPLETED — canonical artifact:** [`ios/Sources/AgentCore/MemoryStore.swift`](../../ios/Sources/AgentCore/MemoryStore.swift) (tests in [`ios/Tests/AgentCoreTests/MemoryStoreTests.swift`](../../ios/Tests/AgentCoreTests/MemoryStoreTests.swift))
 
 **Goal:** Add in-memory scoped memory without persistence.
 
