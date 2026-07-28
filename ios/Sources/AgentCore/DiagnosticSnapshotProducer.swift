@@ -30,7 +30,7 @@ public struct DiagnosticSnapshotProducer: Sendable {
         )
 
         let kernel = AgentKernel(approvalManager: approvalManager, sensitiveDataDetector: sensitiveDataDetector)
-        let response = kernel.handle(task, privacyMode: privacyMode)
+        let response = kernel.handle(task, privacyMode: privacyMode, precomputedDetection: detection)
         let auditEvents = kernel.auditEvents()
 
         let riskScore = riskScorer.score(
