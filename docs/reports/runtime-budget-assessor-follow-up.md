@@ -14,4 +14,4 @@ The follow-up issue is the first issue allowed to add the assessor type, its Swi
 
 ## Status
 
-Blocked until the documentation-only specification is complete and the owner authorizes implementation.
+Implemented — assessor added, wiring pending.
