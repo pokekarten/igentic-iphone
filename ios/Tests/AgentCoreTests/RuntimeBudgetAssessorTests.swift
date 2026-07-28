@@ -67,6 +67,29 @@ final class RuntimeBudgetAssessorTests: XCTestCase {
         )
     }
 
+    func testTrustedDevicesKeepsExternalProviderWithinTrustedDeviceBoundary() {
+        let task = TaskRequest(
+            userText: "Use the external provider from a trusted-device context.",
+            intent: .findFile,
+            dataClassification: .publicDefault,
+            actionRisk: .read,
+            requestedDelegationTarget: .externalProvider
+        )
+
+        let budget = assessor.assess(task, privacyMode: .trustedDevices)
+
+        XCTAssertEqual(budget.executionClass, .tiny)
+        XCTAssertEqual(budget.expectedLocality, .trustedDevice)
+        XCTAssertFalse(budget.requiresExternalRuntime)
+        XCTAssertEqual(
+            budget.reasons,
+            [
+                "Intent family: lookup -> tiny.",
+                "Requested delegation target maps locality to trusted-device.",
+            ]
+        )
+    }
+
     func testLocalTrustedAndExternalLocalityMappingsStayDeterministic() {
         let localTask = TaskRequest(
             userText: "Find a file locally.",
