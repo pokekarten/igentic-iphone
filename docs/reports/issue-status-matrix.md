@@ -4,21 +4,28 @@ Status: living audit companion
 
 | Issue | Current GitHub status | Risk | Recommendation |
 | --- | --- | --- | --- |
-| #120 | closed / completed | low | MemoryStore classification/retention design is now documented; the issue can stay closed. |
-| #122 | closed / completed | low | `RuntimeBudgetAssessor` is a self-contained planning helper; keep `AgentKernel` wiring as a separate follow-up if runtime budget metadata should become visible in audits. |
-| #137 | open / blocked | high | Keep as the gating spec for ToolRegistry integration. |
-| #121 | open / blocked | high | Do not implement until #137 is settled. |
-| #101 | resolved / closed | medium | Regression coverage exists in `ios/Tests/AgentCoreTests/AgentKernelTaskRouterBypassRegressionTests.swift` (restricted-data bypass block, pending-approval block, approved-critical-action routing). No further action. |
-| #103 | in progress | medium | Deterministic model-selection tie-break fixtures and the standalone validator were added under `docs/model-selection/` and `scripts/`; the current engine still uses the smaller `latencyBudget` / `contextSize` / `toolUsageRequired` request shape against a fixed candidate list, so safety and language coverage remain in progress. |
+| #120 | closed / completed | low | MemoryStore classification/retention design is documented; keep closed. |
+| #122 | closed / completed | low | RuntimeBudgetAssessor direction is complete; keep estimator non-authoritative. |
+| #137 | closed / completed | low | ToolRegistry integration boundary is documented and reconciled with the implemented read-only wiring. |
+| #121 | closed / completed | low | ToolRegistry diagnostic-only kernel wiring is implemented and covered by `AgentKernelToolRegistryWiringTests`. |
+| #101 | resolved / closed | medium | Regression coverage exists for restricted-data bypass, pending approval, and approved-critical-action routing. |
+| #103 | in progress | medium | Deterministic model-selection fixtures and validator exist; broader safety/language coverage remains separate work. |
 | #114 | open | low | Keep as a docs-only starter issue. |
 | #117 | open | low | Keep as a content-only starter issue. |
 | #136 | open | low | Treat as UX polish; no behavior change required. |
-| #156 | resolved / closed | low | Regression coverage lives in `ios/Tests/iGenticAppTests/DiagnosticViewStateTests.swift`; docs-only cleanup is still validated by `python3 scripts/validate_repo_structure.py`. |
-| #158 | resolved / closed | medium | Regression coverage lives in `ios/Tests/AgentCoreTests/AppActionCoordinatorTests.swift`; it exercises sensitive-payload escalation and approval blocking. |
-| #175 | resolved / closed | low | Regression coverage lives in `ios/Tests/iGenticAppTests/DiagnosticViewStateTests.swift`; it covers the live `critical-reminder` synthetic snapshot. |
-| #176 | resolved / closed | low | Regression coverage lives in `ios/Tests/iGenticAppTests/DiagnosticViewStateTests.swift`; it covers the diagnostic-only model selection preview. |
-| #185 | open / planned | medium | Approval is already aligned with `decision.requiresApproval`; the next step is the setup/admin configuration model, persistence, and UI for the policy. |
-| #142 | closed / completed | low | MemoryStore classification/retention design is now documented; the issue can stay closed. |
+| #144 | closed / completed | low | Decision-trace schema v1 is documented and aligned with the current selection engine. |
+| #145 | open | medium | Diagnostics preview should consume the trace contract without changing selection behavior. |
+| #146 | open | medium | Next implementation slice: deterministic trace value type and generator; no policy/runtime wiring. |
+| #147 | open | low | Add renderer regression coverage after the trace model exists. |
+| #148 | open | low | Add compact read-only SwiftUI trace panel after the trace model exists. |
+| #149 | open | low | Pin trace-panel rendering once the UI surface exists. |
+| #156 | resolved / closed | low | Diagnostic view regression coverage exists; docs-only cleanup is validated by repo structure checks. |
+| #158 | resolved / closed | medium | App-action coordinator regression coverage exists for sensitive-payload escalation and approval blocking. |
+| #175 | resolved / closed | low | Diagnostic snapshot regression coverage exists for the live `critical-reminder` synthetic snapshot. |
+| #176 | resolved / closed | low | Diagnostic model-selection preview coverage exists. |
+| #181 | closed / completed | low | RuntimeBudgetAssessor estimator is implemented; keep it non-authoritative. |
+| #185 | open / planned | medium | Approval policy remains a later Phase 3 product/configuration lane: local setup defaults, settings/admin editing, then runtime consumption. |
+| #142 | closed / completed | low | MemoryStore classification/retention design is documented; keep closed. |
 
 ## Maintenance rule
 
