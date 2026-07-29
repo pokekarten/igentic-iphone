@@ -8,7 +8,7 @@ Scope: `pokekarten/igentic-iphone`
 
 This document turns the existing roadmap, safety contracts, implementation state, research tracks and open issue backlog into one executable path from the current early-stage diagnostic shell to a finished, publishable research prototype.
 
-The plan is intentionally designed so that **AI agents can execute almost the entire engineering cycle autonomously** through GitHub, CI and repository tooling. Human/Ben involvement is treated as a late boundary only where the repository cannot manufacture trustworthy evidence: physical iPhone access, Apple signing/provisioning, legal/licence acceptance, or an explicitly owner-bound product decision.
+The plan is intentionally designed so that AI agents can execute the engineering cycle through GitHub, CI and repository tooling wherever repository evidence is sufficient. Human/Ben involvement is reserved for late-boundary owner actions the repository cannot manufacture on its own: physical iPhone access, Apple signing/provisioning, legal/licence acceptance, or an explicitly owner-bound product decision.
 
 This is a completion plan, not permission to bypass existing issue scope. Every implementation slice still requires a source-backed GitHub issue, an allowlist, tests, review and current-head CI evidence.
 
@@ -28,8 +28,8 @@ The 2026-07-29 audit established:
 
 - `main` is public and the repository is still an experimental/research prototype.
 - The architecture already contains `AgentKernel`, `PolicyEngine`, `ApprovalManager`, `ApprovalReceipt`, `TaskRouter`, `AuditLog`, `SensitiveDataDetector`, `DelegationBroker`, `ToolRegistry`, `MemoryStore`, `RuntimeBudget`, `RuntimeBudgetAssessor`, `LocalModelRuntime`, `ModelSelectionEngine`, synthetic scenarios and a diagnostic SwiftUI shell.
-- The uploaded repository snapshot passes `python3 scripts/validate_repo_structure.py` and `cd ios && swift test` with **138 tests and 0 failures** on the available Linux host. This is host evidence, not physical-iPhone evidence.
-- Current GitHub `main` has no open implementation PR. The existing autonomy protocol is therefore a control mechanism, not evidence that an autonomous cycle is currently active.
+- The uploaded repository snapshot passes `python3 scripts/validate_repo_structure.py` and `cd ios && swift test` with 138 tests and 0 failures on the available Linux host. This is host evidence, not physical-iPhone evidence.
+- Current GitHub `main` has no open implementation PR. The autonomy protocol is therefore a control mechanism, not evidence that an autonomous cycle is currently active.
 - The diagnostic path is intentionally synthetic/read-only; there is no real App Intents execution, provider execution or committed model weights.
 - `ApprovalReceipt` is already a live `AgentKernel` response contract.
 - Effective data classification is shared across kernel, diagnostic snapshot and app-action coordination.
