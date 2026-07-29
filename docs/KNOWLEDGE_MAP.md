@@ -35,6 +35,7 @@ These visibility labels were verified from current GitHub repository metadata on
 | Mission and contributor entry point | `README.md` | Concise orientation only |
 | Durable project baseline and evidence boundary | `PROJECT_STATE.md` | Never stores a live PR number, head SHA or lane stage |
 | Roadmap | `ROADMAP.md` | Product phases, not live execution state |
+| End-to-end completion plan | `docs/PROJECT_COMPLETION_PLAN.md` | Critical path, phase gates, AI-agent roles and final release criteria |
 | Agent and contribution rules | `AGENTS.md`, `CONTRIBUTING.md`, `GOVERNANCE.md` | Human and automation behavior |
 | Privacy and model authority | `MODEL_STRATEGY.md` | Models propose; deterministic policy and approval remain authoritative |
 | Runtime comparison | `docs/local-runtime-review.md` | Runtime research and prerequisites |
