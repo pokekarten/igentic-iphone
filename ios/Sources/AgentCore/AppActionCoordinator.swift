@@ -39,6 +39,10 @@ public final class AppActionCoordinator: @unchecked Sendable {
         let context = policyContext(for: draft, privacyMode: privacyMode)
         auditLog.record(.init(type: .taskReceived, message: "Draft received: \(draft.actionKind.rawValue).", dataSensitivity: context.effectiveClassification.level))
         guard context.decision.isAllowed else { auditLog.record(.init(type: .blocked, message: context.decision.reason, dataSensitivity: context.effectiveClassification.level)); return nil }
+        guard context.decision.requiresApproval else {
+            auditLog.record(.init(type: .policyDecision, message: "Approval not required.", dataSensitivity: context.effectiveClassification.level))
+            return nil
+        }
         let receipt = approvalManager.approvalReceipt(for: .init(taskSummary: "kind=\(draft.actionKind.rawValue),classification=\(context.effectiveClassification.level.rawValue),risk=\(draft.actionRisk.rawValue)", dataClassification: context.effectiveClassification, actionRisk: draft.actionRisk, reason: context.decision.reason))
         auditLog.record(.init(type: .approvalRequired, message: "Approval evaluated: \(receipt.status.rawValue).", dataSensitivity: context.effectiveClassification.level))
         guard receipt.mayContinueRouting else { return nil }
@@ -49,9 +53,25 @@ public final class AppActionCoordinator: @unchecked Sendable {
         let context = policyContext(for: draft, privacyMode: privacyMode)
         auditLog.record(.init(type: .taskReceived, message: "Draft evaluated: \(draft.actionKind.rawValue).", dataSensitivity: context.effectiveClassification.level))
         guard context.decision.isAllowed else { auditLog.record(.init(type: .blocked, message: context.decision.reason, dataSensitivity: context.effectiveClassification.level)); return .rejected }
-        guard let approvalReceipt, approvalReceipt.matches(draft), approvalReceipt.approvalReceipt.mayContinueRouting else { auditLog.record(.init(type: .approvalRequired, message: "Approval receipt is stale or missing.", dataSensitivity: context.effectiveClassification.level)); return .blockedPendingApproval }
+
+        if context.decision.requiresApproval {
+            guard let approvalReceipt, approvalReceipt.matches(draft), approvalReceipt.approvalReceipt.mayContinueRouting else { auditLog.record(.init(type: .approvalRequired, message: "Approval receipt is stale or missing.", dataSensitivity: context.effectiveClassification.level)); return .blockedPendingApproval }
+            auditLog.record(.init(type: .policyDecision, message: "Draft approved without execution.", dataSensitivity: context.effectiveClassification.level))
+            return .approved(approvalReceipt)
+        }
+
+        let notRequiredReceipt = AppActionApprovalReceipt(
+            draftID: draft.id,
+            fingerprint: draft.fingerprint,
+            approvalReceipt: .init(
+                status: .notRequired,
+                requestID: UUID().uuidString,
+                reasonCode: context.decision.reason,
+                mayContinueRouting: true
+            )
+        )
         auditLog.record(.init(type: .policyDecision, message: "Draft approved without execution.", dataSensitivity: context.effectiveClassification.level))
-        return .approved(approvalReceipt)
+        return .approved(notRequiredReceipt)
     }
 
     private func policyContext(for draft: AppActionDraft, privacyMode: PrivacyMode) -> PolicyContext {
