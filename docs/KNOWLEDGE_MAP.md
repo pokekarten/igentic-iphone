@@ -10,7 +10,7 @@ This document tells contributors and automation where authoritative iGentic know
 Use the first available source in this order:
 
 1. current verified GitHub source: repository files, issue or pull-request state, exact-head checks and merged commits;
-2. durable contracts in this product repository;
+2. durable contracts in this repository;
 3. compact private operating state in `pokekarten/agentic-private-brain`;
 4. internal memory or prior chat context;
 5. explicit assumptions.
@@ -35,6 +35,7 @@ These visibility labels were verified from current GitHub repository metadata on
 | Mission and contributor entry point | `README.md` | Concise orientation only |
 | Durable project baseline and evidence boundary | `PROJECT_STATE.md` | Never stores a live PR number, head SHA or lane stage |
 | Roadmap | `ROADMAP.md` | Product phases, not live execution state |
+| End-to-end completion plan | `docs/PROJECT_COMPLETION_PLAN.md` | Critical path, phase gates, AI-agent roles and final release criteria |
 | Agent and contribution rules | `AGENTS.md`, `CONTRIBUTING.md`, `GOVERNANCE.md` | Human and automation behavior |
 | Privacy and model authority | `MODEL_STRATEGY.md` | Models propose; deterministic policy and approval remain authoritative |
 | Runtime comparison | `docs/local-runtime-review.md` | Runtime research and prerequisites |
