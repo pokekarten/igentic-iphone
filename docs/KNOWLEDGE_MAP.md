@@ -10,7 +10,7 @@ This document tells contributors and automation where authoritative iGentic know
 Use the first available source in this order:
 
 1. current verified GitHub source: repository files, issue or pull-request state, exact-head checks and merged commits;
-2. durable contracts in this product repository;
+2. durable contracts in this repository;
 3. compact private operating state in `pokekarten/agentic-private-brain`;
 4. internal memory or prior chat context;
 5. explicit assumptions.
