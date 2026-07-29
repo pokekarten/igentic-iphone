@@ -35,6 +35,6 @@ final class DiagnosticSnapshotProducerSensitiveDataWiringTests: XCTestCase {
         )
 
         XCTAssertEqual(snapshot.audit.highestDataSensitivity, .restrictedSensitiveData)
-        XCTAssertEqual(spy.callCount, 2)
+        XCTAssertEqual(spy.callCount, 1)
     }
 }

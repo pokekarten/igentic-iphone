@@ -54,8 +54,12 @@ public final class AgentKernel: @unchecked Sendable {
         }
     }
 
-    public func handle(_ task: TaskRequest, privacyMode: PrivacyMode) -> AgentResponse {
-        let detection = sensitiveDataDetector.detect(in: task.userText)
+    public func handle(
+        _ task: TaskRequest,
+        privacyMode: PrivacyMode,
+        precomputedDetection: SensitiveDataDetectionResult? = nil
+    ) -> AgentResponse {
+        let detection = precomputedDetection ?? sensitiveDataDetector.detect(in: task.userText)
         let effectiveDataClassification = DataClassification.effectiveClassification(
             baseClassification: task.dataClassification,
             detectorResult: detection

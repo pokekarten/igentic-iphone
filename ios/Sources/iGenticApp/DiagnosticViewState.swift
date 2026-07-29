@@ -68,11 +68,11 @@ public struct DiagnosticViewState: Equatable, Sendable {
         self.operatingMode = "Local and trusted-device dry runs"
         self.runtimeStatus = snapshot == nil
             ? "No live diagnostic snapshot available"
-            : "Preview snapshot loaded"
+            : "Synthetic preview snapshot loaded"
         self.auditStatus = "Synthetic metadata only"
         self.validationStatus = "Use current GitHub Actions evidence"
         self.privacyNotice = "No private content"
-        self.snapshotSource = snapshot == nil ? "Not available" : "Synthetic scenario result (critical-reminder)"
+        self.snapshotSource = snapshot == nil ? "Not available" : "Synthetic preview result (critical-reminder)"
         self.snapshotFields = Self.makeSnapshotFields(snapshot)
         // Fixed diagnostic example; this does not come from any live candidate registry.
         self.modelSelectionFields = Self.makeModelSelectionFields()

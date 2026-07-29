@@ -9,8 +9,8 @@ final class DiagnosticViewStateTests: XCTestCase {
         XCTAssertEqual(state.rows.count, 4)
         XCTAssertEqual(state.privacyNotice, "No private content")
         XCTAssertEqual(state.auditStatus, "Synthetic metadata only")
-        XCTAssertEqual(state.runtimeStatus, "Preview snapshot loaded")
-        XCTAssertEqual(state.snapshotSource, "Synthetic scenario result (critical-reminder)")
+        XCTAssertEqual(state.runtimeStatus, "Synthetic preview snapshot loaded")
+        XCTAssertEqual(state.snapshotSource, "Synthetic preview result (critical-reminder)")
         XCTAssertEqual(state.auditEventsDescription, "Detailed audit events are not available in this shell")
 
         let generatedAt = state.snapshotFields.first { $0.label == "Generated at" }
