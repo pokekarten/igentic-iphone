@@ -2,35 +2,118 @@ import XCTest
 @testable import AgentCore
 
 final class MemoryStoreTests: XCTestCase {
-    func testSaveCreatesNewEntryWithMatchingCreatedAtAndUpdatedAt() {
+    func testSaveCreatesNewEntryWithMatchingCreatedAtAndUpdatedAt() throws {
         let store = MemoryStore()
 
-        let entry = store.save(key: "remember-me", value: "alpha", scope: .session)
+        let entry = try store.save(
+            key: "remember-me",
+            value: "alpha",
+            scope: .session,
+            dataSensitivity: .lowRiskAppData
+        )
 
         XCTAssertEqual(entry.scope, .session)
         XCTAssertEqual(entry.key, "remember-me")
         XCTAssertEqual(entry.value, "alpha")
+        XCTAssertEqual(entry.dataSensitivity, .lowRiskAppData)
         XCTAssertEqual(entry.createdAt, entry.updatedAt)
     }
 
-    func testSavingSameKeyInSameScopePreservesIdentityAndUpdatesValueAndUpdatedAt() {
+    func testSaveAcceptsEveryAllowedSensitivityLevel() throws {
+        let store = MemoryStore()
+        let allowedLevels: [DataSensitivityLevel] = [
+            .publicData,
+            .lowRiskAppData,
+            .contextualPrivateData,
+            .highlyPrivateData
+        ]
+
+        for (index, level) in allowedLevels.enumerated() {
+            let entry = try store.save(
+                key: "allowed-\(index)",
+                value: "value-\(index)",
+                scope: .session,
+                dataSensitivity: level
+            )
+            XCTAssertEqual(entry.dataSensitivity, level)
+        }
+
+        XCTAssertEqual(store.entries(in: .session).count, allowedLevels.count)
+    }
+
+    func testRestrictedSensitiveDataIsRejectedBeforeStoreMutation() throws {
+        let store = MemoryStore()
+        _ = try store.save(
+            key: "existing",
+            value: "safe",
+            scope: .session,
+            dataSensitivity: .contextualPrivateData
+        )
+
+        XCTAssertThrowsError(
+            try store.save(
+                key: "restricted",
+                value: "must-not-persist",
+                scope: .session,
+                dataSensitivity: .restrictedSensitiveData
+            )
+        ) { error in
+            XCTAssertEqual(error as? MemoryStoreWriteError, .restrictedSensitiveDataNotStorable)
+        }
+
+        XCTAssertEqual(store.entries(in: .session).map(\.key), ["existing"])
+    }
+
+    func testRestrictedSensitiveDataCannotOverwriteExistingEntry() throws {
+        let store = MemoryStore()
+        let original = try store.save(
+            key: "protected",
+            value: "safe",
+            scope: .session,
+            dataSensitivity: .lowRiskAppData
+        )
+
+        XCTAssertThrowsError(
+            try store.save(
+                key: "protected",
+                value: "restricted",
+                scope: .session,
+                dataSensitivity: .restrictedSensitiveData
+            )
+        )
+
+        XCTAssertEqual(store.entries(in: .session), [original])
+    }
+
+    func testSavingSameKeyInSameScopePreservesIdentityAndUpdatesValueAndSensitivity() throws {
         let store = MemoryStore()
 
-        let original = store.save(key: "theme", value: "light", scope: .session)
-        let updated = store.save(key: "theme", value: "dark", scope: .session)
+        let original = try store.save(
+            key: "theme",
+            value: "light",
+            scope: .session,
+            dataSensitivity: .lowRiskAppData
+        )
+        let updated = try store.save(
+            key: "theme",
+            value: "dark",
+            scope: .session,
+            dataSensitivity: .contextualPrivateData
+        )
 
         XCTAssertEqual(updated.id, original.id)
         XCTAssertEqual(updated.createdAt, original.createdAt)
         XCTAssertEqual(updated.value, "dark")
+        XCTAssertEqual(updated.dataSensitivity, .contextualPrivateData)
         XCTAssertGreaterThanOrEqual(updated.updatedAt, original.updatedAt)
     }
 
-    func testEntriesInScopeReturnsOnlyRequestedScopeSortedByKey() {
+    func testEntriesInScopeReturnsOnlyRequestedScopeSortedByKey() throws {
         let store = MemoryStore()
-        store.save(key: "zeta", value: "3", scope: .session)
-        store.save(key: "alpha", value: "1", scope: .session)
-        store.save(key: "beta", value: "2", scope: .session)
-        store.save(key: "task-only", value: "x", scope: .task)
+        _ = try store.save(key: "zeta", value: "3", scope: .session, dataSensitivity: .publicData)
+        _ = try store.save(key: "alpha", value: "1", scope: .session, dataSensitivity: .lowRiskAppData)
+        _ = try store.save(key: "beta", value: "2", scope: .session, dataSensitivity: .contextualPrivateData)
+        _ = try store.save(key: "task-only", value: "x", scope: .task, dataSensitivity: .highlyPrivateData)
 
         let entries = store.entries(in: .session)
 
@@ -38,11 +121,21 @@ final class MemoryStoreTests: XCTestCase {
         XCTAssertTrue(entries.allSatisfy { $0.scope == .session })
     }
 
-    func testSessionAndTaskScopesAreIsolatedForSameKey() {
+    func testSessionAndTaskScopesAreIsolatedForSameKey() throws {
         let store = MemoryStore()
 
-        let sessionEntry = store.save(key: "shared", value: "session", scope: .session)
-        let taskEntry = store.save(key: "shared", value: "task", scope: .task)
+        let sessionEntry = try store.save(
+            key: "shared",
+            value: "session",
+            scope: .session,
+            dataSensitivity: .lowRiskAppData
+        )
+        let taskEntry = try store.save(
+            key: "shared",
+            value: "task",
+            scope: .task,
+            dataSensitivity: .contextualPrivateData
+        )
 
         XCTAssertEqual(store.entries(in: .session), [sessionEntry])
         XCTAssertEqual(store.entries(in: .task), [taskEntry])
@@ -50,16 +143,25 @@ final class MemoryStoreTests: XCTestCase {
         XCTAssertNotEqual(sessionEntry.scope, taskEntry.scope)
     }
 
-    func testDeleteScopeClearsOnlyTargetedScopeAndLeavesOthersIntact() {
+    func testDeleteScopeClearsOnlyTargetedScopeAndLeavesOthersIntact() throws {
         let store = MemoryStore()
-        let sessionEntry = store.save(key: "session-key", value: "a", scope: .session)
-        let taskEntry = store.save(key: "task-key", value: "b", scope: .task)
+        let sessionEntry = try store.save(
+            key: "session-key",
+            value: "a",
+            scope: .session,
+            dataSensitivity: .lowRiskAppData
+        )
+        let taskEntry = try store.save(
+            key: "task-key",
+            value: "b",
+            scope: .task,
+            dataSensitivity: .contextualPrivateData
+        )
 
         store.delete(scope: .session)
 
         XCTAssertTrue(store.entries(in: .session).isEmpty)
         XCTAssertEqual(store.entries(in: .task), [taskEntry])
-        XCTAssertEqual(store.entries(in: .task).first, taskEntry)
         XCTAssertEqual(taskEntry.key, "task-key")
         XCTAssertEqual(sessionEntry.scope, .session)
     }
@@ -72,6 +174,7 @@ final class MemoryStoreTests: XCTestCase {
             scope: .session,
             key: "session-key",
             value: "session-value",
+            dataSensitivity: .lowRiskAppData,
             createdAt: createdAt,
             updatedAt: updatedAt
         )
@@ -80,6 +183,7 @@ final class MemoryStoreTests: XCTestCase {
             scope: .task,
             key: "task-key",
             value: "task-value",
+            dataSensitivity: .contextualPrivateData,
             createdAt: createdAt,
             updatedAt: updatedAt
         )
