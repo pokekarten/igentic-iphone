@@ -59,3 +59,7 @@ The runtime should:
 - `ios/Sources/AgentCore/AgentKernel.swift`
 - `docs/reports/app-action-approval-policy-design.md`
 - Issue #185
+
+## Smallest implementation slice
+
+Start with a local-only policy model and a tiny persistence adapter, then wire the setup-default creation path before building the later admin/settings surface.
