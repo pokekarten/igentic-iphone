@@ -16,6 +16,23 @@ final class AppActionCoordinatorTests: XCTestCase {
         XCTAssertEqual(coordinator.perform(draft(id: "BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBBBBB", kind: .deleteRecord, payload: "delete"), privacyMode: .trustedDevices), .blockedPendingApproval)
     }
 
+    func testApprovalNotRequiredByPolicyBypassesApprovalManager() {
+        let coordinator = AppActionCoordinator(approvalManager: .init(defaultStatus: .approved), auditLog: .init())
+        let draft = draft(id: "BBBBBBBB-CCCC-DDDD-EEEE-FFFFFFFFFFFF", kind: .deleteRecord, payload: "safe cleanup", risk: .read)
+
+        XCTAssertNil(coordinator.approvalReceipt(for: draft, privacyMode: .trustedDevices))
+
+        switch coordinator.perform(draft, privacyMode: .trustedDevices) {
+        case .approved(let receipt):
+            XCTAssertEqual(receipt.draftID, draft.id)
+            XCTAssertEqual(receipt.fingerprint, draft.fingerprint)
+            XCTAssertEqual(receipt.approvalReceipt.status, .notRequired)
+            XCTAssertTrue(receipt.approvalReceipt.mayContinueRouting)
+        default:
+            XCTFail("Expected direct approval without an approval requirement")
+        }
+    }
+
     func testApprovedSyntheticDraftCreatesAuditEntryWithoutSideEffect() {
         let log = AuditLog(); let coordinator = AppActionCoordinator(approvalManager: .init(defaultStatus: .approved), auditLog: log)
         let draft = draft(id: "CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCCCC", kind: .deleteRecord, payload: "payload-a")
