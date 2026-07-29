@@ -1,40 +1,99 @@
 # MemoryStore classification and retention design
 
-Status: draft decision for issue #142
+Status: decided — design-only predecessor for implementation
+Date: 2026-07-29
+Scope: `pokekarten/igentic-iphone`
 
-## Decision
+## Decision summary
 
-Before `MemoryStore` is wired into `AgentKernel`, each stored value must receive a
-classification at write time, and the store must define whether highly sensitive
-values may be persisted at all.
+`MemoryStore` must remain a pre-integration stub until the later wiring issue is opened, but the storage model itself should already carry explicit data-sensitivity metadata.
 
-## Proposed model
+The safe design is:
 
-- `MemoryEntry` should gain a `dataSensitivity: DataSensitivityLevel` field.
-- The value should be assigned when the entry is written, using the same
-  classification logic pattern that `AgentKernel.handle` uses for its effective
-  classification: take the higher of the task classification and the detector
-  result.
-- `.session` and `.task` isolation alone are not sufficient to replace data
-  classification.
+- `MemoryEntry` gains a `dataSensitivity: DataSensitivityLevel` field.
+- The classification is assigned at write time, not inferred later from stored text.
+- `restrictedSensitiveData` (`Level 4`) is rejected and must not be stored.
+- `.session` vs `.task` scope isolation is necessary, but not sufficient on its own.
+- Sensitivity also affects retention and deletion behavior.
 
-## Open questions that must be resolved by implementation follow-up
+This keeps `MemoryStore` aligned with the existing `AuditEvent.dataSensitivity` pattern and prevents unclassified or highly sensitive content from becoming durable memory by accident.
 
-1. Should restricted sensitive data be rejected at write time rather than stored?
-2. Should retention/deletion behavior differ by `dataSensitivity`?
-3. What minimum test set is required before any wiring:
-   - classification-threshold tests
-   - scope-isolation tests
-   - rejection-path tests, if storage blocking is chosen
+## Why this is the right boundary
 
-## Non-goals
+The current store only tracks `scope`, `key`, `value`, `createdAt`, and `updatedAt`. That is too little for a later `AgentKernel` wiring because the kernel already reasons in terms of `DataClassification` and `DataSensitivityLevel`.
 
-- No code changes in this document.
-- No wiring of `MemoryStore` into `AgentKernel`.
-- No change to `AuditEvent` or `DataClassification` in this issue.
+A memory entry without explicit sensitivity metadata would create two problems:
 
-## Next step
+1. the store could not report what kind of data it holds;
+2. retention, deletion and future diagnostics could not distinguish benign memory from sensitive memory.
 
-Once this design is reviewed, open a separate implementation issue that wires
-`MemoryStore` into `AgentKernel` against the agreed threshold and retention
-rules.
+The repo already uses sensitivity metadata in `AuditEvent`, so extending memory with the same concept is the least surprising and most auditable shape.
+
+## Storage rule
+
+### Allowed
+
+Memory may be stored when the effective classification is:
+
+- `publicData`
+- `lowRiskAppData`
+- `contextualPrivateData`
+- `highlyPrivateData`
+
+### Blocked
+
+Memory must be rejected when the effective classification is:
+
+- `restrictedSensitiveData`
+
+That threshold is strict enough to prevent the highest-risk content from entering durable memory, while still allowing lower-risk operational memory to exist with explicit sensitivity metadata.
+
+## Scope and retention rule
+
+`MemoryScope` continues to matter:
+
+- `.task` is ephemeral and is cleared at the end of the task boundary.
+- `.session` may survive longer, but only for data that remains within the allowed storage threshold.
+
+Classification adds a second gate on top of scope:
+
+- higher sensitivity can require shorter retention,
+- sensitive entries must be deletable by scope,
+- and future kernel wiring must not treat memory presence as permission.
+
+In other words, scope controls the lifetime container; classification controls whether the value may exist at all and how cautiously it may be retained.
+
+## Deletion / retention behavior
+
+- `delete(scope:)` remains valid for all scopes.
+- No classification level should make deletion impossible.
+- Retention policy may later be tightened per sensitivity, but that must happen in the kernel integration issue, not by silently changing the stub into an authority layer.
+- A stored entry never grants delegation, approval, or execution permission.
+
+## Required tests before wiring
+
+Before `MemoryStore` is wired into `AgentKernel`, the implementation issue must include tests for:
+
+- storing each allowed classification level with the expected `dataSensitivity` metadata;
+- rejecting `restrictedSensitiveData` at write time;
+- preserving `.session` / `.task` separation;
+- deleting one scope without affecting the other;
+- ensuring the store remains non-authoritative and does not influence approval or delegation decisions;
+- ensuring repeated writes update the same entry in the same scope/key without dropping the assigned sensitivity metadata.
+
+## Follow-up implementation shape
+
+The later implementation issue should make `AgentKernel` compute the effective classification, then pass it into `MemoryStore` as explicit metadata.
+
+That issue must still preserve the current contract:
+
+- memory is optional and scoped,
+- sensitive data never becomes permission,
+- and the kernel remains the sole policy authority.
+
+## Definition of done for this design
+
+- The storage threshold is explicit.
+- The retention rule is explicit.
+- The test expectations are explicit.
+- The document can be used as the exact predecessor for a future `MemoryStore` wiring implementation issue.
