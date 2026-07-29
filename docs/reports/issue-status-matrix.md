@@ -4,7 +4,7 @@ Status: living audit companion
 
 | Issue | Current GitHub status | Risk | Recommendation |
 | --- | --- | --- | --- |
-| #120 | open | high | Close the gap with a dedicated classification/retention decision before any MemoryStore wiring. |
+| #120 | closed / completed | low | MemoryStore classification/retention design is now documented; the issue can stay closed. |
 | #122 | closed / completed | low | `RuntimeBudgetAssessor` is a self-contained planning helper; keep `AgentKernel` wiring as a separate follow-up if runtime budget metadata should become visible in audits. |
 | #137 | open / blocked | high | Keep as the gating spec for ToolRegistry integration. |
 | #121 | open / blocked | high | Do not implement until #137 is settled. |
@@ -17,7 +17,8 @@ Status: living audit companion
 | #158 | resolved / closed | medium | Regression coverage lives in `ios/Tests/AgentCoreTests/AppActionCoordinatorTests.swift`; it exercises sensitive-payload escalation and approval blocking. |
 | #175 | resolved / closed | low | Regression coverage lives in `ios/Tests/iGenticAppTests/DiagnosticViewStateTests.swift`; it covers the live `critical-reminder` synthetic snapshot. |
 | #176 | resolved / closed | low | Regression coverage lives in `ios/Tests/iGenticAppTests/DiagnosticViewStateTests.swift`; it covers the diagnostic-only model selection preview. |
-| #185 | open / planned | medium | Approval is now aligned with `decision.requiresApproval`; next step is to define the setup/admin configuration model, persistence, and UI for the policy. |
+| #185 | open / planned | medium | Approval is already aligned with `decision.requiresApproval`; the next step is the setup/admin configuration model, persistence, and UI for the policy. |
+| #142 | closed / completed | low | MemoryStore classification/retention design is now documented; the issue can stay closed. |
 
 ## Maintenance rule
 
