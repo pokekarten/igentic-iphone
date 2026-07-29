@@ -28,6 +28,7 @@ public final class AgentKernel: @unchecked Sendable {
     private let approvalManager: ApprovalManager
     private let sensitiveDataDetector: any SensitiveDataDetecting
     private let localModelRuntime: LocalModelRuntime?
+    private let toolRegistry: ToolRegistry?
 
     public init(
         policyEngine: PolicyEngine = PolicyEngine(),
@@ -35,7 +36,8 @@ public final class AgentKernel: @unchecked Sendable {
         auditLog: AuditLog = AuditLog(),
         approvalManager: ApprovalManager = ApprovalManager(),
         sensitiveDataDetector: any SensitiveDataDetecting = SensitiveDataDetector(),
-        localModelRuntime: LocalModelRuntime? = nil
+        localModelRuntime: LocalModelRuntime? = nil,
+        toolRegistry: ToolRegistry? = nil
     ) {
         self.policyEngine = policyEngine
         self.taskRouter = taskRouter
@@ -43,6 +45,7 @@ public final class AgentKernel: @unchecked Sendable {
         self.approvalManager = approvalManager
         self.sensitiveDataDetector = sensitiveDataDetector
         self.localModelRuntime = localModelRuntime
+        self.toolRegistry = toolRegistry
     }
 
     private func requiredLocalModelCapability(for intent: TaskIntent) -> LocalModelCapability? {
@@ -66,6 +69,16 @@ public final class AgentKernel: @unchecked Sendable {
         )
 
         auditLog.record(AuditEvent(type: .taskReceived, message: "Task received.", dataSensitivity: effectiveDataClassification.level))
+
+        if let toolRegistry {
+            auditLog.record(
+                AuditEvent(
+                    type: .toolRegistrySnapshot,
+                    message: "toolRegistryToolCount=\(toolRegistry.allTools().count)",
+                    dataSensitivity: effectiveDataClassification.level
+                )
+            )
+        }
 
         let decision = policyEngine.decide(
             PolicyRequest(
