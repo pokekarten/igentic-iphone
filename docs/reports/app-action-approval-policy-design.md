@@ -14,7 +14,6 @@ Related source-backed decisions:
 ## Recommended product shape
 
 Keep the user-facing policy small and explicit:
-
 - per action kind or action family
 - clear approval requirement on/off state
 - separate admin review/edit surface
