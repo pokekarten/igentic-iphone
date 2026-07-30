@@ -60,7 +60,7 @@ public struct AppActionApprovalPolicyStore: Sendable {
 
     public func load() -> AppActionApprovalPolicy? {
         guard let data = try? Data(contentsOf: fileURL) else { return nil }
-        return try? JSONDecoder.agentKernelPolicy.decode(AppActionApprovalPolicy.self, from: data)
+        return try? JSONDecoder().decode(AppActionApprovalPolicy.self, from: data)
     }
 
     public func loadOrDefault() -> AppActionApprovalPolicy {
@@ -70,14 +70,6 @@ public struct AppActionApprovalPolicyStore: Sendable {
     public func save(_ policy: AppActionApprovalPolicy) throws {
         let data = try JSONEncoder.agentKernelPolicy.encode(policy)
         try data.write(to: fileURL, options: [.atomic])
-    }
-}
-
-private extension JSONDecoder {
-    static var agentKernelPolicy: JSONDecoder {
-        let decoder = JSONDecoder()
-        decoder.outputFormatting = []
-        return decoder
     }
 }
 
