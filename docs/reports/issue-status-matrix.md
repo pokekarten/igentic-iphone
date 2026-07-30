@@ -5,6 +5,7 @@ Status: living audit companion
 | Issue | Current GitHub status | Risk | Recommendation |
 | --- | --- | --- | --- |
 | #120 | closed / completed | low | MemoryStore classification/retention design is documented; keep closed. |
+| #137 | closed / completed | low | ToolRegistry integration boundaries are documented; keep the kernel wiring blocked until a new implementation scope is justified. |
 | #121 | closed / completed | low | ToolRegistry diagnostic-only kernel wiring is implemented and covered by `AgentKernelToolRegistryWiringTests`. |
 | #122 | closed / completed | low | RuntimeBudgetAssessor direction is complete; keep estimator non-authoritative. |
 | #101 | resolved / closed | medium | Regression coverage exists for restricted-data bypass, pending approval, and approved-critical-action routing. |
