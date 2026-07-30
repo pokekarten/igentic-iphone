@@ -34,6 +34,7 @@ final class AppActionApprovalPolicyTests: XCTestCase {
         try store.save(customPolicy)
         XCTAssertEqual(store.load(), customPolicy)
         XCTAssertEqual(store.loadOrDefault(), customPolicy)
+        XCTAssertNil(customPolicy.requiresApproval(for: .exportData))
 
         let invalidURL = directory.appendingPathComponent("invalid-policy.json")
         try "not-json".data(using: .utf8)!.write(to: invalidURL, options: [.atomic])
