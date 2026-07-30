@@ -1,6 +1,6 @@
 # Project State
 
-Last updated: 2026-07-24
+Last updated: 2026-07-31
 
 ## Current status
 
@@ -81,9 +81,11 @@ When determining what to work on next, check sources in this order:
 - PR #158 / issue #158 (`Consolidate effective-classification logic and close sensitive-data scan gap in AppActionCoordinator`) is merged on GitHub; `DataClassification.effectiveClassification` now feeds `AgentKernel`, `DiagnosticSnapshotProducer`, and `AppActionCoordinator`.
 - PR #175 / issue #175 (`Replace static preview snapshot with a live DiagnosticSnapshotProducer result`) is merged on GitHub; `ios/Tests/iGenticAppTests/DiagnosticViewStateTests.swift` now covers the `critical-reminder` synthetic snapshot path.
 - PR #177 / issue #176 (`Surface ModelSelectionEngine as a diagnostic-only preview section`) is merged on GitHub; `ios/Tests/iGenticAppTests/DiagnosticViewStateTests.swift` now covers the diagnostic-only model selection preview.
+- PR #208 / issue #207 (`Implement MemoryStore sensitivity metadata and restricted-data write guard`) is merged on GitHub; `ios/Sources/AgentCore/MemoryStore.swift` now rejects `restrictedSensitiveData` at write time and keeps scope isolation intact.
 - MemoryStore integration decision: intentionally left as a pre-integration stub, matching DelegationBroker's pattern. See `docs/reports/memory-store-integration-decision.md`.
 - Phase 2 model-selection PR #99 (`phase2/model-selection-engine-v3`) is closed on GitHub and was not merged; it is no longer the active implementation target.
 - Metadata-only `RuntimeBudget`, `ApprovalReceipt`, `DiagnosticSnapshot` and `LocalModelRuntime` contracts are on `main`.
+- AppAction approval policy #185 remains the current planned product lane: local setup defaults, later settings/admin editing, then runtime consumption.
 - `ios/Tests/AgentCoreTests/RiskScorerTests.swift` now covers the full approval-gate scoring surface: baseline score, action-risk contributions, delegation-target contributions including the `trustedDevices` + `externalProvider` coupling, sensitive-data accumulation, clamping to 10, and the approval threshold boundary.
 - `ios/Tests/AgentCoreTests/SensitiveDataDetectorTests.swift` now includes the regression coverage for the `containsGermanPhoneLikePattern` length cap, plus reset and no-reset behavior around accumulation.
 - `ios/Tests/AgentCoreTests/AgentKernelSensitiveDataWiringTests.swift` now covers the end-to-end sensitive-data wiring in `AgentKernel.handle()` and audit propagation.
@@ -97,4 +99,4 @@ When determining what to work on next, check sources in this order:
 
 ## Current next task
 
-There is currently no active implementation target; the repo is in manual mode. Read `docs/CHATGPT_NEXT_TASK.md` and Brain issue #25 as the current control record before taking any action.
+There is currently no active implementation PR; the repo is in manual mode. Read `docs/CHATGPT_NEXT_TASK.md` and Brain issue #25 as the current control record before taking any action. The current planned product lane is issue #185, but it is still configuration work rather than a live active PR.
