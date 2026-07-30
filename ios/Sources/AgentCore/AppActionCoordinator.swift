@@ -14,6 +14,7 @@ public final class AppActionCoordinator: @unchecked Sendable {
     private let approvalManager: ApprovalManager
     private let auditLog: AuditLog
     private let sensitiveDataDetector: any SensitiveDataDetecting
+    private let approvalPolicy: AppActionApprovalPolicy?
 
     private struct PolicyContext {
         let decision: PolicyDecision
@@ -25,12 +26,14 @@ public final class AppActionCoordinator: @unchecked Sendable {
         riskScorer: RiskScorer = RiskScorer(),
         approvalManager: ApprovalManager = ApprovalManager(),
         auditLog: AuditLog = AuditLog(),
-        sensitiveDataDetector: any SensitiveDataDetecting = SensitiveDataDetector()
+        sensitiveDataDetector: any SensitiveDataDetecting = SensitiveDataDetector(),
+        approvalPolicy: AppActionApprovalPolicy? = nil
     ) {
         policyEngine = PolicyEngine(riskScorer: riskScorer)
         self.approvalManager = approvalManager
         self.auditLog = auditLog
         self.sensitiveDataDetector = sensitiveDataDetector
+        self.approvalPolicy = approvalPolicy
     }
 
     public func auditEvents() -> [AuditEvent] { auditLog.allEvents() }
@@ -39,7 +42,7 @@ public final class AppActionCoordinator: @unchecked Sendable {
         let context = policyContext(for: draft, privacyMode: privacyMode)
         auditLog.record(.init(type: .taskReceived, message: "Draft received: \(draft.actionKind.rawValue).", dataSensitivity: context.effectiveClassification.level))
         guard context.decision.isAllowed else { auditLog.record(.init(type: .blocked, message: context.decision.reason, dataSensitivity: context.effectiveClassification.level)); return nil }
-        guard context.decision.requiresApproval else {
+        guard approvalRequired(for: draft, decision: context.decision) else {
             auditLog.record(.init(type: .policyDecision, message: "Approval not required.", dataSensitivity: context.effectiveClassification.level))
             return nil
         }
@@ -54,7 +57,7 @@ public final class AppActionCoordinator: @unchecked Sendable {
         auditLog.record(.init(type: .taskReceived, message: "Draft evaluated: \(draft.actionKind.rawValue).", dataSensitivity: context.effectiveClassification.level))
         guard context.decision.isAllowed else { auditLog.record(.init(type: .blocked, message: context.decision.reason, dataSensitivity: context.effectiveClassification.level)); return .rejected }
 
-        if context.decision.requiresApproval {
+        if approvalRequired(for: draft, decision: context.decision) {
             guard let approvalReceipt, approvalReceipt.matches(draft), approvalReceipt.approvalReceipt.mayContinueRouting else { auditLog.record(.init(type: .approvalRequired, message: "Approval receipt is stale or missing.", dataSensitivity: context.effectiveClassification.level)); return .blockedPendingApproval }
             auditLog.record(.init(type: .policyDecision, message: "Draft approved without execution.", dataSensitivity: context.effectiveClassification.level))
             return .approved(approvalReceipt)
@@ -72,6 +75,10 @@ public final class AppActionCoordinator: @unchecked Sendable {
         )
         auditLog.record(.init(type: .policyDecision, message: "Draft approved without execution.", dataSensitivity: context.effectiveClassification.level))
         return .approved(notRequiredReceipt)
+    }
+
+    private func approvalRequired(for draft: AppActionDraft, decision: PolicyDecision) -> Bool {
+        approvalPolicy?.requiresApproval(for: draft.actionKind) ?? decision.requiresApproval
     }
 
     private func policyContext(for draft: AppActionDraft, privacyMode: PrivacyMode) -> PolicyContext {
