@@ -11,7 +11,7 @@ Status: living audit companion
 | #103 | in progress | medium | Deterministic model-selection fixtures and validator exist; broader safety/language coverage remains separate work. |
 | #114 | open | low | Keep as a docs-only starter issue. |
 | #117 | open | low | Keep as a content-only starter issue. |
-| #136 | open | low | Treat as UX polish; no behavior change required. |
+| #136 | closed / completed | low | Diagnostic snapshot labels are now clearer; the blocked + requires-approval case reads unambiguously. |
 | #144 | closed / completed | low | Decision-trace schema v1 is documented and aligned with the current selection engine. |
 | #145 | open | medium | Diagnostics preview should consume the trace contract without changing selection behavior. |
 | #146 | closed / completed | medium | Trace value type and generator are implemented and tested. |
