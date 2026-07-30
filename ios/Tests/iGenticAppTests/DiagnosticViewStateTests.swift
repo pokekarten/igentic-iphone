@@ -19,10 +19,10 @@ final class DiagnosticViewStateTests: XCTestCase {
         let privacyMode = state.snapshotFields.first { $0.label == "Privacy mode" }
         XCTAssertEqual(privacyMode?.value, "Trusted Devices")
 
-        let policyAllowed = state.snapshotFields.first { $0.label == "Policy is allowed" }
+        let policyAllowed = state.snapshotFields.first { $0.label == "Policy allow gate" }
         XCTAssertEqual(policyAllowed?.value, "Yes")
 
-        let policyRequiresApproval = state.snapshotFields.first { $0.label == "Policy requires approval" }
+        let policyRequiresApproval = state.snapshotFields.first { $0.label == "Approval gate" }
         XCTAssertEqual(policyRequiresApproval?.value, "Yes")
 
         let approvalStatus = state.snapshotFields.first { $0.label == "Approval status" }
