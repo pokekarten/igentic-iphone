@@ -34,7 +34,7 @@ A model may propose, classify, summarize, route, or draft. It must not bypass po
 | Phi small models | Router/helper candidates | Research only; license and device tests required |
 | External frontier models | Strong delegated reasoning | Only explicit, approval-gated delegation |
 
-Apple introduced Core AI at WWDC 2026 as a separate framework from Core ML for on-device generative/transformer models, and public WWDC coverage describes it as spanning 3B–70B parameters with conversion and optimization through the coreai-torch / Core AI Optimization toolchain in the Xcode 27 beta stack ([Apple Core AI](https://developer.apple.com/core-ai/), [Core AI model authoring and optimization](https://developer.apple.com/videos/play/wwdc2026/325/), [public WWDC recap](https://www.aiexpert.news/en/article/apple-core-ai-framework-pushes-on-device-inference-at-scale-on-apple-silicon)).
+Apple introduced Core AI at WWDC 2026 as a separate framework from Core ML for on-device generative/transformer models; Apple’s Core AI documentation and WWDC26 model-authoring session describe on-device execution, Core AI Optimization, and Core AI PyTorch Extensions as part of that flow ([Core AI](https://developer.apple.com/core-ai/), [Dive into Core AI model authoring and optimization](https://developer.apple.com/videos/play/wwdc2026/325/)).
 
 Provider-level evaluations for external delegation live in `docs/provider-research/README.md` and must stay separate from local model-candidate research.
 
