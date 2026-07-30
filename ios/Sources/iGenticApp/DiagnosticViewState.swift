@@ -50,6 +50,7 @@ public struct DiagnosticViewState: Equatable, Sendable {
     public let privacyNotice: String
     public let snapshotSource: String
     public let snapshotFields: [DiagnosticSnapshotField]
+    public let approvalPolicyFields: [DiagnosticSnapshotField]
     public let modelSelectionFields: [DiagnosticSnapshotField]
     public let auditEventsDescription: String
     public let rows: [DiagnosticStatusRow]
@@ -74,6 +75,7 @@ public struct DiagnosticViewState: Equatable, Sendable {
         self.privacyNotice = "No private content"
         self.snapshotSource = snapshot == nil ? "Not available" : "Synthetic preview result (critical-reminder)"
         self.snapshotFields = Self.makeSnapshotFields(snapshot)
+        self.approvalPolicyFields = Self.makeApprovalPolicyFields()
         // Fixed diagnostic example; this does not come from any live candidate registry.
         self.modelSelectionFields = Self.makeModelSelectionFields()
         self.auditEventsDescription = snapshot == nil
@@ -126,6 +128,25 @@ public struct DiagnosticViewState: Equatable, Sendable {
             DiagnosticSnapshotField(label: "Risk requires explicit approval", value: Self.boolText(snapshot.risk.requiresExplicitApproval)),
             DiagnosticSnapshotField(label: "Risk reason count", value: "\(snapshot.risk.reasonCount)"),
         ]
+    }
+
+    private static func makeApprovalPolicyFields() -> [DiagnosticSnapshotField] {
+        let policy = AppActionApprovalPolicy.setupDefault
+
+        return [
+            DiagnosticSnapshotField(label: "Policy schema", value: "v\(policy.schemaVersion)"),
+            DiagnosticSnapshotField(label: "Send message approval required", value: approvalPolicyText(for: .sendMessage, policy: policy)),
+            DiagnosticSnapshotField(label: "Delete record approval required", value: approvalPolicyText(for: .deleteRecord, policy: policy)),
+            DiagnosticSnapshotField(label: "Update record approval required", value: approvalPolicyText(for: .updateRecord, policy: policy)),
+            DiagnosticSnapshotField(label: "Export data approval required", value: approvalPolicyText(for: .exportData, policy: policy)),
+        ]
+    }
+
+    private static func approvalPolicyText(for actionKind: AppActionDraft.ActionKind, policy: AppActionApprovalPolicy) -> String {
+        guard let requiresApproval = policy.requiresApproval(for: actionKind) else {
+            return "Not configured"
+        }
+        return boolText(requiresApproval)
     }
 
     private static func makeModelSelectionFields() -> [DiagnosticSnapshotField] {
