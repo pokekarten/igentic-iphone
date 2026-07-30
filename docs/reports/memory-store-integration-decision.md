@@ -1,32 +1,37 @@
 # MemoryStore integration decision
 
-Status: decided — deliberate pre-integration stub
+Status: decided — bounded local store, still pre-integration
 
 ## Decision
 
-`MemoryStore` is intentionally not wired into `AgentKernel` or any other
-live authorization path at this time. It is built ahead of integration,
-following the same pattern as `DelegationBroker`.
+`MemoryStore` remains intentionally unwired from `AgentKernel` and all live authorization paths. The completed classification design now permits a small local store hardening slice, but it does not authorize kernel integration.
 
-## Rationale
+The store may carry explicit `DataSensitivityLevel` metadata and reject `restrictedSensitiveData` at write time. It remains in-memory, scoped, deletable, and non-authoritative.
 
-- No accidental unclassified-data leak into the kernel while the
-  classification design (how a stored `value: String` gets a
-  `DataClassification` before persistence) remains undecided.
-- Defers integration until the actual memory use case is concrete
-enough to shape the scope design properly.
-- Keeps exactly one active iGentic implementation target free for the
-  CoreML feasibility work.
+## Implemented bounded slice
 
-## Follow-up
+Issue #207 defines and implements the safe pre-integration boundary:
 
-A future issue must be opened before `MemoryStore` is wired into
-`AgentKernel`. That issue must specify:
+- `MemoryEntry` carries `dataSensitivity`.
+- write-time sensitivity is explicit rather than inferred from stored text;
+- `restrictedSensitiveData` is rejected before state mutation;
+- session/task isolation and same-key update semantics remain intact;
+- no disk/network persistence is added;
+- no authorization, delegation, or routing decision consumes memory state.
 
-- how each stored value receives a `DataClassification`,
-- whether `MemoryEntry` needs a `dataSensitivity` field akin to
-  `AuditEvent`,
-- test coverage for classification thresholds and scope isolation,
-  in addition to baseline `MemoryStore` coverage.
+## Why kernel integration remains deferred
 
-This decision does not authorize implementation.
+The repository still needs a concrete runtime memory use case before `MemoryStore` is connected to `AgentKernel`. That future integration issue must define:
+
+- where the kernel obtains the effective classification for a memory write;
+- lifecycle and clearing semantics for task/session memory;
+- whether diagnostics should expose aggregate memory metadata;
+- how memory reads are scoped to the current task/session;
+- tests proving memory state cannot change approval or delegation outcomes.
+
+## Explicit stop rules
+
+- Do not wire `MemoryStore` into `AgentKernel` from this decision.
+- Do not add disk or network persistence here.
+- Do not infer permissions from memory contents or metadata.
+- Do not add retention timers until the concrete lifecycle is specified.
