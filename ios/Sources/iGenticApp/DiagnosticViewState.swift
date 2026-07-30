@@ -164,17 +164,65 @@ public struct DiagnosticViewState: Equatable, Sendable {
                 latencyBudgetClass: .high,
                 toolUsageSupported: true
             ),
+            ModelCandidate(
+                modelID: "model-delta",
+                evaluationScore: 0.65,
+                latencyScore: 0.85,
+                capabilityMatch: 0.10,
+                latencyMS: 30,
+                contextSize: 2048,
+                maxContextTokens: 1024,
+                latencyBudgetClass: .medium,
+                toolUsageSupported: false
+            ),
         ]
 
-        let result = ModelSelectionEngine.select(candidates: candidates, request: request, policy: .v1)
-        let reason = displayText(Self.selectionReasonText(result.reason))
-        let score = result.score.map { String(format: "%.2f", locale: Locale(identifier: "en_US_POSIX"), $0) } ?? "—"
+        let trace = ModelSelectionDecisionTraceGenerator.makeTrace(
+            candidates: candidates,
+            request: request,
+            policy: .v1
+        )
 
-        return [
-            DiagnosticSnapshotField(label: "Selected model id", value: result.selectedModelID),
-            DiagnosticSnapshotField(label: "Selection reason", value: reason),
-            DiagnosticSnapshotField(label: "Score", value: score),
+        var fields: [DiagnosticSnapshotField] = [
+            DiagnosticSnapshotField(label: "Trace schema", value: trace.schemaVersion),
+            DiagnosticSnapshotField(label: "Selection request", value: Self.selectionRequestText(trace.request)),
+            DiagnosticSnapshotField(label: "Selected model id", value: trace.selectedModelID),
+            DiagnosticSnapshotField(label: "Selection reason", value: displayText(Self.selectionReasonText(trace.selectionReason))),
+            DiagnosticSnapshotField(label: "Selected score", value: trace.selectedScore.map { Self.scoreText($0) } ?? "—"),
+            DiagnosticSnapshotField(label: "Fallback reason", value: trace.fallbackReason.map { displayText(Self.fallbackReasonText($0)) } ?? "None"),
         ]
+
+        fields.append(contentsOf: trace.candidates.map { candidate in
+            DiagnosticSnapshotField(
+                label: "Candidate: \(candidate.modelID)",
+                value: Self.candidateText(candidate)
+            )
+        })
+
+        return fields
+    }
+
+    private static func selectionRequestText(_ request: ModelSelectionRequest) -> String {
+        "latencyBudget=\(displayText(request.latencyBudget.rawValue)), contextSize=\(request.contextSize), toolUsageRequired=\(boolText(request.toolUsageRequired))"
+    }
+
+    private static func candidateText(_ candidate: ModelSelectionTraceCandidate) -> String {
+        var parts: [String] = [candidate.eligible ? "Eligible" : "Rejected"]
+
+        if candidate.eligible {
+            if let weightedScore = candidate.weightedScore {
+                parts.append("Score \(scoreText(weightedScore))")
+            }
+            if let scoreComponents = candidate.scoreComponents {
+                parts.append("Components: eval \(scoreText(scoreComponents.evaluation)), latency \(scoreText(scoreComponents.latency)), capability \(scoreText(scoreComponents.capability))")
+            }
+        } else if !candidate.rejectionReasons.isEmpty {
+            let reasons = candidate.rejectionReasons.map { displayText($0.rawValue) }.joined(separator: ", ")
+            parts.append("Reasons: \(reasons)")
+        }
+
+        parts.append("Latency \(candidate.latencyMS) ms")
+        return parts.joined(separator: " · ")
     }
 
     private static func selectionReasonText(_ reason: ModelSelectionReason) -> String {
@@ -186,6 +234,19 @@ public struct DiagnosticViewState: Equatable, Sendable {
         case .safeRefusalModel:
             return "safeRefusalModel"
         }
+    }
+
+    private static func fallbackReasonText(_ reason: ModelSelectionTraceFallbackReason) -> String {
+        switch reason {
+        case .noEligibleCandidates:
+            return "noEligibleCandidates"
+        case .unresolvedScoreAndLatencyTie:
+            return "unresolvedScoreAndLatencyTie"
+        }
+    }
+
+    private static func scoreText(_ value: Double) -> String {
+        String(format: "%.2f", locale: Locale(identifier: "en_US_POSIX"), value)
     }
 
     private static func boolText(_ value: Bool) -> String {
