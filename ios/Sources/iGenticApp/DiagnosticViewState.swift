@@ -99,8 +99,8 @@ public struct DiagnosticViewState: Equatable, Sendable {
             return [
                 DiagnosticSnapshotField(label: "Generated at", value: "—"),
                 DiagnosticSnapshotField(label: "Privacy mode", value: "—"),
-                DiagnosticSnapshotField(label: "Policy is allowed", value: "—"),
-                DiagnosticSnapshotField(label: "Policy requires approval", value: "—"),
+                DiagnosticSnapshotField(label: "Policy allow gate", value: "—"),
+                DiagnosticSnapshotField(label: "Approval gate", value: "—"),
                 DiagnosticSnapshotField(label: "Approval status", value: "—"),
                 DiagnosticSnapshotField(label: "Approval may continue routing", value: "—"),
                 DiagnosticSnapshotField(label: "Audit event count", value: "—"),
@@ -115,8 +115,8 @@ public struct DiagnosticViewState: Equatable, Sendable {
         return [
             DiagnosticSnapshotField(label: "Generated at", value: Self.iso8601.string(from: snapshot.generatedAt)),
             DiagnosticSnapshotField(label: "Privacy mode", value: snapshot.privacyMode.rawValue),
-            DiagnosticSnapshotField(label: "Policy is allowed", value: Self.boolText(snapshot.policy.isAllowed)),
-            DiagnosticSnapshotField(label: "Policy requires approval", value: Self.boolText(snapshot.policy.requiresApproval)),
+            DiagnosticSnapshotField(label: "Policy allow gate", value: Self.boolText(snapshot.policy.isAllowed)),
+            DiagnosticSnapshotField(label: "Approval gate", value: Self.boolText(snapshot.policy.requiresApproval)),
             DiagnosticSnapshotField(label: "Approval status", value: displayText(snapshot.approval.status.rawValue)),
             DiagnosticSnapshotField(label: "Approval may continue routing", value: Self.boolText(snapshot.approval.mayContinueRouting)),
             DiagnosticSnapshotField(label: "Audit event count", value: "\(snapshot.audit.eventCount)"),
