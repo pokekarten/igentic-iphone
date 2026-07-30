@@ -33,6 +33,24 @@ final class AppActionCoordinatorTests: XCTestCase {
         }
     }
 
+    func testConfiguredApprovalPolicyCanRequireApprovalForFastPathAction() {
+        let policy = AppActionApprovalPolicy(rules: [
+            .init(actionKind: .sendMessage, requiresApproval: true, note: "Outbound messages should be reviewed."),
+            .init(actionKind: .deleteRecord, requiresApproval: true),
+            .init(actionKind: .updateRecord, requiresApproval: true),
+            .init(actionKind: .exportData, requiresApproval: true)
+        ])
+        let coordinator = AppActionCoordinator(
+            approvalManager: .init(defaultStatus: .approved),
+            approvalPolicy: policy
+        )
+        let draft = draft(id: "DDDDDDDD-CCCC-BBBB-AAAA-EEEEEEEEEEEE", kind: .sendMessage, payload: "hello", risk: .read)
+
+        let approval = coordinator.approvalReceipt(for: draft, privacyMode: .trustedDevices)
+        XCTAssertNotNil(approval)
+        XCTAssertEqual(coordinator.perform(draft, privacyMode: .trustedDevices), .blockedPendingApproval)
+    }
+
     func testApprovedSyntheticDraftCreatesAuditEntryWithoutSideEffect() {
         let log = AuditLog(); let coordinator = AppActionCoordinator(approvalManager: .init(defaultStatus: .approved), auditLog: log)
         let draft = draft(id: "CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCCCC", kind: .deleteRecord, payload: "payload-a")
