@@ -49,14 +49,29 @@ final class DiagnosticViewStateTests: XCTestCase {
         let riskReasonCount = state.snapshotFields.first { $0.label == "Risk reason count" }
         XCTAssertEqual(riskReasonCount?.value, "3")
 
+        let traceSchema = state.modelSelectionFields.first { $0.label == "Trace schema" }
+        XCTAssertEqual(traceSchema?.value, "v1")
+
+        let request = state.modelSelectionFields.first { $0.label == "Selection request" }
+        XCTAssertEqual(request?.value, "latencyBudget=Low, contextSize=2048, toolUsageRequired=Yes")
+
         let modelSelectionSelected = state.modelSelectionFields.first { $0.label == "Selected model id" }
         XCTAssertEqual(modelSelectionSelected?.value, "model-beta")
 
         let modelSelectionReason = state.modelSelectionFields.first { $0.label == "Selection reason" }
         XCTAssertEqual(modelSelectionReason?.value, "Lowest Latency Valid Model")
 
-        let modelSelectionScore = state.modelSelectionFields.first { $0.label == "Score" }
+        let modelSelectionScore = state.modelSelectionFields.first { $0.label == "Selected score" }
         XCTAssertEqual(modelSelectionScore?.value, "0.73")
+
+        let fallbackReason = state.modelSelectionFields.first { $0.label == "Fallback reason" }
+        XCTAssertEqual(fallbackReason?.value, "None")
+
+        let modelAlpha = state.modelSelectionFields.first { $0.label == "Candidate: model-alpha" }
+        XCTAssertEqual(modelAlpha?.value, "Eligible · Score 0.73 · Components: eval 0.45, latency 0.16, capability 0.12 · Latency 120 ms")
+
+        let modelDelta = state.modelSelectionFields.first { $0.label == "Candidate: model-delta" }
+        XCTAssertEqual(modelDelta?.value, "Rejected · Reasons: Context Size Exceeds Max Context Tokens, Latency Budget Exceeds Candidate Class, Tool Usage Required But Unsupported · Latency 30 ms")
 
         let localOnly = state.rows.first { $0.id == "local-only-summary" }
         XCTAssertEqual(localOnly?.route, "Blocked")
@@ -104,5 +119,6 @@ final class DiagnosticViewStateTests: XCTestCase {
         XCTAssertEqual(state.snapshotFields.first { $0.label == "Generated at" }?.value, "—")
         XCTAssertEqual(state.snapshotFields.first { $0.label == "Risk reason count" }?.value, "—")
         XCTAssertEqual(state.modelSelectionFields.first { $0.label == "Selected model id" }?.value, "model-beta")
+        XCTAssertEqual(state.modelSelectionFields.first { $0.label == "Fallback reason" }?.value, "None")
     }
 }
