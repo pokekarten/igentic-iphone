@@ -86,7 +86,7 @@ final class DiagnosticViewStateTests: XCTestCase {
         XCTAssertEqual(modelAlpha?.value, "Eligible · Score 0.73 · Components: eval 0.45, latency 0.16, capability 0.12 · Latency 120 ms")
 
         let modelDelta = state.modelSelectionFields.first { $0.label == "Candidate: model-delta" }
-        XCTAssertEqual(modelDelta?.value, "Rejected · Reasons: Context Size Exceeds Max Context Tokens, Latency Budget Exceeds Candidate Class, Tool Usage Required But Unsupported · Latency 30 ms")
+        XCTAssertEqual(modelDelta?.value, "Rejected · Reasons: Context Size Exceeds Max Context Tokens, Tool Usage Required But Unsupported · Latency 30 ms")
 
         let localOnly = state.rows.first { $0.id == "local-only-summary" }
         XCTAssertEqual(localOnly?.route, "Blocked")
