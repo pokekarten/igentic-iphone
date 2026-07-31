@@ -7,6 +7,12 @@ public struct AppActionApprovalReceipt: Equatable, Sendable {
     public func matches(_ draft: AppActionDraft) -> Bool { draftID == draft.id && fingerprint == draft.fingerprint }
 }
 
+public enum AppActionApprovalEvaluation: Equatable, Sendable {
+    case blocked(reason: String)
+    case notRequired
+    case required(AppActionApprovalReceipt)
+}
+
 public enum AppActionCoordinatorOutcome: Equatable, Sendable { case blockedPendingApproval, approved(AppActionApprovalReceipt), rejected }
 
 public final class AppActionCoordinator: @unchecked Sendable {
@@ -38,18 +44,28 @@ public final class AppActionCoordinator: @unchecked Sendable {
 
     public func auditEvents() -> [AuditEvent] { auditLog.allEvents() }
 
-    public func approvalReceipt(for draft: AppActionDraft, privacyMode: PrivacyMode) -> AppActionApprovalReceipt? {
+    public func approvalEvaluation(for draft: AppActionDraft, privacyMode: PrivacyMode) -> AppActionApprovalEvaluation {
         let context = policyContext(for: draft, privacyMode: privacyMode)
         auditLog.record(.init(type: .taskReceived, message: "Draft received: \(draft.actionKind.rawValue).", dataSensitivity: context.effectiveClassification.level))
-        guard context.decision.isAllowed else { auditLog.record(.init(type: .blocked, message: context.decision.reason, dataSensitivity: context.effectiveClassification.level)); return nil }
+        guard context.decision.isAllowed else {
+            auditLog.record(.init(type: .blocked, message: context.decision.reason, dataSensitivity: context.effectiveClassification.level))
+            return .blocked(reason: context.decision.reason)
+        }
         guard approvalRequired(for: draft, decision: context.decision) else {
             auditLog.record(.init(type: .policyDecision, message: "Approval not required.", dataSensitivity: context.effectiveClassification.level))
-            return nil
+            return .notRequired
         }
         let receipt = approvalManager.approvalReceipt(for: .init(taskSummary: "kind=\(draft.actionKind.rawValue),classification=\(context.effectiveClassification.level.rawValue),risk=\(draft.actionRisk.rawValue)", dataClassification: context.effectiveClassification, actionRisk: draft.actionRisk, reason: context.decision.reason))
         auditLog.record(.init(type: .approvalRequired, message: "Approval evaluated: \(receipt.status.rawValue).", dataSensitivity: context.effectiveClassification.level))
-        guard receipt.mayContinueRouting else { return nil }
-        return .init(draftID: draft.id, fingerprint: draft.fingerprint, approvalReceipt: receipt)
+        guard receipt.mayContinueRouting else { return .blocked(reason: "Approval receipt denied.") }
+        return .required(.init(draftID: draft.id, fingerprint: draft.fingerprint, approvalReceipt: receipt))
+    }
+
+    public func approvalReceipt(for draft: AppActionDraft, privacyMode: PrivacyMode) -> AppActionApprovalReceipt? {
+        if case .required(let receipt) = approvalEvaluation(for: draft, privacyMode: privacyMode) {
+            return receipt
+        }
+        return nil
     }
 
     public func perform(_ draft: AppActionDraft, privacyMode: PrivacyMode, approvalReceipt: AppActionApprovalReceipt? = nil) -> AppActionCoordinatorOutcome {
