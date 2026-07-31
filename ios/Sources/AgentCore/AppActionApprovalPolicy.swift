@@ -51,7 +51,7 @@ public struct AppActionApprovalPolicy: Codable, Equatable, Sendable {
     }
 }
 
-public struct AppActionApprovalPolicyStore: Sendable {
+public struct AppActionApprovalPolicyStore {
     public let fileURL: URL
 
     public init(fileURL: URL) {
@@ -60,15 +60,32 @@ public struct AppActionApprovalPolicyStore: Sendable {
 
     public func load() -> AppActionApprovalPolicy? {
         guard let data = try? Data(contentsOf: fileURL) else { return nil }
-        return try? JSONDecoder().decode(AppActionApprovalPolicy.self, from: data)
+        return try? JSONDecoder.agentKernelPolicy.decode(AppActionApprovalPolicy.self, from: data)
     }
 
     public func loadOrDefault() -> AppActionApprovalPolicy {
         load() ?? .default
     }
 
-    public func save(_ policy: AppActionApprovalPolicy) throws {
+    public func loadOrInstallDefault(fileManager: FileManager = .default) throws -> AppActionApprovalPolicy {
+        if let policy = load() {
+            return policy
+        }
+
+        guard !fileManager.fileExists(atPath: fileURL.path) else {
+            return .default
+        }
+
+        try save(.default, fileManager: fileManager)
+        return .default
+    }
+
+    public func save(_ policy: AppActionApprovalPolicy, fileManager: FileManager = .default) throws {
         let data = try JSONEncoder.agentKernelPolicy.encode(policy)
+        let directoryURL = fileURL.deletingLastPathComponent()
+        if directoryURL.path != "/" && directoryURL.path != "." {
+            try fileManager.createDirectory(at: directoryURL, withIntermediateDirectories: true, attributes: nil)
+        }
         try data.write(to: fileURL, options: [.atomic])
     }
 }
@@ -78,5 +95,11 @@ private extension JSONEncoder {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
         return encoder
+    }
+}
+
+private extension JSONDecoder {
+    static var agentKernelPolicy: JSONDecoder {
+        JSONDecoder()
     }
 }
