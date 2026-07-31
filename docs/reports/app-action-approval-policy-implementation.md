@@ -15,13 +15,15 @@ A small local-only policy model now exists in `ios/Sources/AgentCore/AppActionAp
 - optional note/rationale
 - default setup policy
 - JSON save/load store with fallback to defaults
+- deterministic local Application Support file URL for the diagnostics app
+- startup bootstrap that loads the local policy or installs the setup default on first run
 
 `AppActionCoordinator` now accepts an optional configured policy and uses it as the approval gate after the existing allow/blocked policy decision has passed.
 
 ## What the slice does not do yet
 
 - no setup screen or admin/settings UI
-- no app-wide persistence integration
+- no app-wide persistence editing UI
 - no network-backed configuration
 
 ## Tests added
@@ -40,4 +42,4 @@ A small local-only policy model now exists in `ios/Sources/AgentCore/AppActionAp
 
 ## Next step
 
-Wire the stored policy into setup/admin configuration and make the app load/save it from a real local persistence path, then surface the effective policy in diagnostics.
+Wire the stored policy into setup/admin configuration editing and surface the effective policy in diagnostics when that editable policy becomes the source of truth.
