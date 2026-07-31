@@ -16,6 +16,26 @@ final class AppActionCoordinatorTests: XCTestCase {
         XCTAssertEqual(coordinator.perform(draft(id: "BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBBBBB", kind: .deleteRecord, payload: "delete"), privacyMode: .trustedDevices), .blockedPendingApproval)
     }
 
+    func testApprovalEvaluationDistinguishesBlockedFromNotRequired() {
+        let coordinator = AppActionCoordinator(approvalManager: .init(defaultStatus: .approved), auditLog: .init())
+        let allowedDraft = draft(id: "BBBBBBBB-CCCC-DDDD-EEEE-FFFFFFFFFFFF", kind: .deleteRecord, payload: "safe cleanup", risk: .read)
+        let blockedDraft = draft(id: "FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF", kind: .sendMessage, payload: "Please use IBAN DE89 3704 0044 0532 0130 00", risk: .read)
+
+        switch coordinator.approvalEvaluation(for: allowedDraft, privacyMode: .trustedDevices) {
+        case .notRequired:
+            break
+        default:
+            XCTFail("Expected notRequired for an allowed draft without approval requirement")
+        }
+
+        switch coordinator.approvalEvaluation(for: blockedDraft, privacyMode: .trustedDevices) {
+        case .blocked(let reason):
+            XCTAssertFalse(reason.isEmpty)
+        default:
+            XCTFail("Expected blocked for a sensitive draft")
+        }
+    }
+
     func testApprovalNotRequiredByPolicyBypassesApprovalManager() {
         let coordinator = AppActionCoordinator(approvalManager: .init(defaultStatus: .approved), auditLog: .init())
         let draft = draft(id: "BBBBBBBB-CCCC-DDDD-EEEE-FFFFFFFFFFFF", kind: .deleteRecord, payload: "safe cleanup", risk: .read)
