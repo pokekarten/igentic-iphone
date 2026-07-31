@@ -58,13 +58,15 @@ public struct DiagnosticViewState: Equatable, Sendable {
     public init(report: ScenarioReport = ScenarioRunner().report()) {
         self.init(
             report: report,
-            snapshot: Self.syntheticScenarioSnapshot()
+            snapshot: Self.syntheticScenarioSnapshot(),
+            policy: .default
         )
     }
 
     public init(
         report: ScenarioReport = ScenarioRunner().report(),
-        snapshot: DiagnosticSnapshot?
+        snapshot: DiagnosticSnapshot?,
+        policy: AppActionApprovalPolicy = .default
     ) {
         self.operatingMode = "Local and trusted-device dry runs"
         self.runtimeStatus = snapshot == nil
@@ -75,7 +77,7 @@ public struct DiagnosticViewState: Equatable, Sendable {
         self.privacyNotice = "No private content"
         self.snapshotSource = snapshot == nil ? "Not available" : "Synthetic preview result (critical-reminder)"
         self.snapshotFields = Self.makeSnapshotFields(snapshot)
-        self.approvalPolicyFields = Self.makeApprovalPolicyFields()
+        self.approvalPolicyFields = Self.makeApprovalPolicyFields(policy: policy)
         // Fixed diagnostic example; this does not come from any live candidate registry.
         self.modelSelectionFields = Self.makeModelSelectionFields()
         self.auditEventsDescription = snapshot == nil
@@ -130,9 +132,7 @@ public struct DiagnosticViewState: Equatable, Sendable {
         ]
     }
 
-    private static func makeApprovalPolicyFields() -> [DiagnosticSnapshotField] {
-        let policy = AppActionApprovalPolicy.setupDefault
-
+    private static func makeApprovalPolicyFields(policy: AppActionApprovalPolicy) -> [DiagnosticSnapshotField] {
         return [
             DiagnosticSnapshotField(label: "Policy schema", value: "v\(policy.schemaVersion)"),
             DiagnosticSnapshotField(label: "Send message approval required", value: approvalPolicyText(for: .sendMessage, policy: policy)),
