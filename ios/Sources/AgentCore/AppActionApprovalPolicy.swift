@@ -51,7 +51,7 @@ public struct AppActionApprovalPolicy: Codable, Equatable, Sendable {
     }
 }
 
-public struct AppActionApprovalPolicyStore {
+public struct AppActionApprovalPolicyStore: Sendable {
     public let fileURL: URL
 
     public init(fileURL: URL) {
