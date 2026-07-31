@@ -49,6 +49,21 @@ final class DiagnosticViewStateTests: XCTestCase {
         let riskReasonCount = state.snapshotFields.first { $0.label == "Risk reason count" }
         XCTAssertEqual(riskReasonCount?.value, "3")
 
+        let policySchema = state.approvalPolicyFields.first { $0.label == "Policy schema" }
+        XCTAssertEqual(policySchema?.value, "v1")
+
+        let sendMessageApproval = state.approvalPolicyFields.first { $0.label == "Send message approval required" }
+        XCTAssertEqual(sendMessageApproval?.value, "No")
+
+        let deleteRecordApproval = state.approvalPolicyFields.first { $0.label == "Delete record approval required" }
+        XCTAssertEqual(deleteRecordApproval?.value, "Yes")
+
+        let updateRecordApproval = state.approvalPolicyFields.first { $0.label == "Update record approval required" }
+        XCTAssertEqual(updateRecordApproval?.value, "Yes")
+
+        let exportDataApproval = state.approvalPolicyFields.first { $0.label == "Export data approval required" }
+        XCTAssertEqual(exportDataApproval?.value, "Yes")
+
         let traceSchema = state.modelSelectionFields.first { $0.label == "Trace schema" }
         XCTAssertEqual(traceSchema?.value, "v1")
 
@@ -71,7 +86,7 @@ final class DiagnosticViewStateTests: XCTestCase {
         XCTAssertEqual(modelAlpha?.value, "Eligible · Score 0.73 · Components: eval 0.45, latency 0.16, capability 0.12 · Latency 120 ms")
 
         let modelDelta = state.modelSelectionFields.first { $0.label == "Candidate: model-delta" }
-        XCTAssertEqual(modelDelta?.value, "Rejected · Reasons: Context Size Exceeds Max Context Tokens, Latency Budget Exceeds Candidate Class, Tool Usage Required But Unsupported · Latency 30 ms")
+        XCTAssertEqual(modelDelta?.value, "Rejected · Reasons: Context Size Exceeds Max Context Tokens, Tool Usage Required But Unsupported · Latency 30 ms")
 
         let localOnly = state.rows.first { $0.id == "local-only-summary" }
         XCTAssertEqual(localOnly?.route, "Blocked")
@@ -118,6 +133,8 @@ final class DiagnosticViewStateTests: XCTestCase {
         XCTAssertEqual(state.auditEventsDescription, "Not available")
         XCTAssertEqual(state.snapshotFields.first { $0.label == "Generated at" }?.value, "—")
         XCTAssertEqual(state.snapshotFields.first { $0.label == "Risk reason count" }?.value, "—")
+        XCTAssertEqual(state.approvalPolicyFields.first { $0.label == "Policy schema" }?.value, "v1")
+        XCTAssertEqual(state.approvalPolicyFields.first { $0.label == "Export data approval required" }?.value, "Yes")
         XCTAssertEqual(state.modelSelectionFields.first { $0.label == "Selected model id" }?.value, "model-beta")
         XCTAssertEqual(state.modelSelectionFields.first { $0.label == "Fallback reason" }?.value, "None")
     }

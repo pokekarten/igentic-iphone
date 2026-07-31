@@ -29,6 +29,12 @@ public struct DiagnosticView: View {
                     DiagnosticMetric(label: "Audit events", value: state.auditEventsDescription)
                 }
 
+                Section("App action approval policy (setup default preview)") {
+                    ForEach(state.approvalPolicyFields) { field in
+                        DiagnosticMetric(label: field.label, value: field.value)
+                    }
+                }
+
                 Section("Model-selection trace preview (synthetic, diagnostic only - not wired to task execution)") {
                     // Fixed diagnostic example; this does not come from any live candidate registry.
                     ForEach(state.modelSelectionFields) { field in
