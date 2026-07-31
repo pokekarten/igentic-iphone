@@ -58,6 +58,14 @@ public struct AppActionApprovalPolicyStore {
         self.fileURL = fileURL
     }
 
+    public static func defaultFileURL(fileManager: FileManager = .default) -> URL {
+        let baseDirectory = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? fileManager.temporaryDirectory
+        return baseDirectory
+            .appendingPathComponent("iGentic", isDirectory: true)
+            .appendingPathComponent("AppActionApprovalPolicy.json")
+    }
+
     public func load() -> AppActionApprovalPolicy? {
         guard let data = try? Data(contentsOf: fileURL) else { return nil }
         return try? JSONDecoder.agentKernelPolicy.decode(AppActionApprovalPolicy.self, from: data)
