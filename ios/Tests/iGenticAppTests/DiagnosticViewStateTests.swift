@@ -138,4 +138,30 @@ final class DiagnosticViewStateTests: XCTestCase {
         XCTAssertEqual(state.modelSelectionFields.first { $0.label == "Selected model id" }?.value, "model-beta")
         XCTAssertEqual(state.modelSelectionFields.first { $0.label == "Fallback reason" }?.value, "None")
     }
+
+    func testDiagnosticViewStateUsesInjectedApprovalPolicy() {
+        let policy = AppActionApprovalPolicy(
+            schemaVersion: 7,
+            rules: [
+                .init(actionKind: .sendMessage, requiresApproval: true),
+                .init(actionKind: .deleteRecord, requiresApproval: false),
+                .init(actionKind: .updateRecord, requiresApproval: true),
+                .init(actionKind: .exportData, requiresApproval: false)
+            ]
+        )
+
+        let state = DiagnosticViewState(
+            report: ScenarioRunner().report(),
+            snapshot: nil,
+            policy: policy
+        )
+
+        let fields = Dictionary(uniqueKeysWithValues: state.approvalPolicyFields.map { ($0.label, $0.value) })
+
+        XCTAssertEqual(fields["Policy schema"], "v7")
+        XCTAssertEqual(fields["Send message approval required"], "Yes")
+        XCTAssertEqual(fields["Delete record approval required"], "No")
+        XCTAssertEqual(fields["Update record approval required"], "Yes")
+        XCTAssertEqual(fields["Export data approval required"], "No")
+    }
 }
