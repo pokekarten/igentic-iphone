@@ -82,7 +82,8 @@ private struct ExploreContentView: View {
                                 summary: topic.summary,
                                 metadata: "\(topic.difficulty.capitalized) · \(topic.tags.joined(separator: ", "))",
                                 systemImage: exploreSystemImageName(for: topic.icon),
-                                match: index.searchMatch(for: topic, query: searchText)
+                                match: index.searchMatch(for: topic, query: searchText),
+                                query: searchText
                             )
                         }
                     }
@@ -102,7 +103,8 @@ private struct ExploreContentView: View {
                                 summary: collection.description,
                                 metadata: "\(collection.topicSlugs.count) local topics",
                                 systemImage: "square.grid.2x2",
-                                match: index.searchMatch(for: collection, query: searchText)
+                                match: index.searchMatch(for: collection, query: searchText),
+                                query: searchText
                             )
                         }
                     }
@@ -237,6 +239,7 @@ private struct ExploreCard: View {
     let metadata: String
     var systemImage: String? = nil
     var match: ExploreDiscoveryIndex.SearchMatch? = nil
+    var query: String = ""
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -261,15 +264,44 @@ private struct ExploreCard: View {
                         .font(.caption2)
                         .fontWeight(.semibold)
                         .foregroundStyle(.secondary)
-                    Text(match.excerpt)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(3)
+                    ExploreHighlightedExcerpt(
+                        excerpt: match.excerpt,
+                        query: query
+                    )
                 }
             }
         }
         .padding(.vertical, 4)
         .accessibilityElement(children: .combine)
+    }
+}
+
+private struct ExploreHighlightedExcerpt: View {
+    let excerpt: String
+    let query: String
+
+    var body: some View {
+        highlightedText
+            .font(.caption)
+            .lineLimit(3)
+            .accessibilityLabel(Text(excerpt))
+    }
+
+    private var highlightedText: Text {
+        guard let range = ExploreSearchHighlight(excerpt: excerpt, query: query).range else {
+            return Text(excerpt)
+                .foregroundColor(.secondary)
+        }
+
+        let lowerBound = excerpt.index(excerpt.startIndex, offsetBy: range.lowerBound)
+        let upperBound = excerpt.index(excerpt.startIndex, offsetBy: range.upperBound)
+        let prefix = String(excerpt[..<lowerBound])
+        let match = String(excerpt[lowerBound..<upperBound])
+        let suffix = String(excerpt[upperBound...])
+
+        return Text(prefix).foregroundColor(.secondary)
+            + Text(match).bold().foregroundColor(.accentColor)
+            + Text(suffix).foregroundColor(.secondary)
     }
 }
 
