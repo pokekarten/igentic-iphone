@@ -38,6 +38,16 @@ public struct DiagnosticView: View {
                     LabeledContent("Privacy", value: state.privacyNotice)
                 }
 
+                Section("Explore") {
+                    NavigationLink("Open local discovery") {
+                        ExploreView()
+                    }
+
+                    Text("Bundled sample content only. No network or model execution.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+
                 Section("Sample / preview snapshot") {
                     LabeledContent("Source", value: state.snapshotSource)
 
