@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build or verify the deterministic docs/explore discovery index."""
+"""Build or verify the deterministic Explore discovery index outputs."""
 from __future__ import annotations
 
 import argparse
@@ -17,6 +17,13 @@ INDEX_SCHEMA_VERSION = 1
 
 def repository_path(path: Path, root: Path) -> str:
     return path.relative_to(root).as_posix()
+
+
+def output_paths(root: Path) -> tuple[Path, Path]:
+    return (
+        root / "docs" / "explore" / "index.json",
+        root / "ios" / "Sources" / "iGenticApp" / "Resources" / "explore-index.json",
+    )
 
 
 def validate_source_content(root: Path) -> None:
@@ -100,7 +107,7 @@ def encoded_index(index: dict[str, Any]) -> str:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Build or verify the deterministic docs/explore index."
+        description="Build or verify the deterministic Explore index outputs."
     )
     parser.add_argument(
         "--root",
@@ -111,31 +118,39 @@ def main() -> int:
     parser.add_argument(
         "--check",
         action="store_true",
-        help="Fail when docs/explore/index.json is missing or stale.",
+        help="Fail when either committed Explore index output is missing or stale.",
     )
     args = parser.parse_args()
 
     root = args.root.resolve()
     validate_source_content(root)
-    output_path = root / "docs" / "explore" / "index.json"
     expected = encoded_index(build_index(root))
+    outputs = output_paths(root)
 
     if args.check:
-        if not output_path.exists():
-            print(f"{repository_path(output_path, root)} is missing.", file=sys.stderr)
+        errors: list[str] = []
+        for output_path in outputs:
+            relative_path = repository_path(output_path, root)
+            if not output_path.exists():
+                errors.append(f"{relative_path} is missing.")
+            elif output_path.read_text(encoding="utf-8") != expected:
+                errors.append(
+                    f"{relative_path} is stale. "
+                    "Run python3 scripts/build_explore_index.py."
+                )
+
+        if errors:
+            for error in errors:
+                print(error, file=sys.stderr)
             return 1
-        if output_path.read_text(encoding="utf-8") != expected:
-            print(
-                f"{repository_path(output_path, root)} is stale. "
-                "Run python3 scripts/build_explore_index.py.",
-                file=sys.stderr,
-            )
-            return 1
-        print("Explore index is up to date.")
+
+        print("Explore index outputs are up to date.")
         return 0
 
-    output_path.write_text(expected, encoding="utf-8")
-    print(f"Wrote {repository_path(output_path, root)}.")
+    for output_path in outputs:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(expected, encoding="utf-8")
+        print(f"Wrote {repository_path(output_path, root)}.")
     return 0
 
 
