@@ -27,12 +27,16 @@ final class ExploreSearchHighlightTests: XCTestCase {
         )
 
         let referenceMatch = try XCTUnwrap(
-            index.searchMatch(for: architecture, query: "LOCAL")
+            index.searchMatch(for: architecture, query: "LOCAL-AI")
         )
+        XCTAssertEqual(referenceMatch.field, .topicReference)
         let referenceRange = try XCTUnwrap(
-            ExploreSearchHighlight(excerpt: referenceMatch.excerpt, query: "LOCAL").range
+            ExploreSearchHighlight(excerpt: referenceMatch.excerpt, query: "LOCAL-AI").range
         )
-        XCTAssertEqual(substring(in: referenceMatch.excerpt, range: referenceRange), "local")
+        XCTAssertEqual(
+            substring(in: referenceMatch.excerpt, range: referenceRange),
+            "local-ai"
+        )
     }
 
     func testHighlightsVisibleFragmentWhenLongQueryIsTruncated() throws {
@@ -60,7 +64,10 @@ final class ExploreSearchHighlightTests: XCTestCase {
 
         XCTAssertEqual(match.excerpt.count, 142)
         XCTAssertEqual(range, 1..<141)
-        XCTAssertEqual(substring(in: match.excerpt, range: range), String(repeating: "x", count: 140))
+        XCTAssertEqual(
+            substring(in: match.excerpt, range: range),
+            String(repeating: "x", count: 140)
+        )
     }
 
     func testBlankOrMissingQueriesHaveNoHighlightRange() {
