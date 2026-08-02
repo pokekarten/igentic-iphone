@@ -91,8 +91,8 @@ final class ExploreDiscoveryIndexTests: XCTestCase {
         let index = try ExploreDiscoveryIndexLoader.loadBundled()
 
         let policyResults = index.search("policy")
-        XCTAssertEqual(policyResults.topics.map(\.slug), ["approvals"])
-        XCTAssertTrue(policyResults.collections.isEmpty)
+        XCTAssertEqual(policyResults.topics.map(\.slug), ["approvals", "privacy"])
+        XCTAssertEqual(policyResults.collections.map(\.slug), ["security"])
 
         let privacyResults = index.search("privacy")
         XCTAssertEqual(privacyResults.topics.map(\.slug), ["privacy"])
