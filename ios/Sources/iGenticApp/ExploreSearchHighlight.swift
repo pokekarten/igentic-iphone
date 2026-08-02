@@ -17,7 +17,7 @@ struct ExploreSearchHighlight: Equatable, Sendable {
             return
         }
 
-        guard normalizedQuery.count > excerpt.count else {
+        guard excerpt.hasPrefix("…") || excerpt.hasSuffix("…") else {
             self.range = nil
             return
         }
