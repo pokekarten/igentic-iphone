@@ -39,8 +39,8 @@ final class ExploreSearchHighlightTests: XCTestCase {
         )
     }
 
-    func testHighlightsVisibleFragmentWhenLongQueryIsTruncated() throws {
-        let longQuery = String(repeating: "x", count: 180)
+    func testHighlightsVisibleFragmentAtFirstOverBudgetQueryLength() throws {
+        let longQuery = String(repeating: "x", count: 141)
         let topic = ExploreDiscoveryIndex.Topic(
             slug: "long-query",
             title: "Synthetic",
@@ -70,9 +70,10 @@ final class ExploreSearchHighlightTests: XCTestCase {
         )
     }
 
-    func testBlankOrMissingQueriesHaveNoHighlightRange() {
+    func testBlankMissingOrUntruncatedSuperstringsHaveNoHighlightRange() {
         XCTAssertNil(ExploreSearchHighlight(excerpt: "Approvals", query: "   ").range)
         XCTAssertNil(ExploreSearchHighlight(excerpt: "Approvals", query: "privacy").range)
+        XCTAssertNil(ExploreSearchHighlight(excerpt: "Approvals", query: "Approvals plus").range)
     }
 
     private func substring(in value: String, range: Range<Int>) -> String {
