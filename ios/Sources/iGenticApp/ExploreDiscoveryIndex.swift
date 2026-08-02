@@ -195,12 +195,12 @@ public struct ExploreDiscoveryIndex: Codable, Equatable, Sendable {
 
         return SearchResults(
             topics: topics.filter { topic in
-                [topic.title, topic.summary, topic.difficulty]
+                [topic.title, topic.summary, topic.difficulty, topic.bodyMarkdown]
                     .contains(where: { $0.lowercased().contains(normalizedQuery) })
                     || topic.tags.contains(where: { $0.lowercased().contains(normalizedQuery) })
             },
             collections: collections.filter { collection in
-                [collection.title, collection.description]
+                [collection.title, collection.description, collection.bodyMarkdown]
                     .contains(where: { $0.lowercased().contains(normalizedQuery) })
                     || collection.topicSlugs.contains(where: { $0.lowercased().contains(normalizedQuery) })
             }
