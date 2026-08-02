@@ -2,20 +2,54 @@
 import SwiftUI
 
 public struct ExploreView: View {
-    private let index: ExploreDiscoveryIndex
+    private enum Source {
+        case loaded(ExploreDiscoveryIndex)
+        case failed(ExploreDiscoveryIndexLoader.LoadingError)
+    }
+
+    private let source: Source
     @State private var searchText = ""
 
-    public init(index: ExploreDiscoveryIndex = .sample) {
-        self.index = index
+    public init() {
+        do {
+            self.source = .loaded(try ExploreDiscoveryIndexLoader.loadBundled())
+        } catch let error as ExploreDiscoveryIndexLoader.LoadingError {
+            self.source = .failed(error)
+        } catch {
+            self.source = .failed(.invalidData)
+        }
+    }
+
+    public init(index: ExploreDiscoveryIndex) {
+        self.source = .loaded(index)
     }
 
     public var body: some View {
+        switch source {
+        case .loaded(let index):
+            ExploreContentView(index: index, searchText: $searchText)
+        case .failed(let error):
+            ContentUnavailableView(
+                "Explore unavailable",
+                systemImage: "exclamationmark.triangle",
+                description: Text(error.localizedDescription)
+            )
+            .navigationTitle("Explore")
+        }
+    }
+}
+
+private struct ExploreContentView: View {
+    let index: ExploreDiscoveryIndex
+    @Binding var searchText: String
+
+    var body: some View {
         let results = index.search(searchText)
 
         List {
             Section("Local discovery") {
                 LabeledContent("Index schema", value: "v\(index.schemaVersion)")
-                Text("Searches only the bundled sample index. No network request, model call, or private user data is used.")
+                Text("Searches only the bundled generated index. No network request, model call, or private user data is used.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
@@ -39,7 +73,7 @@ public struct ExploreView: View {
                             title: topic.title,
                             summary: topic.summary,
                             metadata: "\(topic.difficulty.capitalized) · \(topic.tags.joined(separator: ", "))",
-                            systemImage: topic.icon
+                            systemImage: systemImageName(for: topic.icon)
                         )
                     }
                 }
@@ -62,6 +96,15 @@ public struct ExploreView: View {
         }
         .navigationTitle("Explore")
         .searchable(text: $searchText, prompt: "Search local Explore content")
+    }
+
+    private func systemImageName(for contentIcon: String) -> String {
+        switch contentIcon {
+        case "check-circle":
+            return "checkmark.circle"
+        default:
+            return contentIcon
+        }
     }
 }
 
