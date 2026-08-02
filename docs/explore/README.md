@@ -47,7 +47,7 @@ Use `--root <path>` when validating a checkout that is not the current working d
 
 ## Generated discovery index
 
-`index.json` is the versioned, UI-ready projection of the topic, collection, and featured metadata. Topics and collections are sorted by slug. The order in `featured/featured.yml` is preserved exactly.
+`index.json` is the versioned, UI-ready projection of the topic, collection, and featured metadata. Topics and collections are sorted by slug. The order in `docs/explore/featured/featured.yml` is preserved exactly.
 
 Regenerate the index after changing Explore content:
 
