@@ -5,6 +5,7 @@ import SwiftUI
 public struct AppActionApprovalPolicySettingsView: View {
     @Binding private var policy: AppActionApprovalPolicy
     private let store: AppActionApprovalPolicyStore
+    @State private var draftPolicy: AppActionApprovalPolicy
     @State private var statusMessage: String?
 
     private static let actionKinds: [AppActionDraft.ActionKind] = [
@@ -20,6 +21,7 @@ public struct AppActionApprovalPolicySettingsView: View {
     ) {
         self._policy = policy
         self.store = store
+        self._draftPolicy = State(initialValue: policy.wrappedValue)
     }
 
     public var body: some View {
@@ -39,12 +41,12 @@ public struct AppActionApprovalPolicySettingsView: View {
 
             Section {
                 Button("Save locally") {
-                    save(policy)
+                    save(draftPolicy)
                 }
 
                 Button("Restore setup defaults", role: .destructive) {
                     let defaultPolicy = AppActionApprovalPolicy.default
-                    policy = defaultPolicy
+                    draftPolicy = defaultPolicy
                     save(defaultPolicy)
                 }
             }
@@ -61,10 +63,10 @@ public struct AppActionApprovalPolicySettingsView: View {
     private func requiresApprovalBinding(for actionKind: AppActionDraft.ActionKind) -> Binding<Bool> {
         Binding(
             get: {
-                policy.requiresApproval(for: actionKind) ?? true
+                draftPolicy.requiresApproval(for: actionKind) ?? true
             },
             set: { requiresApproval in
-                policy = policy.replacingRule(
+                draftPolicy = draftPolicy.replacingRule(
                     for: actionKind,
                     requiresApproval: requiresApproval,
                     enabled: true
@@ -74,9 +76,10 @@ public struct AppActionApprovalPolicySettingsView: View {
         )
     }
 
-    private func save(_ policy: AppActionApprovalPolicy) {
+    private func save(_ policyToSave: AppActionApprovalPolicy) {
         do {
-            try store.save(policy)
+            try store.save(policyToSave)
+            policy = policyToSave
             statusMessage = "Saved on this device."
         } catch {
             statusMessage = "The policy could not be saved."
