@@ -1,7 +1,7 @@
 import Foundation
 
-public struct ExploreDiscoveryIndex: Equatable, Sendable {
-    public struct Topic: Equatable, Identifiable, Sendable {
+public struct ExploreDiscoveryIndex: Codable, Equatable, Sendable {
+    public struct Topic: Codable, Equatable, Identifiable, Sendable {
         public let slug: String
         public let title: String
         public let summary: String
@@ -29,9 +29,19 @@ public struct ExploreDiscoveryIndex: Equatable, Sendable {
             self.icon = icon
             self.isFeatured = isFeatured
         }
+
+        private enum CodingKeys: String, CodingKey {
+            case slug
+            case title
+            case summary
+            case tags
+            case difficulty
+            case icon
+            case isFeatured = "featured"
+        }
     }
 
-    public struct Collection: Equatable, Identifiable, Sendable {
+    public struct Collection: Codable, Equatable, Identifiable, Sendable {
         public let slug: String
         public let title: String
         public let description: String
@@ -53,10 +63,18 @@ public struct ExploreDiscoveryIndex: Equatable, Sendable {
             self.topicSlugs = topicSlugs
             self.isFeatured = isFeatured
         }
+
+        private enum CodingKeys: String, CodingKey {
+            case slug
+            case title
+            case description
+            case topicSlugs = "topics"
+            case isFeatured = "featured"
+        }
     }
 
-    public struct FeaturedReference: Equatable, Sendable {
-        public enum Kind: String, Equatable, Sendable {
+    public struct FeaturedReference: Codable, Equatable, Sendable {
+        public enum Kind: String, Codable, Equatable, Sendable {
             case topic
             case collection
         }
@@ -170,66 +188,57 @@ public struct ExploreDiscoveryIndex: Equatable, Sendable {
     }
 }
 
-public extension ExploreDiscoveryIndex {
-    static let sample = ExploreDiscoveryIndex(
-        schemaVersion: 1,
-        featured: [
-            FeaturedReference(kind: .topic, slug: "privacy"),
-            FeaturedReference(kind: .topic, slug: "approvals"),
-            FeaturedReference(kind: .topic, slug: "local-ai"),
-            FeaturedReference(kind: .collection, slug: "getting-started")
-        ],
-        topics: [
-            Topic(
-                slug: "approvals",
-                title: "Approvals",
-                summary: "Defining when iGentic should ask before an action is executed.",
-                tags: ["approvals", "policy", "safety"],
-                difficulty: "beginner",
-                icon: "checkmark.circle",
-                isFeatured: true
-            ),
-            Topic(
-                slug: "local-ai",
-                title: "Local AI",
-                summary: "Routing, running, and validating AI work locally before any delegation.",
-                tags: ["local-ai", "runtime", "routing"],
-                difficulty: "intermediate",
-                icon: "cpu",
-                isFeatured: true
-            ),
-            Topic(
-                slug: "privacy",
-                title: "Privacy First",
-                summary: "Building AI that keeps personal data on device whenever possible.",
-                tags: ["privacy", "security", "local-first"],
-                difficulty: "beginner",
-                icon: "shield",
-                isFeatured: true
-            )
-        ],
-        collections: [
-            Collection(
-                slug: "architecture",
-                title: "Architecture",
-                description: "The main building blocks and how they fit together.",
-                topicSlugs: ["local-ai", "approvals"],
-                isFeatured: true
-            ),
-            Collection(
-                slug: "getting-started",
-                title: "Getting Started",
-                description: "The shortest path into the core iGentic concepts.",
-                topicSlugs: ["privacy", "approvals", "local-ai"],
-                isFeatured: true
-            ),
-            Collection(
-                slug: "security",
-                title: "Security",
-                description: "Privacy, auditability, and safe execution boundaries.",
-                topicSlugs: ["privacy", "approvals"],
-                isFeatured: false
-            )
-        ]
-    )
+public enum ExploreDiscoveryIndexLoader {
+    public static let supportedSchemaVersion = 1
+
+    public enum LoadingError: Error, Equatable, LocalizedError, Sendable {
+        case resourceNotFound
+        case unreadableResource
+        case invalidData
+        case unsupportedSchemaVersion(Int)
+
+        public var errorDescription: String? {
+            switch self {
+            case .resourceNotFound:
+                return "The bundled Explore index is missing."
+            case .unreadableResource:
+                return "The bundled Explore index could not be read."
+            case .invalidData:
+                return "The bundled Explore index is not valid JSON for this app."
+            case .unsupportedSchemaVersion(let version):
+                return "Explore index schema version \(version) is not supported."
+            }
+        }
+    }
+
+    public static func decode(_ data: Data) throws -> ExploreDiscoveryIndex {
+        let index: ExploreDiscoveryIndex
+        do {
+            index = try JSONDecoder().decode(ExploreDiscoveryIndex.self, from: data)
+        } catch {
+            throw LoadingError.invalidData
+        }
+
+        guard index.schemaVersion == supportedSchemaVersion else {
+            throw LoadingError.unsupportedSchemaVersion(index.schemaVersion)
+        }
+        return index
+    }
+
+    public static func loadBundled() throws -> ExploreDiscoveryIndex {
+        guard let resourceURL = Bundle.module.url(
+            forResource: "explore-index",
+            withExtension: "json"
+        ) else {
+            throw LoadingError.resourceNotFound
+        }
+
+        let data: Data
+        do {
+            data = try Data(contentsOf: resourceURL)
+        } catch {
+            throw LoadingError.unreadableResource
+        }
+        return try decode(data)
+    }
 }
