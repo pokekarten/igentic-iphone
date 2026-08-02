@@ -18,7 +18,11 @@ public struct AppActionApprovalPolicyEditor: Sendable {
     }
 
     public mutating func setNote(_ note: String?, for actionKind: AppActionDraft.ActionKind) {
-        policy = policy.replacingRule(for: actionKind, note: note)
+        policy = policy.replacingRule(
+            for: actionKind,
+            note: note,
+            shouldReplaceNote: true
+        )
     }
 
     public mutating func resetToDefault() {
@@ -35,13 +39,15 @@ public extension AppActionApprovalPolicy {
         for actionKind: AppActionDraft.ActionKind,
         requiresApproval: Bool? = nil,
         enabled: Bool? = nil,
-        note: String? = nil
+        note: String? = nil,
+        shouldReplaceNote: Bool = false
     ) -> AppActionApprovalPolicy {
+        let existingRule = rule(for: actionKind)
         let rule = Rule(
             actionKind: actionKind,
-            requiresApproval: requiresApproval ?? rule(for: actionKind)?.requiresApproval ?? false,
-            enabled: enabled ?? rule(for: actionKind)?.enabled ?? true,
-            note: note ?? rule(for: actionKind)?.note
+            requiresApproval: requiresApproval ?? existingRule?.requiresApproval ?? false,
+            enabled: enabled ?? existingRule?.enabled ?? true,
+            note: shouldReplaceNote ? note : note ?? existingRule?.note
         )
 
         var updatedRules = rules.filter { $0.actionKindRawValue != actionKind.rawValue }

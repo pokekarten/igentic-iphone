@@ -54,6 +54,28 @@ final class AppActionApprovalPolicyEditorTests: XCTestCase {
         XCTAssertEqual(loaded, editor.policy)
     }
 
+    func testEditorCanClearExistingNote() throws {
+        let (store, directoryURL) = try makeTemporaryStore()
+        defer { try? FileManager.default.removeItem(at: directoryURL) }
+
+        let initialPolicy = AppActionApprovalPolicy(
+            rules: [
+                .init(actionKind: .sendMessage, requiresApproval: false, note: "Temporary note."),
+                .init(actionKind: .deleteRecord, requiresApproval: true),
+                .init(actionKind: .updateRecord, requiresApproval: true),
+                .init(actionKind: .exportData, requiresApproval: true)
+            ]
+        )
+        try store.save(initialPolicy)
+
+        var editor = try AppActionApprovalPolicyEditor(store: store)
+        editor.setNote(nil, for: .sendMessage)
+        try editor.save()
+
+        XCTAssertNil(editor.policy.rule(for: .sendMessage)?.note)
+        XCTAssertNil(store.load()?.rule(for: .sendMessage)?.note)
+    }
+
     func testResetToDefaultRestoresSetupPolicy() throws {
         let (store, directoryURL) = try makeTemporaryStore()
         defer { try? FileManager.default.removeItem(at: directoryURL) }
