@@ -14,7 +14,11 @@ let package = Package(
     ],
     targets: [
         .target(name: "AgentCore"),
-        .target(name: "iGenticApp", dependencies: ["AgentCore"]),
+        .target(
+            name: "iGenticApp",
+            dependencies: ["AgentCore"],
+            resources: [.process("Resources")]
+        ),
         .testTarget(name: "AgentCoreTests", dependencies: ["AgentCore"]),
         .testTarget(name: "iGenticAppTests", dependencies: ["iGenticApp", "AgentCore"])
     ]

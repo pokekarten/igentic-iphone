@@ -1,9 +1,10 @@
+import Foundation
 import XCTest
 @testable import iGenticApp
 
 final class ExploreDiscoveryIndexTests: XCTestCase {
-    func testSampleMatchesExpectedLocalDiscoveryShape() {
-        let index = ExploreDiscoveryIndex.sample
+    func testBundledIndexMatchesExpectedLocalDiscoveryShape() throws {
+        let index = try ExploreDiscoveryIndexLoader.loadBundled()
 
         XCTAssertEqual(index.schemaVersion, 1)
         XCTAssertEqual(index.topics.map(\.slug), ["approvals", "local-ai", "privacy"])
@@ -14,24 +15,24 @@ final class ExploreDiscoveryIndexTests: XCTestCase {
         )
     }
 
-    func testFeaturedResolutionPreservesOrderAndSkipsUnknownReferences() {
-        let sample = ExploreDiscoveryIndex.sample
+    func testFeaturedResolutionPreservesOrderAndSkipsUnknownReferences() throws {
+        let bundled = try ExploreDiscoveryIndexLoader.loadBundled()
         let index = ExploreDiscoveryIndex(
-            schemaVersion: sample.schemaVersion,
+            schemaVersion: bundled.schemaVersion,
             featured: [
                 .init(kind: .collection, slug: "getting-started"),
                 .init(kind: .topic, slug: "missing"),
                 .init(kind: .topic, slug: "privacy")
             ],
-            topics: sample.topics,
-            collections: sample.collections
+            topics: bundled.topics,
+            collections: bundled.collections
         )
 
         XCTAssertEqual(index.resolvedFeaturedItems.map(\.title), ["Getting Started", "Privacy First"])
     }
 
-    func testSearchUsesOnlyLocalTopicAndCollectionMetadata() {
-        let index = ExploreDiscoveryIndex.sample
+    func testSearchUsesOnlyLocalTopicAndCollectionMetadata() throws {
+        let index = try ExploreDiscoveryIndexLoader.loadBundled()
 
         let policyResults = index.search("policy")
         XCTAssertEqual(policyResults.topics.map(\.slug), ["approvals"])
@@ -43,5 +44,36 @@ final class ExploreDiscoveryIndexTests: XCTestCase {
 
         XCTAssertEqual(index.search("   ").topics, index.topics)
         XCTAssertEqual(index.search("   ").collections, index.collections)
+    }
+
+    func testMalformedJSONFailsDeterministically() {
+        XCTAssertThrowsError(
+            try ExploreDiscoveryIndexLoader.decode(Data("not-json".utf8))
+        ) { error in
+            XCTAssertEqual(
+                error as? ExploreDiscoveryIndexLoader.LoadingError,
+                .invalidData
+            )
+        }
+    }
+
+    func testUnsupportedSchemaVersionFailsDeterministically() {
+        let data = Data(
+            """
+            {
+              "schemaVersion": 2,
+              "featured": [],
+              "topics": [],
+              "collections": []
+            }
+            """.utf8
+        )
+
+        XCTAssertThrowsError(try ExploreDiscoveryIndexLoader.decode(data)) { error in
+            XCTAssertEqual(
+                error as? ExploreDiscoveryIndexLoader.LoadingError,
+                .unsupportedSchemaVersion(2)
+            )
+        }
     }
 }
