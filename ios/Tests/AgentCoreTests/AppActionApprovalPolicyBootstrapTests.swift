@@ -22,6 +22,7 @@ final class AppActionApprovalPolicyBootstrapTests: XCTestCase {
             XCTFail("Expected installedDefault when the policy file is missing")
         }
 
+        XCTAssertTrue(state.requiresSetupConfirmation)
         XCTAssertTrue(FileManager.default.fileExists(atPath: url.path))
         XCTAssertEqual(AppActionApprovalPolicyStore(fileURL: url).load(), .default)
     }
@@ -50,6 +51,7 @@ final class AppActionApprovalPolicyBootstrapTests: XCTestCase {
             XCTFail("Expected loadedExisting when a valid policy file is already present")
         }
 
+        XCTAssertFalse(state.requiresSetupConfirmation)
         XCTAssertEqual(store.load(), policy)
     }
 
@@ -67,6 +69,7 @@ final class AppActionApprovalPolicyBootstrapTests: XCTestCase {
             XCTFail("Expected fellBackToDefault when the stored file is corrupt")
         }
 
+        XCTAssertTrue(state.requiresSetupConfirmation)
         XCTAssertNil(AppActionApprovalPolicyStore(fileURL: url).load())
     }
 }

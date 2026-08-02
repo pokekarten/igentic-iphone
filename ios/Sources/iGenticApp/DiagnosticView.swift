@@ -5,16 +5,26 @@ import SwiftUI
 public struct DiagnosticView: View {
     private let state: DiagnosticViewState
     private let approvalPolicyStore: AppActionApprovalPolicyStore?
+    private let setupConfirmationStore: AppActionApprovalPolicySetupConfirmationStore?
     @State private var approvalPolicy: AppActionApprovalPolicy
+    @State private var isInitialSetupPresented: Bool
 
     public init(
         state: DiagnosticViewState = DiagnosticViewState(),
         approvalPolicy: AppActionApprovalPolicy = .default,
-        approvalPolicyStore: AppActionApprovalPolicyStore? = nil
+        approvalPolicyStore: AppActionApprovalPolicyStore? = nil,
+        setupConfirmationStore: AppActionApprovalPolicySetupConfirmationStore? = nil,
+        requiresInitialSetupConfirmation: Bool = false
     ) {
         self.state = state
         self.approvalPolicyStore = approvalPolicyStore
+        self.setupConfirmationStore = setupConfirmationStore
         self._approvalPolicy = State(initialValue: approvalPolicy)
+        self._isInitialSetupPresented = State(
+            initialValue: requiresInitialSetupConfirmation
+                && approvalPolicyStore != nil
+                && setupConfirmationStore != nil
+        )
     }
 
     public var body: some View {
@@ -77,6 +87,23 @@ public struct DiagnosticView: View {
                 }
             }
             .navigationTitle("iGentic Diagnostics")
+        }
+        .sheet(isPresented: $isInitialSetupPresented) {
+            if let approvalPolicyStore, let setupConfirmationStore {
+                NavigationStack {
+                    AppActionApprovalPolicySettingsView(
+                        policy: $approvalPolicy,
+                        store: approvalPolicyStore,
+                        guidance: "Review the local defaults before using app actions. You can change them now and later in diagnostics settings.",
+                        saveButtonTitle: "Confirm and continue",
+                        onSuccessfulSave: {
+                            try setupConfirmationStore.confirm()
+                            isInitialSetupPresented = false
+                        }
+                    )
+                }
+                .interactiveDismissDisabled()
+            }
         }
     }
 }

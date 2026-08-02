@@ -11,6 +11,15 @@ public enum AppActionApprovalPolicyBootstrapState: Equatable, Sendable {
             return policy
         }
     }
+
+    public var requiresSetupConfirmation: Bool {
+        switch self {
+        case .loadedExisting:
+            return false
+        case .installedDefault, .fellBackToDefault:
+            return true
+        }
+    }
 }
 
 public struct AppActionApprovalPolicyBootstrap: Sendable {
