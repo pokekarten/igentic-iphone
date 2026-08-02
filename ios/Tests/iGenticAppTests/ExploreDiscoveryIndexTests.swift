@@ -150,6 +150,33 @@ final class ExploreDiscoveryIndexTests: XCTestCase {
         XCTAssertLessThanOrEqual(collectionMatch.excerpt.count, 142)
     }
 
+    func testSearchMatchBoundsExcerptWhenQueryExceedsContentBudget() throws {
+        let longQuery = String(repeating: "x", count: 180)
+        let topic = ExploreDiscoveryIndex.Topic(
+            slug: "long-query",
+            title: "Synthetic",
+            summary: "Synthetic long-query regression fixture.",
+            bodyMarkdown: "prefix \(longQuery) suffix",
+            tags: [],
+            difficulty: "test",
+            icon: "doc",
+            isFeatured: false
+        )
+        let index = ExploreDiscoveryIndex(
+            schemaVersion: 2,
+            featured: [],
+            topics: [topic],
+            collections: []
+        )
+
+        let match = try XCTUnwrap(index.searchMatch(for: topic, query: longQuery))
+        XCTAssertEqual(match.field, .content)
+        XCTAssertLessThanOrEqual(match.excerpt.count, 142)
+        XCTAssertTrue(match.excerpt.hasPrefix("…"))
+        XCTAssertTrue(match.excerpt.hasSuffix("…"))
+        XCTAssertTrue(match.excerpt.contains(String(longQuery.prefix(100))))
+    }
+
     func testBlankSearchHasNoMatchExplanation() throws {
         let index = try ExploreDiscoveryIndexLoader.loadBundled()
         let privacy = try XCTUnwrap(index.topic(slug: "privacy"))
