@@ -1,0 +1,101 @@
+{
+  "collections": [
+    {
+      "description": "The main building blocks and how they fit together.",
+      "featured": true,
+      "path": "docs/explore/collections/architecture/index.md",
+      "slug": "architecture",
+      "title": "Architecture",
+      "topics": [
+        "local-ai",
+        "approvals"
+      ]
+    },
+    {
+      "description": "The shortest path into the core iGentic concepts.",
+      "featured": true,
+      "path": "docs/explore/collections/getting-started/index.md",
+      "slug": "getting-started",
+      "title": "Getting Started",
+      "topics": [
+        "privacy",
+        "approvals",
+        "local-ai"
+      ]
+    },
+    {
+      "description": "Privacy, auditability, and safe execution boundaries.",
+      "featured": false,
+      "path": "docs/explore/collections/security/index.md",
+      "slug": "security",
+      "title": "Security",
+      "topics": [
+        "privacy",
+        "approvals"
+      ]
+    }
+  ],
+  "featured": [
+    {
+      "kind": "topic",
+      "slug": "privacy"
+    },
+    {
+      "kind": "topic",
+      "slug": "approvals"
+    },
+    {
+      "kind": "topic",
+      "slug": "local-ai"
+    },
+    {
+      "kind": "collection",
+      "slug": "getting-started"
+    }
+  ],
+  "schemaVersion": 1,
+  "topics": [
+    {
+      "difficulty": "beginner",
+      "featured": true,
+      "icon": "check-circle",
+      "path": "docs/explore/topics/approvals/index.md",
+      "slug": "approvals",
+      "summary": "Defining when iGentic should ask before an action is executed.",
+      "tags": [
+        "approvals",
+        "policy",
+        "safety"
+      ],
+      "title": "Approvals"
+    },
+    {
+      "difficulty": "intermediate",
+      "featured": true,
+      "icon": "cpu",
+      "path": "docs/explore/topics/local-ai/index.md",
+      "slug": "local-ai",
+      "summary": "Routing, running, and validating AI work locally before any delegation.",
+      "tags": [
+        "local-ai",
+        "runtime",
+        "routing"
+      ],
+      "title": "Local AI"
+    },
+    {
+      "difficulty": "beginner",
+      "featured": true,
+      "icon": "shield",
+      "path": "docs/explore/topics/privacy/index.md",
+      "slug": "privacy",
+      "summary": "Building AI that keeps personal data on device whenever possible.",
+      "tags": [
+        "privacy",
+        "security",
+        "local-first"
+      ],
+      "title": "Privacy First"
+    }
+  ]
+}
