@@ -1,45 +1,71 @@
 # App Action approval policy implementation note
 
-Status: runtime wiring in progress
-Date: 2026-07-30
+Status: implementation complete for issue #185
+Date: 2026-08-02
 Related issue: #185
 
-## What is implemented
+## Implemented policy contract
 
-A small local-only policy model now exists in `ios/Sources/AgentCore/AppActionApprovalPolicy.swift`:
+The local-only policy model in `ios/Sources/AgentCore/AppActionApprovalPolicy.swift` provides:
 
-- schema version
-- per-`AppActionDraft.ActionKind` rule entries
-- approval required yes/no
-- enabled yes/no
-- optional note/rationale
-- default setup policy
-- JSON save/load store with fallback to defaults
-- deterministic local Application Support file URL for the diagnostics app
-- startup bootstrap that loads the local policy or installs the setup default on first run
+- a schema version;
+- one explicit rule per `AppActionDraft.ActionKind`;
+- approval-required and enabled values;
+- optional display-only notes;
+- a conservative setup default;
+- deterministic JSON save/load behavior;
+- safe fallback to defaults for missing or invalid local data;
+- a deterministic Application Support location.
 
-`AppActionCoordinator` now accepts an optional configured policy and uses it as the approval gate after the existing allow/blocked policy decision has passed.
+`AppActionCoordinator` consumes the configured approval requirement only after the existing deterministic allow/block decision. A configured rule cannot turn a blocked action into an allowed action.
 
-## What the slice does not do yet
+## Setup and settings behavior
 
-- no setup screen or admin/settings UI
-- no app-wide persistence editing UI
-- no network-backed configuration
+The diagnostic app now:
 
-## Tests added
+- prepares the local policy at startup;
+- shows the effective persisted policy in diagnostics;
+- provides a local settings page for the four supported action families;
+- keeps edits as a draft until the user saves;
+- saves changes through `AppActionApprovalPolicyStore`;
+- supports restoring and saving the setup defaults;
+- requires an explicit first-run confirmation before setup is complete;
+- records that confirmation in a separate local versioned marker;
+- repeats the confirmation after a missing, recreated, or invalid policy state;
+- prevents dismissing the first-run confirmation without a successful save.
 
-`ios/Tests/AgentCoreTests/AppActionApprovalPolicyTests.swift` pins:
+The setup confirmation marker contains no private task content, policy values, messages, contacts, files, credentials, or device identifiers.
 
-- the setup default policy
-- the local JSON round trip
-- fallback to defaults when the stored file is invalid
-- disabled-rule fallback behavior
+## Safety boundaries preserved
 
-`ios/Tests/AgentCoreTests/AppActionCoordinatorTests.swift` now also pins:
+- `PolicyEngine.isAllowed == false` remains a hard stop.
+- Restricted sensitive data remains blocked from automatic external delegation.
+- Approval receipts remain bound to the exact app-action draft.
+- Models, runtimes, tools, and settings cannot authorize themselves.
+- No network-backed policy distribution or administration was added.
+- Approval requirements are not inferred from arbitrary task text.
 
-- configured approval-required sendMessage flow
-- blocked-action semantics still remain blocked
+## Validation coverage
 
-## Next step
+The repository includes coverage for:
 
-Wire the stored policy into setup/admin configuration editing and surface the effective policy in diagnostics when that editable policy becomes the source of truth.
+- setup defaults;
+- JSON persistence round trips;
+- invalid-file fallback;
+- bootstrap loaded/default/fallback states;
+- configured approval-required and configured no-approval actions;
+- blocked-action semantics;
+- local policy editor persistence and reset;
+- clearing an existing optional note;
+- effective-policy diagnostic presentation;
+- setup-confirmation marker persistence and invalid-marker rejection.
+
+Executable validation remains:
+
+- `python3 scripts/validate_repo_structure.py`;
+- `cd ios && swift test` on macOS and Linux;
+- the iOS App Wrapper simulator build, launch, screenshot, termination, and relaunch smoke test.
+
+## Out of scope
+
+This implementation does not add networking, remote administration, model execution, App Intents side effects, signing, entitlements, or a broader settings architecture.
