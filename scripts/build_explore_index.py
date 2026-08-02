@@ -12,7 +12,7 @@ from typing import Any
 from validate_explore_content import read_markdown_file, read_yaml_file
 
 ROOT = Path(__file__).resolve().parents[1]
-INDEX_SCHEMA_VERSION = 1
+INDEX_SCHEMA_VERSION = 2
 
 
 def repository_path(path: Path, root: Path) -> str:
@@ -42,9 +42,51 @@ def validate_source_content(root: Path) -> None:
         raise SystemExit(result.returncode)
 
 
+def normalized_markdown_body(path: Path, root: Path, title: str) -> str:
+    lines = path.read_text(encoding="utf-8").splitlines()
+    closing_index = None
+    for index, line in enumerate(lines[1:], start=1):
+        if line.strip() == "---":
+            closing_index = index
+            break
+
+    if closing_index is None:
+        raise ValueError(
+            f"{repository_path(path, root)}: missing front matter end delimiter '---'"
+        )
+
+    body_lines = lines[closing_index + 1 :]
+    while body_lines and not body_lines[0].strip():
+        body_lines.pop(0)
+
+    expected_heading = f"# {title}"
+    if not body_lines or body_lines[0].strip() != expected_heading:
+        raise ValueError(
+            f"{repository_path(path, root)}: Markdown body must start with "
+            f"the title heading '{expected_heading}'"
+        )
+
+    body_lines = body_lines[1:]
+    while body_lines and not body_lines[0].strip():
+        body_lines.pop(0)
+    while body_lines and not body_lines[-1].strip():
+        body_lines.pop()
+
+    body = "\n".join(body_lines).strip()
+    if not body:
+        raise ValueError(
+            f"{repository_path(path, root)}: Markdown body must contain content "
+            "after the title heading"
+        )
+    return body
+
+
 def topic_record(path: Path, root: Path) -> dict[str, Any]:
     front_matter = read_markdown_file(path, root=root)
     return {
+        "bodyMarkdown": normalized_markdown_body(
+            path, root, front_matter["title"]
+        ),
         "difficulty": front_matter.get("difficulty"),
         "featured": front_matter.get("featured", False),
         "icon": front_matter.get("icon"),
@@ -59,6 +101,9 @@ def topic_record(path: Path, root: Path) -> dict[str, Any]:
 def collection_record(path: Path, root: Path) -> dict[str, Any]:
     front_matter = read_markdown_file(path, root=root)
     return {
+        "bodyMarkdown": normalized_markdown_body(
+            path, root, front_matter["title"]
+        ),
         "description": front_matter["description"],
         "featured": front_matter.get("featured", False),
         "path": repository_path(path, root),
@@ -124,7 +169,12 @@ def main() -> int:
 
     root = args.root.resolve()
     validate_source_content(root)
-    expected = encoded_index(build_index(root))
+    try:
+        expected = encoded_index(build_index(root))
+    except ValueError as exc:
+        print("Explore index build failed:", file=sys.stderr)
+        print(f"- {exc}", file=sys.stderr)
+        return 1
     outputs = output_paths(root)
 
     if args.check:
