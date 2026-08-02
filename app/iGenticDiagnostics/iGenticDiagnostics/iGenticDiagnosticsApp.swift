@@ -20,18 +20,10 @@ struct iGenticDiagnosticsApp: App {
             store: policyStore
         ).prepare()
 
-        let bootstrapRequiresConfirmation: Bool
-        switch bootstrapState {
-        case .some(.loadedExisting(_)):
-            bootstrapRequiresConfirmation = false
-        case .some(.installedDefault(_)), .some(.fellBackToDefault(_)), .none:
-            bootstrapRequiresConfirmation = true
-        }
-
         self.approvalPolicyStore = policyStore
         self.setupConfirmationStore = confirmationStore
         self.initialApprovalPolicy = bootstrapState?.policy ?? .default
-        self.requiresInitialSetupConfirmation = bootstrapRequiresConfirmation
+        self.requiresInitialSetupConfirmation = (bootstrapState?.requiresSetupConfirmation ?? true)
             || !confirmationStore.isConfirmed()
     }
 
