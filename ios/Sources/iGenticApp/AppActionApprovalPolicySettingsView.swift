@@ -5,6 +5,9 @@ import SwiftUI
 public struct AppActionApprovalPolicySettingsView: View {
     @Binding private var policy: AppActionApprovalPolicy
     private let store: AppActionApprovalPolicyStore
+    private let guidance: String?
+    private let saveButtonTitle: String
+    private let onSuccessfulSave: () throws -> Void
     @State private var draftPolicy: AppActionApprovalPolicy
     @State private var statusMessage: String?
 
@@ -17,15 +20,27 @@ public struct AppActionApprovalPolicySettingsView: View {
 
     public init(
         policy: Binding<AppActionApprovalPolicy>,
-        store: AppActionApprovalPolicyStore
+        store: AppActionApprovalPolicyStore,
+        guidance: String? = nil,
+        saveButtonTitle: String = "Save locally",
+        onSuccessfulSave: @escaping () throws -> Void = {}
     ) {
         self._policy = policy
         self.store = store
+        self.guidance = guidance
+        self.saveButtonTitle = saveButtonTitle
+        self.onSuccessfulSave = onSuccessfulSave
         self._draftPolicy = State(initialValue: policy.wrappedValue)
     }
 
     public var body: some View {
         Form {
+            if let guidance {
+                Section("Setup") {
+                    Text(guidance)
+                }
+            }
+
             Section {
                 ForEach(Self.actionKinds, id: \.rawValue) { actionKind in
                     Toggle(
@@ -40,7 +55,7 @@ public struct AppActionApprovalPolicySettingsView: View {
             }
 
             Section {
-                Button("Save locally") {
+                Button(saveButtonTitle) {
                     save(draftPolicy)
                 }
 
@@ -79,10 +94,11 @@ public struct AppActionApprovalPolicySettingsView: View {
     private func save(_ policyToSave: AppActionApprovalPolicy) {
         do {
             try store.save(policyToSave)
+            try onSuccessfulSave()
             policy = policyToSave
             statusMessage = "Saved on this device."
         } catch {
-            statusMessage = "The policy could not be saved."
+            statusMessage = "The policy or confirmation could not be saved."
         }
     }
 
