@@ -1,6 +1,7 @@
 {
   "collections": [
     {
+      "bodyMarkdown": "A curated entry point for the control pipeline, kernel components, and the decision flow that keeps execution gated.",
       "description": "The main building blocks and how they fit together.",
       "featured": true,
       "path": "docs/explore/collections/architecture/index.md",
@@ -12,6 +13,7 @@
       ]
     },
     {
+      "bodyMarkdown": "A small curated path for new contributors and readers who want the core control-plane concepts first.",
       "description": "The shortest path into the core iGentic concepts.",
       "featured": true,
       "path": "docs/explore/collections/getting-started/index.md",
@@ -24,6 +26,7 @@
       ]
     },
     {
+      "bodyMarkdown": "A short collection for policy boundaries, data handling, and the rules that keep the system safe.",
       "description": "Privacy, auditability, and safe execution boundaries.",
       "featured": false,
       "path": "docs/explore/collections/security/index.md",
@@ -53,9 +56,10 @@
       "slug": "getting-started"
     }
   ],
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "topics": [
     {
+      "bodyMarkdown": "This topic covers approval gates, user confirmation, and the line between draft and execution.\n\n## Related ideas\n\n- approval receipts\n- critical actions\n- delegated execution\n- policy thresholds",
       "difficulty": "beginner",
       "featured": true,
       "icon": "check-circle",
@@ -70,6 +74,7 @@
       "title": "Approvals"
     },
     {
+      "bodyMarkdown": "This topic covers the local runtime path: interpretation, routing, execution budgets, and when a task should stay on device.\n\n## Related ideas\n\n- AgentKernel\n- TaskRouter\n- runtime budget checks\n- offline-capable workflows",
       "difficulty": "intermediate",
       "featured": true,
       "icon": "cpu",
@@ -84,6 +89,7 @@
       "title": "Local AI"
     },
     {
+      "bodyMarkdown": "This topic groups content about local-first behavior, minimization, redaction, and safe handling of private data.\n\n## Related ideas\n\n- on-device context\n- approval before execution\n- audit logs for meaningful decisions\n- delegation only after policy checks",
       "difficulty": "beginner",
       "featured": true,
       "icon": "shield",

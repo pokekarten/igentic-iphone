@@ -5,6 +5,7 @@ public struct ExploreDiscoveryIndex: Codable, Equatable, Sendable {
         public let slug: String
         public let title: String
         public let summary: String
+        public let bodyMarkdown: String
         public let tags: [String]
         public let difficulty: String
         public let icon: String
@@ -16,6 +17,7 @@ public struct ExploreDiscoveryIndex: Codable, Equatable, Sendable {
             slug: String,
             title: String,
             summary: String,
+            bodyMarkdown: String,
             tags: [String],
             difficulty: String,
             icon: String,
@@ -24,6 +26,7 @@ public struct ExploreDiscoveryIndex: Codable, Equatable, Sendable {
             self.slug = slug
             self.title = title
             self.summary = summary
+            self.bodyMarkdown = bodyMarkdown
             self.tags = tags
             self.difficulty = difficulty
             self.icon = icon
@@ -34,6 +37,7 @@ public struct ExploreDiscoveryIndex: Codable, Equatable, Sendable {
             case slug
             case title
             case summary
+            case bodyMarkdown
             case tags
             case difficulty
             case icon
@@ -45,6 +49,7 @@ public struct ExploreDiscoveryIndex: Codable, Equatable, Sendable {
         public let slug: String
         public let title: String
         public let description: String
+        public let bodyMarkdown: String
         public let topicSlugs: [String]
         public let isFeatured: Bool
 
@@ -54,12 +59,14 @@ public struct ExploreDiscoveryIndex: Codable, Equatable, Sendable {
             slug: String,
             title: String,
             description: String,
+            bodyMarkdown: String,
             topicSlugs: [String],
             isFeatured: Bool
         ) {
             self.slug = slug
             self.title = title
             self.description = description
+            self.bodyMarkdown = bodyMarkdown
             self.topicSlugs = topicSlugs
             self.isFeatured = isFeatured
         }
@@ -68,6 +75,7 @@ public struct ExploreDiscoveryIndex: Codable, Equatable, Sendable {
             case slug
             case title
             case description
+            case bodyMarkdown
             case topicSlugs = "topics"
             case isFeatured = "featured"
         }
@@ -201,7 +209,7 @@ public struct ExploreDiscoveryIndex: Codable, Equatable, Sendable {
 }
 
 public enum ExploreDiscoveryIndexLoader {
-    public static let supportedSchemaVersion = 1
+    public static let supportedSchemaVersion = 2
 
     public enum LoadingError: Error, Equatable, LocalizedError, Sendable {
         case resourceNotFound

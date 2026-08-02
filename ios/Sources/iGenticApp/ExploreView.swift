@@ -1,4 +1,5 @@
 #if canImport(SwiftUI)
+import Foundation
 import SwiftUI
 
 public struct ExploreView: View {
@@ -132,6 +133,10 @@ private struct ExploreTopicDetailView: View {
                 Text(topic.summary)
             }
 
+            Section("Content") {
+                ExploreMarkdownBody(markdown: topic.bodyMarkdown)
+            }
+
             Section("Metadata") {
                 LabeledContent("Difficulty", value: topic.difficulty.capitalized)
                 LabeledContent("Featured", value: topic.isFeatured ? "Yes" : "No")
@@ -145,7 +150,7 @@ private struct ExploreTopicDetailView: View {
             }
 
             Section("Local data") {
-                Text("This detail view uses only the bundled generated Explore index.")
+                Text("This detail view uses only Markdown bundled in the generated Explore index.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
@@ -168,6 +173,10 @@ private struct ExploreCollectionDetailView: View {
                 Text(collection.description)
                 LabeledContent("Featured", value: collection.isFeatured ? "Yes" : "No")
                 LabeledContent("Slug", value: collection.slug)
+            }
+
+            Section("Content") {
+                ExploreMarkdownBody(markdown: collection.bodyMarkdown)
             }
 
             Section("Topics") {
@@ -194,12 +203,29 @@ private struct ExploreCollectionDetailView: View {
             }
 
             Section("Local data") {
-                Text("Topic order follows this collection's references in the bundled generated index.")
+                Text("Content and topic order come only from the bundled generated Explore index.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
         }
         .navigationTitle(collection.title)
+    }
+}
+
+private struct ExploreMarkdownBody: View {
+    let markdown: String
+
+    var body: some View {
+        if let attributed = try? AttributedString(
+            markdown: markdown,
+            options: AttributedString.MarkdownParsingOptions(
+                interpretedSyntax: .full
+            )
+        ) {
+            Text(attributed)
+        } else {
+            Text(markdown)
+        }
     }
 }
 

@@ -6,12 +6,35 @@ final class ExploreDiscoveryIndexTests: XCTestCase {
     func testBundledIndexMatchesExpectedLocalDiscoveryShape() throws {
         let index = try ExploreDiscoveryIndexLoader.loadBundled()
 
-        XCTAssertEqual(index.schemaVersion, 1)
+        XCTAssertEqual(index.schemaVersion, 2)
         XCTAssertEqual(index.topics.map(\.slug), ["approvals", "local-ai", "privacy"])
         XCTAssertEqual(index.collections.map(\.slug), ["architecture", "getting-started", "security"])
         XCTAssertEqual(
             index.resolvedFeaturedItems.map(\.title),
             ["Privacy First", "Approvals", "Local AI", "Getting Started"]
+        )
+    }
+
+    func testBundledMarkdownBodiesAreNormalizedAndNonEmpty() throws {
+        let index = try ExploreDiscoveryIndexLoader.loadBundled()
+        let bodies = index.topics.map(\.bodyMarkdown) + index.collections.map(\.bodyMarkdown)
+
+        XCTAssertFalse(bodies.isEmpty)
+        for body in bodies {
+            XCTAssertFalse(body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            XCTAssertFalse(body.contains("---"))
+            XCTAssertFalse(body.hasPrefix("# "))
+        }
+
+        XCTAssertTrue(
+            try XCTUnwrap(index.topic(slug: "privacy"))
+                .bodyMarkdown
+                .contains("## Related ideas")
+        )
+        XCTAssertEqual(
+            try XCTUnwrap(index.collection(slug: "getting-started"))
+                .bodyMarkdown,
+            "A small curated path for new contributors and readers who want the core control-plane concepts first."
         )
     }
 
@@ -53,6 +76,7 @@ final class ExploreDiscoveryIndexTests: XCTestCase {
             slug: "test",
             title: "Test",
             description: "Synthetic local test collection.",
+            bodyMarkdown: "Synthetic local body.",
             topicSlugs: ["local-ai", "missing", "approvals"],
             isFeatured: false
         )
@@ -89,11 +113,41 @@ final class ExploreDiscoveryIndexTests: XCTestCase {
         }
     }
 
-    func testUnsupportedSchemaVersionFailsDeterministically() {
+    func testSchemaTwoWithoutMarkdownBodiesFailsDeterministically() {
         let data = Data(
             """
             {
               "schemaVersion": 2,
+              "featured": [],
+              "topics": [
+                {
+                  "slug": "missing-body",
+                  "title": "Missing Body",
+                  "summary": "Synthetic malformed record.",
+                  "tags": ["test"],
+                  "difficulty": "beginner",
+                  "icon": "doc",
+                  "featured": false
+                }
+              ],
+              "collections": []
+            }
+            """.utf8
+        )
+
+        XCTAssertThrowsError(try ExploreDiscoveryIndexLoader.decode(data)) { error in
+            XCTAssertEqual(
+                error as? ExploreDiscoveryIndexLoader.LoadingError,
+                .invalidData
+            )
+        }
+    }
+
+    func testUnsupportedSchemaVersionFailsDeterministically() {
+        let data = Data(
+            """
+            {
+              "schemaVersion": 1,
               "featured": [],
               "topics": [],
               "collections": []
@@ -104,7 +158,7 @@ final class ExploreDiscoveryIndexTests: XCTestCase {
         XCTAssertThrowsError(try ExploreDiscoveryIndexLoader.decode(data)) { error in
             XCTAssertEqual(
                 error as? ExploreDiscoveryIndexLoader.LoadingError,
-                .unsupportedSchemaVersion(2)
+                .unsupportedSchemaVersion(1)
             )
         }
     }
