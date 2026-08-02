@@ -332,7 +332,12 @@ public struct ExploreDiscoveryIndex: Codable, Equatable, Sendable {
         if endOffset < collapsed.count {
             excerpt += "…"
         }
-        return excerpt
+
+        let displayMaximumLength = maximumLength + 2
+        guard excerpt.count > displayMaximumLength else {
+            return excerpt
+        }
+        return String(excerpt.prefix(displayMaximumLength - 1)) + "…"
     }
 }
 
