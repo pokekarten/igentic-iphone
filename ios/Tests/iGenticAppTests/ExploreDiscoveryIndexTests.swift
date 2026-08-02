@@ -110,6 +110,55 @@ final class ExploreDiscoveryIndexTests: XCTestCase {
         XCTAssertEqual(index.search("   ").collections, index.collections)
     }
 
+    func testSearchMatchExplainsMetadataAndReferenceFieldsDeterministically() throws {
+        let index = try ExploreDiscoveryIndexLoader.loadBundled()
+        let approvals = try XCTUnwrap(index.topic(slug: "approvals"))
+        let architecture = try XCTUnwrap(index.collection(slug: "architecture"))
+
+        let titleMatch = try XCTUnwrap(index.searchMatch(for: approvals, query: "APPROVALS"))
+        XCTAssertEqual(titleMatch.field, .title)
+        XCTAssertEqual(titleMatch.excerpt, "Approvals")
+
+        let tagMatch = try XCTUnwrap(index.searchMatch(for: approvals, query: "safety"))
+        XCTAssertEqual(tagMatch.field, .tag)
+        XCTAssertEqual(tagMatch.excerpt, "safety")
+
+        let referenceMatch = try XCTUnwrap(
+            index.searchMatch(for: architecture, query: "local-ai")
+        )
+        XCTAssertEqual(referenceMatch.field, .topicReference)
+        XCTAssertEqual(referenceMatch.excerpt, "local-ai")
+    }
+
+    func testSearchMatchExplainsBundledMarkdownBodiesWithBoundedExcerpts() throws {
+        let index = try ExploreDiscoveryIndexLoader.loadBundled()
+        let privacy = try XCTUnwrap(index.topic(slug: "privacy"))
+        let architecture = try XCTUnwrap(index.collection(slug: "architecture"))
+
+        let topicMatch = try XCTUnwrap(
+            index.searchMatch(for: privacy, query: "  ReDaCtIoN  ")
+        )
+        XCTAssertEqual(topicMatch.field, .content)
+        XCTAssertTrue(topicMatch.excerpt.lowercased().contains("redaction"))
+        XCTAssertLessThanOrEqual(topicMatch.excerpt.count, 142)
+
+        let collectionMatch = try XCTUnwrap(
+            index.searchMatch(for: architecture, query: "CONTROL PIPELINE")
+        )
+        XCTAssertEqual(collectionMatch.field, .content)
+        XCTAssertTrue(collectionMatch.excerpt.lowercased().contains("control pipeline"))
+        XCTAssertLessThanOrEqual(collectionMatch.excerpt.count, 142)
+    }
+
+    func testBlankSearchHasNoMatchExplanation() throws {
+        let index = try ExploreDiscoveryIndexLoader.loadBundled()
+        let privacy = try XCTUnwrap(index.topic(slug: "privacy"))
+        let security = try XCTUnwrap(index.collection(slug: "security"))
+
+        XCTAssertNil(index.searchMatch(for: privacy, query: "   "))
+        XCTAssertNil(index.searchMatch(for: security, query: "\n"))
+    }
+
     func testMalformedJSONFailsDeterministically() {
         XCTAssertThrowsError(
             try ExploreDiscoveryIndexLoader.decode(Data("not-json".utf8))
