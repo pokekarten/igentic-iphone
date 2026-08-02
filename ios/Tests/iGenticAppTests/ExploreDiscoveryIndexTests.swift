@@ -87,7 +87,7 @@ final class ExploreDiscoveryIndexTests: XCTestCase {
         )
     }
 
-    func testSearchUsesOnlyLocalTopicAndCollectionMetadata() throws {
+    func testSearchUsesOnlyBundledLocalContent() throws {
         let index = try ExploreDiscoveryIndexLoader.loadBundled()
 
         let policyResults = index.search("policy")
@@ -97,6 +97,14 @@ final class ExploreDiscoveryIndexTests: XCTestCase {
         let privacyResults = index.search("privacy")
         XCTAssertEqual(privacyResults.topics.map(\.slug), ["privacy"])
         XCTAssertEqual(privacyResults.collections.map(\.slug), ["getting-started", "security"])
+
+        let topicBodyResults = index.search("  ReDaCtIoN  ")
+        XCTAssertEqual(topicBodyResults.topics.map(\.slug), ["privacy"])
+        XCTAssertTrue(topicBodyResults.collections.isEmpty)
+
+        let collectionBodyResults = index.search("CONTROL PIPELINE")
+        XCTAssertTrue(collectionBodyResults.topics.isEmpty)
+        XCTAssertEqual(collectionBodyResults.collections.map(\.slug), ["architecture"])
 
         XCTAssertEqual(index.search("   ").topics, index.topics)
         XCTAssertEqual(index.search("   ").collections, index.collections)
