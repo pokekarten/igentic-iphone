@@ -14,6 +14,7 @@ This directory is the discovery layer for iGentic. It is intentionally content-f
 ```text
 explore/
 ├── README.md
+├── index.json
 ├── schema/
 │   ├── topic.schema.json
 │   ├── collection.schema.json
@@ -44,6 +45,24 @@ python3 scripts/validate_explore_content.py
 
 Use `--root <path>` when validating a checkout that is not the current working directory.
 
+## Generated discovery index
+
+`index.json` is the versioned, UI-ready projection of the topic, collection, and featured metadata. Topics and collections are sorted by slug. The order in `docs/explore/featured/featured.yml` is preserved exactly.
+
+Regenerate the index after changing Explore content:
+
+```bash
+python3 scripts/build_explore_index.py
+```
+
+Verify that the committed index is current without writing files:
+
+```bash
+python3 scripts/build_explore_index.py --check
+```
+
+The builder runs the content validator first, so duplicate slugs, invalid front matter, and broken topic or featured references fail before an index is written.
+
 ## Expected minimum fields
 
 Topics should define:
@@ -67,4 +86,4 @@ Cards should define:
 - `summary`
 - `type`
 
-This directory is documentation-first for now. A future validator or loader can consume the schema files and generate UI-ready discovery data.
+This directory remains documentation-first. The generated index is intended for a later local discovery loader and does not add runtime or network behavior.
