@@ -1,11 +1,20 @@
 #if canImport(SwiftUI)
+import AgentCore
 import SwiftUI
 
 public struct DiagnosticView: View {
     private let state: DiagnosticViewState
+    private let approvalPolicyStore: AppActionApprovalPolicyStore?
+    @State private var approvalPolicy: AppActionApprovalPolicy
 
-    public init(state: DiagnosticViewState = DiagnosticViewState()) {
+    public init(
+        state: DiagnosticViewState = DiagnosticViewState(),
+        approvalPolicy: AppActionApprovalPolicy = .default,
+        approvalPolicyStore: AppActionApprovalPolicyStore? = nil
+    ) {
         self.state = state
+        self.approvalPolicyStore = approvalPolicyStore
+        self._approvalPolicy = State(initialValue: approvalPolicy)
     }
 
     public var body: some View {
@@ -29,9 +38,18 @@ public struct DiagnosticView: View {
                     DiagnosticMetric(label: "Audit events", value: state.auditEventsDescription)
                 }
 
-                Section("App action approval policy (setup default preview)") {
-                    ForEach(state.approvalPolicyFields) { field in
+                Section("App action approval policy (effective local policy)") {
+                    ForEach(DiagnosticViewState.effectiveApprovalPolicyFields(for: approvalPolicy)) { field in
                         DiagnosticMetric(label: field.label, value: field.value)
+                    }
+
+                    if let approvalPolicyStore {
+                        NavigationLink("Edit local approval policy") {
+                            AppActionApprovalPolicySettingsView(
+                                policy: $approvalPolicy,
+                                store: approvalPolicyStore
+                            )
+                        }
                     }
                 }
 
