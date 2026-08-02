@@ -81,7 +81,8 @@ private struct ExploreContentView: View {
                                 title: topic.title,
                                 summary: topic.summary,
                                 metadata: "\(topic.difficulty.capitalized) · \(topic.tags.joined(separator: ", "))",
-                                systemImage: exploreSystemImageName(for: topic.icon)
+                                systemImage: exploreSystemImageName(for: topic.icon),
+                                match: index.searchMatch(for: topic, query: searchText)
                             )
                         }
                     }
@@ -100,7 +101,8 @@ private struct ExploreContentView: View {
                                 title: collection.title,
                                 summary: collection.description,
                                 metadata: "\(collection.topicSlugs.count) local topics",
-                                systemImage: "square.grid.2x2"
+                                systemImage: "square.grid.2x2",
+                                match: index.searchMatch(for: collection, query: searchText)
                             )
                         }
                     }
@@ -234,6 +236,7 @@ private struct ExploreCard: View {
     let summary: String
     let metadata: String
     var systemImage: String? = nil
+    var match: ExploreDiscoveryIndex.SearchMatch? = nil
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -252,6 +255,17 @@ private struct ExploreCard: View {
                 Text(metadata)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+
+                if let match {
+                    Text("Matched \(match.field.label)")
+                        .font(.caption2)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.secondary)
+                    Text(match.excerpt)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(3)
+                }
             }
         }
         .padding(.vertical, 4)
