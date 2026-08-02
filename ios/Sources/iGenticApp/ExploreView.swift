@@ -46,6 +46,11 @@ private struct ExploreContentView: View {
 
     var body: some View {
         let results = index.search(searchText)
+        let resultSummary = ExploreSearchResultSummary(
+            query: searchText,
+            topicCount: results.topics.count,
+            collectionCount: results.collections.count
+        )
 
         List {
             Section("Local discovery") {
@@ -53,6 +58,18 @@ private struct ExploreContentView: View {
                 Text("Searches only the bundled generated index. No network request, model call, or private user data is used.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
+            }
+
+            if let resultSummary {
+                Section("Search results") {
+                    Label(
+                        resultSummary.text,
+                        systemImage: "line.3.horizontal.decrease.circle"
+                    )
+                    .font(.subheadline)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(Text(resultSummary.text))
+                }
             }
 
             Section("Featured") {
