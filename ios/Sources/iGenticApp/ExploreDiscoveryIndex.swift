@@ -160,11 +160,23 @@ public struct ExploreDiscoveryIndex: Codable, Equatable, Sendable {
         featured.compactMap { reference in
             switch reference.kind {
             case .topic:
-                return topics.first(where: { $0.slug == reference.slug }).map(FeaturedItem.topic)
+                return topic(slug: reference.slug).map(FeaturedItem.topic)
             case .collection:
-                return collections.first(where: { $0.slug == reference.slug }).map(FeaturedItem.collection)
+                return collection(slug: reference.slug).map(FeaturedItem.collection)
             }
         }
+    }
+
+    public func topic(slug: String) -> Topic? {
+        topics.first(where: { $0.slug == slug })
+    }
+
+    public func collection(slug: String) -> Collection? {
+        collections.first(where: { $0.slug == slug })
+    }
+
+    public func topics(in collection: Collection) -> [Topic] {
+        collection.topicSlugs.compactMap { topic(slug: $0) }
     }
 
     public func search(_ query: String) -> SearchResults {
