@@ -31,6 +31,38 @@ final class ExploreDiscoveryIndexTests: XCTestCase {
         XCTAssertEqual(index.resolvedFeaturedItems.map(\.title), ["Getting Started", "Privacy First"])
     }
 
+    func testLocalLookupsResolveTopicsAndCollections() throws {
+        let index = try ExploreDiscoveryIndexLoader.loadBundled()
+
+        XCTAssertEqual(index.topic(slug: "privacy")?.title, "Privacy First")
+        XCTAssertEqual(index.collection(slug: "security")?.title, "Security")
+        XCTAssertNil(index.topic(slug: "missing"))
+        XCTAssertNil(index.collection(slug: "missing"))
+    }
+
+    func testCollectionTopicResolutionPreservesOrderAndSkipsUnknownReferences() throws {
+        let index = try ExploreDiscoveryIndexLoader.loadBundled()
+        let gettingStarted = try XCTUnwrap(index.collection(slug: "getting-started"))
+
+        XCTAssertEqual(
+            index.topics(in: gettingStarted).map(\.slug),
+            ["privacy", "approvals", "local-ai"]
+        )
+
+        let collectionWithUnknownReference = ExploreDiscoveryIndex.Collection(
+            slug: "test",
+            title: "Test",
+            description: "Synthetic local test collection.",
+            topicSlugs: ["local-ai", "missing", "approvals"],
+            isFeatured: false
+        )
+
+        XCTAssertEqual(
+            index.topics(in: collectionWithUnknownReference).map(\.slug),
+            ["local-ai", "approvals"]
+        )
+    }
+
     func testSearchUsesOnlyLocalTopicAndCollectionMetadata() throws {
         let index = try ExploreDiscoveryIndexLoader.loadBundled()
 

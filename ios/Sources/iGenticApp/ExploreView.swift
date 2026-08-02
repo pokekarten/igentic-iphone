@@ -56,11 +56,15 @@ private struct ExploreContentView: View {
 
             Section("Featured") {
                 ForEach(index.resolvedFeaturedItems) { item in
-                    ExploreCard(
-                        title: item.title,
-                        summary: item.summary,
-                        metadata: item.kindLabel
-                    )
+                    NavigationLink {
+                        featuredDestination(for: item)
+                    } label: {
+                        ExploreCard(
+                            title: item.title,
+                            summary: item.summary,
+                            metadata: item.kindLabel
+                        )
+                    }
                 }
             }
 
@@ -69,12 +73,16 @@ private struct ExploreContentView: View {
                     ContentUnavailableView.search(text: searchText)
                 } else {
                     ForEach(results.topics) { topic in
-                        ExploreCard(
-                            title: topic.title,
-                            summary: topic.summary,
-                            metadata: "\(topic.difficulty.capitalized) · \(topic.tags.joined(separator: ", "))",
-                            systemImage: systemImageName(for: topic.icon)
-                        )
+                        NavigationLink {
+                            ExploreTopicDetailView(topic: topic)
+                        } label: {
+                            ExploreCard(
+                                title: topic.title,
+                                summary: topic.summary,
+                                metadata: "\(topic.difficulty.capitalized) · \(topic.tags.joined(separator: ", "))",
+                                systemImage: exploreSystemImageName(for: topic.icon)
+                            )
+                        }
                     }
                 }
             }
@@ -84,12 +92,16 @@ private struct ExploreContentView: View {
                     ContentUnavailableView.search(text: searchText)
                 } else {
                     ForEach(results.collections) { collection in
-                        ExploreCard(
-                            title: collection.title,
-                            summary: collection.description,
-                            metadata: "\(collection.topicSlugs.count) local topics",
-                            systemImage: "square.grid.2x2"
-                        )
+                        NavigationLink {
+                            ExploreCollectionDetailView(index: index, collection: collection)
+                        } label: {
+                            ExploreCard(
+                                title: collection.title,
+                                summary: collection.description,
+                                metadata: "\(collection.topicSlugs.count) local topics",
+                                systemImage: "square.grid.2x2"
+                            )
+                        }
                     }
                 }
             }
@@ -98,13 +110,96 @@ private struct ExploreContentView: View {
         .searchable(text: $searchText, prompt: "Search local Explore content")
     }
 
-    private func systemImageName(for contentIcon: String) -> String {
-        switch contentIcon {
-        case "check-circle":
-            return "checkmark.circle"
-        default:
-            return contentIcon
+    @ViewBuilder
+    private func featuredDestination(for item: ExploreDiscoveryIndex.FeaturedItem) -> some View {
+        switch item {
+        case .topic(let topic):
+            ExploreTopicDetailView(topic: topic)
+        case .collection(let collection):
+            ExploreCollectionDetailView(index: index, collection: collection)
         }
+    }
+}
+
+private struct ExploreTopicDetailView: View {
+    let topic: ExploreDiscoveryIndex.Topic
+
+    var body: some View {
+        List {
+            Section("Overview") {
+                Label(topic.title, systemImage: exploreSystemImageName(for: topic.icon))
+                    .font(.headline)
+                Text(topic.summary)
+            }
+
+            Section("Metadata") {
+                LabeledContent("Difficulty", value: topic.difficulty.capitalized)
+                LabeledContent("Featured", value: topic.isFeatured ? "Yes" : "No")
+                LabeledContent("Slug", value: topic.slug)
+            }
+
+            Section("Tags") {
+                ForEach(topic.tags, id: \.self) { tag in
+                    Label(tag, systemImage: "tag")
+                }
+            }
+
+            Section("Local data") {
+                Text("This detail view uses only the bundled generated Explore index.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .navigationTitle(topic.title)
+    }
+}
+
+private struct ExploreCollectionDetailView: View {
+    let index: ExploreDiscoveryIndex
+    let collection: ExploreDiscoveryIndex.Collection
+
+    var body: some View {
+        let topics = index.topics(in: collection)
+
+        List {
+            Section("Overview") {
+                Label(collection.title, systemImage: "square.grid.2x2")
+                    .font(.headline)
+                Text(collection.description)
+                LabeledContent("Featured", value: collection.isFeatured ? "Yes" : "No")
+                LabeledContent("Slug", value: collection.slug)
+            }
+
+            Section("Topics") {
+                if topics.isEmpty {
+                    ContentUnavailableView(
+                        "No local topics",
+                        systemImage: "tray",
+                        description: Text("This collection has no valid topic references in the bundled index.")
+                    )
+                } else {
+                    ForEach(topics) { topic in
+                        NavigationLink {
+                            ExploreTopicDetailView(topic: topic)
+                        } label: {
+                            ExploreCard(
+                                title: topic.title,
+                                summary: topic.summary,
+                                metadata: topic.difficulty.capitalized,
+                                systemImage: exploreSystemImageName(for: topic.icon)
+                            )
+                        }
+                    }
+                }
+            }
+
+            Section("Local data") {
+                Text("Topic order follows this collection's references in the bundled generated index.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .navigationTitle(collection.title)
     }
 }
 
@@ -135,6 +230,15 @@ private struct ExploreCard: View {
         }
         .padding(.vertical, 4)
         .accessibilityElement(children: .combine)
+    }
+}
+
+private func exploreSystemImageName(for contentIcon: String) -> String {
+    switch contentIcon {
+    case "check-circle":
+        return "checkmark.circle"
+    default:
+        return contentIcon
     }
 }
 #endif
