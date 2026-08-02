@@ -137,6 +137,45 @@ public struct ExploreDiscoveryIndex: Codable, Equatable, Sendable {
         }
     }
 
+    public struct SearchMatch: Equatable, Sendable {
+        public enum Field: Equatable, Sendable {
+            case title
+            case summary
+            case difficulty
+            case tag
+            case content
+            case description
+            case topicReference
+
+            public var label: String {
+                switch self {
+                case .title:
+                    return "title"
+                case .summary:
+                    return "summary"
+                case .difficulty:
+                    return "difficulty"
+                case .tag:
+                    return "tag"
+                case .content:
+                    return "content"
+                case .description:
+                    return "description"
+                case .topicReference:
+                    return "topic reference"
+                }
+            }
+        }
+
+        public let field: Field
+        public let excerpt: String
+
+        public init(field: Field, excerpt: String) {
+            self.field = field
+            self.excerpt = excerpt
+        }
+    }
+
     public struct SearchResults: Equatable, Sendable {
         public let topics: [Topic]
         public let collections: [Collection]
@@ -187,24 +226,113 @@ public struct ExploreDiscoveryIndex: Codable, Equatable, Sendable {
         collection.topicSlugs.compactMap { topic(slug: $0) }
     }
 
+    public func searchMatch(for topic: Topic, query: String) -> SearchMatch? {
+        guard let normalizedQuery = Self.normalizedSearchQuery(query) else {
+            return nil
+        }
+
+        let scalarFields: [(SearchMatch.Field, String)] = [
+            (.title, topic.title),
+            (.summary, topic.summary),
+            (.difficulty, topic.difficulty),
+            (.content, topic.bodyMarkdown)
+        ]
+
+        for (field, value) in scalarFields where Self.matches(value, query: normalizedQuery) {
+            return SearchMatch(
+                field: field,
+                excerpt: Self.boundedExcerpt(from: value, query: normalizedQuery)
+            )
+        }
+
+        if let tag = topic.tags.first(where: { Self.matches($0, query: normalizedQuery) }) {
+            return SearchMatch(field: .tag, excerpt: tag)
+        }
+
+        return nil
+    }
+
+    public func searchMatch(for collection: Collection, query: String) -> SearchMatch? {
+        guard let normalizedQuery = Self.normalizedSearchQuery(query) else {
+            return nil
+        }
+
+        let scalarFields: [(SearchMatch.Field, String)] = [
+            (.title, collection.title),
+            (.description, collection.description),
+            (.content, collection.bodyMarkdown)
+        ]
+
+        for (field, value) in scalarFields where Self.matches(value, query: normalizedQuery) {
+            return SearchMatch(
+                field: field,
+                excerpt: Self.boundedExcerpt(from: value, query: normalizedQuery)
+            )
+        }
+
+        if let topicReference = collection.topicSlugs.first(
+            where: { Self.matches($0, query: normalizedQuery) }
+        ) {
+            return SearchMatch(field: .topicReference, excerpt: topicReference)
+        }
+
+        return nil
+    }
+
     public func search(_ query: String) -> SearchResults {
-        let normalizedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !normalizedQuery.isEmpty else {
+        guard Self.normalizedSearchQuery(query) != nil else {
             return SearchResults(topics: topics, collections: collections)
         }
 
         return SearchResults(
-            topics: topics.filter { topic in
-                [topic.title, topic.summary, topic.difficulty, topic.bodyMarkdown]
-                    .contains(where: { $0.lowercased().contains(normalizedQuery) })
-                    || topic.tags.contains(where: { $0.lowercased().contains(normalizedQuery) })
-            },
-            collections: collections.filter { collection in
-                [collection.title, collection.description, collection.bodyMarkdown]
-                    .contains(where: { $0.lowercased().contains(normalizedQuery) })
-                    || collection.topicSlugs.contains(where: { $0.lowercased().contains(normalizedQuery) })
-            }
+            topics: topics.filter { searchMatch(for: $0, query: query) != nil },
+            collections: collections.filter { searchMatch(for: $0, query: query) != nil }
         )
+    }
+
+    private static func normalizedSearchQuery(_ query: String) -> String? {
+        let normalized = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return normalized.isEmpty ? nil : normalized
+    }
+
+    private static func matches(_ value: String, query: String) -> Bool {
+        value.lowercased().contains(query)
+    }
+
+    private static func boundedExcerpt(
+        from value: String,
+        query: String,
+        maximumLength: Int = 140
+    ) -> String {
+        let collapsed = value.split(whereSeparator: { $0.isWhitespace }).joined(separator: " ")
+        guard collapsed.count > maximumLength else {
+            return collapsed
+        }
+
+        guard let matchRange = collapsed.range(of: query, options: .caseInsensitive) else {
+            return String(collapsed.prefix(maximumLength - 1)) + "…"
+        }
+
+        let matchStart = collapsed.distance(from: collapsed.startIndex, to: matchRange.lowerBound)
+        let matchLength = collapsed.distance(from: matchRange.lowerBound, to: matchRange.upperBound)
+        let contextBudget = max(0, maximumLength - matchLength)
+        let preferredLeadingContext = min(48, contextBudget / 2)
+        let startOffset = max(0, matchStart - preferredLeadingContext)
+        let remainingLeadingContext = matchStart - startOffset
+        let trailingContext = contextBudget - remainingLeadingContext
+        let endOffset = min(collapsed.count, matchStart + matchLength + trailingContext)
+
+        let startIndex = collapsed.index(collapsed.startIndex, offsetBy: startOffset)
+        let endIndex = collapsed.index(collapsed.startIndex, offsetBy: endOffset)
+        var excerpt = String(collapsed[startIndex..<endIndex])
+
+        if startOffset > 0 {
+            excerpt = "…" + excerpt
+        }
+        if endOffset < collapsed.count {
+            excerpt += "…"
+        }
+        return excerpt
     }
 }
 
