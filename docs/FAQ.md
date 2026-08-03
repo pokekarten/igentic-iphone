@@ -33,9 +33,34 @@ Start with:
 - `docs/community/CONTRIBUTOR_STARTER_GUIDE.md`
 - `docs/community/GOOD_FIRST_ISSUES.md`
 
+## Which model backends are evaluated first?
+
+The current order is evidence-driven rather than size-driven:
+
+1. Apple Foundation Models as an independent system-backend comparison;
+2. FunctionGemma 270M as the first specialization candidate for a fixed action router;
+3. Qwen3 0.6B as the first Apache-2.0 multilingual comparison;
+4. larger, tool-specific or multimodal candidates only after smaller baselines fail a defined quality gate and license/runtime requirements are met.
+
+Models propose only. Deterministic Swift remains authoritative for policy, approval, schema validation, audit and execution.
+
+See `MODEL_STRATEGY.md` and `docs/model-research/README.md` for the canonical overview.
+
+## Has a model already been trained or proven on the iPhone Air?
+
+No. The candidate manifest, immutable benchmark, evaluator, training governance and runtime/device evidence contracts are on `main`, but those documents are not training or device results.
+
+Comparable untouched baselines must come before specialization. Any physical iPhone Air claim must identify the exact app build, model or system backend, runtime, configuration and measurement record under `docs/model-research/IPHONE_AIR_DEVICE_EVIDENCE_PROTOCOL.md`.
+
+## What counts as physical-device evidence?
+
+Only a measurement produced on the exact recorded physical device under the canonical protocol counts as `physical_device_result` evidence.
+
+A model card, runtime source-code support, successful conversion, Mac execution or simulator execution may be useful evidence, but none of them proves iPhone Air latency, memory, battery, thermal, cancellation or crash behavior. See `docs/model-research/RUNTIME_EVIDENCE_MATRIX.md`.
+
 ## Why are model weights not committed?
 
-Model weights are intentionally outside this repository’s current scope. The repository focuses on architecture, policy, safety controls, validation and small reviewable runtime components. Candidate models are evaluated separately, and no model weights should be added in a normal contribution.
+Model weights are intentionally outside this repository’s current scope. The repository focuses on architecture, policy, safety controls, validation and small reviewable runtime components. Candidate models are evaluated through public-safe contracts, and no model weights, adapters or checkpoints should be added in a normal contribution.
 
 ## Why is social media not a decision authority?
 
