@@ -1,6 +1,6 @@
 # iGentic Glossary
 
-This glossary explains iGentic privacy and runtime terms for new contributors. iGentic is an experimental, privacy-first research prototype; these terms describe the current safety model and planning language, not production readiness.
+This glossary explains iGentic privacy, control and runtime terms for new contributors. iGentic is an experimental, privacy-first research prototype; these terms describe the current safety model and evidence language, not production readiness.
 
 ## Local Only
 
@@ -22,9 +22,13 @@ A decision path that pauses before a sensitive or high-risk action and requires 
 
 A restricted handoff from the local controller to another runtime only when policy, data sensitivity, action risk and approval state allow it.
 
+## Model Proposal
+
+A structured suggestion produced by a model, such as an intent, clarification, refusal or typed tool-call proposal. A proposal is not authorization and does not execute an action. Deterministic Swift remains authoritative for policy, approval, schema validation, audit and execution.
+
 ## Audit Log
 
-A record of safety-related events. The current `AuditEvent` includes a message string, and `AgentKernel` currently records `task.userText` for task-received events, so the full AuditLog must not be treated as metadata-only. Use `AuditEventMetadata` projections for metadata-only diagnostics; future privacy work should redact or avoid raw task text.
+A privacy-sensitive record of safety-related events and metadata. Task-received audit events no longer store raw task text, and approval summaries are metadata-only. New audit fields must remain bounded, reviewable and free of private prompt content unless an explicitly approved design says otherwise.
 
 ## Data Classification
 
@@ -37,6 +41,18 @@ The risk level of an intended action. Higher-risk actions require stronger polic
 ## Synthetic Data
 
 Artificial test data created only for validation and examples. Synthetic data must not contain real private messages, credentials, health data, financial data or other personal records.
+
+## Immutable Benchmark
+
+A versioned test set that must not be edited in place or used to generate, paraphrase, translate or tune training data. The current model-research benchmark is documented in `docs/model-research/IGENTIC_ACTION_BENCHMARK_V0.md`.
+
+## Evidence Class
+
+A label describing what one record can actually prove. iGentic keeps `source_claim`, `software_contract`, `compile_result`, `host_runtime_result`, `simulator_result`, `physical_device_result` and `assumption` separate. A later evidence class must not be inferred from an earlier one.
+
+## Physical-Device Result
+
+A result measured on one exact physical device, app build, backend or model artifact and configuration under `docs/model-research/IPHONE_AIR_DEVICE_EVIDENCE_PROTOCOL.md`. Model cards, conversion success, desktop runs and simulator runs are not physical-device results.
 
 ## PolicyEngine
 
