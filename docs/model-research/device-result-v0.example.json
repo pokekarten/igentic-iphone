@@ -110,10 +110,10 @@
     "load": {
       "cold_runs_ms": [],
       "warm_runs_ms": [],
-      "cold_success_count": 0,
-      "cold_failure_count": 0,
-      "warm_success_count": 0,
-      "warm_failure_count": 0,
+      "cold_success_count": null,
+      "cold_failure_count": null,
+      "warm_success_count": null,
+      "warm_failure_count": null,
       "summary": {
         "cold_min_ms": null,
         "cold_median_ms": null,
@@ -127,11 +127,11 @@
       "scenario_results": [],
       "time_to_first_token_ms": [],
       "decode_tokens_per_second": [],
-      "completed_scenarios": 0,
-      "failed_scenarios": 0,
-      "timed_out_scenarios": 0,
-      "repetition_flag_count": 0,
-      "truncation_flag_count": 0,
+      "completed_scenarios": null,
+      "failed_scenarios": null,
+      "timed_out_scenarios": null,
+      "repetition_flag_count": null,
+      "truncation_flag_count": null,
       "observability_notes": []
     },
     "memory": {
@@ -150,7 +150,7 @@
       "end_percent": null,
       "charging_during_run": null,
       "elapsed_seconds": null,
-      "completed_scenarios": 0,
+      "completed_scenarios": null,
       "interruptions": [],
       "precision_limitation_acknowledged": true
     },
@@ -158,7 +158,7 @@
       "observations": [],
       "throttling_observed": null,
       "cooling_periods_seconds": [],
-      "critical_state_reached": false
+      "critical_state_reached": null
     }
   },
   "cancellation_and_timeout": {
@@ -176,7 +176,7 @@
       "latency_ms": null,
       "generation_stopped": null,
       "partial_proposal_discarded": null,
-      "side_effect_attempted": false,
+      "side_effect_attempted": null,
       "resources_released": null,
       "clean_retry_succeeded": null
     },
@@ -190,10 +190,10 @@
   },
   "failure_and_recovery": {
     "failures": [],
-    "crash_count": 0,
-    "oom_count": 0,
-    "recovery_attempt_count": 0,
-    "successful_recovery_count": 0,
+    "crash_count": null,
+    "oom_count": null,
+    "recovery_attempt_count": null,
+    "successful_recovery_count": null,
     "deterministic_behavior_restored": null,
     "stop_rule_triggered": null
   },
