@@ -1,6 +1,6 @@
 # iGentic Roadmap
 
-Last updated: 2026-06-12
+Last updated: 2026-08-03
 
 ## Roadmap principle
 
@@ -17,6 +17,9 @@ The roadmap favors safe, reviewable slices over broad app claims. Every phase sh
 - Codex is paused unless a narrow Draft PR task is explicitly prepared.
 - Initial Swift package and safety components exist.
 - Community, brand, social, governance and contributor-onboarding foundation exist in the repo.
+- The model candidate manifest and immutable German/English action-routing benchmark are on `main`.
+- Backend-neutral evaluator, dataset/training governance and runtime/device evidence contracts are on `main`.
+- No model training, runtime integration or physical iPhone Air result is implied by those contracts.
 
 ## Phase 0 — Research and project foundation
 
@@ -29,6 +32,11 @@ The roadmap favors safe, reviewable slices over broad app claims. Every phase sh
 - Apple API review.
 - Local runtime review.
 - Model strategy.
+- Canonical knowledge map and model-research index.
+- Model candidate and license manifest.
+- Immutable action-routing benchmark and backend-neutral evaluator contract.
+- Dataset and training-run governance.
+- Runtime compatibility and physical-device evidence protocols.
 - Community health docs.
 - Apache 2.0 license.
 - Brand foundation.
@@ -48,11 +56,11 @@ The roadmap favors safe, reviewable slices over broad app claims. Every phase sh
 
 ### Next
 
-- Run validation after the latest contributor-onboarding and repo-structure commits.
+- Keep high-level documents synchronized with canonical contracts.
 - Convert selected good-first-issue backlog items into small GitHub issues.
 - Review initial SVG assets and decide whether to set a GitHub social preview.
 - Create first Instagram carousel template based on `docs/community/SOCIAL_MEDIA_PLAYBOOK.md`.
-- Keep `PROJECT_STATE.md` current.
+- Keep `PROJECT_STATE.md` current without copying live PR/check state into durable summaries.
 - Decide whether to enable GitHub Discussions after repeated outside community questions.
 
 ## Phase 1 — Local Agent Kernel
@@ -98,23 +106,39 @@ Exit criteria:
 
 ## Phase 3 — Local Model Runtime Evaluation
 
-**Goal:** Evaluate local model/router options without committing model weights.
+**Goal:** Compare proposal-generation backends without moving policy or execution authority into a model.
 
-Research candidates:
+Canonical entry points:
 
-- Apple-native APIs,
-- MLX Swift,
-- MLC-LLM,
-- llama.cpp-derived paths,
-- small router models,
-- embedding models for local RAG.
+- strategy overview: `MODEL_STRATEGY.md`
+- research index: `docs/model-research/README.md`
+- candidate manifest: `docs/model-research/IPHONE_AIR_MODEL_CANDIDATES.md`
+- immutable benchmark: `docs/model-research/IGENTIC_ACTION_BENCHMARK_V0.md`
+- evaluator contract: `docs/model-research/EVALUATOR_CONTRACT_V0.md`
+- dataset/training governance: `docs/model-research/DATASET_GOVERNANCE.md` and `docs/model-research/TRAINING_RUN_CONTRACT.md`
+- runtime/device evidence: `docs/model-research/RUNTIME_EVIDENCE_MATRIX.md` and `docs/model-research/IPHONE_AIR_DEVICE_EVIDENCE_PROTOCOL.md`
+
+Research order:
+
+1. evaluate Apple Foundation Models as an independent system backend;
+2. record an untouched FunctionGemma 270M baseline as the first specialization candidate;
+3. record an untouched Qwen3 0.6B non-thinking baseline as the first Apache-2.0 multilingual comparison;
+4. compare the same immutable benchmark and normalized proposal schema;
+5. select at most one specialization candidate only when comparable evidence justifies it;
+6. document export and runtime compatibility for exact pinned artifacts;
+7. collect physical iPhone Air evidence only under the canonical device protocol.
+
+Larger, tool-specific or multimodal candidates advance only after smaller candidates fail a defined quality gate and license/runtime requirements are satisfied.
 
 Exit criteria:
 
-- Runtime comparison doc is source-linked.
-- No private data is sent externally by default.
-- No model weights committed.
-- Device constraints are documented from real tests.
+- Untouched backend comparisons use the same benchmark, evaluator and prompt/output profiles.
+- Models remain proposal generators; deterministic Swift owns policy, approval, validation, audit and execution.
+- No private data is used in public experiments.
+- No model weights, adapters or checkpoints are committed.
+- Cancellation, timeout, failure recovery and rollback evidence exist for any advancing runtime artifact.
+- Compile, host and simulator evidence are not represented as physical-device evidence.
+- Device constraints are documented from exact physical-device tests rather than inferred from model size or vendor claims.
 
 ## Phase 4 — App Intents and safe actions
 
