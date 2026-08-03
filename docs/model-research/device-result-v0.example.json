@@ -1,0 +1,258 @@
+{
+  "schema_version": "igentic.device-result.v0",
+  "result_identity": {
+    "result_id": "example-not-a-device-result",
+    "status": "not_run",
+    "is_claimed_physical_device_result": false,
+    "created_at": "<ISO-8601>",
+    "completed_at": null,
+    "runtime_matrix_record_id": "<RUNTIME_MATRIX_RECORD_ID>",
+    "evidence_class": "experiment-template",
+    "review_status": "pending"
+  },
+  "device": {
+    "hardware_model_identifier": "<APPLE_HARDWARE_MODEL_IDENTIFIER>",
+    "commercial_model_name": "<MODEL_NAME>",
+    "os_version": "<OS_VERSION>",
+    "os_build": "<OS_BUILD>",
+    "total_storage_bytes": null,
+    "available_storage_bytes_at_start": null,
+    "initial_thermal_state": "unknown",
+    "initial_battery_percent": null,
+    "charging_at_start": null,
+    "low_power_mode": null,
+    "locale": "<LOCALE_IF_RELEVANT>",
+    "personal_identifiers_recorded": false,
+    "serial_number_recorded": false,
+    "udid_recorded": false
+  },
+  "application": {
+    "repository_revision": "<PINNED_GIT_COMMIT>",
+    "app_version": "<APP_VERSION>",
+    "build_number": "<BUILD_NUMBER>",
+    "build_configuration": "<BUILD_CONFIGURATION>",
+    "sdk_version": "<SDK_VERSION>",
+    "minimum_deployment_target": "<DEPLOYMENT_TARGET>",
+    "feature_flags": [],
+    "deterministic_fallback": "deterministic-router"
+  },
+  "backend": {
+    "backend_id": "<BACKEND_ID>",
+    "backend_version": "<PINNED_BACKEND_VERSION>",
+    "runtime_revision": "<PINNED_RUNTIME_REVISION>",
+    "system_managed_model": false
+  },
+  "model": {
+    "model_id": "<CANONICAL_MODEL_ID_OR_SYSTEM_MANAGED>",
+    "model_revision": "<PINNED_MODEL_REVISION_OR_SYSTEM_MANAGED>",
+    "tokenizer_id": "<TOKENIZER_ID_OR_NOT_APPLICABLE>",
+    "tokenizer_revision": "<PINNED_TOKENIZER_REVISION_OR_NOT_APPLICABLE>",
+    "prompt_template_revision": "<PINNED_PROMPT_TEMPLATE_REVISION>",
+    "chat_template_revision": "<PINNED_CHAT_TEMPLATE_REVISION>",
+    "tool_template_revision": "<PINNED_TOOL_TEMPLATE_REVISION>",
+    "license_gate_status": "pending"
+  },
+  "artifact": {
+    "source_format": "<SOURCE_FORMAT>",
+    "export_format": "<EXPORT_FORMAT_OR_NOT_APPLICABLE>",
+    "quantization_configuration": "<EXACT_CONFIGURATION_OR_NONE>",
+    "artifact_sha256": "<SHA256>",
+    "artifact_size_bytes": null,
+    "package_sha256": "<SHA256>",
+    "package_size_bytes": null,
+    "artifact_identity_verified_before_run": false
+  },
+  "prompt_profile": {
+    "profile_id": "<SYNTHETIC_PROFILE_ID>",
+    "profile_sha256": "<SHA256>",
+    "benchmark_id": "<BENCHMARK_OR_SCENARIO_SET_ID>",
+    "benchmark_sha256": "<SHA256>",
+    "languages": [],
+    "contains_real_user_content": false
+  },
+  "decoding": {
+    "context_tokens": null,
+    "maximum_output_tokens": null,
+    "temperature": null,
+    "top_p": null,
+    "top_k": null,
+    "seed": null,
+    "repetition_controls": {},
+    "stop_sequences": [],
+    "structured_output_revision": "<SCHEMA_REVISION>",
+    "timeout_seconds": null,
+    "cancellation_trigger": "<DEFINED_TRIGGER_POINT>"
+  },
+  "preconditions": {
+    "runtime_matrix_record_exists": false,
+    "license_gate_passed": false,
+    "compile_gate_passed_or_not_applicable": false,
+    "fallback_verified": false,
+    "cancellation_control_available": false,
+    "timeout_control_available": false,
+    "synthetic_prompts_only": true,
+    "privacy_review_passed": false
+  },
+  "environment": {
+    "network_state": "<RECORDED_STATE>",
+    "screen_state_policy": "<RECORDED_POLICY>",
+    "brightness_policy": "<RECORDED_POLICY>",
+    "background_app_policy": "<RECORDED_POLICY>",
+    "cold_definition": "<EXACT_DEFINITION>",
+    "warm_definition": "<EXACT_DEFINITION>",
+    "preparation_notes": []
+  },
+  "measurements": {
+    "availability": {
+      "status": "not_run",
+      "notes": []
+    },
+    "load": {
+      "cold_runs_ms": [],
+      "warm_runs_ms": [],
+      "cold_success_count": 0,
+      "cold_failure_count": 0,
+      "warm_success_count": 0,
+      "warm_failure_count": 0,
+      "summary": {
+        "cold_min_ms": null,
+        "cold_median_ms": null,
+        "cold_max_ms": null,
+        "warm_min_ms": null,
+        "warm_median_ms": null,
+        "warm_max_ms": null
+      }
+    },
+    "generation": {
+      "scenario_results": [],
+      "time_to_first_token_ms": [],
+      "decode_tokens_per_second": [],
+      "completed_scenarios": 0,
+      "failed_scenarios": 0,
+      "timed_out_scenarios": 0,
+      "repetition_flag_count": 0,
+      "truncation_flag_count": 0,
+      "observability_notes": []
+    },
+    "memory": {
+      "measurement_available": false,
+      "measurement_tool": null,
+      "measurement_tool_version": null,
+      "measurement_kind": null,
+      "baseline_bytes": null,
+      "peak_load_bytes": null,
+      "peak_generation_bytes": null,
+      "after_unload_bytes": null,
+      "limitations": []
+    },
+    "battery": {
+      "start_percent": null,
+      "end_percent": null,
+      "charging_during_run": null,
+      "elapsed_seconds": null,
+      "completed_scenarios": 0,
+      "interruptions": [],
+      "precision_limitation_acknowledged": true
+    },
+    "thermal": {
+      "observations": [],
+      "throttling_observed": null,
+      "cooling_periods_seconds": [],
+      "critical_state_reached": false
+    }
+  },
+  "cancellation_and_timeout": {
+    "load_cancellation": {
+      "status": "not_run",
+      "trigger_point": null,
+      "latency_ms": null,
+      "generation_or_load_stopped": null,
+      "resources_released": null,
+      "fallback_succeeded": null
+    },
+    "generation_cancellation": {
+      "status": "not_run",
+      "trigger_point": null,
+      "latency_ms": null,
+      "generation_stopped": null,
+      "partial_proposal_discarded": null,
+      "side_effect_attempted": false,
+      "resources_released": null,
+      "clean_retry_succeeded": null
+    },
+    "timeout": {
+      "status": "not_run",
+      "configured_seconds": null,
+      "observed_latency_ms": null,
+      "generation_stopped": null,
+      "fallback_succeeded": null
+    }
+  },
+  "failure_and_recovery": {
+    "failures": [],
+    "crash_count": 0,
+    "oom_count": 0,
+    "recovery_attempt_count": 0,
+    "successful_recovery_count": 0,
+    "deterministic_behavior_restored": null,
+    "stop_rule_triggered": null
+  },
+  "benchmark_quality": {
+    "evaluator_revision": "<PINNED_EVALUATOR_REVISION>",
+    "normalized_proposal_schema": "<SCHEMA_REVISION>",
+    "untouched_baseline_result_sha256": "<SHA256>",
+    "device_artifact_result_sha256": null,
+    "metrics_status": "not_run",
+    "metrics": {
+      "schema_validity": null,
+      "proposal_type_accuracy": null,
+      "intent_accuracy": null,
+      "tool_accuracy": null,
+      "required_argument_recall": null,
+      "invented_tool_rate": null,
+      "invented_argument_rate": null,
+      "clarification_accuracy": null,
+      "refusal_accuracy": null,
+      "no_tool_accuracy": null,
+      "language_differences": null,
+      "repetition_flag_rate": null,
+      "truncation_flag_rate": null
+    },
+    "weighted_aggregate": null
+  },
+  "raw_evidence": {
+    "artifacts": [],
+    "all_artifacts_hashed": false,
+    "sanitized": false,
+    "privacy_review_status": "pending",
+    "retention_rule": "<RETENTION_RULE>",
+    "screenshots_included": false
+  },
+  "review": {
+    "evidence_decision": null,
+    "allowed_values": [
+      "ACCEPT",
+      "REWORK",
+      "REJECT"
+    ],
+    "reviewer": null,
+    "reviewed_at": null,
+    "rationale": "Unset because this file is a template and no physical-device run occurred.",
+    "limitations": [
+      "No backend or model was loaded.",
+      "No latency, memory, battery or thermal measurement exists.",
+      "No cancellation, timeout, crash or recovery test was performed.",
+      "No benchmark result was produced."
+    ],
+    "prohibited_inference": "This example is not evidence of physical iPhone Air execution or readiness."
+  },
+  "publication": {
+    "contains_personal_data": false,
+    "contains_private_prompt_content": false,
+    "contains_credentials": false,
+    "contains_serial_udid_or_account_identifier": false,
+    "contains_model_weights_or_gated_artifacts": false,
+    "public_safe_review": "pending",
+    "claim_scope": "none"
+  }
+}
