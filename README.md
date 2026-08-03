@@ -140,15 +140,28 @@ Do not start with real private data, external AI provider integrations, model we
 
 ## Model strategy
 
-Initial model strategy is hybrid:
+Models may propose, classify, summarize, route or draft. Deterministic Swift remains authoritative for policy, approval, schema validation, audit and execution.
 
-- Apple Foundation Models / Apple-native APIs for native iPhone integration.
-- Qwen3-1.7B-class models as potential lightweight routers.
-- Qwen3-4B-class models as potential controllable local agent brains.
-- Embedding models for local RAG and search.
-- Larger models only through Mac, Home Server, Private Cloud Compute or external AI when policy allows it.
+The current evidence-backed research order is:
 
-No model weights are committed to this repo.
+1. Apple Foundation Models as an independent system-backend comparison.
+2. FunctionGemma 270M as the first specialization candidate for a fixed action router.
+3. Qwen3 0.6B as the first Apache-2.0 multilingual comparison.
+4. Larger, tool-specific or multimodal models only after smaller baselines fail a defined quality gate and license/runtime requirements are satisfied.
+
+The candidate manifest and immutable German/English action-routing benchmark are on `main`. They do not prove that any model has been trained, exported or run on an iPhone Air.
+
+Canonical model-research entry points:
+
+- overview and research order: `MODEL_STRATEGY.md`
+- model-research index: `docs/model-research/README.md`
+- candidate manifest: `docs/model-research/IPHONE_AIR_MODEL_CANDIDATES.md`
+- immutable benchmark contract: `docs/model-research/IGENTIC_ACTION_BENCHMARK_V0.md`
+- evaluator contract: `docs/model-research/EVALUATOR_CONTRACT_V0.md`
+- dataset and training governance: `docs/model-research/DATASET_GOVERNANCE.md` and `docs/model-research/TRAINING_RUN_CONTRACT.md`
+- runtime and physical-device evidence: `docs/model-research/RUNTIME_EVIDENCE_MATRIX.md` and `docs/model-research/IPHONE_AIR_DEVICE_EVIDENCE_PROTOCOL.md`
+
+No model weights, adapters or checkpoints are committed to this repo. Compile, host and simulator results must not be represented as physical iPhone Air evidence.
 
 ## Privacy-first principles
 
@@ -198,9 +211,11 @@ See the full roadmap in `ROADMAP.md`.
 
 ### Phase 3: Local Model Runtime
 
-- Apple-native runtime evaluation,
-- MLX Swift / MLC-LLM / llama.cpp evaluation,
-- Qwen / Llama / Gemma / Phi candidates.
+- common immutable benchmark and evaluator,
+- untouched Apple Foundation Models, FunctionGemma 270M and Qwen3 0.6B comparisons,
+- governed specialization only after comparable baselines,
+- export/runtime evidence,
+- physical iPhone Air measurement under the canonical protocol.
 
 ### Phase 4: App Intents
 
