@@ -234,7 +234,7 @@ Cancellation and rollback are first-class gates. An artifact that cannot be stop
 
 ## Physical-device boundary
 
-Only a result produced under `IPHONE_AIR_DEVICE_EVIDENCE_PROTOCOL.md` may set `physical_device: passed` or `physical_device: failed`. The record must link to a validated device-result JSON and its SHA-256.
+Only a result produced under `docs/model-research/IPHONE_AIR_DEVICE_EVIDENCE_PROTOCOL.md` may set `physical_device: passed` or `physical_device: failed`. The record must link to a validated device-result JSON and its SHA-256.
 
 Do not derive physical-device claims from:
 
