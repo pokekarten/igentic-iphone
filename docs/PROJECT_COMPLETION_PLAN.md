@@ -36,7 +36,7 @@ The 2026-07-29 audit established:
 - `AppActionCoordinator` already respects `decision.requiresApproval`; the remaining approval-policy work is configuration/setup/admin behavior, not a universal approval hard-code fix.
 - `RuntimeBudgetAssessor` exists as a deterministic producer and is still not authoritative over routing.
 - `MemoryStore` remains a deliberate pre-integration stub.
-- `ToolRegistry` remains a pre-integration metadata registry; real invocation is not yet part of the kernel.
+- `ToolRegistry` now has the bounded Phase 1 read-only `AgentKernel` integration: optional dependency plus count-only audit snapshot; no selection or execution path.
 - Model selection is deterministic and diagnostic-only, with the smaller request shape documented in the current spec.
 
 ## 3. Definition of project completion
@@ -151,20 +151,17 @@ Then implement the smallest safe memory slice. Do not add broad persistence. Kee
 
 ### 1B. ToolRegistry integration boundary
 
-Issue: #137 first; then #121.
+Issues: #137 and #121 — **completed**.
 
-The spec must settle:
+The boundary is now implemented as a read-only diagnostic dependency:
 
-- how a task selects a tool;
-- whether selection is intent-to-tool mapping or an explicit tool request;
-- how `requiredDataLevel` and `actionRisk` are combined with current task classification/risk;
-- how approval is re-checked immediately before a future execution boundary;
-- what is visible in diagnostics/audit;
-- what remains explicitly out of scope.
+- `AgentKernel` accepts optional `toolRegistry: ToolRegistry?`;
+- `handle()` emits one count-only registry snapshot when present;
+- routing and approval behavior remain unchanged;
+- no tool selection, invocation, App Intents or dynamic authorization was added;
+- `AgentKernelToolRegistryWiringTests` pins present/absent registry behavior and metadata minimization.
 
-Then wire only **read-only metadata state** into `AgentKernel` first. Do not jump directly from registry to executable tools.
-
-A later tool-execution issue may add a single synthetic/non-destructive executor only after this boundary has tests.
+Any future tool-selection or execution capability requires a separate design issue.
 
 **AI:** all repository work.
 
@@ -172,9 +169,9 @@ A later tool-execution issue may add a single synthetic/non-destructive executor
 
 ### 1C. RuntimeBudget boundary
 
-Issue #181 is the current estimator implementation slice.
+Issue #181 — **completed**.
 
-Keep `RuntimeBudgetAssessor` deterministic and non-authoritative first. After its contract is stable, decide separately whether budget metadata should be surfaced through diagnostics. Do not let budget estimation silently block/reroute work until a dedicated policy decision exists.
+`RuntimeBudgetAssessor` is deterministic and non-authoritative. Keep budget estimation non-blocking until a dedicated policy decision exists.
 
 **AI:** all repository work.
 
@@ -182,15 +179,15 @@ Keep `RuntimeBudgetAssessor` deterministic and non-authoritative first. After it
 
 ### 1D. Model-selection decision trace
 
-Issues #144–#149.
+Issue #144 — **specification completed**. Issues #145–#149 remain the implementation/diagnostic follow-up sequence.
 
-Finish the trace schema, generator, diagnostics surface and regression coverage. The trace must explain:
+The trace schema now defines:
 
 - request summary;
 - surviving candidates;
 - hard-constraint rejection reasons;
 - weighted score components;
-- tie-break reason;
+- deterministic tie-break reason;
 - safe-refusal/fallback reason.
 
 Keep it diagnostic-only. It must never become policy authority.
@@ -204,7 +201,7 @@ Keep it diagnostic-only. It must never become policy authority.
 - Memory classification/retention is decided and tested.
 - ToolRegistry boundary is decided and metadata integration is tested.
 - RuntimeBudget estimation is deterministic and tested.
-- Model-selection trace is deterministic and diagnostic-only.
+- Model-selection trace schema is deterministic and diagnostic-only; implementation and rendering remain.
 - All existing 138+ tests remain green after each slice.
 
 ## 7. Phase 2 — Make the kernel production-shaped without making it autonomous
