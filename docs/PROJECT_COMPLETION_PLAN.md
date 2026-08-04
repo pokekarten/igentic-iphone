@@ -271,16 +271,16 @@ A single synthetic scenario can demonstrate the complete control-plane chain and
 
 ### Setup/admin approval policy
 
-Issue #185 is the product decision lane. The final shape should be:
+Issue #185 is **completed**. The local configuration lane now provides:
 
-- setup creates a conservative default policy;
-- the user can explicitly configure approval requirements by action kind/family;
-- settings/admin can review and change the policy later;
-- runtime consumes the stored policy rather than inventing hidden policy;
-- blocked actions remain blocked regardless of configuration;
-- diagnostics show the effective configured policy without exposing private content.
+- conservative setup defaults with durable first-run confirmation;
+- explicit approval requirements by action kind/family;
+- later review and editing in settings/admin;
+- runtime consumption of the persisted policy rather than hidden policy;
+- hard blocking regardless of configuration when deterministic policy denies an action;
+- effective-policy diagnostics without private task content.
 
-The first implementation should be local-only configuration. No network-backed administration is required.
+This lane remains local-only. Any real App Intents or AppAction execution capability requires a new source-backed issue and must not reopen or silently widen #185.
 
 ### Exit gate
 
@@ -588,7 +588,7 @@ The final product remains a **privacy-first research prototype**, not an unrestr
 | Tools | #137 -> #121 | spec -> metadata integration -> later execution issue | Yes |
 | Runtime budget | #181 | estimator -> tests -> diagnostic visibility decision | Yes |
 | Model trace | #144 -> #146 -> #147 -> #145/#148/#149 | schema -> value/generator -> tests -> UI | Yes for diagnostics, not runtime |
-| App-action policy | #185 | config model -> setup -> settings/admin -> tests -> runtime consumption | Yes before user-configurable action behavior |
+| App-action policy | #185 — completed | keep the configuration lane closed; scope any future AppAction execution separately | Completed |
 | TaskRouter bypass | #101 | already resolved; keep regression coverage | Guard |
 | Model selection | #103 | expand only after evidence-backed need | Yes before runtime selection |
 | Runtime research | #74, #82, #83, #111 | benchmark -> governance -> runtime evidence -> bounded feasibility | Yes for model/runtime claims |
@@ -721,7 +721,7 @@ The Director should track these gates as binary evidence, not subjective percent
 - [ ] ToolRegistry metadata integration/tests closed;
 - [ ] RuntimeBudget estimator/tests closed;
 - [ ] model-selection decision trace closed;
-- [ ] setup/admin approval policy closed;
+- [x] setup/admin approval policy closed;
 - [ ] complete synthetic kernel matrix green;
 - [ ] diagnostic shell truthful and complete;
 - [ ] immutable benchmark green;
