@@ -204,6 +204,11 @@ public struct DiagnosticViewState: Equatable, Sendable {
             policy: .v1
         )
 
+        return modelSelectionFields(for: trace)
+    }
+
+    /// Pure diagnostic formatting seam. This does not select a model or execute work.
+    static func modelSelectionFields(for trace: ModelSelectionDecisionTrace) -> [DiagnosticSnapshotField] {
         var fields: [DiagnosticSnapshotField] = [
             DiagnosticSnapshotField(label: "Trace schema", value: trace.schemaVersion),
             DiagnosticSnapshotField(label: "Selection request", value: Self.selectionRequestText(trace.request)),
