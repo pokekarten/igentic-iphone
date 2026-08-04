@@ -139,6 +139,81 @@ final class DiagnosticViewStateTests: XCTestCase {
         XCTAssertEqual(state.modelSelectionFields.first { $0.label == "Fallback reason" }?.value, "None")
     }
 
+    func testModelSelectionFieldsRenderNoEligibleCandidatesFallback() {
+        let request = ModelSelectionRequest(latencyBudget: .low, contextSize: 4096, toolUsageRequired: true)
+        let candidates = [
+            ModelCandidate(
+                modelID: "model-over-limit",
+                evaluationScore: 0.99,
+                latencyScore: 0.99,
+                capabilityMatch: 1.00,
+                latencyMS: 50,
+                contextSize: 4096,
+                maxContextTokens: 2048,
+                latencyBudgetClass: .high,
+                toolUsageSupported: true
+            )
+        ]
+        let trace = ModelSelectionDecisionTraceGenerator.makeTrace(
+            candidates: candidates,
+            request: request,
+            policy: .v1
+        )
+        let fields = fieldValues(DiagnosticViewState.modelSelectionFields(for: trace))
+
+        XCTAssertEqual(fields["Selected model id"], "model-safe-refusal")
+        XCTAssertEqual(fields["Selection reason"], "Safe Refusal Model")
+        XCTAssertEqual(fields["Selected score"], "—")
+        XCTAssertEqual(fields["Fallback reason"], "No Eligible Candidates")
+        XCTAssertEqual(
+            fields["Candidate: model-over-limit"],
+            "Rejected · Reasons: Context Size Exceeds Max Context Tokens · Latency 50 ms"
+        )
+    }
+
+    func testModelSelectionFieldsRenderUnresolvedTieFallback() {
+        let request = ModelSelectionRequest(latencyBudget: .low, contextSize: 2048, toolUsageRequired: true)
+        let candidates = [
+            ModelCandidate(
+                modelID: "model-alpha",
+                evaluationScore: 0.90,
+                latencyScore: 0.80,
+                capabilityMatch: 0.40,
+                latencyMS: 100,
+                contextSize: 2048,
+                maxContextTokens: 8192,
+                latencyBudgetClass: .high,
+                toolUsageSupported: true
+            ),
+            ModelCandidate(
+                modelID: "model-beta",
+                evaluationScore: 0.90,
+                latencyScore: 0.80,
+                capabilityMatch: 0.40,
+                latencyMS: 100,
+                contextSize: 2048,
+                maxContextTokens: 8192,
+                latencyBudgetClass: .high,
+                toolUsageSupported: true
+            )
+        ]
+        let trace = ModelSelectionDecisionTraceGenerator.makeTrace(
+            candidates: candidates,
+            request: request,
+            policy: .v1
+        )
+        let fields = fieldValues(DiagnosticViewState.modelSelectionFields(for: trace))
+
+        XCTAssertEqual(fields["Selected model id"], "model-safe-refusal")
+        XCTAssertEqual(fields["Selection reason"], "Safe Refusal Model")
+        XCTAssertEqual(fields["Selected score"], "0.73")
+        XCTAssertEqual(fields["Fallback reason"], "Unresolved Score And Latency Tie")
+        XCTAssertEqual(
+            fields["Candidate: model-alpha"],
+            "Eligible · Score 0.73 · Components: eval 0.45, latency 0.16, capability 0.12 · Latency 100 ms"
+        )
+    }
+
     func testDiagnosticViewStateUsesInjectedApprovalPolicy() {
         let policy = AppActionApprovalPolicy(
             schemaVersion: 7,
@@ -163,5 +238,9 @@ final class DiagnosticViewStateTests: XCTestCase {
         XCTAssertEqual(fields["Delete record approval required"], "No")
         XCTAssertEqual(fields["Update record approval required"], "Yes")
         XCTAssertEqual(fields["Export data approval required"], "No")
+    }
+
+    private func fieldValues(_ fields: [DiagnosticSnapshotField]) -> [String: String] {
+        Dictionary(uniqueKeysWithValues: fields.map { ($0.label, $0.value) })
     }
 }
