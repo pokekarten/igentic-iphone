@@ -58,6 +58,17 @@ public enum SyntheticScenarioCatalog {
 
     public static let all: [DiagnosticScenario] = baseline + [
         DiagnosticScenario(
+            id: "local-only-local-device",
+            task: TaskRequest(
+                userText: "Synthetic local-only local-device dry run",
+                intent: .summarizeNote,
+                actionRisk: .read,
+                requestedDelegationTarget: .localDevice
+            ),
+            privacyMode: .localOnly,
+            delegationTarget: .localDevice
+        ),
+        DiagnosticScenario(
             id: "restricted-external-delegation",
             task: TaskRequest(
                 userText: "Synthetic restricted metadata delegation dry run",
