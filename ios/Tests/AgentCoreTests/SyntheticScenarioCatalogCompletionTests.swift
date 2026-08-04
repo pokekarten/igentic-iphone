@@ -36,6 +36,7 @@ final class SyntheticScenarioCatalogCompletionTests: XCTestCase {
 
         XCTAssertEqual(scenario.privacyMode, .localOnly)
         XCTAssertEqual(scenario.task.requestedDelegationTarget, .localDevice)
+        XCTAssertEqual(scenario.delegationTarget, .localDevice)
         XCTAssertEqual(
             result.route,
             .localTool(name: "summarizeNote", reason: "Note summarization must stay local unless policy allows delegation.")
