@@ -25,7 +25,7 @@ Status: living audit companion
 | #175 | resolved / closed | low | Diagnostic snapshot regression coverage exists for the live `critical-reminder` synthetic snapshot. |
 | #176 | resolved / closed | low | Diagnostic model-selection preview coverage exists. |
 | #181 | closed / completed | low | RuntimeBudgetAssessor estimator is implemented; keep it non-authoritative. |
-| #185 | open / planned | medium | Approval policy remains a later Phase 3 product/configuration lane: local setup defaults, settings/admin editing, then runtime consumption. |
+| #185 | closed / completed | low | Local approval-policy persistence, editing, settings consumption and first-run confirmation are complete; keep this configuration lane closed and scope any future AppAction execution separately. |
 | #207 | closed / completed | low | MemoryStore sensitivity hardening is merged in PR #208. |
 | #142 | closed / completed | low | MemoryStore classification/retention design is documented; keep closed. |
 
