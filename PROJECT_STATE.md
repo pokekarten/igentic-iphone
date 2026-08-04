@@ -1,6 +1,6 @@
 # Project State
 
-Last updated: 2026-07-31
+Last updated: 2026-08-04
 
 ## Current status
 
@@ -10,7 +10,7 @@ Last updated: 2026-07-31
 - Visibility: public
 - Validation: GitHub Actions on macOS and Linux
 - Primary target device: iPhone Air as trust/control plane
-- Current phase: diagnostic shell and safe local-model boundary design
+- Current phase: diagnostic shell, local policy configuration, and evidence-gated local-model research
 
 ## Identity and community anchors
 
@@ -27,25 +27,32 @@ These are durable project anchors required by repository validation. They do not
 
 Current GitHub source is authoritative for pull requests, issues, branches, checks and merged state.
 
-The only mutable source for the active iGentic target and lane stage is:
+The only mutable source for an explicitly authorized iGentic target and lane stage is:
 
 ```text
 pokekarten/agentic-private-brain issue #25
 ```
 
-## Current baseline
+That lane is suspended and the repository is currently in manual mode. Historical target envelopes in the Brain issue must not be treated as active work.
 
-- The repository baseline is the last verified GitHub state on `main` plus the durable project-state record in this file.
-- PR #156 / issue #156 (`Consolidate trivial duplicated helpers and remove orphaned placeholder files`) is merged on GitHub.
-- PR #158 / issue #158 (`Consolidate effective-classification logic and close sensitive-data scan gap in AppActionCoordinator`) is merged on GitHub.
-- There is no live implementation PR encoded in this file.
+## Current verified baseline
+
+- There is no active iGentic implementation pull request.
+- Issue #185 is closed as completed. PR #215 merged the local AppAction approval-policy settings, persistence, effective-policy diagnostics and related regression coverage.
+- The model-research product packages for canonical navigation, benchmark/evaluator contracts, dataset governance, runtime/device evidence and high-level document synchronization are complete on `main`.
+- PR #236 added the runtime and physical-device evidence contracts.
+- PR #237 synchronized the high-level model-research overviews with the canonical contracts.
+- Knowledge-export parent Issue #79 remains open only for terminal cross-repository evidence in `agentic-dev-playbook` and the private Brain lane.
+- CoreML feasibility Issue #111 remains blocked pending an owner-supplied local model artifact. No runtime integration is authorized by that issue.
+- Research parent Issue #74 remains an open planning and evidence roadmap, not an active implementation target.
 
 ## Current safety posture
 
-- Treat this file as durable state only.
-- Do not revive completed targets from this file.
-- Do not infer active work from memory when GitHub or repo files provide the current answer.
-- Keep the active work constrained to the current control record and the existing validation contract.
+- Deterministic Swift policy, approval, schema validation, routing and audit remain authoritative.
+- Models may propose; they do not authorize or execute.
+- AppAction approval configuration cannot turn a blocked action into an allowed action.
+- No physical-device performance or readiness claim is valid without exact artifact, runtime, configuration and physical-device evidence.
+- Do not revive completed targets from this file, Brain history or memory.
 
 ## Active-work lookup
 
@@ -56,47 +63,42 @@ When determining what to work on next, check sources in this order:
 3. `pokekarten/agentic-private-brain` issue #25.
 4. The durable notes in this file.
 
+If the sources diverge, current GitHub source wins.
+
 ## Validation contract
 
 - GitHub Actions on macOS and Linux are the primary validation signals.
-- Local verification should stay aligned with the repository’s existing scripts and test suites.
-- Keep validation changes scoped to the files under active work.
+- `python3 scripts/validate_repo_structure.py` is the baseline repository validation.
+- Swift changes require `cd ios && swift test` unless the scoped issue documents why Swift tests are not applicable.
+- Validation evidence must match the exact pull-request head being reviewed.
 
 ## Evidence boundary
 
 - Use GitHub and repository files as the source of truth.
-- Do not rely on stale memory when an issue, PR, or file can be checked directly.
-- Do not treat this file as evidence of a currently open implementation target.
+- Keep mutable PR, branch, check and lane state out of this durable file.
+- Do not treat planning issues as proof of implementation.
+- Do not treat desktop conversion, simulator execution or runtime documentation as physical iPhone Air evidence.
+- Public repository content must not contain credentials, private prompts, private datasets, real user messages, contacts, files or identifiers.
 
 ## Durable next-direction rules
 
-- Preserve the distinction between durable state and active work.
-- Keep completed work recorded here only as completed work.
-- Prefer the smallest safe next step that matches the current control record.
-- If the control record and GitHub diverge, GitHub wins.
+- Exactly one active iGentic implementation target and at most one active implementation PR are allowed.
+- Existing open PRs take priority over selecting new work.
+- When no PR exists, select one smallest safe source-backed product issue before creating a branch.
+- `agentic-dev-playbook` and `agentic-slm-lab` are support repositories, never implicit product targets.
+- Preserve the separation between product implementation, research evidence and cross-repository reuse.
+- Prefer bounded changes with explicit acceptance criteria, validation and stop rules.
 
 ## Recently completed
 
-- PR #156 / issue #156 (`Consolidate trivial duplicated helpers and remove orphaned placeholder files`) is merged on GitHub; `ios/Tests/iGenticAppTests/DiagnosticViewStateTests.swift`, `scripts/evaluate_action_proposals.py`, `__branch_init__`, and `__noop_check__` are closed out.
-- PR #158 / issue #158 (`Consolidate effective-classification logic and close sensitive-data scan gap in AppActionCoordinator`) is merged on GitHub; `DataClassification.effectiveClassification` now feeds `AgentKernel`, `DiagnosticSnapshotProducer`, and `AppActionCoordinator`.
-- PR #175 / issue #175 (`Replace static preview snapshot with a live DiagnosticSnapshotProducer result`) is merged on GitHub; `ios/Tests/iGenticAppTests/DiagnosticViewStateTests.swift` now covers the `critical-reminder` synthetic snapshot path.
-- PR #177 / issue #176 (`Surface ModelSelectionEngine as a diagnostic-only preview section`) is merged on GitHub; `ios/Tests/iGenticAppTests/DiagnosticViewStateTests.swift` now covers the diagnostic-only model selection preview.
-- PR #208 / issue #207 (`Implement MemoryStore sensitivity metadata and restricted-data write guard`) is merged on GitHub; `ios/Sources/AgentCore/MemoryStore.swift` now rejects `restrictedSensitiveData` at write time and keeps scope isolation intact.
-- MemoryStore integration decision: intentionally left as a pre-integration stub, matching DelegationBroker's pattern. See `docs/reports/memory-store-integration-decision.md`.
-- Phase 2 model-selection PR #99 (`phase2/model-selection-engine-v3`) is closed on GitHub and was not merged; it is no longer the active implementation target.
-- Metadata-only `RuntimeBudget`, `ApprovalReceipt`, `DiagnosticSnapshot` and `LocalModelRuntime` contracts are on `main`.
-- AppAction approval policy #185 remains the current planned product lane: local setup defaults, later settings/admin editing, then runtime consumption.
-- `ios/Tests/AgentCoreTests/RiskScorerTests.swift` now covers the full approval-gate scoring surface: baseline score, action-risk contributions, delegation-target contributions including the `trustedDevices` + `externalProvider` coupling, sensitive-data accumulation, clamping to 10, and the approval threshold boundary.
-- `ios/Tests/AgentCoreTests/SensitiveDataDetectorTests.swift` now includes the regression coverage for the `containsGermanPhoneLikePattern` length cap, plus reset and no-reset behavior around accumulation.
-- `ios/Tests/AgentCoreTests/AgentKernelSensitiveDataWiringTests.swift` now covers the end-to-end sensitive-data wiring in `AgentKernel.handle()` and audit propagation.
-- Raw task text was removed from task-received `AuditLog` events.
-- `ApprovalRequest` no longer carries raw user task text; task summary is now metadata-only (classification/risk only).
-- `LocalModelRuntime.assess()` is called from `AgentKernel.handle()`; rejection blocks routing and is recorded in the audit log. Covered end-to-end by `ios/Tests/AgentCoreTests/AgentKernelLocalModelRuntimeWiringTests.swift`.
-- The workflow dependency reference used by the bootstrap ZIP workflow was updated from `actions/checkout@v6` to `@v7`.
-- Repository hygiene now treats undocumented root placeholder artifacts as cleanup candidates rather than durable content.
-- Issues #25, #29, #58 and #59 are closed for their documented scope.
-- CoreML feasibility spike Issue #111 is blocked pending an owner-supplied local model artifact; no network/download automation was attempted and no runtime wiring was changed.
+- PR #215 completed the local AppAction approval-policy settings and persistence slice; Issue #185 is closed as completed.
+- PR #236 defined runtime compatibility evidence classes, the physical iPhone Air measurement protocol and a public-safe result template.
+- PR #237 synchronized the model-research overview documents with the canonical candidate, benchmark, evaluator, governance, runtime and device-evidence contracts.
+- The Explore diagnostic shell now supports bundled local Markdown discovery, local detail navigation, deterministic search excerpts, accessible match highlighting and result counts.
+- MemoryStore restricted-data write protection, live `DiagnosticSnapshot` production, diagnostic-only model selection, local-model assessment wiring and `ApprovalReceipt` wiring remain on `main`.
 
 ## Current next task
 
-There is currently no active implementation PR; the repo is in manual mode. Read `docs/CHATGPT_NEXT_TASK.md` and Brain issue #25 as the current control record before taking any action. The current planned product lane is issue #185, but it is still configuration work rather than a live active PR.
+There is no active implementation target or product PR. The repository remains in manual mode until one smallest safe source-backed product issue is selected explicitly.
+
+Issue #111 is not actionable without the owner-supplied model artifact. Issue #79 has only cross-repository completion work remaining and must not be used to introduce unrelated product changes. Any next product implementation must therefore begin with fresh GitHub reconciliation and a bounded issue rather than reviving the completed #185 lane or a historical Brain target.
