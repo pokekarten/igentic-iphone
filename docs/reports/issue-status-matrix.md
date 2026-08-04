@@ -9,9 +9,9 @@ Status: living audit companion
 | #121 | closed / completed | low | ToolRegistry diagnostic-only kernel wiring is implemented and covered by `AgentKernelToolRegistryWiringTests`. |
 | #122 | closed / completed | low | RuntimeBudgetAssessor direction is complete; keep estimator non-authoritative. |
 | #101 | resolved / closed | medium | Regression coverage exists for restricted-data bypass, pending approval, and approved-critical-action routing. |
-| #103 | in progress | medium | Deterministic model-selection fixtures and validator exist; broader safety/language coverage remains separate work. |
-| #114 | open | low | Keep as a docs-only starter issue. |
-| #117 | open | low | Keep as a content-only starter issue. |
+| #103 | closed / completed | medium | Deterministic model-selection fixtures and fallback/tie-break coverage exist; scope any broader model work separately. |
+| #114 | closed / completed | low | The first-visitor README architecture-flow clarification is complete; keep closed. |
+| #117 | closed / completed | low | The public-safe LinkedIn announcement draft is complete; keep closed. |
 | #136 | closed / completed | low | Diagnostic snapshot labels are now clearer; the blocked + requires-approval case reads unambiguously. |
 | #144 | closed / completed | low | Decision-trace schema v1 is documented and aligned with the current selection engine. |
 | #145 | closed / completed | low | The diagnostic preview consumes the deterministic trace contract without changing selection behavior. |
@@ -27,6 +27,7 @@ Status: living audit companion
 | #181 | closed / completed | low | RuntimeBudgetAssessor estimator is implemented; keep it non-authoritative. |
 | #185 | closed / completed | low | Local approval-policy persistence, editing, settings consumption and first-run confirmation are complete; keep this configuration lane closed and scope any future AppAction execution separately. |
 | #207 | closed / completed | low | MemoryStore sensitivity hardening is merged in PR #208. |
+| #248 | closed / completed | low | Renderer-level coverage pins both model-selection safe-refusal fallback labels; keep closed. |
 | #142 | closed / completed | low | MemoryStore classification/retention design is documented; keep closed. |
 
 ## Maintenance rule
