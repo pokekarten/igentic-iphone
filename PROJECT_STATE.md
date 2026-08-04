@@ -95,7 +95,7 @@ If the sources diverge, current GitHub source wins.
 - PR #236 defined runtime compatibility evidence classes, the physical iPhone Air measurement protocol and a public-safe result template.
 - PR #237 synchronized the model-research overview documents with the canonical candidate, benchmark, evaluator, governance, runtime and device-evidence contracts.
 - The Explore diagnostic shell now supports bundled local Markdown discovery, local detail navigation, deterministic search excerpts, accessible match highlighting and result counts.
-- MemoryStore restricted-data write protection, live diagnostic snapshots, diagnostic-only model selection, local-model assessment wiring and approval-receipt wiring remain on `main`.
+- MemoryStore restricted-data write protection, live `DiagnosticSnapshot` production, diagnostic-only model selection, local-model assessment wiring and `ApprovalReceipt` wiring remain on `main`.
 
 ## Current next task
 
