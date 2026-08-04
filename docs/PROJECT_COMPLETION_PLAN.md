@@ -179,18 +179,18 @@ Issue #181 — **completed**.
 
 ### 1D. Model-selection decision trace
 
-Issue #144 — **specification completed**. Issues #145–#149 remain the implementation/diagnostic follow-up sequence.
+Issues #144–#149 — **completed**.
 
-The trace schema now defines:
+The completed diagnostic-only lane now includes:
 
-- request summary;
-- surviving candidates;
-- hard-constraint rejection reasons;
-- weighted score components;
-- deterministic tie-break reason;
-- safe-refusal/fallback reason.
+- a documented trace schema and vocabulary;
+- deterministic trace value types and generator;
+- surviving and rejected candidates with hard-constraint reasons;
+- weighted score components, tie-break reason and fallback reason;
+- a compact synthetic/read-only diagnostics panel;
+- regression coverage for generated and rendered trace labels.
 
-Keep it diagnostic-only. It must never become policy authority.
+Keep the trace diagnostic-only. It must never become policy authority or evidence of live model execution.
 
 **AI:** all repository work.
 
@@ -201,7 +201,7 @@ Keep it diagnostic-only. It must never become policy authority.
 - Memory classification/retention is decided and tested.
 - ToolRegistry boundary is decided and metadata integration is tested.
 - RuntimeBudget estimation is deterministic and tested.
-- Model-selection trace schema is deterministic and diagnostic-only; implementation and rendering remain.
+- Model-selection trace is deterministic, rendered, tested and diagnostic-only.
 - All existing 138+ tests remain green after each slice.
 
 ## 7. Phase 2 — Make the kernel production-shaped without making it autonomous
@@ -261,7 +261,7 @@ A single synthetic scenario can demonstrate the complete control-plane chain and
 
 - Keep the default snapshot generated from synthetic scenario execution.
 - Remove wording that can be interpreted as live device evidence when it is synthetic.
-- Finish model-selection decision-trace rendering.
+- Preserve the existing model-selection decision-trace renderer as a synthetic, read-only surface.
 - Add a compact policy/approval explanation that makes `blocked` versus `approval required` unambiguous.
 - Surface runtime-budget metadata as planning information only.
 - Surface ToolRegistry and MemoryStore state only as metadata and only after their contracts are closed.
@@ -587,7 +587,7 @@ The final product remains a **privacy-first research prototype**, not an unrestr
 | Memory | #120, #142 | decision -> implementation -> tests -> kernel boundary | Yes |
 | Tools | #137 -> #121 | spec -> metadata integration -> later execution issue | Yes |
 | Runtime budget | #181 | estimator -> tests -> diagnostic visibility decision | Yes |
-| Model trace | #144 -> #146 -> #147 -> #145/#148/#149 | schema -> value/generator -> tests -> UI | Yes for diagnostics, not runtime |
+| Model trace | #144–#149 — completed | schema -> generator -> diagnostics rendering -> regression coverage | Completed |
 | App-action policy | #185 — completed | keep the configuration lane closed; scope any future AppAction execution separately | Completed |
 | TaskRouter bypass | #101 | already resolved; keep regression coverage | Guard |
 | Model selection | #103 | expand only after evidence-backed need | Yes before runtime selection |
@@ -720,7 +720,7 @@ The Director should track these gates as binary evidence, not subjective percent
 - [ ] ToolRegistry integration spec closed;
 - [ ] ToolRegistry metadata integration/tests closed;
 - [ ] RuntimeBudget estimator/tests closed;
-- [ ] model-selection decision trace closed;
+- [x] model-selection decision trace closed;
 - [x] setup/admin approval policy closed;
 - [ ] complete synthetic kernel matrix green;
 - [ ] diagnostic shell truthful and complete;

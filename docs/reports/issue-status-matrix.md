@@ -14,11 +14,11 @@ Status: living audit companion
 | #117 | open | low | Keep as a content-only starter issue. |
 | #136 | closed / completed | low | Diagnostic snapshot labels are now clearer; the blocked + requires-approval case reads unambiguously. |
 | #144 | closed / completed | low | Decision-trace schema v1 is documented and aligned with the current selection engine. |
-| #145 | open | medium | Diagnostics preview should consume the trace contract without changing selection behavior. |
+| #145 | closed / completed | low | The diagnostic preview consumes the deterministic trace contract without changing selection behavior. |
 | #146 | closed / completed | medium | Trace value type and generator are implemented and tested. |
-| #147 | open | low | Add renderer regression coverage after the trace model exists. |
-| #148 | open | low | Add compact read-only SwiftUI trace panel after the trace model exists. |
-| #149 | open | low | Pin trace-panel rendering once the UI surface exists. |
+| #147 | closed / completed | low | Renderer labels, rejection reasons, tie-breaks and fallback output have regression coverage. |
+| #148 | closed / completed | low | The compact read-only SwiftUI trace panel is implemented as a synthetic diagnostic-only surface. |
+| #149 | closed / completed | low | Trace-panel rendering is pinned by deterministic diagnostics tests. |
 | #156 | resolved / closed | low | Diagnostic view regression coverage exists; docs-only cleanup is validated by repo structure checks. |
 | #157 | closed / completed | medium | Shared effective-classification logic and AppActionCoordinator sensitive-data scanning are implemented and tested. |
 | #158 | resolved / closed | medium | App-action coordinator regression coverage exists for sensitive-payload escalation and approval blocking. |
