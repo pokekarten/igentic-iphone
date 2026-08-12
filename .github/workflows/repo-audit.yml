@@ -52,6 +52,9 @@ jobs:
       - name: Test autonomy gate evaluator
         run: python3 scripts/autonomy/test_evaluate_pr.py
 
+      - name: Validate action benchmark
+        run: python3 scripts/validate_action_benchmark.py
+
       - name: Test action proposal evaluator
         run: python3 scripts/test_evaluate_action_proposals.py
 
@@ -94,6 +97,7 @@ jobs:
             echo "- Repo structure validator completed."
             echo "- Generated Explore documentation and package indexes are synchronized."
             echo "- Autonomy gate evaluator unit tests completed in this contents-read workflow."
+            echo "- Canonical action benchmark validation completed."
             echo "- Action proposal evaluator semantic-correctness regression tests completed."
             echo "- Required public project control files are present and non-empty."
           } >> "$GITHUB_STEP_SUMMARY"
