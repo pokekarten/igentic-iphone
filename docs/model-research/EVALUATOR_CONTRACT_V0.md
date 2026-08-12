@@ -28,7 +28,13 @@ python3 scripts/evaluate_action_proposals.py \
   --output path/to/result.json
 ```
 
-Both scripts use only the Python standard library and perform no network access.
+Run the focused evaluator regression suite:
+
+```bash
+python3 scripts/test_evaluate_action_proposals.py
+```
+
+All scripts use only the Python standard library and perform no network access.
 
 ## Benchmark validation
 
@@ -129,6 +135,10 @@ Reported metrics:
 - `intent_accuracy`;
 - `tool_accuracy`;
 - `required_argument_recall`;
+- `expected_argument_value_accuracy`;
+- `reason_code_accuracy`;
+- `exact_missing_argument_accuracy`;
+- `fully_correct_case_rate`;
 - `invented_tool_rate`;
 - `invented_argument_rate`;
 - `clarification_accuracy`;
@@ -137,11 +147,19 @@ Reported metrics:
 - `repetition_flag_rate`;
 - `truncation_flag_rate`.
 
-Required-argument recall includes only required fields that the benchmark does not mark as expected missing. An argument is recalled only when a non-empty value is returned.
+Existing V0 metrics retain their documented meaning. `required_argument_recall` remains a presence/non-empty recall metric for required fields that the benchmark does not mark as expected missing.
+
+`expected_argument_value_accuracy` is a micro-average over every key/value pair in benchmark `expected_arguments`. A value counts as correct only when the key is returned and the normalized JSON value and JSON type exactly match the benchmark expectation. Missing or wrong values reduce this metric; extra keys remain measured separately by `invented_argument_rate`.
+
+`reason_code_accuracy` requires an exact match between proposal `reasonCode` and benchmark `expected_reason_code`.
+
+`exact_missing_argument_accuracy` evaluates every case, not only clarification cases. The proposal must contain a schema-valid unique string list whose set exactly matches `expected_missing_arguments`; malformed lists fail this metric.
+
+`fully_correct_case_rate` counts a case only when its normalized schema is valid, proposal type, intent and tool are exact, every expected argument value is exact, no argument key is invented, the missing-argument set is exact and the reason code is exact. Optional repetition and truncation observations remain separate evidence and do not change this semantic correctness definition.
 
 An invented tool is any non-null tool that differs from the benchmark expectation. An invented argument is a returned argument key absent from that case's `expected_arguments`.
 
-Clarification accuracy requires `clarify`, a null tool and an exact set match for `expected_missing_arguments`. Refusal and no-tool accuracy require the exact proposal type and a null tool.
+Clarification accuracy preserves its V0 meaning: it requires `clarify`, a null tool and an exact set match for `expected_missing_arguments`. Refusal and no-tool accuracy require the exact proposal type and a null tool.
 
 ## Result JSON
 
@@ -162,7 +180,9 @@ The deterministic result contains:
 }
 ```
 
-`case_results` follows benchmark order and records schema errors, exact-match booleans, argument counts, invented keys and supplied repetition or truncation flags. The result has no timestamp so identical inputs produce byte-stable JSON when invoked with the same Python version.
+`case_results` follows benchmark order and records schema errors, exact-match booleans, argument counts, invented keys and supplied repetition or truncation flags. Semantic argument evidence is public-safe: it records expected-value hit/total counts and incorrect expected argument keys, never the expected or returned values themselves. Each case also records `reason_code_correct`, `missing_arguments_exact` and `fully_correct`.
+
+The result has no timestamp so identical inputs produce byte-stable JSON when invoked with the same Python version.
 
 A null metric rate means its denominator was zero. Language differences are absolute German-versus-English percentage-point differences and are null when either language rate is undefined.
 
