@@ -43,6 +43,29 @@ public struct DiagnosticSnapshotField: Identifiable, Equatable, Sendable {
 }
 
 public struct DiagnosticViewState: Equatable, Sendable {
+    private enum SnapshotProvenance {
+        case syntheticCriticalReminder
+        case providedUnverified
+
+        var runtimeStatus: String {
+            switch self {
+            case .syntheticCriticalReminder:
+                return "Synthetic preview snapshot loaded"
+            case .providedUnverified:
+                return "Diagnostic snapshot loaded (source not asserted)"
+            }
+        }
+
+        var sourceDescription: String {
+            switch self {
+            case .syntheticCriticalReminder:
+                return "Synthetic preview result (critical-reminder)"
+            case .providedUnverified:
+                return "Provided diagnostic snapshot (source not asserted)"
+            }
+        }
+    }
+
     public let operatingMode: String
     public let runtimeStatus: String
     public let auditStatus: String
@@ -59,6 +82,7 @@ public struct DiagnosticViewState: Equatable, Sendable {
         self.init(
             report: report,
             snapshot: Self.syntheticScenarioSnapshot(),
+            provenance: .syntheticCriticalReminder,
             policy: .default
         )
     }
@@ -68,14 +92,26 @@ public struct DiagnosticViewState: Equatable, Sendable {
         snapshot: DiagnosticSnapshot?,
         policy: AppActionApprovalPolicy = .default
     ) {
+        self.init(
+            report: report,
+            snapshot: snapshot,
+            provenance: snapshot == nil ? nil : .providedUnverified,
+            policy: policy
+        )
+    }
+
+    private init(
+        report: ScenarioReport,
+        snapshot: DiagnosticSnapshot?,
+        provenance: SnapshotProvenance?,
+        policy: AppActionApprovalPolicy
+    ) {
         self.operatingMode = "Local and trusted-device dry runs"
-        self.runtimeStatus = snapshot == nil
-            ? "No live diagnostic snapshot available"
-            : "Synthetic preview snapshot loaded"
+        self.runtimeStatus = provenance?.runtimeStatus ?? "No diagnostic snapshot loaded"
         self.auditStatus = "Synthetic metadata only"
         self.validationStatus = "Use current GitHub Actions evidence"
         self.privacyNotice = "No private content"
-        self.snapshotSource = snapshot == nil ? "Not available" : "Synthetic preview result (critical-reminder)"
+        self.snapshotSource = provenance?.sourceDescription ?? "Not available"
         self.snapshotFields = Self.makeSnapshotFields(snapshot)
         self.approvalPolicyFields = Self.makeApprovalPolicyFields(policy: policy)
         // Fixed diagnostic example; this does not come from any live candidate registry.
