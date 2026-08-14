@@ -2,7 +2,8 @@
 
 Status: executable provenance contract  
 Schema: `igentic-baseline-run-v0`  
-Parent: Issue #88
+Parent: Issue #88  
+Integrity follow-up: Issue #274
 
 ## Purpose
 
@@ -10,7 +11,7 @@ This contract binds every untouched backend baseline to the exact benchmark, eva
 
 The package records evidence only. It does not download or run a model, execute a tool, authorize an action, add a runtime provider or establish physical iPhone Air readiness.
 
-## Files and command
+## Files and commands
 
 Validate the synthetic example:
 
@@ -19,7 +20,13 @@ python3 scripts/validate_baseline_run.py \
   docs/model-research/baseline-run-manifest-v0.example.json
 ```
 
-The validator uses only the Python standard library, performs no network access and never rewrites the manifest.
+Run the focused fail-closed regression suite:
+
+```bash
+python3 scripts/test_validate_baseline_run.py
+```
+
+Both scripts use only the Python standard library, perform no network access and never rewrite the manifest.
 
 ## Exact manifest sections
 
@@ -73,9 +80,18 @@ For a custom model, the tokenizer revision must be immutable. For a system-manag
 
 ### Router profile and decoding
 
-`profile.name` is `Router-small` or `Router-normal` and records context, input and output token limits. The input plus output limit cannot exceed the context limit.
+Benchmark V0 has exactly two comparable router profiles. Their experiment budgets are part of the profile identity and must not drift by backend:
 
-`decoding` records temperature, top-p, maximum output tokens and deterministic seed behavior. A seed is required only when the backend supports it; otherwise the seed is null.
+| Profile | Maximum input tokens | Maximum output tokens |
+| --- | ---: | ---: |
+| `Router-small` | 512 | 32 |
+| `Router-normal` | 1,024 | 64 |
+
+`profile.context_limit_tokens` records the backend/environment context capacity used for the run. It may be larger than the V0 experiment budget, but it must be large enough for the configured input plus output limits. A larger backend context does not change the named V0 profile.
+
+`decoding` records temperature, top-p, maximum output tokens and deterministic seed behavior. `decoding.max_output_tokens` must equal the named profile's maximum output-token budget. A run with a smaller or larger generation cap is not the same V0 profile and must fail validation rather than silently becoming incomparable.
+
+A seed is required only when the backend supports deterministic seeding; otherwise the seed is null.
 
 ### Execution evidence
 
@@ -118,6 +134,9 @@ The validator rejects:
 - invalid UTF-8, invalid JSON, duplicate JSON keys or a non-object root;
 - missing or unexpected fields at every schema level;
 - invalid paths, hashes, revisions, dates, limits, enums or seed combinations;
+- a `Router-small` or `Router-normal` manifest whose input/output budget differs from the canonical V0 profile;
+- a decoding maximum that differs from the profile output limit;
+- a context limit smaller than the configured input plus output budget;
 - incompatible Apple-system and custom-model identities;
 - training, fine-tuning or model-adapter claims;
 - credential, secret, private-prompt, user-content or device-identifier fields;
@@ -127,9 +146,15 @@ The validator rejects:
 
 Validation proves schema and provenance consistency only. It does not prove that an artifact exists, that a model was executed, that a license interpretation is correct or that a physical device produced the result.
 
+## Continuous validation
+
+Repo Audit runs both the baseline manifest validator and its focused regression suite. The regression suite mutation-tests both named V0 profiles, decoding-cap equality, larger backend context capacity, and the existing license/training/device fail-closed rules.
+
+A future benchmark version must not silently reuse these names with different budgets. Introduce a versioned contract or explicit migration when the experiment profile changes.
+
 ## Synthetic example
 
-`baseline-run-manifest-v0.example.json` contains synthetic placeholders only. Repeated hexadecimal digits are deliberately non-evidence examples, not hashes of repository files or model artifacts. The example validates the schema while making no product, model, benchmark or device-performance claim.
+`baseline-run-manifest-v0.example.json` contains synthetic placeholders only. Repeated hexadecimal digits are deliberately non-evidence examples, not hashes of repository files or model artifacts. The example uses the canonical `Router-small` 512-input / 32-output budget while making no product, model, benchmark or device-performance claim.
 
 ## Safety boundary
 
