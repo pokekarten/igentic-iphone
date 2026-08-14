@@ -16,6 +16,7 @@ final class SyntheticScenarioCatalogCompletionTests: XCTestCase {
                 "trusted-device-metadata",
                 "local-only-local-device",
                 "restricted-external-delegation",
+                "highly-private-approval",
                 "sensitive-data-detection",
             ]
         )
@@ -70,6 +71,30 @@ final class SyntheticScenarioCatalogCompletionTests: XCTestCase {
         )
     }
 
+    func testHighlyPrivateDataRequiresApprovalWithoutRiskOrExternalProviderCause() throws {
+        let scenario = try XCTUnwrap(
+            SyntheticScenarioCatalog.all.first { $0.id == "highly-private-approval" }
+        )
+        let result = ScenarioRunner().run(scenario)
+
+        XCTAssertEqual(scenario.task.dataClassification.level, .highlyPrivateData)
+        XCTAssertEqual(scenario.task.actionRisk, .read)
+        XCTAssertEqual(scenario.task.requestedDelegationTarget, .trustedMac)
+        XCTAssertEqual(scenario.delegationTarget, .trustedMac)
+        XCTAssertTrue(result.policyDecision.isAllowed)
+        XCTAssertTrue(result.policyDecision.requiresApproval)
+        XCTAssertEqual(result.policyDecision.reasonCode, .dataRequiresApproval)
+        XCTAssertEqual(
+            result.route,
+            .approvalRequired(reason: "Approval is required before routing.")
+        )
+        XCTAssertEqual(result.approvalStatus, .pending)
+        XCTAssertEqual(
+            result.delegationDecision,
+            .requiresApproval(reason: "Highly private data requires explicit approval.")
+        )
+    }
+
     func testSensitiveDataScenarioUsesDetectorClassificationWithoutRetainingRawValue() throws {
         let scenario = try XCTUnwrap(
             SyntheticScenarioCatalog.all.first { $0.id == "sensitive-data-detection" }
@@ -95,13 +120,15 @@ final class SyntheticScenarioCatalogCompletionTests: XCTestCase {
         let report = ScenarioRunner().report(SyntheticScenarioCatalog.all)
         let summary = report.textSummary
 
-        XCTAssertEqual(report.entries.count, 7)
-        XCTAssertEqual(summary.components(separatedBy: "\n").count, 7)
+        XCTAssertEqual(report.entries.count, 8)
+        XCTAssertEqual(summary.components(separatedBy: "\n").count, 8)
         XCTAssertTrue(summary.contains("local-only-local-device"))
         XCTAssertTrue(summary.contains("restricted-external-delegation"))
+        XCTAssertTrue(summary.contains("highly-private-approval"))
         XCTAssertTrue(summary.contains("sensitive-data-detection"))
         XCTAssertFalse(summary.contains("Synthetic local-only local-device dry run"))
         XCTAssertFalse(summary.contains("Synthetic restricted metadata delegation dry run"))
+        XCTAssertFalse(summary.contains("Synthetic highly private approval dry run"))
         XCTAssertFalse(summary.contains("scenario@example.com"))
 
         // The report intentionally stores normalized kinds, not the full
@@ -113,6 +140,10 @@ final class SyntheticScenarioCatalogCompletionTests: XCTestCase {
         let restricted = report.entries.first { $0.scenarioID == "restricted-external-delegation" }
         XCTAssertEqual(restricted?.route, .blocked)
         XCTAssertEqual(restricted?.delegation, .blocked)
+
+        let highlyPrivate = report.entries.first { $0.scenarioID == "highly-private-approval" }
+        XCTAssertEqual(highlyPrivate?.route, .approvalRequired)
+        XCTAssertEqual(highlyPrivate?.delegation, .approvalRequired)
 
         let sensitive = report.entries.first { $0.scenarioID == "sensitive-data-detection" }
         XCTAssertEqual(sensitive?.route, .localTool)
