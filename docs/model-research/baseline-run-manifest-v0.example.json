@@ -41,13 +41,13 @@
   "profile": {
     "name": "Router-small",
     "context_limit_tokens": 4096,
-    "input_limit_tokens": 1024,
-    "output_limit_tokens": 256
+    "input_limit_tokens": 512,
+    "output_limit_tokens": 32
   },
   "decoding": {
     "temperature": 0.0,
     "top_p": 1.0,
-    "max_output_tokens": 256,
+    "max_output_tokens": 32,
     "seed_supported": false,
     "seed": null
   },
