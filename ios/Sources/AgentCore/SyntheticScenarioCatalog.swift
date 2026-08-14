@@ -84,6 +84,21 @@ public enum SyntheticScenarioCatalog {
             delegationTarget: .externalProvider
         ),
         DiagnosticScenario(
+            id: "highly-private-approval",
+            task: TaskRequest(
+                userText: "Synthetic highly private approval dry run",
+                intent: .findFile,
+                dataClassification: DataClassification(
+                    level: .highlyPrivateData,
+                    reason: "Synthetic highly private classification for approval smoke testing."
+                ),
+                actionRisk: .read,
+                requestedDelegationTarget: .trustedMac
+            ),
+            privacyMode: .trustedDevices,
+            delegationTarget: .trustedMac
+        ),
+        DiagnosticScenario(
             id: "sensitive-data-detection",
             task: TaskRequest(
                 userText: syntheticSensitiveText,
