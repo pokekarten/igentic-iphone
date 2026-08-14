@@ -21,21 +21,14 @@ jobs:
   repo-audit:
     runs-on: ubuntu-latest
     timeout-minutes: 8
-    env:
-      PR_NUMBER: ${{ github.event.pull_request.number }}
     steps:
-      - name: Checkout repository without marketplace actions
+      - name: Checkout exact workflow SHA without marketplace actions
         run: |
           set -euo pipefail
           git init .
           git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
-          if git fetch --no-tags --depth=1 origin "${GITHUB_SHA}"; then
-            echo "Fetched ${GITHUB_SHA}"
-          elif [ "${GITHUB_EVENT_NAME}" = "pull_request" ] && [ -n "${PR_NUMBER:-}" ]; then
-            git fetch --no-tags --depth=1 origin "pull/${PR_NUMBER}/merge"
-          else
-            git fetch --no-tags --depth=1 origin "${GITHUB_REF_NAME:-main}"
-          fi
+          git fetch --no-tags --depth=1 origin "${GITHUB_SHA}"
+          test "$(git rev-parse FETCH_HEAD)" = "${GITHUB_SHA}"
           git checkout --force FETCH_HEAD
           git clean -fdx
           git config --global --add safe.directory "${GITHUB_WORKSPACE}"
@@ -57,6 +50,12 @@ jobs:
 
       - name: Test action proposal evaluator
         run: python3 scripts/test_evaluate_action_proposals.py
+
+      - name: Validate untouched baseline manifest
+        run: python3 scripts/validate_baseline_run.py
+
+      - name: Test untouched baseline manifest validator
+        run: python3 scripts/test_validate_baseline_run.py
 
       - name: Audit public project control files
         run: |
@@ -94,10 +93,12 @@ jobs:
             echo ""
             echo "Commit: ${GITHUB_SHA}"
             echo ""
+            echo "- Exact workflow SHA checkout verified."
             echo "- Repo structure validator completed."
             echo "- Generated Explore documentation and package indexes are synchronized."
             echo "- Autonomy gate evaluator unit tests completed in this contents-read workflow."
             echo "- Canonical action benchmark validation completed."
             echo "- Action proposal evaluator semantic-correctness regression tests completed."
+            echo "- Untouched baseline provenance validation and profile mutation tests completed."
             echo "- Required public project control files are present and non-empty."
           } >> "$GITHUB_STEP_SUMMARY"
