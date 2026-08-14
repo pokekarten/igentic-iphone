@@ -100,14 +100,57 @@ final class AgentKernelPhase2LifecycleTests: XCTestCase {
         XCTAssertTrue(events.allSatisfy { $0.dataSensitivity == .highlyPrivateData })
     }
 
+    func testMissingTypedToolFailsClosedAfterAdvisoryStagesAndBeforeRouteSelected() {
+        let unrelatedToolDescription = "Synthetic unrelated tool description must stay out of audit output."
+        let kernel = makeKernel(
+            approvalStatus: .approved,
+            toolName: "summarizeNote",
+            toolDescription: unrelatedToolDescription
+        )
+
+        let response = kernel.handle(
+            makeTask(userText: "Synthetic approved lifecycle task with a missing typed tool."),
+            privacyMode: .trustedDevices,
+            modelSelectionProposalInput: makeModelSelectionInput()
+        )
+        let events = kernel.auditEvents()
+
+        XCTAssertEqual(
+            response.route,
+            .blocked(reason: "Required local tool is unavailable.")
+        )
+        XCTAssertEqual(response.approvalStatus, .approved)
+        XCTAssertEqual(
+            events.map(\.type),
+            [
+                .taskReceived,
+                .toolRegistrySnapshot,
+                .policyDecision,
+                .approvalRequired,
+                .runtimeBudgetSnapshot,
+                .modelSelectionProposal,
+                .blocked,
+            ]
+        )
+        XCTAssertEqual(
+            events.first(where: { $0.type == .blocked })?.message,
+            "Required local tool is unavailable."
+        )
+        XCTAssertFalse(events.contains { $0.type == .routeSelected })
+        XCTAssertTrue(events.allSatisfy { $0.dataSensitivity == .highlyPrivateData })
+        XCTAssertFalse(events.contains { $0.message.contains(unrelatedToolDescription) })
+        XCTAssertFalse(events.contains { $0.message.contains("summarizeNote") })
+    }
+
     private func makeKernel(
         approvalStatus: ApprovalStatus,
+        toolName: String = "createReminder",
         toolDescription: String
     ) -> AgentKernel {
         let registry = ToolRegistry(
             tools: [
                 ToolDefinition(
-                    name: "createReminder",
+                    name: toolName,
                     requiredDataLevel: .highlyPrivateData,
                     actionRisk: .execute,
                     description: toolDescription
