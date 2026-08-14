@@ -27,6 +27,7 @@ public final class AgentKernel: @unchecked Sendable {
     private let auditLog: AuditLog
     private let approvalManager: ApprovalManager
     private let sensitiveDataDetector: any SensitiveDataDetecting
+    private let runtimeBudgetAssessor: RuntimeBudgetAssessor?
     private let localModelRuntime: LocalModelRuntime?
     private let toolRegistry: ToolRegistry?
 
@@ -36,6 +37,7 @@ public final class AgentKernel: @unchecked Sendable {
         auditLog: AuditLog = AuditLog(),
         approvalManager: ApprovalManager = ApprovalManager(),
         sensitiveDataDetector: any SensitiveDataDetecting = SensitiveDataDetector(),
+        runtimeBudgetAssessor: RuntimeBudgetAssessor? = nil,
         localModelRuntime: LocalModelRuntime? = nil,
         toolRegistry: ToolRegistry? = nil
     ) {
@@ -44,6 +46,7 @@ public final class AgentKernel: @unchecked Sendable {
         self.auditLog = auditLog
         self.approvalManager = approvalManager
         self.sensitiveDataDetector = sensitiveDataDetector
+        self.runtimeBudgetAssessor = runtimeBudgetAssessor
         self.localModelRuntime = localModelRuntime
         self.toolRegistry = toolRegistry
     }
@@ -55,6 +58,28 @@ public final class AgentKernel: @unchecked Sendable {
         case .createReminder, .findFile, .requestApproval, .unknown:
             return nil
         }
+    }
+
+    private func runtimeBudgetInput(
+        from task: TaskRequest,
+        effectiveDataClassification: DataClassification
+    ) -> TaskRequest {
+        TaskRequest(
+            userText: task.userText,
+            intent: task.intent,
+            dataClassification: effectiveDataClassification,
+            actionRisk: task.actionRisk,
+            requestedDelegationTarget: task.requestedDelegationTarget
+        )
+    }
+
+    private func runtimeBudgetMessage(_ budget: RuntimeBudget) -> String {
+        [
+            "executionClass=\(budget.executionClass.rawValue)",
+            "expectedLocality=\(budget.expectedLocality.rawValue)",
+            "estimatedMemoryClass=\(budget.estimatedMemoryClass.rawValue)",
+            "reasonCount=\(budget.reasons.count)",
+        ].joined(separator: ",")
     }
 
     public func handle(
@@ -125,6 +150,23 @@ public final class AgentKernel: @unchecked Sendable {
                     approvalReceipt: approvalReceipt
                 )
             }
+        }
+
+        if let runtimeBudgetAssessor {
+            let budget = runtimeBudgetAssessor.assess(
+                runtimeBudgetInput(
+                    from: task,
+                    effectiveDataClassification: effectiveDataClassification
+                ),
+                privacyMode: privacyMode
+            )
+            auditLog.record(
+                AuditEvent(
+                    type: .runtimeBudgetSnapshot,
+                    message: runtimeBudgetMessage(budget),
+                    dataSensitivity: effectiveDataClassification.level
+                )
+            )
         }
 
         if let localModelRuntime,
