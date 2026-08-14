@@ -2,8 +2,22 @@ import XCTest
 @testable import AgentCore
 
 final class AppActionCoordinatorTests: XCTestCase {
-    private func draft(id: String, kind: AppActionDraft.ActionKind, payload: String, risk: ActionRisk = .execute) -> AppActionDraft {
-        .init(id: UUID(uuidString: id)!, actionKind: kind, targetDescription: "example-target", payloadSummary: payload, dataClassification: .publicDefault, actionRisk: risk)
+    private func draft(
+        id: String,
+        kind: AppActionDraft.ActionKind,
+        payload: String,
+        target: String = "example-target",
+        classification: DataClassification = .publicDefault,
+        risk: ActionRisk = .execute
+    ) -> AppActionDraft {
+        .init(
+            id: UUID(uuidString: id)!,
+            actionKind: kind,
+            targetDescription: target,
+            payloadSummary: payload,
+            dataClassification: classification,
+            actionRisk: risk
+        )
     }
 
     func testPolicyBlockIsRespected() {
@@ -89,6 +103,67 @@ final class AppActionCoordinatorTests: XCTestCase {
         let id = "DDDDDDDD-DDDD-DDDD-DDDD-DDDDDDDDDDDD"
         let approval = coordinator.approvalReceipt(for: draft(id: id, kind: .deleteRecord, payload: "payload-a"), privacyMode: .trustedDevices)
         XCTAssertEqual(coordinator.perform(draft(id: id, kind: .deleteRecord, payload: "payload-b"), privacyMode: .trustedDevices, approvalReceipt: approval), .blockedPendingApproval)
+    }
+
+    func testChangedTargetInvalidatesReceipt() {
+        let coordinator = AppActionCoordinator(approvalManager: .init(defaultStatus: .approved))
+        let id = "11111111-2222-3333-4444-555555555555"
+        let approval = coordinator.approvalReceipt(
+            for: draft(id: id, kind: .deleteRecord, payload: "payload-a", target: "target-a"),
+            privacyMode: .trustedDevices
+        )
+
+        XCTAssertNotNil(approval)
+        XCTAssertEqual(
+            coordinator.perform(
+                draft(id: id, kind: .deleteRecord, payload: "payload-a", target: "target-b"),
+                privacyMode: .trustedDevices,
+                approvalReceipt: approval
+            ),
+            .blockedPendingApproval
+        )
+    }
+
+    func testChangedRiskInvalidatesReceipt() {
+        let coordinator = AppActionCoordinator(approvalManager: .init(defaultStatus: .approved))
+        let id = "22222222-3333-4444-5555-666666666666"
+        let approval = coordinator.approvalReceipt(
+            for: draft(id: id, kind: .deleteRecord, payload: "payload-a", risk: .execute),
+            privacyMode: .trustedDevices
+        )
+
+        XCTAssertNotNil(approval)
+        XCTAssertEqual(
+            coordinator.perform(
+                draft(id: id, kind: .deleteRecord, payload: "payload-a", risk: .critical),
+                privacyMode: .trustedDevices,
+                approvalReceipt: approval
+            ),
+            .blockedPendingApproval
+        )
+    }
+
+    func testChangedClassificationInvalidatesReceipt() {
+        let coordinator = AppActionCoordinator(approvalManager: .init(defaultStatus: .approved))
+        let id = "33333333-4444-5555-6666-777777777777"
+        let approval = coordinator.approvalReceipt(
+            for: draft(id: id, kind: .deleteRecord, payload: "payload-a", classification: .publicDefault),
+            privacyMode: .trustedDevices
+        )
+        let highlyPrivate = DataClassification(
+            level: .highlyPrivateData,
+            reason: "Synthetic classification change for receipt invalidation testing."
+        )
+
+        XCTAssertNotNil(approval)
+        XCTAssertEqual(
+            coordinator.perform(
+                draft(id: id, kind: .deleteRecord, payload: "payload-a", classification: highlyPrivate),
+                privacyMode: .trustedDevices,
+                approvalReceipt: approval
+            ),
+            .blockedPendingApproval
+        )
     }
 
     func testSensitivePayloadEscalatesClassificationAndBlocksExternalDelegation() {
