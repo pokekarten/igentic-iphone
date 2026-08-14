@@ -128,7 +128,8 @@ final class DiagnosticViewStateTests: XCTestCase {
     func testDiagnosticViewStateHandlesMissingSnapshotValues() {
         let state = DiagnosticViewState(report: ScenarioRunner().report(), snapshot: nil)
 
-        XCTAssertEqual(state.runtimeStatus, "No live diagnostic snapshot available")
+        XCTAssertEqual(state.runtimeStatus, "No diagnostic snapshot loaded")
+        XCTAssertFalse(state.runtimeStatus.lowercased().contains("live"))
         XCTAssertEqual(state.snapshotSource, "Not available")
         XCTAssertEqual(state.auditEventsDescription, "Not available")
         XCTAssertEqual(state.snapshotFields.first { $0.label == "Generated at" }?.value, "—")
@@ -137,6 +138,19 @@ final class DiagnosticViewStateTests: XCTestCase {
         XCTAssertEqual(state.approvalPolicyFields.first { $0.label == "Export data approval required" }?.value, "Yes")
         XCTAssertEqual(state.modelSelectionFields.first { $0.label == "Selected model id" }?.value, "model-beta")
         XCTAssertEqual(state.modelSelectionFields.first { $0.label == "Fallback reason" }?.value, "None")
+    }
+
+    func testInjectedSnapshotDoesNotClaimCriticalReminderProvenance() {
+        let state = DiagnosticViewState(
+            report: ScenarioRunner().report(),
+            snapshot: DiagnosticPreviewData.sampleSnapshot
+        )
+
+        XCTAssertEqual(state.runtimeStatus, "Diagnostic snapshot loaded (source not asserted)")
+        XCTAssertEqual(state.snapshotSource, "Provided diagnostic snapshot (source not asserted)")
+        XCTAssertFalse(state.runtimeStatus.lowercased().contains("live"))
+        XCTAssertFalse(state.snapshotSource.contains("critical-reminder"))
+        XCTAssertEqual(state.snapshotFields.first { $0.label == "Generated at" }?.value, "2026-07-07T08:00:00Z")
     }
 
     func testModelSelectionFieldsRenderNoEligibleCandidatesFallback() {
