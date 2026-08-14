@@ -362,9 +362,8 @@ The model does not return authoritative policy level, approval or execution deci
 | --- | ---: | ---: | --- |
 | Router-small | 512 | 32 | direct tool and arguments |
 | Router-normal | 1,024 | 64 | ambiguity and missing fields |
-| Assistant-check | 2,048 | 192 | short summary/extraction comparison |
 
-For untouched Benchmark V0 router comparisons, `Router-small` and `Router-normal` are canonical names whose input/output limits are fixed. Backend context capacity may be larger, but the experiment budget must not drift under the same name.
+For untouched Benchmark V0 router comparisons, `Router-small` and `Router-normal` are the only profile names in the V0 baseline-run contract and their input/output limits are fixed. Backend context capacity may be larger, but the experiment budget must not drift under the same name. Assistant-oriented comparisons require a separately versioned profile/contract rather than overloading V0.
 
 ### Selection metrics
 
