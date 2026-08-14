@@ -151,6 +151,26 @@ public final class AgentKernel: @unchecked Sendable {
         }
 
         let route = taskRouter.route(task)
+
+        if let toolRegistry,
+           case let .localTool(name, _) = route,
+           toolRegistry.tool(named: name) == nil {
+            let reason = "Required local tool is unavailable."
+            auditLog.record(
+                AuditEvent(
+                    type: .blocked,
+                    message: reason,
+                    dataSensitivity: effectiveDataClassification.level
+                )
+            )
+            return AgentResponse(
+                route: .blocked(reason: reason),
+                policyDecision: decision,
+                approvalStatus: approvalStatus,
+                approvalReceipt: approvalReceipt
+            )
+        }
+
         auditLog.record(AuditEvent(type: .routeSelected, message: String(describing: route), dataSensitivity: effectiveDataClassification.level))
 
         return AgentResponse(route: route, policyDecision: decision, approvalStatus: approvalStatus, approvalReceipt: approvalReceipt)
