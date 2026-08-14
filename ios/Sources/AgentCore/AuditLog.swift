@@ -7,6 +7,7 @@ public enum AuditEventType: String, Equatable, Sendable {
     case approvalRequired
     case blocked
     case toolRegistrySnapshot
+    case runtimeBudgetSnapshot
 }
 
 public struct AuditEvent: Identifiable, Equatable, Sendable {
