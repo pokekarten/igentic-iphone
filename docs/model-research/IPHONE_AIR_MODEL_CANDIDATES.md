@@ -331,17 +331,22 @@ LFM2 Tool may enter only after its license gate.
 
 ### Evaluation set
 
-- 120 synthetic cases: 60 German and 60 English;
-- 8–12 fixed tool schemas;
-- categories: direct call, missing argument, ambiguous intent, unsupported tool, no-tool response, safe refusal and malformed-output recovery;
-- immutable test cases are never copied into training data;
+The current immutable comparison set is Benchmark V0:
+
+- exactly 40 synthetic cases: 20 German and 20 English;
+- four current typed local tool routes across five current intent groups;
+- clear, missing-argument, ambiguous, unsupported, no-tool and refusal cases;
+- immutable V0 cases are never copied, paraphrased or generated into training data;
 - no real personal or device data.
+
+The earlier 120-case target is a future versioned expansion. It must not be substituted for V0 or edited into the existing V0 file in place.
 
 ### Shared proposal schema
 
 ```json
 {
   "proposalType": "tool_call | clarify | no_tool | refuse",
+  "intent": "createReminder | summarizeNote | findFile | requestApproval | unknown",
   "tool": "string | null",
   "arguments": {},
   "missingArguments": [],
@@ -358,6 +363,8 @@ The model does not return authoritative policy level, approval or execution deci
 | Router-small | 512 | 32 | direct tool and arguments |
 | Router-normal | 1,024 | 64 | ambiguity and missing fields |
 | Assistant-check | 2,048 | 192 | short summary/extraction comparison |
+
+For untouched Benchmark V0 router comparisons, `Router-small` and `Router-normal` are canonical names whose input/output limits are fixed. Backend context capacity may be larger, but the experiment budget must not drift under the same name.
 
 ### Selection metrics
 
