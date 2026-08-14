@@ -82,10 +82,33 @@ public final class AgentKernel: @unchecked Sendable {
         ].joined(separator: ",")
     }
 
+    private func modelSelectionReasonCode(_ reason: ModelSelectionReason) -> String {
+        switch reason {
+        case .highestWeightedScore:
+            return "highestWeightedScore"
+        case .lowestLatencyValidModel:
+            return "lowestLatencyValidModel"
+        case .safeRefusalModel:
+            return "safeRefusalModel"
+        }
+    }
+
+    private func modelSelectionProposalMessage(_ trace: ModelSelectionDecisionTrace) -> String {
+        let eligibleCandidateCount = trace.candidates.lazy.filter(\.eligible).count
+        let fallbackReason = trace.fallbackReason?.rawValue ?? "none"
+        return [
+            "selectedModelID=\(trace.selectedModelID)",
+            "selectionReason=\(modelSelectionReasonCode(trace.selectionReason))",
+            "eligibleCandidateCount=\(eligibleCandidateCount)",
+            "fallbackReason=\(fallbackReason)",
+        ].joined(separator: ",")
+    }
+
     public func handle(
         _ task: TaskRequest,
         privacyMode: PrivacyMode,
-        precomputedDetection: SensitiveDataDetectionResult? = nil
+        precomputedDetection: SensitiveDataDetectionResult? = nil,
+        modelSelectionProposalInput: ModelSelectionProposalInput? = nil
     ) -> AgentResponse {
         let detection = precomputedDetection ?? sensitiveDataDetector.detect(in: task.userText)
         let effectiveDataClassification = DataClassification.effectiveClassification(
@@ -164,6 +187,21 @@ public final class AgentKernel: @unchecked Sendable {
                 AuditEvent(
                     type: .runtimeBudgetSnapshot,
                     message: runtimeBudgetMessage(budget),
+                    dataSensitivity: effectiveDataClassification.level
+                )
+            )
+        }
+
+        if let modelSelectionProposalInput {
+            let trace = ModelSelectionDecisionTraceGenerator.makeTrace(
+                candidates: modelSelectionProposalInput.candidates,
+                request: modelSelectionProposalInput.request,
+                policy: modelSelectionProposalInput.policy
+            )
+            auditLog.record(
+                AuditEvent(
+                    type: .modelSelectionProposal,
+                    message: modelSelectionProposalMessage(trace),
                     dataSensitivity: effectiveDataClassification.level
                 )
             )

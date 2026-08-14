@@ -8,6 +8,7 @@ public enum AuditEventType: String, Equatable, Sendable {
     case blocked
     case toolRegistrySnapshot
     case runtimeBudgetSnapshot
+    case modelSelectionProposal
 }
 
 public struct AuditEvent: Identifiable, Equatable, Sendable {
