@@ -8,6 +8,7 @@ public struct DiagnosticSnapshot: Equatable, Sendable {
     public let audit: AuditSummary
     public let delegation: DelegationDecisionSummary
     public let risk: RiskScoreSummary
+    public let runtimeBudget: RuntimeBudgetSummary?
 
     public init(
         generatedAt: Date = Date(),
@@ -16,7 +17,8 @@ public struct DiagnosticSnapshot: Equatable, Sendable {
         approval: ApprovalStatusSummary,
         audit: AuditSummary,
         delegation: DelegationDecisionSummary,
-        risk: RiskScoreSummary
+        risk: RiskScoreSummary,
+        runtimeBudget: RuntimeBudgetSummary? = nil
     ) {
         self.generatedAt = generatedAt
         self.privacyMode = privacyMode
@@ -25,10 +27,11 @@ public struct DiagnosticSnapshot: Equatable, Sendable {
         self.audit = audit
         self.delegation = delegation
         self.risk = risk
+        self.runtimeBudget = runtimeBudget
     }
 
     public var metadataLines: [String] {
-        [
+        var lines = [
             "generatedAt=\(generatedAt.timeIntervalSince1970)",
             "privacyMode=\(privacyMode.rawValue)",
             "policyAllowed=\(policy.isAllowed)",
@@ -42,6 +45,45 @@ public struct DiagnosticSnapshot: Equatable, Sendable {
             "riskRequiresApproval=\(risk.requiresExplicitApproval)",
             "riskReasonCount=\(risk.reasonCount)",
         ]
+
+        if let runtimeBudget {
+            lines.append(contentsOf: [
+                "runtimeExecutionClass=\(runtimeBudget.executionClass.rawValue)",
+                "runtimeExpectedLocality=\(runtimeBudget.expectedLocality.rawValue)",
+                "runtimeEstimatedMemoryClass=\(runtimeBudget.estimatedMemoryClass.rawValue)",
+                "runtimeReasonCount=\(runtimeBudget.reasonCount)",
+            ])
+        }
+
+        return lines
+    }
+}
+
+public struct RuntimeBudgetSummary: Equatable, Sendable {
+    public let executionClass: RuntimeExecutionClass
+    public let expectedLocality: RuntimeLocality
+    public let estimatedMemoryClass: RuntimeMemoryClass
+    public let reasonCount: Int
+
+    public init(
+        executionClass: RuntimeExecutionClass,
+        expectedLocality: RuntimeLocality,
+        estimatedMemoryClass: RuntimeMemoryClass,
+        reasonCount: Int
+    ) {
+        self.executionClass = executionClass
+        self.expectedLocality = expectedLocality
+        self.estimatedMemoryClass = estimatedMemoryClass
+        self.reasonCount = max(0, reasonCount)
+    }
+
+    public init(_ budget: RuntimeBudget) {
+        self.init(
+            executionClass: budget.executionClass,
+            expectedLocality: budget.expectedLocality,
+            estimatedMemoryClass: budget.estimatedMemoryClass,
+            reasonCount: budget.reasons.count
+        )
     }
 }
 

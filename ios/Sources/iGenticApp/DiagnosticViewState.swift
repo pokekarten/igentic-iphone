@@ -107,6 +107,11 @@ public struct DiagnosticViewState: Equatable, Sendable {
                 DiagnosticSnapshotField(label: "Approval gate", value: "—"),
                 DiagnosticSnapshotField(label: "Approval status", value: "—"),
                 DiagnosticSnapshotField(label: "Approval may continue routing", value: "—"),
+                DiagnosticSnapshotField(label: "Runtime budget stage", value: "—"),
+                DiagnosticSnapshotField(label: "Runtime execution class", value: "—"),
+                DiagnosticSnapshotField(label: "Runtime expected locality", value: "—"),
+                DiagnosticSnapshotField(label: "Runtime estimated memory class", value: "—"),
+                DiagnosticSnapshotField(label: "Runtime reason count", value: "—"),
                 DiagnosticSnapshotField(label: "Audit event count", value: "—"),
                 DiagnosticSnapshotField(label: "Audit highest sensitivity", value: "—"),
                 DiagnosticSnapshotField(label: "Delegation outcome", value: "—"),
@@ -116,19 +121,43 @@ public struct DiagnosticViewState: Equatable, Sendable {
             ]
         }
 
-        return [
+        var fields = [
             DiagnosticSnapshotField(label: "Generated at", value: Self.iso8601.string(from: snapshot.generatedAt)),
             DiagnosticSnapshotField(label: "Privacy mode", value: snapshot.privacyMode.rawValue),
             DiagnosticSnapshotField(label: "Policy allow gate", value: Self.boolText(snapshot.policy.isAllowed)),
             DiagnosticSnapshotField(label: "Approval gate", value: Self.boolText(snapshot.policy.requiresApproval)),
             DiagnosticSnapshotField(label: "Approval status", value: displayText(snapshot.approval.status.rawValue)),
             DiagnosticSnapshotField(label: "Approval may continue routing", value: Self.boolText(snapshot.approval.mayContinueRouting)),
+        ]
+        fields.append(contentsOf: runtimeBudgetFields(snapshot.runtimeBudget))
+        fields.append(contentsOf: [
             DiagnosticSnapshotField(label: "Audit event count", value: "\(snapshot.audit.eventCount)"),
             DiagnosticSnapshotField(label: "Audit highest sensitivity", value: snapshot.audit.highestDataSensitivity.highestDataSensitivityDescription),
             DiagnosticSnapshotField(label: "Delegation outcome", value: displayText(snapshot.delegation.outcome.rawValue)),
             DiagnosticSnapshotField(label: "Risk value", value: "\(snapshot.risk.value)"),
             DiagnosticSnapshotField(label: "Risk requires explicit approval", value: Self.boolText(snapshot.risk.requiresExplicitApproval)),
             DiagnosticSnapshotField(label: "Risk reason count", value: "\(snapshot.risk.reasonCount)"),
+        ])
+        return fields
+    }
+
+    private static func runtimeBudgetFields(_ summary: RuntimeBudgetSummary?) -> [DiagnosticSnapshotField] {
+        guard let summary else {
+            return [
+                DiagnosticSnapshotField(label: "Runtime budget stage", value: "Not reached"),
+                DiagnosticSnapshotField(label: "Runtime execution class", value: "—"),
+                DiagnosticSnapshotField(label: "Runtime expected locality", value: "—"),
+                DiagnosticSnapshotField(label: "Runtime estimated memory class", value: "—"),
+                DiagnosticSnapshotField(label: "Runtime reason count", value: "—"),
+            ]
+        }
+
+        return [
+            DiagnosticSnapshotField(label: "Runtime budget stage", value: "Advisory planning only"),
+            DiagnosticSnapshotField(label: "Runtime execution class", value: displayText(summary.executionClass.rawValue)),
+            DiagnosticSnapshotField(label: "Runtime expected locality", value: displayText(summary.expectedLocality.rawValue)),
+            DiagnosticSnapshotField(label: "Runtime estimated memory class", value: displayText(summary.estimatedMemoryClass.rawValue)),
+            DiagnosticSnapshotField(label: "Runtime reason count", value: "\(summary.reasonCount)"),
         ]
     }
 

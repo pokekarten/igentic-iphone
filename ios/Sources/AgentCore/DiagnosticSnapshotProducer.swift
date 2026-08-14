@@ -5,17 +5,20 @@ public struct DiagnosticSnapshotProducer: Sendable {
     private let riskScorer: RiskScorer
     private let delegationBroker: DelegationBroker
     private let sensitiveDataDetector: any SensitiveDataDetecting
+    private let runtimeBudgetAssessor: RuntimeBudgetAssessor
 
     public init(
         approvalManager: ApprovalManager = ApprovalManager(),
         riskScorer: RiskScorer = RiskScorer(),
         delegationBroker: DelegationBroker = DelegationBroker(),
-        sensitiveDataDetector: any SensitiveDataDetecting = SensitiveDataDetector()
+        sensitiveDataDetector: any SensitiveDataDetecting = SensitiveDataDetector(),
+        runtimeBudgetAssessor: RuntimeBudgetAssessor = RuntimeBudgetAssessor()
     ) {
         self.approvalManager = approvalManager
         self.riskScorer = riskScorer
         self.delegationBroker = delegationBroker
         self.sensitiveDataDetector = sensitiveDataDetector
+        self.runtimeBudgetAssessor = runtimeBudgetAssessor
     }
 
     public func produceSnapshot(
@@ -29,7 +32,11 @@ public struct DiagnosticSnapshotProducer: Sendable {
             detectorResult: detection
         )
 
-        let kernel = AgentKernel(approvalManager: approvalManager, sensitiveDataDetector: sensitiveDataDetector)
+        let kernel = AgentKernel(
+            approvalManager: approvalManager,
+            sensitiveDataDetector: sensitiveDataDetector,
+            runtimeBudgetAssessor: runtimeBudgetAssessor
+        )
         let response = kernel.handle(task, privacyMode: privacyMode, precomputedDetection: detection)
         let auditEvents = kernel.auditEvents()
 
@@ -70,7 +77,8 @@ public struct DiagnosticSnapshotProducer: Sendable {
             approval: approvalStatusSummary,
             audit: AuditSummary(events: auditEvents),
             delegation: DelegationDecisionSummary(delegationDecision),
-            risk: RiskScoreSummary(riskScore)
+            risk: RiskScoreSummary(riskScore),
+            runtimeBudget: response.runtimeBudgetSummary
         )
     }
 }

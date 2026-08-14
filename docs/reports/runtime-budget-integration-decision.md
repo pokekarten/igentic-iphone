@@ -1,13 +1,15 @@
 # RuntimeBudget integration decision
 
-Status: implemented — bounded advisory `AgentKernel` wiring  
-Related issue: #264
+Status: implemented — bounded advisory `AgentKernel` wiring and diagnostic metadata contract  
+Related issues: #264, #270
 
 ## Decision
 
 `AgentKernel` may accept an optional `RuntimeBudgetAssessor` and record its result as planning metadata after deterministic policy and approval gates have succeeded.
 
 This wiring is **advisory only**. A `RuntimeBudget` cannot allow or deny a task, create or waive approval, select a route, select a tool, authorize delegation, select a model, or override `LocalModelRuntime` capability and sensitivity checks.
+
+The kernel may additionally expose a compact `RuntimeBudgetSummary` on `AgentResponse` so diagnostics can consume the exact result of the kernel-owned assessment rather than re-running the assessor independently. The summary contains only execution class, expected locality, estimated memory class and reason count.
 
 ## Placement in the kernel lifecycle
 
@@ -19,6 +21,7 @@ sensitive-data detection
 -> PolicyEngine
 -> ApprovalManager when required
 -> RuntimeBudgetAssessor when configured (advisory metadata only)
+-> ModelSelection proposal when explicit input is supplied (advisory only)
 -> LocalModelRuntime capability gate when configured/applicable
 -> TaskRouter
 -> ToolRegistry availability gate when configured/applicable
@@ -37,16 +40,16 @@ This prevents planning metadata from observing a lower sensitivity than the poli
 
 ## Audit and privacy contract
 
-When an assessor is configured, the kernel records exactly one `runtimeBudgetSnapshot` event after authorization gates succeed.
+When an assessor is configured and the lifecycle reaches it, the kernel records exactly one `runtimeBudgetSnapshot` event after authorization gates succeed.
 
-The first bounded snapshot contains only:
+The bounded snapshot and `RuntimeBudgetSummary` contain only:
 
 - execution class;
 - expected locality;
 - estimated memory class;
 - reason count.
 
-The snapshot does **not** include:
+They do **not** include:
 
 - raw task text;
 - budget reason strings;
@@ -54,23 +57,40 @@ The snapshot does **not** include:
 - tool descriptions or registry contents;
 - private target text or other task identifiers.
 
-The event uses the same effective data-sensitivity level already computed by the kernel.
+The audit event uses the same effective data-sensitivity level already computed by the kernel.
+
+## `AgentResponse` diagnostic metadata contract
+
+`AgentResponse.runtimeBudgetSummary` is optional and defaults to `nil` for compatibility.
+
+It is populated only when the configured `RuntimeBudgetAssessor` actually ran. Therefore:
+
+- policy denial returns `nil`;
+- pending or rejected approval returns `nil`;
+- later LocalModelRuntime or ToolRegistry failure may still return the summary because the budget stage already occurred;
+- a successful route may return the summary when the assessor was configured.
+
+The summary is observational evidence only. Consumers must not interpret its presence or values as permission, approval, routing authority, model selection authority, tool selection authority, delegation permission or execution authorization.
 
 ## Compatibility
 
-`runtimeBudgetAssessor == nil` preserves the prior kernel behavior and emits no runtime-budget event. The dependency is optional so this slice does not make planning infrastructure mandatory for every existing caller.
+`runtimeBudgetAssessor == nil` preserves prior kernel behavior, emits no runtime-budget event and returns no runtime-budget summary. Existing `AgentResponse` initializers remain source-compatible because the new summary parameter defaults to `nil`.
 
 ## Relationship to ModelSelectionEngine
 
-`ModelSelectionEngine` remains deliberately detached from `AgentKernel` in this issue.
+Model selection remains advisory and separately bounded. The repository still does not define a source-backed automatic mapping from task/runtime-budget state to `ModelSelectionRequest.latencyBudget`, `contextSize`, `toolUsageRequired`, candidates or scores.
 
-The repository currently does not define a source-backed mapping from task/runtime-budget state to `ModelSelectionRequest.latencyBudget`, `contextSize`, or `toolUsageRequired`. Those values must not be invented as part of RuntimeBudget wiring.
-
-A later source-backed issue must define that input mapping and preserve model selection as a proposal/advisory stage before any real kernel integration.
+RuntimeBudget diagnostic metadata must therefore not be used to invent ModelSelection inputs.
 
 ## DiagnosticSnapshotProducer
 
-This decision does not wire `RuntimeBudget` into `DiagnosticSnapshotProducer`. The kernel audit event is the first bounded integration surface. Any diagnostic-shell presentation should consume a separately reviewed metadata contract rather than duplicating assessment logic.
+Issue #270 adds the separately reviewed diagnostic metadata contract required by the original RuntimeBudget decision.
+
+`DiagnosticSnapshotProducer` configures the kernel with the existing `RuntimeBudgetAssessor` and consumes `AgentResponse.runtimeBudgetSummary`. It does **not** call `RuntimeBudgetAssessor.assess` a second time.
+
+`DiagnosticSnapshot` carries the optional compact summary and the diagnostic view renders it as planning information only. If policy or approval prevents the lifecycle from reaching RuntimeBudget, diagnostics explicitly report that the stage was not reached instead of fabricating an estimate.
+
+The current default `critical-reminder` preview remains approval-pending, so its runtime-budget fields intentionally show `Not reached` / unavailable values.
 
 ## Non-goals
 
@@ -78,7 +98,8 @@ This wiring does not authorize:
 
 - budget-driven blocking or fallback;
 - changes to `RuntimeBudgetAssessor` estimation semantics;
-- model selection or model execution;
+- automatic ModelSelection input derivation;
+- model execution;
 - tool selection or execution;
 - App Intents;
 - persistence, networking or provider integration;
@@ -86,12 +107,14 @@ This wiring does not authorize:
 
 ## Validation contract
 
-Focused kernel tests must pin:
+Focused tests must pin:
 
-- nil-assessor compatibility;
-- one advisory snapshot with unchanged routing;
+- nil-summary compatibility before the budget stage;
+- one kernel-owned advisory summary with unchanged routing;
 - effective-classification propagation into the assessor;
 - policy and approval precedence;
-- metadata minimization.
+- metadata minimization;
+- diagnostic rendering when the summary exists;
+- truthful `Not reached` diagnostics when policy/approval stops before RuntimeBudget.
 
 Repository-wide RuntimeBudget/Assessor and Swift tests remain required exact-head evidence.

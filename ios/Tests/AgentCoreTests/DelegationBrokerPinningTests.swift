@@ -14,10 +14,12 @@ final class DelegationBrokerPinningTests: XCTestCase {
         )
 
         let response = kernel.handle(task, privacyMode: .trustedDevices)
+        let responseFields = Mirror(reflecting: response).children.compactMap(\.label)
 
         XCTAssertEqual(
-            Mirror(reflecting: response).children.compactMap(\.label),
-            ["route", "policyDecision", "approvalStatus", "approvalReceipt"]
+            responseFields,
+            ["route", "policyDecision", "approvalStatus", "approvalReceipt", "runtimeBudgetSummary"]
         )
+        XCTAssertFalse(responseFields.contains("delegationDecision"))
     }
 }

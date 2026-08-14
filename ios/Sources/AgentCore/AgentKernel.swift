@@ -7,17 +7,22 @@ public struct AgentResponse: Equatable, Sendable {
     /// Full approval receipt for this task, if approval was evaluated.
     /// `nil` only when approval was never required (fast path).
     public let approvalReceipt: ApprovalReceipt?
+    /// Metadata-only RuntimeBudget planning result when the kernel reached that
+    /// advisory lifecycle stage. This summary has no authorization authority.
+    public let runtimeBudgetSummary: RuntimeBudgetSummary?
 
     public init(
         route: TaskRoute,
         policyDecision: PolicyDecision,
         approvalStatus: ApprovalStatus = .notRequired,
-        approvalReceipt: ApprovalReceipt? = nil
+        approvalReceipt: ApprovalReceipt? = nil,
+        runtimeBudgetSummary: RuntimeBudgetSummary? = nil
     ) {
         self.route = route
         self.policyDecision = policyDecision
         self.approvalStatus = approvalStatus
         self.approvalReceipt = approvalReceipt
+        self.runtimeBudgetSummary = runtimeBudgetSummary
     }
 }
 
@@ -175,6 +180,7 @@ public final class AgentKernel: @unchecked Sendable {
             }
         }
 
+        var runtimeBudgetSummary: RuntimeBudgetSummary?
         if let runtimeBudgetAssessor {
             let budget = runtimeBudgetAssessor.assess(
                 runtimeBudgetInput(
@@ -183,6 +189,7 @@ public final class AgentKernel: @unchecked Sendable {
                 ),
                 privacyMode: privacyMode
             )
+            runtimeBudgetSummary = RuntimeBudgetSummary(budget)
             auditLog.record(
                 AuditEvent(
                     type: .runtimeBudgetSnapshot,
@@ -225,7 +232,8 @@ public final class AgentKernel: @unchecked Sendable {
                     route: .blocked(reason: "Local model runtime unavailable for this capability."),
                     policyDecision: decision,
                     approvalStatus: approvalStatus,
-                    approvalReceipt: approvalReceipt
+                    approvalReceipt: approvalReceipt,
+                    runtimeBudgetSummary: runtimeBudgetSummary
                 )
             }
         }
@@ -247,13 +255,20 @@ public final class AgentKernel: @unchecked Sendable {
                 route: .blocked(reason: reason),
                 policyDecision: decision,
                 approvalStatus: approvalStatus,
-                approvalReceipt: approvalReceipt
+                approvalReceipt: approvalReceipt,
+                runtimeBudgetSummary: runtimeBudgetSummary
             )
         }
 
         auditLog.record(AuditEvent(type: .routeSelected, message: String(describing: route), dataSensitivity: effectiveDataClassification.level))
 
-        return AgentResponse(route: route, policyDecision: decision, approvalStatus: approvalStatus, approvalReceipt: approvalReceipt)
+        return AgentResponse(
+            route: route,
+            policyDecision: decision,
+            approvalStatus: approvalStatus,
+            approvalReceipt: approvalReceipt,
+            runtimeBudgetSummary: runtimeBudgetSummary
+        )
     }
 
     public func auditEvents() -> [AuditEvent] {
