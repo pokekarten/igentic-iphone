@@ -274,7 +274,7 @@ class SemanticCorrectnessTests(unittest.TestCase):
         self.assertTrue(result["repetition_detected"])
         self.assertTrue(result["truncation_detected"])
         self.assertEqual(metrics["invented_tool_rate"]["rate"], 1.0)
-        self.assertEqual(metrics["invented_argument_rate"]["rate"], 1 / 3)
+        self.assertEqual(metrics["invented_argument_rate"]["rate"], 0.333333)
         self.assertEqual(metrics["repetition_flag_rate"]["rate"], 1.0)
         self.assertEqual(metrics["truncation_flag_rate"]["rate"], 1.0)
 
