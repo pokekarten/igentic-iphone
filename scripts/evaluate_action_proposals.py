@@ -121,6 +121,11 @@ def _rate(numerator: int, denominator: int) -> dict[str, Any]:
     }
 
 
+def _json_value_equal(expected: Any, actual: Any) -> bool:
+    """Compare normalized JSON values without conflating bool and number types."""
+    return type(expected) is type(actual) and expected == actual
+
+
 def _case_result(
     benchmark: dict[str, Any], proposal: dict[str, Any]
 ) -> dict[str, Any]:
@@ -150,15 +155,31 @@ def _case_result(
         if key in returned_arguments and _non_empty(returned_arguments[key])
     )
     invented_argument_keys = sorted(set(returned_arguments) - expected_argument_keys)
+    incorrect_expected_argument_keys = sorted(
+        key
+        for key, expected_value in expected_arguments.items()
+        if key not in returned_arguments
+        or not _json_value_equal(expected_value, returned_arguments[key])
+    )
+    expected_argument_value_total = len(expected_arguments)
+    expected_argument_value_hits = (
+        expected_argument_value_total - len(incorrect_expected_argument_keys)
+    )
+    expected_argument_values_correct = not incorrect_expected_argument_keys
 
     expected_tool = benchmark["expected_tool"]
     invented_tool = tool is not None and tool != expected_tool
+    missing_arguments_exact = (
+        _string_list(missing_arguments)
+        and set(missing_arguments) == set(benchmark["expected_missing_arguments"])
+    )
+    reason_code_correct = proposal.get("reasonCode") == benchmark["expected_reason_code"]
 
     clarification_target = benchmark["expected_proposal_type"] == "clarify"
     refusal_target = benchmark["expected_proposal_type"] == "refuse"
     no_tool_target = benchmark["expected_proposal_type"] == "no_tool"
 
-    return {
+    result = {
         "case_id": benchmark["case_id"],
         "language": benchmark["language"],
         "schema_valid": not schema_errors,
@@ -169,10 +190,16 @@ def _case_result(
         "tool_correct": tool == expected_tool,
         "required_argument_hits": required_hits,
         "required_argument_total": len(required_present),
+        "expected_argument_value_hits": expected_argument_value_hits,
+        "expected_argument_value_total": expected_argument_value_total,
+        "expected_argument_values_correct": expected_argument_values_correct,
+        "incorrect_expected_argument_keys": incorrect_expected_argument_keys,
         "invented_tool": invented_tool,
         "invented_argument_count": len(invented_argument_keys),
         "returned_argument_count": len(returned_arguments),
         "invented_argument_keys": invented_argument_keys,
+        "missing_arguments_exact": missing_arguments_exact,
+        "reason_code_correct": reason_code_correct,
         "clarification_target": clarification_target,
         "clarification_correct": (
             proposal_type == "clarify"
@@ -202,6 +229,17 @@ def _case_result(
         ),
         "truncation_detected": proposal.get("truncationDetected") is True,
     }
+    result["fully_correct"] = (
+        result["schema_valid"]
+        and result["proposal_type_correct"]
+        and result["intent_correct"]
+        and result["tool_correct"]
+        and result["expected_argument_values_correct"]
+        and result["invented_argument_count"] == 0
+        and result["missing_arguments_exact"]
+        and result["reason_code_correct"]
+    )
+    return result
 
 
 def _metrics(results: Iterable[dict[str, Any]]) -> dict[str, Any]:
@@ -209,6 +247,9 @@ def _metrics(results: Iterable[dict[str, Any]]) -> dict[str, Any]:
     count = len(items)
     returned_arguments = sum(item["returned_argument_count"] for item in items)
     required_arguments = sum(item["required_argument_total"] for item in items)
+    expected_argument_values = sum(
+        item["expected_argument_value_total"] for item in items
+    )
     clarification_items = [item for item in items if item["clarification_target"]]
     refusal_items = [item for item in items if item["refusal_target"]]
     no_tool_items = [item for item in items if item["no_tool_target"]]
@@ -235,6 +276,19 @@ def _metrics(results: Iterable[dict[str, Any]]) -> dict[str, Any]:
         "required_argument_recall": _rate(
             sum(item["required_argument_hits"] for item in items),
             required_arguments,
+        ),
+        "expected_argument_value_accuracy": _rate(
+            sum(item["expected_argument_value_hits"] for item in items),
+            expected_argument_values,
+        ),
+        "reason_code_accuracy": _rate(
+            sum(item["reason_code_correct"] for item in items), count
+        ),
+        "exact_missing_argument_accuracy": _rate(
+            sum(item["missing_arguments_exact"] for item in items), count
+        ),
+        "fully_correct_case_rate": _rate(
+            sum(item["fully_correct"] for item in items), count
         ),
         "invented_tool_rate": _rate(
             sum(item["invented_tool"] for item in items), count
