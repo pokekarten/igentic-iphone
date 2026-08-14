@@ -308,10 +308,6 @@ public struct DiagnosticViewState: Equatable, Sendable {
         value ? "Yes" : "No"
     }
 
-    static func effectiveApprovalPolicyFields(for policy: AppActionApprovalPolicy) -> [DiagnosticSnapshotField] {
-        makeApprovalPolicyFields(policy: policy)
-    }
-
     private static var iso8601: ISO8601DateFormatter {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime]
