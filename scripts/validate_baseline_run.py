@@ -16,7 +16,11 @@ DEFAULT_MANIFEST = ROOT / "docs/model-research/baseline-run-manifest-v0.example.
 SCHEMA_VERSION = "igentic-baseline-run-v0"
 ALLOWED_BACKEND_CLASSES = {"apple_system", "custom_model"}
 ALLOWED_EVIDENCE_CLASSES = {"host", "simulator", "physical_device"}
-ALLOWED_PROFILES = {"Router-small", "Router-normal"}
+PROFILE_LIMITS = {
+    "Router-small": {"input_limit_tokens": 512, "output_limit_tokens": 32},
+    "Router-normal": {"input_limit_tokens": 1024, "output_limit_tokens": 64},
+}
+ALLOWED_PROFILES = set(PROFILE_LIMITS)
 ALLOWED_LICENSE_GATES = {"approved", "blocked", "unverified"}
 ALLOWED_DECISIONS = {"keep", "rework", "reject", "unverified"}
 ALLOWED_TERMINATION_REASONS = {"completed", "timeout", "cancelled", "error"}
@@ -364,7 +368,8 @@ def validate_manifest(manifest: dict[str, Any]) -> list[str]:
     _immutable_revision(normalizer.get("revision"), "normalizer.revision", errors)
 
     profile = _exact_fields(root.get("profile"), PROFILE_FIELDS, "profile", errors)
-    if profile.get("name") not in ALLOWED_PROFILES:
+    profile_name = profile.get("name")
+    if profile_name not in ALLOWED_PROFILES:
         errors.append(f"profile.name must be one of {sorted(ALLOWED_PROFILES)}")
     context_limit = _positive_integer(
         profile.get("context_limit_tokens"), "profile.context_limit_tokens", errors
@@ -375,6 +380,18 @@ def validate_manifest(manifest: dict[str, Any]) -> list[str]:
     output_limit = _positive_integer(
         profile.get("output_limit_tokens"), "profile.output_limit_tokens", errors
     )
+    expected_limits = PROFILE_LIMITS.get(profile_name)
+    if expected_limits is not None:
+        expected_input = expected_limits["input_limit_tokens"]
+        expected_output = expected_limits["output_limit_tokens"]
+        if input_limit is not None and input_limit != expected_input:
+            errors.append(
+                f"profile {profile_name} requires input_limit_tokens={expected_input}"
+            )
+        if output_limit is not None and output_limit != expected_output:
+            errors.append(
+                f"profile {profile_name} requires output_limit_tokens={expected_output}"
+            )
     if (
         context_limit is not None
         and input_limit is not None
@@ -404,9 +421,9 @@ def validate_manifest(manifest: dict[str, Any]) -> list[str]:
     max_output = _positive_integer(
         decoding.get("max_output_tokens"), "decoding.max_output_tokens", errors
     )
-    if max_output is not None and output_limit is not None and max_output > output_limit:
+    if max_output is not None and output_limit is not None and max_output != output_limit:
         errors.append(
-            "decoding.max_output_tokens must not exceed profile.output_limit_tokens"
+            "decoding.max_output_tokens must equal profile.output_limit_tokens"
         )
     seed_supported = _boolean(
         decoding.get("seed_supported"), "decoding.seed_supported", errors
