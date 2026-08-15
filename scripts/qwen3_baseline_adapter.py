@@ -32,10 +32,70 @@ SYSTEM_INSTRUCTION = (
     "Do not add prose outside the function call."
 )
 
+ARGUMENT_PROPERTIES: dict[str, Any] = {
+    "title": {
+        "type": "string",
+        "description": "Reminder title when the reminder subject is known.",
+    },
+    "time": {
+        "type": "string",
+        "description": "Normalized reminder time when sufficiently specified.",
+    },
+    "date": {
+        "type": "string",
+        "description": "Date hint retained when a reminder request is still ambiguous.",
+    },
+    "note_text": {
+        "type": "string",
+        "description": "Inline note text available for summarization.",
+    },
+    "note_reference": {
+        "type": "string",
+        "description": "Unresolved note reference retained when note text is unavailable.",
+    },
+    "query": {
+        "type": "string",
+        "description": "File search query when a searchable subject is known.",
+    },
+    "file_type": {
+        "type": "string",
+        "description": "Optional file-type hint such as pdf.",
+    },
+    "date_hint": {
+        "type": "string",
+        "description": "Unresolved date hint retained for an ambiguous file reference.",
+    },
+    "action_summary": {
+        "type": "string",
+        "description": "Short action description for which approval is requested.",
+    },
+}
+ALLOWED_ARGUMENT_KEYS = tuple(ARGUMENT_PROPERTIES)
+ALLOWED_MISSING_ARGUMENTS = (
+    "title",
+    "time",
+    "note_text",
+    "query",
+    "action_summary",
+)
+ALLOWED_REASON_CODES = (
+    "direct_intent",
+    "missing_required_argument",
+    "ambiguous_required_arguments",
+    "unresolved_note_reference",
+    "ambiguous_file_reference",
+    "ambiguous_action_reference",
+    "unclear_intent",
+    "unsupported_tool",
+    "unsupported_sensitive_action",
+    "no_matching_local_tool",
+)
+
 PROPOSAL_PROPERTIES: dict[str, Any] = {
     "proposalType": {
         "type": "string",
         "enum": ["tool_call", "clarify", "no_tool", "refuse"],
+        "description": "Requested proposal shape; never an execution authorization.",
     },
     "intent": {
         "type": "string",
@@ -59,15 +119,26 @@ PROPOSAL_PROPERTIES: dict[str, Any] = {
                 ],
             },
             {"type": "null"},
-        ]
+        ],
+        "description": "Typed local route for tool_call; null for every non-tool proposal.",
     },
-    "arguments": {"type": "object"},
+    "arguments": {
+        "type": "object",
+        "properties": ARGUMENT_PROPERTIES,
+        "additionalProperties": False,
+        "description": "Only public Benchmark V0 argument vocabulary; include only evidence present in the request.",
+    },
     "missingArguments": {
         "type": "array",
-        "items": {"type": "string"},
+        "items": {"type": "string", "enum": list(ALLOWED_MISSING_ARGUMENTS)},
         "uniqueItems": True,
+        "description": "Required argument names that are missing from the user request.",
     },
-    "reasonCode": {"type": "string"},
+    "reasonCode": {
+        "type": "string",
+        "enum": list(ALLOWED_REASON_CODES),
+        "description": "Backend-neutral Benchmark V0 reason vocabulary.",
+    },
 }
 PROPOSAL_FIELDS = tuple(PROPOSAL_PROPERTIES)
 
