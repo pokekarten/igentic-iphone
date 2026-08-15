@@ -285,8 +285,8 @@ def _write_jsonl(path: Path, records: list[dict[str, Any]]) -> None:
         raise ValidationError(f"cannot write {path}: {exc}") from exc
 
 
-def generate_requests(benchmark_path: Path, output_path: Path) -> None:
-    benchmark = validate_benchmark(benchmark_path)
+def generate_requests(output_path: Path) -> None:
+    benchmark = validate_benchmark(DEFAULT_BENCHMARK)
     _write_jsonl(output_path, [build_request(record) for record in benchmark])
 
 
@@ -301,10 +301,7 @@ def _parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     request_parser = subparsers.add_parser(
-        "requests", help="Generate pinned Qwen3 request envelopes from Benchmark V0."
-    )
-    request_parser.add_argument(
-        "--benchmark", type=Path, default=DEFAULT_BENCHMARK, help="Benchmark V0 JSONL."
+        "requests", help="Generate pinned Qwen3 request envelopes from canonical Benchmark V0."
     )
     request_parser.add_argument("--output", type=Path, required=True)
 
@@ -321,7 +318,7 @@ def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
         if args.command == "requests":
-            generate_requests(args.benchmark, args.output)
+            generate_requests(args.output)
         else:
             normalize_file(args.input, args.output)
     except ValidationError as exc:
