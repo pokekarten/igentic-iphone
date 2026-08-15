@@ -1,7 +1,7 @@
 # iPhone Air Model Candidate Manifest
 
 Status: research gate, no runtime integration  
-Sources checked: 2026-06-22  
+Sources checked: 2026-06-22; Qwen3 0.6B adapter pin rechecked 2026-08-15  
 Parent issues: #74 and #75
 
 ## Purpose
@@ -110,27 +110,28 @@ Primary source: https://huggingface.co/google/functiongemma-270m-it
 
 ```text
 MODEL_ID: Qwen/Qwen3-0.6B
-MODEL_REVISION: unpinned; pin before download, evaluation or training
+MODEL_REVISION: c1899de289a04d12100db370d81485cdf75e47ca; pinned for Benchmark V0 adapter contract
 MODEL_ROLE: first Apache-2.0 multilingual router and short-assistant comparison
-STATUS: first license-simple custom comparison
+STATUS: request/output adapter pinned; untouched baseline not yet run
 PARAMETER_SCALE: 0.6B advertised; 0.44B non-embedding advertised
 MODALITY: text
 LANGUAGES: 100+ languages and dialects advertised; German must be measured
 CONTEXT_ADVERTISED: 32,768 tokens
 LICENSE: Apache-2.0
-LICENSE_GATE: verify exact artifact, notices and derivative packaging
-NATIVE_TOOL_FORMAT: Qwen chat template and tool flow; normalize into the iGentic proposal schema
+LICENSE_GATE: exact adapter revision verified as Apache-2.0; artifact notices and derivative packaging still require run-time review
+NATIVE_TOOL_FORMAT: pinned Qwen chat template tool flow with native <tool_call> JSON envelope; normalize into the iGentic proposal schema without semantic repair
 TRAINING_PATH: Transformers plus PEFT/TRL LoRA or QLoRA feasibility to verify
 KNOWN_PORTABLE_FORMATS: Hugging Face safetensors; llama.cpp conversion and quantization path
 RUNTIME_EVIDENCE: Qwen3 family support exists in llama.cpp and ExecuTorch examples; exact iOS artifact untested
 IPHONE_AIR_EVIDENCE: none
 KNOWN_RISKS: repetition, language mixing, malformed arguments and higher cost than FunctionGemma
-NEXT_TEST: untouched non-thinking text-only baseline at 512/1,024 tokens
+NEXT_TEST: external untouched non-thinking Benchmark V0 baseline through the pinned adapter at 512/1,024-token profiles
 ROLLBACK: deterministic router or omit the custom model
-SOURCES_CHECKED_AT: 2026-06-22
+SOURCES_CHECKED_AT: 2026-08-15
 ```
 
-Primary source: https://huggingface.co/Qwen/Qwen3-0.6B
+Pinned adapter contract: `QWEN3_0_6B_BASELINE_ADAPTER_V0.md`  
+Primary source: https://huggingface.co/Qwen/Qwen3-0.6B/tree/c1899de289a04d12100db370d81485cdf75e47ca
 
 ### 3. LFM2 1.2B Tool
 
