@@ -115,7 +115,7 @@ The normalizer accepts these transport-owned fields only:
 
 `repetitionDetected` and `truncationDetected` are optional. They are runtime observations, never trusted from model-generated function arguments.
 
-Missing, blank or duplicate transport `case_id` values fail the normalization command because a stable benchmark join is impossible.
+Missing, blank or duplicate transport `case_id` values fail the normalization command because a stable benchmark join is impossible. Duplicate JSON object keys in raw transport records also fail closed; the adapter never applies last-key-wins semantics to evidence identity or transport metadata.
 
 ## Accepted native envelope
 
@@ -132,7 +132,8 @@ The JSON payload must:
 - be an object;
 - contain exactly `name` and `arguments`;
 - use `name="igentic_propose_action"`;
-- use an object-valued `arguments`.
+- use an object-valued `arguments`;
+- contain no duplicate JSON object keys at any nesting level.
 
 The normalizer copies `arguments` into the evaluator-facing record without semantic repair. Proposal field types, allowed values, tool/intent consistency and unexpected semantic fields remain the evaluator's responsibility.
 
@@ -155,12 +156,13 @@ Joinable failure cases include:
 - prose or code fences outside the envelope;
 - nested tool-call tags;
 - malformed tool-call JSON;
+- duplicate JSON keys in the native tool-call payload or nested proposal arguments;
 - wrong native function name;
 - non-object native arguments;
 - model attempts to control `case_id`, `normalizerError`, `repetitionDetected` or `truncationDetected`;
 - unexpected transport fields.
 
-The normalizer does not invent missing proposal fields, coerce types, infer intent, repair arguments or select a tool on the model's behalf.
+The normalizer does not invent missing proposal fields, coerce types, infer intent, repair arguments, resolve duplicate keys or select a tool on the model's behalf.
 
 ## Validation
 
