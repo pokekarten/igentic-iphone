@@ -176,7 +176,7 @@ class OutputNormalizationTests(unittest.TestCase):
                 self.assertNotIn("proposalType", result)
 
     def test_non_finite_json_numbers_become_joinable_failure(self) -> None:
-        for value in ("NaN", "Infinity", "-Infinity"):
+        for value in ("NaN", "Infinity", "-Infinity", "1e400", "-1e400"):
             with self.subTest(value=value):
                 assistant_text = (
                     f'{adapter.TOOL_CALL_OPEN}'
@@ -312,13 +312,17 @@ class TransportIdentityTests(unittest.TestCase):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
         path = Path(directory.name) / "raw.jsonl"
-        path.write_text(
-            '{"case_id":"case","assistant_text":"x","repetitionDetected":NaN}\n',
-            encoding="utf-8",
-        )
-
-        with self.assertRaises(ValidationError):
-            adapter._load_transport_jsonl(path)
+        for value in ("NaN", "1e400"):
+            with self.subTest(value=value):
+                path.write_text(
+                    (
+                        '{"case_id":"case","assistant_text":"x",'
+                        f'"repetitionDetected":{value}}}\n'
+                    ),
+                    encoding="utf-8",
+                )
+                with self.assertRaises(ValidationError):
+                    adapter._load_transport_jsonl(path)
 
 
 if __name__ == "__main__":
