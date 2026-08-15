@@ -175,6 +175,27 @@ class OutputNormalizationTests(unittest.TestCase):
                 )
                 self.assertNotIn("proposalType", result)
 
+    def test_non_finite_json_numbers_become_joinable_failure(self) -> None:
+        for value in ("NaN", "Infinity", "-Infinity"):
+            with self.subTest(value=value):
+                assistant_text = (
+                    f'{adapter.TOOL_CALL_OPEN}'
+                    f'{{"name":"{adapter.TOOL_NAME}",'
+                    f'"arguments":{{"proposalType":{value}}}}}'
+                    f'{adapter.TOOL_CALL_CLOSE}'
+                )
+                result = adapter.normalize_record(
+                    {
+                        "case_id": BASE_RECORD["case_id"],
+                        "assistant_text": assistant_text,
+                    }
+                )
+                self.assertEqual(
+                    result["normalizerError"],
+                    "tool_call_payload_non_finite_number",
+                )
+                self.assertNotIn("proposalType", result)
+
     def test_wrong_name_and_non_object_arguments_become_failures(self) -> None:
         cases = [
             native_tool_call(VALID_PROPOSAL, name="createReminder"),
@@ -218,6 +239,21 @@ class OutputNormalizationTests(unittest.TestCase):
         self.assertTrue(result["repetitionDetected"])
         self.assertTrue(result["truncationDetected"])
         self.assertIn("normalizerError", result)
+
+    def test_invalid_runtime_observations_fail_without_being_copied(self) -> None:
+        result = adapter.normalize_record(
+            {
+                "case_id": BASE_RECORD["case_id"],
+                "assistant_text": native_tool_call(VALID_PROPOSAL),
+                "repetitionDetected": "yes",
+            }
+        )
+
+        self.assertEqual(
+            result["normalizerError"], "runtime_observations_must_be_boolean"
+        )
+        self.assertNotIn("repetitionDetected", result)
+        self.assertNotIn("proposalType", result)
 
     def test_unexpected_transport_fields_fail_without_being_copied(self) -> None:
         result = adapter.normalize_record(
@@ -266,6 +302,18 @@ class TransportIdentityTests(unittest.TestCase):
         path = Path(directory.name) / "raw.jsonl"
         path.write_text(
             '{"case_id":"first","case_id":"second","assistant_text":"x"}\n',
+            encoding="utf-8",
+        )
+
+        with self.assertRaises(ValidationError):
+            adapter._load_transport_jsonl(path)
+
+    def test_non_finite_transport_json_fails_closed(self) -> None:
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        path = Path(directory.name) / "raw.jsonl"
+        path.write_text(
+            '{"case_id":"case","assistant_text":"x","repetitionDetected":NaN}\n',
             encoding="utf-8",
         )
 
