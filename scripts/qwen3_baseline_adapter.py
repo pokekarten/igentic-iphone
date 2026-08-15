@@ -125,8 +125,11 @@ PROPOSAL_PROPERTIES: dict[str, Any] = {
     "arguments": {
         "type": "object",
         "properties": ARGUMENT_PROPERTIES,
-        "additionalProperties": False,
-        "description": "Only public Benchmark V0 argument vocabulary; include only evidence present in the request.",
+        "additionalProperties": True,
+        "description": (
+            "Known public Benchmark V0 argument vocabulary. Additional keys remain "
+            "observable so invented-argument errors can be measured by the evaluator."
+        ),
     },
     "missingArguments": {
         "type": "array",
