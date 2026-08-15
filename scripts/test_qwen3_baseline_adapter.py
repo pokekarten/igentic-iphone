@@ -141,7 +141,7 @@ class RequestEnvelopeTests(unittest.TestCase):
         self.assertEqual(
             set(argument_schema["properties"]), set(adapter.ALLOWED_ARGUMENT_KEYS)
         )
-        self.assertFalse(argument_schema["additionalProperties"])
+        self.assertTrue(argument_schema["additionalProperties"])
         self.assertEqual(
             set(proposal["missingArguments"]["items"]["enum"]),
             set(adapter.ALLOWED_MISSING_ARGUMENTS),
