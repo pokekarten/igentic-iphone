@@ -1,7 +1,7 @@
 # Qwen3 0.6B Benchmark V0 Adapter
 
 Status: executable adapter contract, no model runtime  
-Parent: Issue #278  
+Parent: Issues #278 and #282  
 Benchmark: `docs/model-research/igentic-action-benchmark-v0.jsonl`  
 Evaluator: `docs/model-research/EVALUATOR_CONTRACT_V0.md`
 
@@ -32,9 +32,49 @@ Primary sources checked on 2026-08-15:
 - `https://huggingface.co/Qwen/Qwen3-0.6B/tree/c1899de289a04d12100db370d81485cdf75e47ca`
 - `https://huggingface.co/Qwen/Qwen3-0.6B/blob/c1899de289a04d12100db370d81485cdf75e47ca/README.md`
 - `https://huggingface.co/Qwen/Qwen3-0.6B/blob/c1899de289a04d12100db370d81485cdf75e47ca/tokenizer_config.json`
+- `https://huggingface.co/Qwen/Qwen3-0.6B/blob/c1899de289a04d12100db370d81485cdf75e47ca/generation_config.json`
 - `https://huggingface.co/docs/transformers/main/chat_template_tools_and_documents`
+- `https://huggingface.co/docs/transformers/main/en/generation_strategies`
 
 Do not silently advance this revision. A later revision requires a new reviewed contract update and new provenance.
+
+## Pinned non-thinking generation profile
+
+The pinned upstream `generation_config.json` and the pinned README serve different purposes. The repository configuration contains the model defaults, while the README gives a separate recommendation for **hard non-thinking mode**. Benchmark V0 deliberately uses `enable_thinking=false`, so the untouched Qwen comparison pins the non-thinking recommendation instead of inheriting the different defaults implicitly.
+
+The fixed Qwen V0 generation kwargs are:
+
+```text
+do_sample=true
+temperature=0.7
+top_p=0.8
+top_k=20
+min_p=0.0
+```
+
+These values are emitted as transport-only `generation_kwargs` by `scripts/qwen3_baseline_adapter.py`. They are not inserted into the system message, user message or tool schema and therefore do not alter the model-visible Benchmark V0 prompt.
+
+`max_new_tokens` is intentionally absent from the fixed generation kwargs because it is part of the backend-neutral Router profile rather than a Qwen-specific default. The external runner must set it to the selected V0 output budget: `32` for Router-small or `64` for Router-normal.
+
+`min_p` is Qwen/backend-specific evidence. The generic baseline manifest does not add a cross-backend `min_p` field; the exact applied decoding configuration, including `min_p`, is bound by `decoding.applied_config_path` and `decoding.applied_config_sha256`.
+
+## Precommitted stochastic repeats
+
+Because the selected non-thinking profile uses sampling, a single post-hoc random draw is not sufficient as the complete Qwen baseline evidence set. Before any Qwen Benchmark V0 result exists, this adapter precommits exactly five repeat seeds:
+
+```text
+0
+1
+2
+3
+4
+```
+
+The adapter emits them as transport-only `replicate_seeds`. Each **seed/profile combination is a separate ordinary `igentic-baseline-run-v0` run and manifest** with that seed recorded in the existing decoding provenance. Router-small therefore has five manifests and Router-normal has five manifests when both profiles are executed.
+
+All five precommitted repeats are required before a stochastic Qwen profile is treated as a complete comparison evidence set. A single favorable repeat must not be selected as the sole reported Qwen result. Aggregation or interpretation of repeat results is a later evidence step; this adapter only fixes the run set before outcomes are known.
+
+The numeric seed labels do **not** assert equivalent random streams across different models, frameworks or backends. They only prevent post-result seed selection and make repeated Qwen runs reproducible where the chosen execution stack supports deterministic seeding.
 
 ## Dependency-free CLI
 
@@ -67,9 +107,11 @@ Each record contains:
 - the benchmark `user_text` as the only case-specific model-visible content;
 - one compact non-executable function schema named `igentic_propose_action`;
 - `add_generation_prompt=true`;
-- `enable_thinking=false`.
+- `enable_thinking=false`;
+- transport-only pinned `generation_kwargs`;
+- transport-only precommitted `replicate_seeds`.
 
-The request must not contain case-specific benchmark answers or labels such as `expected_*`, `category`, `required_arguments`, `immutable_test`, expected argument values, expected missing-argument sets or the expected reason code. `case_id` is transport metadata and is not part of the model message content.
+The request must not contain case-specific benchmark answers or labels such as `expected_*`, `category`, `required_arguments`, `immutable_test`, expected argument values, expected missing-argument sets or the expected reason code. `case_id`, generation settings and repeat seeds are runner metadata and are not part of the model message content.
 
 The tool schema intentionally omits descriptive prose. Human explanations belong in this contract, not in every model request. This keeps the model-visible interface stable and reduces fixed prompt overhead for the canonical Router-small and Router-normal budgets.
 
@@ -151,13 +193,15 @@ This repository does not estimate tokenizer length from characters or bytes and 
 A later external runner is responsible for:
 
 1. loading the exact pinned model/tokenizer revision;
-2. passing the emitted `messages` and `tools` through the pinned upstream chat template;
+2. passing only the emitted `messages` and `tools` through the pinned upstream chat template;
 3. preserving `enable_thinking=false`;
-4. performing the exact input-budget preflight above for the selected V0 Router profile;
-5. preserving the adapter's tool-schema error surface, including the ability to emit an invented argument key;
-6. recording only generated assistant text as `assistant_text` plus transport-owned runtime observations;
-7. stopping/decoding so the model-generated span can be checked exactly by this normalizer;
-8. recording all runtime, dependency and artifact provenance in the baseline-run manifest.
+4. applying the emitted `generation_kwargs` exactly, without substituting upstream defaults;
+5. setting `max_new_tokens` to the selected V0 profile output limit (`32` or `64`);
+6. executing every precommitted seed `0..4` for the selected profile, with each seed/profile pair producing a separate run manifest;
+7. performing the exact input-budget preflight above for the selected V0 Router profile;
+8. preserving the adapter's tool-schema error surface, including the ability to emit an invented argument key;
+9. recording only generated assistant text as `assistant_text` plus transport-owned runtime observations;
+10. retaining exact applied decoding configuration, including `min_p`, plus runtime, dependency and artifact provenance in the baseline-run manifest/evidence package.
 
 The adapter does not strip arbitrary model prose, code fences, repeated blocks or backend control tokens. Such output must remain failure evidence rather than being repaired into a better answer.
 
@@ -239,7 +283,7 @@ python3 scripts/test_evaluate_action_proposals.py
 python3 scripts/validate_repo_structure.py
 ```
 
-Repository PR gates also include Repo Audit, PR Change Scope, Pull Request Quality, Docs Consistency and Workflow Lint for the audit wiring.
+Repository PR gates also include Repo Audit, PR Change Scope, Pull Request Quality and Docs Consistency.
 
 Swift source is unchanged by this contract. Repository-triggered Swift/Phase 0 runs are supporting evidence, not evidence that Qwen3 executes on an iPhone.
 
