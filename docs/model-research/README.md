@@ -12,7 +12,7 @@ This directory contains public-safe, source-backed contracts for selecting, eval
 3. [`docs/model-research/IPHONE_AIR_MODEL_CANDIDATES.md`](IPHONE_AIR_MODEL_CANDIDATES.md) — candidate, license, runtime and evidence manifest.
 4. [`docs/model-research/IGENTIC_ACTION_BENCHMARK_V0.md`](IGENTIC_ACTION_BENCHMARK_V0.md) — immutable action-routing benchmark contract.
 5. [The V0 JSONL dataset](igentic-action-benchmark-v0.jsonl) — 40 synthetic German/English V0 cases.
-6. [`QWEN3_0_6B_BASELINE_ADAPTER_V0.md`](QWEN3_0_6B_BASELINE_ADAPTER_V0.md) — pinned, dependency-free request and native-output adapter contract for the Qwen3 0.6B untouched baseline.
+6. [Qwen3 0.6B Benchmark V0 adapter](QWEN3_0_6B_BASELINE_ADAPTER_V0.md) — pinned, dependency-free request and native-output adapter contract for the Qwen3 0.6B untouched baseline.
 7. Parent research issue `#74` and knowledge-export roadmap `#79` — current source-backed follow-up sequence.
 
 The product-wide routing rules are in [`docs/KNOWLEDGE_MAP.md`](../KNOWLEDGE_MAP.md).
