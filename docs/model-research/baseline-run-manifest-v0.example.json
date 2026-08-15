@@ -32,7 +32,10 @@
     "tokenizer_revision": "system:synthetic-os-build-0",
     "prompt_template_id": "igentic-router-v0",
     "prompt_template_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
-    "normalized_input_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+    "normalized_input_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+    "max_rendered_input_tokens": 480,
+    "token_counts_path": "artifacts/synthetic-input-token-counts.json",
+    "token_counts_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
   },
   "normalizer": {
     "id": "igentic-normalized-proposal-v0",
@@ -45,11 +48,15 @@
     "output_limit_tokens": 32
   },
   "decoding": {
+    "sampling_enabled": false,
     "temperature": 0.0,
     "top_p": 1.0,
+    "top_k": null,
     "max_output_tokens": 32,
     "seed_supported": false,
-    "seed": null
+    "seed": null,
+    "applied_config_path": "artifacts/synthetic-decoding-config.json",
+    "applied_config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
   },
   "execution": {
     "environment": "synthetic-host-environment",
