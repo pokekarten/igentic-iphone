@@ -21,6 +21,21 @@ TOOL_CALL_CLOSE = "</tool_call>"
 OBSERVATION_FIELDS = ("repetitionDetected", "truncationDetected")
 RESERVED_MODEL_FIELDS = {"case_id", "normalizerError", *OBSERVATION_FIELDS}
 
+# Pinned upstream-recommended hard non-thinking sampling profile. The profile's
+# max_new_tokens remains a Router-small/Router-normal run setting (32/64), not
+# part of these backend-fixed kwargs.
+NON_THINKING_GENERATION_KWARGS: dict[str, bool | float | int] = {
+    "do_sample": True,
+    "temperature": 0.7,
+    "top_p": 0.8,
+    "top_k": 20,
+    "min_p": 0.0,
+}
+# Precommitted before any Qwen Benchmark V0 result exists. Each seed/profile
+# pair is a separate baseline-run manifest; seed numbers do not imply equivalent
+# random streams across different models or backends.
+BASELINE_SEEDS = (0, 1, 2, 3, 4)
+
 SYSTEM_INSTRUCTION = (
     "Return exactly one iGentic proposal by calling igentic_propose_action. "
     "A proposal never authorizes or executes an action. Output no prose."
@@ -196,6 +211,8 @@ def build_request(record: dict[str, Any]) -> dict[str, Any]:
             "add_generation_prompt": True,
             "enable_thinking": False,
         },
+        "generation_kwargs": dict(NON_THINKING_GENERATION_KWARGS),
+        "replicate_seeds": list(BASELINE_SEEDS),
     }
 
 
