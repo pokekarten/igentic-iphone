@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from pathlib import Path
 import sys
 from typing import Any
@@ -93,7 +94,7 @@ class DuplicateJSONKeyError(ValidationError):
 
 
 class NonFiniteJSONNumberError(ValidationError):
-    """Raised when JSON input uses NaN or Infinity extensions."""
+    """Raised when JSON input cannot be represented as a finite JSON number."""
 
 
 def _object_without_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -108,6 +109,13 @@ def _object_without_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, An
 
 def _reject_non_finite_json_number(value: str) -> None:
     raise NonFiniteJSONNumberError(f"non-finite JSON number: {value}")
+
+
+def _finite_json_float(value: str) -> float:
+    parsed = float(value)
+    if not math.isfinite(parsed):
+        raise NonFiniteJSONNumberError(f"JSON number exceeds finite range: {value}")
+    return parsed
 
 
 def _load_transport_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -128,6 +136,7 @@ def _load_transport_jsonl(path: Path) -> list[dict[str, Any]]:
                 line,
                 object_pairs_hook=_object_without_duplicate_keys,
                 parse_constant=_reject_non_finite_json_number,
+                parse_float=_finite_json_float,
             )
         except json.JSONDecodeError as exc:
             raise ValidationError(
@@ -216,6 +225,7 @@ def normalize_record(record: dict[str, Any]) -> dict[str, Any]:
             inner,
             object_pairs_hook=_object_without_duplicate_keys,
             parse_constant=_reject_non_finite_json_number,
+            parse_float=_finite_json_float,
         )
     except json.JSONDecodeError:
         return _failure(record, "tool_call_payload_invalid_json")
