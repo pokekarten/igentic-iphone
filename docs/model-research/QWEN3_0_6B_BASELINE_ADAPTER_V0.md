@@ -63,13 +63,15 @@ Each record contains:
 
 - transport `case_id`;
 - exact model and tokenizer identity/revision;
-- one fixed system message;
+- one compact fixed system message;
 - the benchmark `user_text` as the only case-specific model-visible content;
-- one non-executable function schema named `igentic_propose_action`;
+- one compact non-executable function schema named `igentic_propose_action`;
 - `add_generation_prompt=true`;
 - `enable_thinking=false`.
 
 The request must not contain case-specific benchmark answers or labels such as `expected_*`, `category`, `required_arguments`, `immutable_test`, expected argument values, expected missing-argument sets or the expected reason code. `case_id` is transport metadata and is not part of the model message content.
+
+The tool schema intentionally omits descriptive prose. Human explanations belong in this contract, not in every model request. This keeps the model-visible interface stable and reduces fixed prompt overhead for the canonical Router-small and Router-normal budgets.
 
 ## Proposal-only tool schema
 
@@ -131,6 +133,19 @@ The `arguments` schema deliberately lists the known V0 keys **without forbidding
 
 The outer proposal schema still exposes no policy level, approval result, data-classification decision, execution authorization or side-effect API. The function is a synthetic structured-output envelope, not an executable iPhone tool.
 
+## Exact input-budget preflight
+
+The V0 profile input limit applies to the **fully rendered model input**, not only `user_text`. Therefore a later runner must, before generation:
+
+1. render the exact system message, user message and tool schema with the pinned upstream chat template and `enable_thinking=false`;
+2. tokenize that rendered input with the exact pinned tokenizer revision;
+3. count the resulting input tokens for each of the 40 cases;
+4. reject that profile run if any case exceeds its canonical input limit (`512` for Router-small or `1,024` for Router-normal);
+5. never truncate the system message, schema, tool vocabulary or user text to force a case under budget;
+6. retain the normalized-input hash and exact tokenizer/template provenance required by the baseline-run contract.
+
+This repository does not estimate tokenizer length from characters or bytes and does not claim Router-small fits until the exact pinned tokenizer preflight proves it. A failed 512-token preflight is evidence that Router-small is not executable with this V0 envelope; it is not permission to silently change the profile or prompt.
+
 ## External runner contract
 
 A later external runner is responsible for:
@@ -138,7 +153,7 @@ A later external runner is responsible for:
 1. loading the exact pinned model/tokenizer revision;
 2. passing the emitted `messages` and `tools` through the pinned upstream chat template;
 3. preserving `enable_thinking=false`;
-4. applying the selected V0 Router profile limits from `docs/model-research/BASELINE_RUN_CONTRACT_V0.md`;
+4. performing the exact input-budget preflight above for the selected V0 Router profile;
 5. preserving the adapter's tool-schema error surface, including the ability to emit an invented argument key;
 6. recording only generated assistant text as `assistant_text` plus transport-owned runtime observations;
 7. stopping/decoding so the model-generated span can be checked exactly by this normalizer;
