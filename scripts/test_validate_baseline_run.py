@@ -96,6 +96,11 @@ class BaselineRunValidatorTests(unittest.TestCase):
         manifest["decoding"]["sampling_enabled"] = 1
         self.assert_error_contains(manifest, "decoding.sampling_enabled must be a boolean")
 
+    def test_missing_sampling_field_fails(self) -> None:
+        manifest = deepcopy(self.manifest)
+        del manifest["decoding"]["sampling_enabled"]
+        self.assert_error_contains(manifest, "decoding missing fields: sampling_enabled")
+
     def test_top_k_null_is_valid_for_backend_without_top_k(self) -> None:
         self.assertIsNone(self.manifest["decoding"]["top_k"])
         self.assertEqual(self.errors(self.manifest), [])
@@ -112,10 +117,10 @@ class BaselineRunValidatorTests(unittest.TestCase):
         manifest["decoding"]["top_k"] = 0
         self.assert_error_contains(manifest, "decoding.top_k must be a positive integer")
 
-    def test_missing_sampling_field_fails(self) -> None:
+    def test_missing_top_k_fails(self) -> None:
         manifest = deepcopy(self.manifest)
-        del manifest["decoding"]["sampling_enabled"]
-        self.assert_error_contains(manifest, "decoding missing fields: sampling_enabled")
+        del manifest["decoding"]["top_k"]
+        self.assert_error_contains(manifest, "decoding missing fields: top_k")
 
     def test_invalid_applied_config_path_fails(self) -> None:
         manifest = deepcopy(self.manifest)
@@ -130,6 +135,15 @@ class BaselineRunValidatorTests(unittest.TestCase):
         self.assert_error_contains(
             manifest,
             "decoding.applied_config_sha256 must be a lowercase 64-character SHA-256 hex digest",
+        )
+
+    def test_missing_applied_config_evidence_fails(self) -> None:
+        manifest = deepcopy(self.manifest)
+        del manifest["decoding"]["applied_config_path"]
+        del manifest["decoding"]["applied_config_sha256"]
+        self.assert_error_contains(
+            manifest,
+            "decoding missing fields: applied_config_path, applied_config_sha256",
         )
 
     def test_invalid_token_counts_path_fails(self) -> None:
