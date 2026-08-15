@@ -53,7 +53,7 @@ python3 scripts/qwen3_baseline_adapter.py normalize \
   --output artifacts/qwen3-v0-normalized.jsonl
 ```
 
-These commands perform no network access and import no model framework.
+These commands perform no network access and import no model framework. Request generation is bound to the canonical repository Benchmark V0 path; the CLI does not accept an alternate benchmark file under the same adapter contract.
 
 ## Request envelope
 
@@ -64,12 +64,12 @@ Each record contains:
 - transport `case_id`;
 - exact model and tokenizer identity/revision;
 - one fixed system message;
-- the benchmark `user_text` as the only benchmark-derived model-visible content;
+- the benchmark `user_text` as the only case-specific model-visible content;
 - one non-executable function schema named `igentic_propose_action`;
 - `add_generation_prompt=true`;
 - `enable_thinking=false`.
 
-The request must not contain benchmark answers or labels such as `expected_*`, `category`, `required_arguments`, `immutable_test` or expected reason codes. `case_id` is transport metadata and is not part of the model message content.
+The request must not contain case-specific benchmark answers or labels such as `expected_*`, `category`, `required_arguments`, `immutable_test`, expected argument values, expected missing-argument sets or the expected reason code. `case_id` is transport metadata and is not part of the model message content.
 
 ## Proposal-only tool schema
 
@@ -84,7 +84,50 @@ missingArguments
 reasonCode
 ```
 
-It exposes no policy level, approval result, data-classification decision, execution authorization or side-effect API. The function is a synthetic structured-output envelope, not an executable iPhone tool.
+The same **global V0 schema vocabulary** is supplied to every case and every backend. This vocabulary is interface metadata, not a case answer. Without it, an untouched model would have to guess private field names such as `action_summary` or exact evaluator reason strings, which would measure prompt ignorance rather than structured-routing quality.
+
+Global V0 argument keys are:
+
+```text
+title
+time
+date
+note_text
+note_reference
+query
+file_type
+date_hint
+action_summary
+```
+
+Keys that may appear in `missingArguments` are the actual required route inputs:
+
+```text
+title
+time
+note_text
+query
+action_summary
+```
+
+Global V0 reason codes are:
+
+```text
+direct_intent
+missing_required_argument
+ambiguous_required_arguments
+unresolved_note_reference
+ambiguous_file_reference
+ambiguous_action_reference
+unclear_intent
+unsupported_tool
+unsupported_sensitive_action
+no_matching_local_tool
+```
+
+The adapter regression suite derives these three vocabularies from canonical Benchmark V0 and fails if the hard-coded public schema drifts from the immutable benchmark contract. It exposes no per-case expected value, category, expected tool, expected intent, expected missing set or expected reason selection.
+
+The schema also exposes no policy level, approval result, data-classification decision, execution authorization or side-effect API. The function is a synthetic structured-output envelope, not an executable iPhone tool.
 
 ## External runner contract
 
@@ -134,7 +177,7 @@ The JSON payload must:
 - use `name="igentic_propose_action"`;
 - use an object-valued `arguments`;
 - contain no duplicate JSON object keys at any nesting level;
-- use strict JSON numbers, never `NaN`, `Infinity` or `-Infinity` extensions.
+- use strict finite JSON numbers, never `NaN`, `Infinity`, `-Infinity` or an overflowing float representation.
 
 The normalizer copies `arguments` into the evaluator-facing record without semantic repair. Proposal field types, allowed values, tool/intent consistency and unexpected semantic fields remain the evaluator's responsibility.
 
@@ -158,7 +201,7 @@ Joinable failure cases include:
 - nested tool-call tags;
 - malformed tool-call JSON;
 - duplicate JSON keys in the native tool-call payload or nested proposal arguments;
-- non-finite numeric JSON extensions in the native payload;
+- non-finite or overflowing numeric JSON values in the native payload;
 - wrong native function name;
 - non-object native arguments;
 - model attempts to control `case_id`, `normalizerError`, `repetitionDetected` or `truncationDetected`;
