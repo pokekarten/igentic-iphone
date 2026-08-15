@@ -2,8 +2,8 @@
 
 Status: executable adapter contract, no model runtime  
 Parent: Issue #278  
-Benchmark: `igentic-action-benchmark-v0.jsonl`  
-Evaluator: `EVALUATOR_CONTRACT_V0.md`
+Benchmark: `docs/model-research/igentic-action-benchmark-v0.jsonl`  
+Evaluator: `docs/model-research/EVALUATOR_CONTRACT_V0.md`
 
 ## Purpose
 
@@ -93,7 +93,7 @@ A later external runner is responsible for:
 1. loading the exact pinned model/tokenizer revision;
 2. passing the emitted `messages` and `tools` through the pinned upstream chat template;
 3. preserving `enable_thinking=false`;
-4. applying the selected V0 Router profile limits from `BASELINE_RUN_CONTRACT_V0.md`;
+4. applying the selected V0 Router profile limits from `docs/model-research/BASELINE_RUN_CONTRACT_V0.md`;
 5. recording only generated assistant text as `assistant_text` plus transport-owned runtime observations;
 6. stopping/decoding so the model-generated span can be checked exactly by this normalizer;
 7. recording all runtime, dependency and artifact provenance in the baseline-run manifest.
