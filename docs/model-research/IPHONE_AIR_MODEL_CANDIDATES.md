@@ -130,7 +130,7 @@ ROLLBACK: deterministic router or omit the custom model
 SOURCES_CHECKED_AT: 2026-08-15
 ```
 
-Pinned adapter contract: `QWEN3_0_6B_BASELINE_ADAPTER_V0.md`  
+Pinned adapter contract: `docs/model-research/QWEN3_0_6B_BASELINE_ADAPTER_V0.md`  
 Primary source: https://huggingface.co/Qwen/Qwen3-0.6B/tree/c1899de289a04d12100db370d81485cdf75e47ca
 
 ### 3. LFM2 1.2B Tool
