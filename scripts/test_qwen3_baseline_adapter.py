@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from typing import Any, Iterator
 
 import qwen3_baseline_adapter as adapter
 from validate_action_benchmark import ValidationError
@@ -45,6 +46,16 @@ def native_tool_call(arguments: object, name: str = adapter.TOOL_NAME) -> str:
     )
 
 
+def mapping_keys(value: Any) -> Iterator[str]:
+    if isinstance(value, dict):
+        for key, nested in value.items():
+            yield key
+            yield from mapping_keys(nested)
+    elif isinstance(value, list):
+        for nested in value:
+            yield from mapping_keys(nested)
+
+
 class RequestEnvelopeTests(unittest.TestCase):
     def test_request_pins_revision_and_non_thinking_mode(self) -> None:
         request = adapter.build_request(BASE_RECORD)
@@ -72,12 +83,27 @@ class RequestEnvelopeTests(unittest.TestCase):
                 ]
             )
 
-    def test_request_exposes_user_text_without_benchmark_answers(self) -> None:
+    def test_request_exposes_user_text_without_case_answers(self) -> None:
         request = adapter.build_request(BASE_RECORD)
-        encoded = json.dumps(request, ensure_ascii=False)
+        all_keys = set(mapping_keys(request))
 
         self.assertEqual(request["messages"][-1]["content"], BASE_RECORD["user_text"])
-        for forbidden in (
+        self.assertEqual(
+            set(request),
+            {
+                "case_id",
+                "model_id",
+                "model_revision",
+                "tokenizer_id",
+                "tokenizer_revision",
+                "messages",
+                "tools",
+                "chat_template_kwargs",
+            },
+        )
+        for forbidden_field in (
+            "language",
+            "user_text",
             "expected_proposal_type",
             "expected_intent",
             "expected_tool",
@@ -85,10 +111,16 @@ class RequestEnvelopeTests(unittest.TestCase):
             "required_arguments",
             "expected_missing_arguments",
             "expected_reason_code",
-            '"category"',
+            "category",
             "immutable_test",
         ):
-            self.assertNotIn(forbidden, encoded)
+            self.assertNotIn(forbidden_field, all_keys)
+
+        reason_enum = request["tools"][0]["function"]["parameters"]["properties"][
+            "reasonCode"
+        ]["enum"]
+        self.assertGreater(len(reason_enum), 1)
+        self.assertEqual(set(reason_enum), set(adapter.ALLOWED_REASON_CODES))
 
     def test_tool_schema_is_proposal_only(self) -> None:
         function = adapter.TOOL_SCHEMA["function"]
