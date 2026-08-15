@@ -71,6 +71,9 @@ INPUT_FIELDS = {
     "prompt_template_id",
     "prompt_template_sha256",
     "normalized_input_sha256",
+    "max_rendered_input_tokens",
+    "token_counts_path",
+    "token_counts_sha256",
 }
 NORMALIZER_FIELDS = {"id", "revision"}
 PROFILE_FIELDS = {
@@ -80,11 +83,15 @@ PROFILE_FIELDS = {
     "output_limit_tokens",
 }
 DECODING_FIELDS = {
+    "sampling_enabled",
     "temperature",
     "top_p",
+    "top_k",
     "max_output_tokens",
     "seed_supported",
     "seed",
+    "applied_config_path",
+    "applied_config_sha256",
 }
 EXECUTION_FIELDS = {
     "environment",
@@ -307,9 +314,7 @@ def validate_manifest(manifest: dict[str, Any]) -> list[str]:
     model_id = _nullable_string(backend.get("model_id"), "backend.model_id", errors)
     model_revision = backend.get("model_revision")
     system_model_identifier = _nullable_string(
-        backend.get("system_model_identifier"),
-        "backend.system_model_identifier",
-        errors,
+        backend.get("system_model_identifier"), "backend.system_model_identifier", errors
     )
     _non_empty_string(backend.get("license_reference"), "backend.license_reference", errors)
     _iso_date(backend.get("license_review_date"), "backend.license_review_date", errors)
@@ -353,6 +358,15 @@ def validate_manifest(manifest: dict[str, Any]) -> list[str]:
         input_identity.get("normalized_input_sha256"),
         "input.normalized_input_sha256",
         errors,
+    )
+    max_rendered_input_tokens = _positive_integer(
+        input_identity.get("max_rendered_input_tokens"),
+        "input.max_rendered_input_tokens",
+        errors,
+    )
+    _relative_path(input_identity.get("token_counts_path"), "input.token_counts_path", errors)
+    _sha256(
+        input_identity.get("token_counts_sha256"), "input.token_counts_sha256", errors
     )
     if backend_class == "custom_model" and tokenizer_revision is not None:
         _immutable_revision(tokenizer_revision, "input.tokenizer_revision", errors)
@@ -402,8 +416,17 @@ def validate_manifest(manifest: dict[str, Any]) -> list[str]:
             "profile input_limit_tokens + output_limit_tokens must not exceed "
             "context_limit_tokens"
         )
+    if (
+        max_rendered_input_tokens is not None
+        and input_limit is not None
+        and max_rendered_input_tokens > input_limit
+    ):
+        errors.append(
+            "input.max_rendered_input_tokens must not exceed profile.input_limit_tokens"
+        )
 
     decoding = _exact_fields(root.get("decoding"), DECODING_FIELDS, "decoding", errors)
+    _boolean(decoding.get("sampling_enabled"), "decoding.sampling_enabled", errors)
     temperature = decoding.get("temperature")
     if (
         isinstance(temperature, bool)
@@ -418,13 +441,14 @@ def validate_manifest(manifest: dict[str, Any]) -> list[str]:
         or not 0 < top_p <= 1
     ):
         errors.append("decoding.top_p must be greater than 0 and at most 1")
+    top_k = decoding.get("top_k")
+    if top_k is not None:
+        _positive_integer(top_k, "decoding.top_k", errors)
     max_output = _positive_integer(
         decoding.get("max_output_tokens"), "decoding.max_output_tokens", errors
     )
     if max_output is not None and output_limit is not None and max_output != output_limit:
-        errors.append(
-            "decoding.max_output_tokens must equal profile.output_limit_tokens"
-        )
+        errors.append("decoding.max_output_tokens must equal profile.output_limit_tokens")
     seed_supported = _boolean(
         decoding.get("seed_supported"), "decoding.seed_supported", errors
     )
@@ -436,6 +460,14 @@ def validate_manifest(manifest: dict[str, Any]) -> list[str]:
             )
     elif seed_supported is False and seed is not None:
         errors.append("decoding.seed must be null when seed_supported is false")
+    _relative_path(
+        decoding.get("applied_config_path"), "decoding.applied_config_path", errors
+    )
+    _sha256(
+        decoding.get("applied_config_sha256"),
+        "decoding.applied_config_sha256",
+        errors,
+    )
 
     execution = _exact_fields(root.get("execution"), EXECUTION_FIELDS, "execution", errors)
     _non_empty_string(execution.get("environment"), "execution.environment", errors)
@@ -502,15 +534,11 @@ def validate_manifest(manifest: dict[str, Any]) -> list[str]:
     if timeout is True and termination_reason != "timeout":
         errors.append("timeout_observed=true requires termination_reason='timeout'")
     if cancelled is True and termination_reason != "cancelled":
-        errors.append(
-            "cancellation_observed=true requires termination_reason='cancelled'"
-        )
+        errors.append("cancellation_observed=true requires termination_reason='cancelled'")
     if termination_reason == "timeout" and timeout is not True:
         errors.append("termination_reason='timeout' requires timeout_observed=true")
     if termination_reason == "cancelled" and cancelled is not True:
-        errors.append(
-            "termination_reason='cancelled' requires cancellation_observed=true"
-        )
+        errors.append("termination_reason='cancelled' requires cancellation_observed=true")
     if termination_reason == "completed" and (timeout is True or cancelled is True):
         errors.append("completed termination cannot report timeout or cancellation")
 
