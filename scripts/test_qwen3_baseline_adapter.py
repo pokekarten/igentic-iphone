@@ -60,6 +60,18 @@ class RequestEnvelopeTests(unittest.TestCase):
             {"add_generation_prompt": True, "enable_thinking": False},
         )
 
+    def test_requests_cli_has_no_benchmark_override(self) -> None:
+        with self.assertRaises(SystemExit):
+            adapter._parser().parse_args(
+                [
+                    "requests",
+                    "--benchmark",
+                    "other.jsonl",
+                    "--output",
+                    "out.jsonl",
+                ]
+            )
+
     def test_request_exposes_user_text_without_benchmark_answers(self) -> None:
         request = adapter.build_request(BASE_RECORD)
         encoded = json.dumps(request, ensure_ascii=False)
