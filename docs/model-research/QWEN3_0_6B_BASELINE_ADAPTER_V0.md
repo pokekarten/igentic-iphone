@@ -86,7 +86,7 @@ reasonCode
 
 The same **global V0 schema vocabulary** is supplied to every case and every backend. This vocabulary is interface metadata, not a case answer. Without it, an untouched model would have to guess private field names such as `action_summary` or exact evaluator reason strings, which would measure prompt ignorance rather than structured-routing quality.
 
-Global V0 argument keys are:
+Global V0 known argument keys are:
 
 ```text
 title
@@ -127,7 +127,9 @@ no_matching_local_tool
 
 The adapter regression suite derives these three vocabularies from canonical Benchmark V0 and fails if the hard-coded public schema drifts from the immutable benchmark contract. It exposes no per-case expected value, category, expected tool, expected intent, expected missing set or expected reason selection.
 
-The schema also exposes no policy level, approval result, data-classification decision, execution authorization or side-effect API. The function is a synthetic structured-output envelope, not an executable iPhone tool.
+The `arguments` schema deliberately lists the known V0 keys **without forbidding additional keys**. `invented_argument_rate` is an explicit evaluator metric, so a backend runner must not gain artificial credit by making unknown argument keys structurally impossible. An invented key remains model output, survives normalization, and is measured by the backend-neutral evaluator. A later runner must not replace this envelope with a stricter argument grammar that changes that error surface while claiming the same V0 adapter contract.
+
+The outer proposal schema still exposes no policy level, approval result, data-classification decision, execution authorization or side-effect API. The function is a synthetic structured-output envelope, not an executable iPhone tool.
 
 ## External runner contract
 
@@ -137,9 +139,10 @@ A later external runner is responsible for:
 2. passing the emitted `messages` and `tools` through the pinned upstream chat template;
 3. preserving `enable_thinking=false`;
 4. applying the selected V0 Router profile limits from `docs/model-research/BASELINE_RUN_CONTRACT_V0.md`;
-5. recording only generated assistant text as `assistant_text` plus transport-owned runtime observations;
-6. stopping/decoding so the model-generated span can be checked exactly by this normalizer;
-7. recording all runtime, dependency and artifact provenance in the baseline-run manifest.
+5. preserving the adapter's tool-schema error surface, including the ability to emit an invented argument key;
+6. recording only generated assistant text as `assistant_text` plus transport-owned runtime observations;
+7. stopping/decoding so the model-generated span can be checked exactly by this normalizer;
+8. recording all runtime, dependency and artifact provenance in the baseline-run manifest.
 
 The adapter does not strip arbitrary model prose, code fences, repeated blocks or backend control tokens. Such output must remain failure evidence rather than being repaired into a better answer.
 
