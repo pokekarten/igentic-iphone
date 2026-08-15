@@ -102,6 +102,39 @@ class RequestEnvelopeTests(unittest.TestCase):
         self.assertNotIn("approved", parameters["properties"])
         self.assertNotIn("execute", parameters["properties"])
 
+    def test_tool_schema_exposes_complete_global_v0_vocabulary(self) -> None:
+        proposal = adapter.TOOL_SCHEMA["function"]["parameters"]["properties"]
+        argument_schema = proposal["arguments"]
+
+        self.assertEqual(
+            set(argument_schema["properties"]), set(adapter.ALLOWED_ARGUMENT_KEYS)
+        )
+        self.assertFalse(argument_schema["additionalProperties"])
+        self.assertEqual(
+            set(proposal["missingArguments"]["items"]["enum"]),
+            set(adapter.ALLOWED_MISSING_ARGUMENTS),
+        )
+        self.assertEqual(
+            set(proposal["reasonCode"]["enum"]), set(adapter.ALLOWED_REASON_CODES)
+        )
+
+        benchmark = adapter.validate_benchmark(adapter.DEFAULT_BENCHMARK)
+        benchmark_argument_keys = {
+            key for record in benchmark for key in record["expected_arguments"]
+        }
+        benchmark_required_keys = {
+            key for record in benchmark for key in record["required_arguments"]
+        }
+        benchmark_reason_codes = {
+            record["expected_reason_code"] for record in benchmark
+        }
+
+        self.assertEqual(benchmark_argument_keys, set(adapter.ALLOWED_ARGUMENT_KEYS))
+        self.assertEqual(
+            benchmark_required_keys, set(adapter.ALLOWED_MISSING_ARGUMENTS)
+        )
+        self.assertEqual(benchmark_reason_codes, set(adapter.ALLOWED_REASON_CODES))
+
 
 class OutputNormalizationTests(unittest.TestCase):
     def test_valid_native_tool_call_normalizes_without_semantic_repair(self) -> None:
