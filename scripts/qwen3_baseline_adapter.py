@@ -11,7 +11,6 @@ from typing import Any
 from validate_action_benchmark import (
     DEFAULT_BENCHMARK,
     ValidationError,
-    load_jsonl,
     validate_benchmark,
 )
 
@@ -89,6 +88,45 @@ TOOL_SCHEMA: dict[str, Any] = {
 }
 
 
+def _object_without_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """Decode a JSON object without silently applying last-key-wins semantics."""
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValidationError(f"duplicate JSON key: {key}")
+        result[key] = value
+    return result
+
+
+def _load_transport_jsonl(path: Path) -> list[dict[str, Any]]:
+    """Load raw backend transport records with strict duplicate-key handling."""
+    try:
+        text = path.read_bytes().decode("utf-8")
+    except OSError as exc:
+        raise ValidationError(f"cannot read {path}: {exc}") from exc
+    except UnicodeDecodeError as exc:
+        raise ValidationError(f"{path} is not valid UTF-8: {exc}") from exc
+
+    records: list[dict[str, Any]] = []
+    for line_number, line in enumerate(text.splitlines(), start=1):
+        if not line.strip():
+            raise ValidationError(f"{path}:{line_number}: blank lines are not allowed")
+        try:
+            value = json.loads(line, object_pairs_hook=_object_without_duplicate_keys)
+        except json.JSONDecodeError as exc:
+            raise ValidationError(
+                f"{path}:{line_number}: invalid JSON: {exc.msg}"
+            ) from exc
+        except ValidationError as exc:
+            raise ValidationError(f"{path}:{line_number}: {exc}") from exc
+        if not isinstance(value, dict):
+            raise ValidationError(
+                f"{path}:{line_number}: each JSONL record must be an object"
+            )
+        records.append(value)
+    return records
+
+
 def build_request(record: dict[str, Any]) -> dict[str, Any]:
     """Build a backend request without exposing benchmark answers."""
     return {
@@ -150,9 +188,11 @@ def normalize_record(record: dict[str, Any]) -> dict[str, Any]:
         return _failure(record, "nested_tool_call")
 
     try:
-        payload = json.loads(inner)
+        payload = json.loads(inner, object_pairs_hook=_object_without_duplicate_keys)
     except json.JSONDecodeError:
         return _failure(record, "tool_call_payload_invalid_json")
+    except ValidationError:
+        return _failure(record, "tool_call_payload_duplicate_keys")
 
     if not isinstance(payload, dict):
         return _failure(record, "tool_call_payload_must_be_object")
@@ -203,7 +243,7 @@ def generate_requests(benchmark_path: Path, output_path: Path) -> None:
 
 
 def normalize_file(input_path: Path, output_path: Path) -> None:
-    records = load_jsonl(input_path)
+    records = _load_transport_jsonl(input_path)
     _validate_transport_identity(records, input_path)
     _write_jsonl(output_path, [normalize_record(record) for record in records])
 
