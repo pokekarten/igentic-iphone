@@ -51,6 +51,9 @@ jobs:
       - name: Test action proposal evaluator
         run: python3 scripts/test_evaluate_action_proposals.py
 
+      - name: Test Qwen3 baseline adapter
+        run: python3 scripts/test_qwen3_baseline_adapter.py
+
       - name: Validate untouched baseline manifest
         run: python3 scripts/validate_baseline_run.py
 
@@ -99,6 +102,7 @@ jobs:
             echo "- Autonomy gate evaluator unit tests completed in this contents-read workflow."
             echo "- Canonical action benchmark validation completed."
             echo "- Action proposal evaluator semantic-correctness regression tests completed."
+            echo "- Qwen3 baseline adapter regression tests completed."
             echo "- Untouched baseline provenance validation and profile mutation tests completed."
             echo "- Required public project control files are present and non-empty."
           } >> "$GITHUB_STEP_SUMMARY"

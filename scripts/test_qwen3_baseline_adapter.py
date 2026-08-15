@@ -1,0 +1,407 @@
+#!/usr/bin/env python3
+"""Regression tests for the dependency-free Qwen3 Benchmark V0 adapter."""
+from __future__ import annotations
+
+import json
+from pathlib import Path
+import tempfile
+import unittest
+from typing import Any, Iterator
+
+import qwen3_baseline_adapter as adapter
+from validate_action_benchmark import ValidationError
+
+
+BASE_RECORD = {
+    "case_id": "de-create-reminder-001",
+    "language": "de",
+    "user_text": "Erinnere mich morgen um neun an einen Termin.",
+    "expected_proposal_type": "tool_call",
+    "expected_intent": "createReminder",
+    "expected_tool": "createReminder",
+    "expected_arguments": {"title": "Termin", "time": "tomorrow 09:00"},
+    "required_arguments": ["title", "time"],
+    "expected_missing_arguments": [],
+    "expected_reason_code": "direct_intent",
+    "category": "clear",
+    "immutable_test": True,
+}
+
+VALID_PROPOSAL = {
+    "proposalType": "tool_call",
+    "intent": "createReminder",
+    "tool": "createReminder",
+    "arguments": {"title": "Termin", "time": "tomorrow 09:00"},
+    "missingArguments": [],
+    "reasonCode": "direct_intent",
+}
+
+
+def native_tool_call(arguments: object, name: str = adapter.TOOL_NAME) -> str:
+    payload = {"name": name, "arguments": arguments}
+    return (
+        f"{adapter.TOOL_CALL_OPEN}\n"
+        f"{json.dumps(payload, ensure_ascii=False)}\n"
+        f"{adapter.TOOL_CALL_CLOSE}"
+    )
+
+
+def mapping_keys(value: Any) -> Iterator[str]:
+    if isinstance(value, dict):
+        for key, nested in value.items():
+            yield key
+            yield from mapping_keys(nested)
+    elif isinstance(value, list):
+        for nested in value:
+            yield from mapping_keys(nested)
+
+
+class RequestEnvelopeTests(unittest.TestCase):
+    def test_request_pins_revision_and_non_thinking_mode(self) -> None:
+        request = adapter.build_request(BASE_RECORD)
+
+        self.assertEqual(request["model_id"], "Qwen/Qwen3-0.6B")
+        self.assertEqual(
+            request["model_revision"],
+            "c1899de289a04d12100db370d81485cdf75e47ca",
+        )
+        self.assertEqual(request["tokenizer_revision"], request["model_revision"])
+        self.assertEqual(
+            request["chat_template_kwargs"],
+            {"add_generation_prompt": True, "enable_thinking": False},
+        )
+
+    def test_requests_cli_has_no_benchmark_override(self) -> None:
+        with self.assertRaises(SystemExit):
+            adapter._parser().parse_args(
+                [
+                    "requests",
+                    "--benchmark",
+                    "other.jsonl",
+                    "--output",
+                    "out.jsonl",
+                ]
+            )
+
+    def test_request_exposes_user_text_without_case_answers(self) -> None:
+        request = adapter.build_request(BASE_RECORD)
+        all_keys = set(mapping_keys(request))
+
+        self.assertEqual(request["messages"][-1]["content"], BASE_RECORD["user_text"])
+        self.assertEqual(
+            set(request),
+            {
+                "case_id",
+                "model_id",
+                "model_revision",
+                "tokenizer_id",
+                "tokenizer_revision",
+                "messages",
+                "tools",
+                "chat_template_kwargs",
+            },
+        )
+        for forbidden_field in (
+            "language",
+            "user_text",
+            "expected_proposal_type",
+            "expected_intent",
+            "expected_tool",
+            "expected_arguments",
+            "required_arguments",
+            "expected_missing_arguments",
+            "expected_reason_code",
+            "category",
+            "immutable_test",
+        ):
+            self.assertNotIn(forbidden_field, all_keys)
+
+        reason_enum = request["tools"][0]["function"]["parameters"]["properties"][
+            "reasonCode"
+        ]["enum"]
+        self.assertGreater(len(reason_enum), 1)
+        self.assertEqual(set(reason_enum), set(adapter.ALLOWED_REASON_CODES))
+
+    def test_tool_schema_is_proposal_only_and_compact(self) -> None:
+        function = adapter.TOOL_SCHEMA["function"]
+        parameters = function["parameters"]
+
+        self.assertEqual(function["name"], adapter.TOOL_NAME)
+        self.assertEqual(set(parameters["properties"]), set(adapter.PROPOSAL_FIELDS))
+        self.assertEqual(set(parameters["required"]), set(adapter.PROPOSAL_FIELDS))
+        self.assertFalse(parameters["additionalProperties"])
+        self.assertNotIn("description", set(mapping_keys(adapter.TOOL_SCHEMA)))
+        self.assertNotIn("policy", parameters["properties"])
+        self.assertNotIn("approved", parameters["properties"])
+        self.assertNotIn("execute", parameters["properties"])
+
+    def test_tool_schema_exposes_complete_global_v0_vocabulary(self) -> None:
+        proposal = adapter.TOOL_SCHEMA["function"]["parameters"]["properties"]
+        argument_schema = proposal["arguments"]
+
+        self.assertEqual(
+            set(argument_schema["properties"]), set(adapter.ALLOWED_ARGUMENT_KEYS)
+        )
+        self.assertTrue(argument_schema["additionalProperties"])
+        self.assertEqual(
+            set(proposal["missingArguments"]["items"]["enum"]),
+            set(adapter.ALLOWED_MISSING_ARGUMENTS),
+        )
+        self.assertEqual(
+            set(proposal["reasonCode"]["enum"]), set(adapter.ALLOWED_REASON_CODES)
+        )
+
+        benchmark = adapter.validate_benchmark(adapter.DEFAULT_BENCHMARK)
+        benchmark_argument_keys = {
+            key for record in benchmark for key in record["expected_arguments"]
+        }
+        benchmark_required_keys = {
+            key for record in benchmark for key in record["required_arguments"]
+        }
+        benchmark_reason_codes = {
+            record["expected_reason_code"] for record in benchmark
+        }
+
+        self.assertEqual(benchmark_argument_keys, set(adapter.ALLOWED_ARGUMENT_KEYS))
+        self.assertEqual(
+            benchmark_required_keys, set(adapter.ALLOWED_MISSING_ARGUMENTS)
+        )
+        self.assertEqual(benchmark_reason_codes, set(adapter.ALLOWED_REASON_CODES))
+
+
+class OutputNormalizationTests(unittest.TestCase):
+    def test_valid_native_tool_call_normalizes_without_semantic_repair(self) -> None:
+        result = adapter.normalize_record(
+            {
+                "case_id": BASE_RECORD["case_id"],
+                "assistant_text": f" \n{native_tool_call(VALID_PROPOSAL)}\n ",
+                "repetitionDetected": False,
+                "truncationDetected": False,
+            }
+        )
+
+        self.assertEqual(result["case_id"], BASE_RECORD["case_id"])
+        for key, value in VALID_PROPOSAL.items():
+            self.assertEqual(result[key], value)
+        self.assertFalse(result["repetitionDetected"])
+        self.assertFalse(result["truncationDetected"])
+        self.assertNotIn("normalizerError", result)
+
+    def test_semantic_schema_errors_are_not_repaired(self) -> None:
+        malformed_semantics = dict(VALID_PROPOSAL)
+        malformed_semantics["unexpectedSemanticField"] = True
+
+        result = adapter.normalize_record(
+            {
+                "case_id": BASE_RECORD["case_id"],
+                "assistant_text": native_tool_call(malformed_semantics),
+            }
+        )
+
+        self.assertTrue(result["unexpectedSemanticField"])
+        self.assertNotIn("normalizerError", result)
+
+    def test_malformed_backend_text_becomes_joinable_failure(self) -> None:
+        malformed_texts = [
+            "plain prose",
+            f"```json\n{native_tool_call(VALID_PROPOSAL)}\n```",
+            "<tool_call>{bad json}</tool_call>",
+            native_tool_call(VALID_PROPOSAL) + native_tool_call(VALID_PROPOSAL),
+            "<tool_call><tool_call>{}</tool_call></tool_call>",
+            native_tool_call(VALID_PROPOSAL) + " trailing prose",
+        ]
+
+        for assistant_text in malformed_texts:
+            with self.subTest(assistant_text=assistant_text):
+                result = adapter.normalize_record(
+                    {
+                        "case_id": BASE_RECORD["case_id"],
+                        "assistant_text": assistant_text,
+                    }
+                )
+                self.assertEqual(result["case_id"], BASE_RECORD["case_id"])
+                self.assertIn("normalizerError", result)
+                self.assertNotIn("proposalType", result)
+
+    def test_duplicate_json_keys_become_joinable_failure(self) -> None:
+        proposal_json = json.dumps(VALID_PROPOSAL, ensure_ascii=False)
+        duplicate_payloads = [
+            (
+                f'{adapter.TOOL_CALL_OPEN}'
+                f'{{"name":"wrong","name":"{adapter.TOOL_NAME}",'
+                f'"arguments":{proposal_json}}}'
+                f'{adapter.TOOL_CALL_CLOSE}'
+            ),
+            (
+                f'{adapter.TOOL_CALL_OPEN}'
+                f'{{"name":"{adapter.TOOL_NAME}","arguments":'
+                '{"proposalType":"tool_call","proposalType":"refuse"}}'
+                f'{adapter.TOOL_CALL_CLOSE}'
+            ),
+        ]
+
+        for assistant_text in duplicate_payloads:
+            with self.subTest(assistant_text=assistant_text):
+                result = adapter.normalize_record(
+                    {
+                        "case_id": BASE_RECORD["case_id"],
+                        "assistant_text": assistant_text,
+                    }
+                )
+                self.assertEqual(
+                    result["normalizerError"], "tool_call_payload_duplicate_keys"
+                )
+                self.assertNotIn("proposalType", result)
+
+    def test_non_finite_json_numbers_become_joinable_failure(self) -> None:
+        for value in ("NaN", "Infinity", "-Infinity", "1e400", "-1e400"):
+            with self.subTest(value=value):
+                assistant_text = (
+                    f'{adapter.TOOL_CALL_OPEN}'
+                    f'{{"name":"{adapter.TOOL_NAME}",'
+                    f'"arguments":{{"proposalType":{value}}}}}'
+                    f'{adapter.TOOL_CALL_CLOSE}'
+                )
+                result = adapter.normalize_record(
+                    {
+                        "case_id": BASE_RECORD["case_id"],
+                        "assistant_text": assistant_text,
+                    }
+                )
+                self.assertEqual(
+                    result["normalizerError"],
+                    "tool_call_payload_non_finite_number",
+                )
+                self.assertNotIn("proposalType", result)
+
+    def test_wrong_name_and_non_object_arguments_become_failures(self) -> None:
+        cases = [
+            native_tool_call(VALID_PROPOSAL, name="createReminder"),
+            native_tool_call(["not", "an", "object"]),
+        ]
+        for assistant_text in cases:
+            with self.subTest(assistant_text=assistant_text):
+                result = adapter.normalize_record(
+                    {
+                        "case_id": BASE_RECORD["case_id"],
+                        "assistant_text": assistant_text,
+                    }
+                )
+                self.assertIn("normalizerError", result)
+
+    def test_model_cannot_control_identity_or_runtime_observations(self) -> None:
+        for reserved in adapter.RESERVED_MODEL_FIELDS:
+            with self.subTest(reserved=reserved):
+                proposal = dict(VALID_PROPOSAL)
+                proposal[reserved] = True
+                result = adapter.normalize_record(
+                    {
+                        "case_id": BASE_RECORD["case_id"],
+                        "assistant_text": native_tool_call(proposal),
+                    }
+                )
+                self.assertEqual(
+                    result["normalizerError"], "model_controls_reserved_field"
+                )
+
+    def test_runtime_observations_survive_joinable_failure(self) -> None:
+        result = adapter.normalize_record(
+            {
+                "case_id": BASE_RECORD["case_id"],
+                "assistant_text": "not a tool call",
+                "repetitionDetected": True,
+                "truncationDetected": True,
+            }
+        )
+
+        self.assertTrue(result["repetitionDetected"])
+        self.assertTrue(result["truncationDetected"])
+        self.assertIn("normalizerError", result)
+
+    def test_invalid_runtime_observations_fail_without_being_copied(self) -> None:
+        result = adapter.normalize_record(
+            {
+                "case_id": BASE_RECORD["case_id"],
+                "assistant_text": native_tool_call(VALID_PROPOSAL),
+                "repetitionDetected": "yes",
+            }
+        )
+
+        self.assertEqual(
+            result["normalizerError"], "runtime_observations_must_be_boolean"
+        )
+        self.assertNotIn("repetitionDetected", result)
+        self.assertNotIn("proposalType", result)
+
+    def test_unexpected_transport_fields_fail_without_being_copied(self) -> None:
+        result = adapter.normalize_record(
+            {
+                "case_id": BASE_RECORD["case_id"],
+                "assistant_text": native_tool_call(VALID_PROPOSAL),
+                "provider_debug": "must not enter evaluator artifacts",
+            }
+        )
+
+        self.assertEqual(result["normalizerError"], "unexpected_transport_fields")
+        self.assertNotIn("provider_debug", result)
+
+
+class TransportIdentityTests(unittest.TestCase):
+    def write_records(self, records: list[dict[str, object]]) -> Path:
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        path = Path(directory.name) / "raw.jsonl"
+        path.write_text(
+            "".join(json.dumps(record) + "\n" for record in records),
+            encoding="utf-8",
+        )
+        return path
+
+    def test_missing_invalid_or_duplicate_case_id_fails_closed(self) -> None:
+        cases = [
+            [{"assistant_text": "x"}],
+            [{"case_id": "", "assistant_text": "x"}],
+            [
+                {"case_id": "same", "assistant_text": "x"},
+                {"case_id": "same", "assistant_text": "y"},
+            ],
+        ]
+
+        for records in cases:
+            with self.subTest(records=records):
+                path = self.write_records(records)
+                loaded = adapter._load_transport_jsonl(path)
+                with self.assertRaises(ValidationError):
+                    adapter._validate_transport_identity(loaded, path)
+
+    def test_duplicate_transport_json_keys_fail_closed(self) -> None:
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        path = Path(directory.name) / "raw.jsonl"
+        path.write_text(
+            '{"case_id":"first","case_id":"second","assistant_text":"x"}\n',
+            encoding="utf-8",
+        )
+
+        with self.assertRaises(ValidationError):
+            adapter._load_transport_jsonl(path)
+
+    def test_non_finite_transport_json_fails_closed(self) -> None:
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        path = Path(directory.name) / "raw.jsonl"
+        for value in ("NaN", "1e400"):
+            with self.subTest(value=value):
+                path.write_text(
+                    (
+                        '{"case_id":"case","assistant_text":"x",'
+                        f'"repetitionDetected":{value}}}\n'
+                    ),
+                    encoding="utf-8",
+                )
+                with self.assertRaises(ValidationError):
+                    adapter._load_transport_jsonl(path)
+
+
+if __name__ == "__main__":
+    unittest.main()
