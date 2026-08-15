@@ -145,6 +145,36 @@ class OutputNormalizationTests(unittest.TestCase):
                 self.assertIn("normalizerError", result)
                 self.assertNotIn("proposalType", result)
 
+    def test_duplicate_json_keys_become_joinable_failure(self) -> None:
+        proposal_json = json.dumps(VALID_PROPOSAL, ensure_ascii=False)
+        duplicate_payloads = [
+            (
+                f'{adapter.TOOL_CALL_OPEN}'
+                f'{{"name":"wrong","name":"{adapter.TOOL_NAME}",'
+                f'"arguments":{proposal_json}}}'
+                f'{adapter.TOOL_CALL_CLOSE}'
+            ),
+            (
+                f'{adapter.TOOL_CALL_OPEN}'
+                f'{{"name":"{adapter.TOOL_NAME}","arguments":'
+                '{"proposalType":"tool_call","proposalType":"refuse"}}'
+                f'{adapter.TOOL_CALL_CLOSE}'
+            ),
+        ]
+
+        for assistant_text in duplicate_payloads:
+            with self.subTest(assistant_text=assistant_text):
+                result = adapter.normalize_record(
+                    {
+                        "case_id": BASE_RECORD["case_id"],
+                        "assistant_text": assistant_text,
+                    }
+                )
+                self.assertEqual(
+                    result["normalizerError"], "tool_call_payload_duplicate_keys"
+                )
+                self.assertNotIn("proposalType", result)
+
     def test_wrong_name_and_non_object_arguments_become_failures(self) -> None:
         cases = [
             native_tool_call(VALID_PROPOSAL, name="createReminder"),
@@ -226,9 +256,21 @@ class TransportIdentityTests(unittest.TestCase):
         for records in cases:
             with self.subTest(records=records):
                 path = self.write_records(records)
-                loaded = adapter.load_jsonl(path)
+                loaded = adapter._load_transport_jsonl(path)
                 with self.assertRaises(ValidationError):
                     adapter._validate_transport_identity(loaded, path)
+
+    def test_duplicate_transport_json_keys_fail_closed(self) -> None:
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        path = Path(directory.name) / "raw.jsonl"
+        path.write_text(
+            '{"case_id":"first","case_id":"second","assistant_text":"x"}\n',
+            encoding="utf-8",
+        )
+
+        with self.assertRaises(ValidationError):
+            adapter._load_transport_jsonl(path)
 
 
 if __name__ == "__main__":
