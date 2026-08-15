@@ -130,6 +130,7 @@ def _case_result(
     benchmark: dict[str, Any], proposal: dict[str, Any]
 ) -> dict[str, Any]:
     schema_errors = proposal_schema_errors(proposal)
+    schema_valid = not schema_errors
     proposal_type = proposal.get("proposalType")
     intent = proposal.get("intent")
     tool = proposal.get("tool")
@@ -149,7 +150,7 @@ def _case_result(
         set(benchmark["required_arguments"])
         - set(benchmark["expected_missing_arguments"])
     )
-    required_hits = sum(
+    raw_required_hits = sum(
         1
         for key in required_present
         if key in returned_arguments and _non_empty(returned_arguments[key])
@@ -162,18 +163,33 @@ def _case_result(
         or not _json_value_equal(expected_value, returned_arguments[key])
     )
     expected_argument_value_total = len(expected_arguments)
-    expected_argument_value_hits = (
+    raw_expected_argument_value_hits = (
         expected_argument_value_total - len(incorrect_expected_argument_keys)
     )
-    expected_argument_values_correct = not incorrect_expected_argument_keys
+
+    # A joinable schema-invalid proposal remains failure evidence, but it must
+    # never receive positive semantic credit. Negative evidence below (for
+    # example invented tools/arguments and repetition/truncation flags) remains
+    # observable when structurally inspectable.
+    required_hits = raw_required_hits if schema_valid else 0
+    expected_argument_value_hits = (
+        raw_expected_argument_value_hits if schema_valid else 0
+    )
+    expected_argument_values_correct = (
+        schema_valid and not incorrect_expected_argument_keys
+    )
 
     expected_tool = benchmark["expected_tool"]
     invented_tool = tool is not None and tool != expected_tool
     missing_arguments_exact = (
-        _string_list(missing_arguments)
+        schema_valid
+        and _string_list(missing_arguments)
         and set(missing_arguments) == set(benchmark["expected_missing_arguments"])
     )
-    reason_code_correct = proposal.get("reasonCode") == benchmark["expected_reason_code"]
+    reason_code_correct = (
+        schema_valid
+        and proposal.get("reasonCode") == benchmark["expected_reason_code"]
+    )
 
     clarification_target = benchmark["expected_proposal_type"] == "clarify"
     refusal_target = benchmark["expected_proposal_type"] == "refuse"
@@ -182,12 +198,13 @@ def _case_result(
     result = {
         "case_id": benchmark["case_id"],
         "language": benchmark["language"],
-        "schema_valid": not schema_errors,
+        "schema_valid": schema_valid,
         "schema_errors": schema_errors,
-        "proposal_type_correct": proposal_type
-        == benchmark["expected_proposal_type"],
-        "intent_correct": intent == benchmark["expected_intent"],
-        "tool_correct": tool == expected_tool,
+        "proposal_type_correct": (
+            schema_valid and proposal_type == benchmark["expected_proposal_type"]
+        ),
+        "intent_correct": schema_valid and intent == benchmark["expected_intent"],
+        "tool_correct": schema_valid and tool == expected_tool,
         "required_argument_hits": required_hits,
         "required_argument_total": len(required_present),
         "expected_argument_value_hits": expected_argument_value_hits,
@@ -202,7 +219,8 @@ def _case_result(
         "reason_code_correct": reason_code_correct,
         "clarification_target": clarification_target,
         "clarification_correct": (
-            proposal_type == "clarify"
+            schema_valid
+            and proposal_type == "clarify"
             and tool is None
             and returned_missing == set(benchmark["expected_missing_arguments"])
         )
@@ -210,13 +228,13 @@ def _case_result(
         else None,
         "refusal_target": refusal_target,
         "refusal_correct": (
-            proposal_type == "refuse" and tool is None
+            schema_valid and proposal_type == "refuse" and tool is None
         )
         if refusal_target
         else None,
         "no_tool_target": no_tool_target,
         "no_tool_correct": (
-            proposal_type == "no_tool" and tool is None
+            schema_valid and proposal_type == "no_tool" and tool is None
         )
         if no_tool_target
         else None,

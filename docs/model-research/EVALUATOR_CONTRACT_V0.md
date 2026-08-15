@@ -2,7 +2,8 @@
 
 Status: executable benchmark and comparison contract  
 Benchmark: `igentic-action-benchmark-v0.jsonl`  
-Parent: Issue #81
+Parent: Issue #81  
+Fail-safe metric follow-up: Issue #276
 
 ## Purpose
 
@@ -42,7 +43,7 @@ The validator fails with exit code `1` when the JSONL cannot be decoded as UTF-8
 
 - exactly 40 records;
 - unique non-empty `case_id` values;
-- exactly 20 German and 20 English records;
+- exactly 20 German / 20 English records;
 - exactly eight records for each current intent;
 - the fixed field set and expected value types;
 - allowed proposal types, intents, tools and categories;
@@ -112,7 +113,27 @@ The evaluator fails closed with exit code `1` for transport or identity failures
 - an invalid canonical benchmark;
 - an unwritable result path.
 
-A joinable proposal with invalid normalized fields is retained as a measured failure. Its `schema_valid` value is `false`, its schema errors are reported, and exact-match metrics fail safely. This distinction preserves a meaningful schema-validity metric while preventing malformed files or mixed case sets from producing a comparison.
+A joinable proposal with invalid normalized fields is retained as a measured failure. Its `schema_valid` value is `false` and its schema errors are reported.
+
+Schema validity is the gate for **positive semantic correctness credit**. When `schema_valid` is false, the proposal receives zero/false credit for:
+
+- proposal-type accuracy;
+- intent accuracy;
+- tool accuracy;
+- required-argument recall hits;
+- expected-argument-value hits/correctness;
+- reason-code accuracy;
+- exact missing-argument accuracy;
+- clarification accuracy;
+- refusal accuracy;
+- no-tool accuracy;
+- fully-correct case status.
+
+This prevents missing or malformed fields from accidentally comparing equal to benchmark defaults. For example, an omitted `tool` field must not receive tool accuracy merely because the benchmark expected `null`.
+
+Negative/error evidence remains independently observable when its raw field is structurally inspectable. In particular, an invalid proposal may still record an invented tool, invented argument keys/count, or valid boolean repetition/truncation observations. These observations do not restore any positive semantic correctness credit.
+
+This distinction preserves a meaningful schema-validity metric and useful failure evidence while preventing malformed normalized output from inflating backend quality metrics.
 
 ## Metrics
 
@@ -147,19 +168,19 @@ Reported metrics:
 - `repetition_flag_rate`;
 - `truncation_flag_rate`.
 
-Existing V0 metrics retain their documented meaning. `required_argument_recall` remains a presence/non-empty recall metric for required fields that the benchmark does not mark as expected missing.
+Existing V0 metrics retain their documented meaning for schema-valid proposals. `required_argument_recall` remains a presence/non-empty recall metric for required fields that the benchmark does not mark as expected missing. Schema-invalid proposals contribute zero required-argument hits while retaining the benchmark-derived denominator.
 
-`expected_argument_value_accuracy` is a micro-average over every key/value pair in benchmark `expected_arguments`. A value counts as correct only when the key is returned and the normalized JSON value and JSON type exactly match the benchmark expectation. Missing or wrong values reduce this metric; extra keys remain measured separately by `invented_argument_rate`.
+`expected_argument_value_accuracy` is a micro-average over every key/value pair in benchmark `expected_arguments`. For a schema-valid proposal, a value counts as correct only when the key is returned and the normalized JSON value and JSON type exactly match the benchmark expectation. Missing or wrong values reduce this metric; extra keys remain measured separately by `invented_argument_rate`. Schema-invalid proposals contribute zero expected-value hits.
 
-`reason_code_accuracy` requires an exact match between proposal `reasonCode` and benchmark `expected_reason_code`.
+`reason_code_accuracy` requires a schema-valid proposal and an exact match between proposal `reasonCode` and benchmark `expected_reason_code`.
 
-`exact_missing_argument_accuracy` evaluates every case, not only clarification cases. The proposal must contain a schema-valid unique string list whose set exactly matches `expected_missing_arguments`; malformed lists fail this metric.
+`exact_missing_argument_accuracy` evaluates every case, not only clarification cases. The proposal must be schema-valid and contain a unique string list whose set exactly matches `expected_missing_arguments`; malformed or otherwise schema-invalid proposals fail this metric.
 
 `fully_correct_case_rate` counts a case only when its normalized schema is valid, proposal type, intent and tool are exact, every expected argument value is exact, no argument key is invented, the missing-argument set is exact and the reason code is exact. Optional repetition and truncation observations remain separate evidence and do not change this semantic correctness definition.
 
-An invented tool is any non-null tool that differs from the benchmark expectation. An invented argument is a returned argument key absent from that case's `expected_arguments`.
+An invented tool is any non-null tool that differs from the benchmark expectation. An invented argument is a returned argument key absent from that case's `expected_arguments`. These negative observations may be recorded even when the overall proposal schema is invalid.
 
-Clarification accuracy preserves its V0 meaning: it requires `clarify`, a null tool and an exact set match for `expected_missing_arguments`. Refusal and no-tool accuracy require the exact proposal type and a null tool.
+Clarification accuracy requires a schema-valid `clarify` proposal, a null tool and an exact set match for `expected_missing_arguments`. Refusal and no-tool accuracy likewise require schema validity, the exact proposal type and a null tool.
 
 ## Result JSON
 
