@@ -122,7 +122,7 @@ class RequestEnvelopeTests(unittest.TestCase):
         self.assertGreater(len(reason_enum), 1)
         self.assertEqual(set(reason_enum), set(adapter.ALLOWED_REASON_CODES))
 
-    def test_tool_schema_is_proposal_only(self) -> None:
+    def test_tool_schema_is_proposal_only_and_compact(self) -> None:
         function = adapter.TOOL_SCHEMA["function"]
         parameters = function["parameters"]
 
@@ -130,6 +130,7 @@ class RequestEnvelopeTests(unittest.TestCase):
         self.assertEqual(set(parameters["properties"]), set(adapter.PROPOSAL_FIELDS))
         self.assertEqual(set(parameters["required"]), set(adapter.PROPOSAL_FIELDS))
         self.assertFalse(parameters["additionalProperties"])
+        self.assertNotIn("description", set(mapping_keys(adapter.TOOL_SCHEMA)))
         self.assertNotIn("policy", parameters["properties"])
         self.assertNotIn("approved", parameters["properties"])
         self.assertNotIn("execute", parameters["properties"])
