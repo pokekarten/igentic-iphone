@@ -113,9 +113,9 @@ The normalizer accepts these transport-owned fields only:
 }
 ```
 
-`repetitionDetected` and `truncationDetected` are optional. They are runtime observations, never trusted from model-generated function arguments.
+`repetitionDetected` and `truncationDetected` are optional runtime observations. When present they must be JSON booleans; invalid observation types become joinable normalizer failures and are not copied into evaluator artifacts. They are never trusted from model-generated function arguments.
 
-Missing, blank or duplicate transport `case_id` values fail the normalization command because a stable benchmark join is impossible. Duplicate JSON object keys in raw transport records also fail closed; the adapter never applies last-key-wins semantics to evidence identity or transport metadata.
+Missing, blank or duplicate transport `case_id` values fail the normalization command because a stable benchmark join is impossible. Duplicate JSON object keys and non-finite numeric extensions such as `NaN` or `Infinity` in raw transport records also fail closed; the adapter never applies last-key-wins semantics or Python-specific non-standard JSON behavior to evidence identity or transport metadata.
 
 ## Accepted native envelope
 
@@ -133,7 +133,8 @@ The JSON payload must:
 - contain exactly `name` and `arguments`;
 - use `name="igentic_propose_action"`;
 - use an object-valued `arguments`;
-- contain no duplicate JSON object keys at any nesting level.
+- contain no duplicate JSON object keys at any nesting level;
+- use strict JSON numbers, never `NaN`, `Infinity` or `-Infinity` extensions.
 
 The normalizer copies `arguments` into the evaluator-facing record without semantic repair. Proposal field types, allowed values, tool/intent consistency and unexpected semantic fields remain the evaluator's responsibility.
 
@@ -157,12 +158,14 @@ Joinable failure cases include:
 - nested tool-call tags;
 - malformed tool-call JSON;
 - duplicate JSON keys in the native tool-call payload or nested proposal arguments;
+- non-finite numeric JSON extensions in the native payload;
 - wrong native function name;
 - non-object native arguments;
 - model attempts to control `case_id`, `normalizerError`, `repetitionDetected` or `truncationDetected`;
+- invalid runtime observation types;
 - unexpected transport fields.
 
-The normalizer does not invent missing proposal fields, coerce types, infer intent, repair arguments, resolve duplicate keys or select a tool on the model's behalf.
+The normalizer does not invent missing proposal fields, coerce types, infer intent, repair arguments, resolve duplicate keys, normalize non-standard numbers or select a tool on the model's behalf. Output JSONL is serialized with non-finite numbers forbidden.
 
 ## Validation
 
