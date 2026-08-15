@@ -9,11 +9,7 @@ from pathlib import Path
 import sys
 from typing import Any
 
-from validate_action_benchmark import (
-    DEFAULT_BENCHMARK,
-    ValidationError,
-    validate_benchmark,
-)
+from validate_action_benchmark import DEFAULT_BENCHMARK, ValidationError, validate_benchmark
 
 MODEL_ID = "Qwen/Qwen3-0.6B"
 MODEL_REVISION = "c1899de289a04d12100db370d81485cdf75e47ca"
@@ -26,51 +22,21 @@ OBSERVATION_FIELDS = ("repetitionDetected", "truncationDetected")
 RESERVED_MODEL_FIELDS = {"case_id", "normalizerError", *OBSERVATION_FIELDS}
 
 SYSTEM_INSTRUCTION = (
-    "Convert the user request into exactly one iGentic action proposal. "
-    "Call only the provided igentic_propose_action function. "
-    "A proposal may suggest an action but never authorizes or executes it. "
-    "Do not add prose outside the function call."
+    "Return exactly one iGentic proposal by calling igentic_propose_action. "
+    "A proposal never authorizes or executes an action. Output no prose."
 )
 
-ARGUMENT_PROPERTIES: dict[str, Any] = {
-    "title": {
-        "type": "string",
-        "description": "Reminder title when the reminder subject is known.",
-    },
-    "time": {
-        "type": "string",
-        "description": "Normalized reminder time when sufficiently specified.",
-    },
-    "date": {
-        "type": "string",
-        "description": "Date hint retained when a reminder request is still ambiguous.",
-    },
-    "note_text": {
-        "type": "string",
-        "description": "Inline note text available for summarization.",
-    },
-    "note_reference": {
-        "type": "string",
-        "description": "Unresolved note reference retained when note text is unavailable.",
-    },
-    "query": {
-        "type": "string",
-        "description": "File search query when a searchable subject is known.",
-    },
-    "file_type": {
-        "type": "string",
-        "description": "Optional file-type hint such as pdf.",
-    },
-    "date_hint": {
-        "type": "string",
-        "description": "Unresolved date hint retained for an ambiguous file reference.",
-    },
-    "action_summary": {
-        "type": "string",
-        "description": "Short action description for which approval is requested.",
-    },
-}
-ALLOWED_ARGUMENT_KEYS = tuple(ARGUMENT_PROPERTIES)
+ALLOWED_ARGUMENT_KEYS = (
+    "title",
+    "time",
+    "date",
+    "note_text",
+    "note_reference",
+    "query",
+    "file_type",
+    "date_hint",
+    "action_summary",
+)
 ALLOWED_MISSING_ARGUMENTS = (
     "title",
     "time",
@@ -90,12 +56,12 @@ ALLOWED_REASON_CODES = (
     "unsupported_sensitive_action",
     "no_matching_local_tool",
 )
+ARGUMENT_PROPERTIES = {key: {"type": "string"} for key in ALLOWED_ARGUMENT_KEYS}
 
 PROPOSAL_PROPERTIES: dict[str, Any] = {
     "proposalType": {
         "type": "string",
         "enum": ["tool_call", "clarify", "no_tool", "refuse"],
-        "description": "Requested proposal shape; never an execution authorization.",
     },
     "intent": {
         "type": "string",
@@ -119,29 +85,19 @@ PROPOSAL_PROPERTIES: dict[str, Any] = {
                 ],
             },
             {"type": "null"},
-        ],
-        "description": "Typed local route for tool_call; null for every non-tool proposal.",
+        ]
     },
     "arguments": {
         "type": "object",
         "properties": ARGUMENT_PROPERTIES,
         "additionalProperties": True,
-        "description": (
-            "Known public Benchmark V0 argument vocabulary. Additional keys remain "
-            "observable so invented-argument errors can be measured by the evaluator."
-        ),
     },
     "missingArguments": {
         "type": "array",
         "items": {"type": "string", "enum": list(ALLOWED_MISSING_ARGUMENTS)},
         "uniqueItems": True,
-        "description": "Required argument names that are missing from the user request.",
     },
-    "reasonCode": {
-        "type": "string",
-        "enum": list(ALLOWED_REASON_CODES),
-        "description": "Backend-neutral Benchmark V0 reason vocabulary.",
-    },
+    "reasonCode": {"type": "string", "enum": list(ALLOWED_REASON_CODES)},
 }
 PROPOSAL_FIELDS = tuple(PROPOSAL_PROPERTIES)
 
@@ -149,10 +105,6 @@ TOOL_SCHEMA: dict[str, Any] = {
     "type": "function",
     "function": {
         "name": TOOL_NAME,
-        "description": (
-            "Return one structured iGentic action proposal for deterministic "
-            "validation by the host application."
-        ),
         "parameters": {
             "type": "object",
             "properties": PROPOSAL_PROPERTIES,
@@ -172,7 +124,6 @@ class NonFiniteJSONNumberError(ValidationError):
 
 
 def _object_without_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
-    """Decode a JSON object without silently applying last-key-wins semantics."""
     result: dict[str, Any] = {}
     for key, value in pairs:
         if key in result:
@@ -192,8 +143,16 @@ def _finite_json_float(value: str) -> float:
     return parsed
 
 
+def _strict_json_loads(text: str) -> Any:
+    return json.loads(
+        text,
+        object_pairs_hook=_object_without_duplicate_keys,
+        parse_constant=_reject_non_finite_json_number,
+        parse_float=_finite_json_float,
+    )
+
+
 def _load_transport_jsonl(path: Path) -> list[dict[str, Any]]:
-    """Load raw backend transport records with strict JSON handling."""
     try:
         text = path.read_bytes().decode("utf-8")
     except OSError as exc:
@@ -206,12 +165,7 @@ def _load_transport_jsonl(path: Path) -> list[dict[str, Any]]:
         if not line.strip():
             raise ValidationError(f"{path}:{line_number}: blank lines are not allowed")
         try:
-            value = json.loads(
-                line,
-                object_pairs_hook=_object_without_duplicate_keys,
-                parse_constant=_reject_non_finite_json_number,
-                parse_float=_finite_json_float,
-            )
+            value = _strict_json_loads(line)
         except json.JSONDecodeError as exc:
             raise ValidationError(
                 f"{path}:{line_number}: invalid JSON: {exc.msg}"
@@ -227,7 +181,6 @@ def _load_transport_jsonl(path: Path) -> list[dict[str, Any]]:
 
 
 def build_request(record: dict[str, Any]) -> dict[str, Any]:
-    """Build a backend request without exposing benchmark answers."""
     return {
         "case_id": record["case_id"],
         "model_id": MODEL_ID,
@@ -262,22 +215,14 @@ def _failure(record: dict[str, Any], reason: str) -> dict[str, Any]:
 
 
 def normalize_record(record: dict[str, Any]) -> dict[str, Any]:
-    """Normalize one Qwen-native tool-call string without repairing semantics."""
-    allowed_transport_fields = {
-        "case_id",
-        "assistant_text",
-        *OBSERVATION_FIELDS,
-    }
-    unexpected = sorted(set(record) - allowed_transport_fields)
-    if unexpected:
+    allowed_transport_fields = {"case_id", "assistant_text", *OBSERVATION_FIELDS}
+    if set(record) - allowed_transport_fields:
         return _failure(record, "unexpected_transport_fields")
 
-    invalid_observations = [
-        field
+    if any(
+        field in record and not isinstance(record[field], bool)
         for field in OBSERVATION_FIELDS
-        if field in record and not isinstance(record[field], bool)
-    ]
-    if invalid_observations:
+    ):
         return _failure(record, "runtime_observations_must_be_boolean")
 
     assistant_text = record.get("assistant_text")
@@ -295,12 +240,7 @@ def normalize_record(record: dict[str, Any]) -> dict[str, Any]:
         return _failure(record, "nested_tool_call")
 
     try:
-        payload = json.loads(
-            inner,
-            object_pairs_hook=_object_without_duplicate_keys,
-            parse_constant=_reject_non_finite_json_number,
-            parse_float=_finite_json_float,
-        )
+        payload = _strict_json_loads(inner)
     except json.JSONDecodeError:
         return _failure(record, "tool_call_payload_invalid_json")
     except DuplicateJSONKeyError:
@@ -343,13 +283,7 @@ def _write_jsonl(path: Path, records: list[dict[str, Any]]) -> None:
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
         text = "".join(
-            json.dumps(
-                record,
-                ensure_ascii=False,
-                sort_keys=True,
-                allow_nan=False,
-            )
-            + "\n"
+            json.dumps(record, ensure_ascii=False, sort_keys=True, allow_nan=False) + "\n"
             for record in records
         )
         path.write_text(text, encoding="utf-8")
@@ -375,7 +309,7 @@ def _parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     request_parser = subparsers.add_parser(
-        "requests", help="Generate pinned Qwen3 request envelopes from canonical Benchmark V0."
+        "requests", help="Generate pinned Qwen3 requests from canonical Benchmark V0."
     )
     request_parser.add_argument("--output", type=Path, required=True)
 
