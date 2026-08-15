@@ -3,7 +3,7 @@
 Status: executable provenance contract  
 Schema: `igentic-baseline-run-v0`  
 Parent: Issue #88  
-Integrity follow-ups: Issues #274 and #280
+Integrity follow-ups: Issues #274, #280 and #282
 
 ## Purpose
 
@@ -114,9 +114,11 @@ Benchmark V0 has exactly two comparable router profiles. Their experiment budget
 
 The explicit comparable fields are intentionally not the whole universe of backend knobs. `applied_config_path` and its digest bind any additional backend-specific generation settings so that a run cannot silently change them while preserving the same high-level manifest fields.
 
-For the Qwen3 0.6B adapter pinned by `docs/model-research/QWEN3_0_6B_BASELINE_ADAPTER_V0.md`, the upstream pinned generation configuration at revision `c1899de289a04d12100db370d81485cdf75e47ca` contains sampling enabled with temperature 0.6, top-k 20 and top-p 0.95. A future untouched Qwen run must record the settings it actually applies; it must not rely on an implicit library default.
+For Qwen3 0.6B, do not confuse the pinned upstream `generation_config.json` defaults with the selected Benchmark V0 hard non-thinking profile. The adapter contract in `docs/model-research/QWEN3_0_6B_BASELINE_ADAPTER_V0.md` pins the upstream-recommended `enable_thinking=false` sampling settings to `sampling_enabled=true`, `temperature=0.7`, `top_p=0.8`, `top_k=20`, with backend-specific `min_p=0.0` bound inside the applied-config artifact. The profile-dependent output cap remains `32` or `64` through `max_output_tokens`.
 
 A seed is required only when the backend supports deterministic seeding. Otherwise `seed` is null.
+
+One manifest represents one execution run. When a backend-specific adapter precommits multiple stochastic repeats, each repeat gets its own manifest and seed. The Qwen3 0.6B V0 adapter precommits five seeds (`0` through `4`) before results exist; all five runs are required for that profile's complete stochastic evidence set. These numeric labels do not assert equivalent random streams across different models, frameworks or backends.
 
 ### Execution evidence
 
@@ -173,7 +175,7 @@ The validator rejects:
 - physical-device claims without physical-device evidence;
 - inconsistent timeout, cancellation or completion observations.
 
-Validation proves schema and provenance consistency only. It does not prove that referenced artifacts exist, that their hashes match files on disk, that a model was executed, that a license interpretation is correct or that a physical device produced the result. Those claims require reviewed run evidence.
+Validation proves schema and provenance consistency only. It does not prove that referenced artifacts exist, that their hashes match files on disk, that a model was executed, that a license interpretation is correct, that an adapter-specific repeat set is complete or that a physical device produced the result. Those claims require reviewed run evidence.
 
 ## Continuous validation
 

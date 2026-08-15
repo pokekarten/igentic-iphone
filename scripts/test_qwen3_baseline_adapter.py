@@ -71,6 +71,36 @@ class RequestEnvelopeTests(unittest.TestCase):
             {"add_generation_prompt": True, "enable_thinking": False},
         )
 
+    def test_request_pins_non_thinking_generation_and_repeats(self) -> None:
+        request = adapter.build_request(BASE_RECORD)
+        expected_generation = {
+            "do_sample": True,
+            "temperature": 0.7,
+            "top_p": 0.8,
+            "top_k": 20,
+            "min_p": 0.0,
+        }
+
+        self.assertEqual(adapter.NON_THINKING_GENERATION_KWARGS, expected_generation)
+        self.assertEqual(request["generation_kwargs"], expected_generation)
+        self.assertNotIn("max_new_tokens", request["generation_kwargs"])
+        self.assertEqual(adapter.BASELINE_SEEDS, (0, 1, 2, 3, 4))
+        self.assertEqual(request["replicate_seeds"], [0, 1, 2, 3, 4])
+        self.assertEqual(len(request["replicate_seeds"]), len(set(request["replicate_seeds"])))
+        self.assertTrue(
+            all(isinstance(seed, int) and not isinstance(seed, bool) and seed >= 0 for seed in request["replicate_seeds"])
+        )
+
+    def test_every_benchmark_request_uses_same_generation_contract(self) -> None:
+        benchmark = adapter.validate_benchmark(adapter.DEFAULT_BENCHMARK)
+        for record in benchmark:
+            with self.subTest(case_id=record["case_id"]):
+                request = adapter.build_request(record)
+                self.assertEqual(
+                    request["generation_kwargs"], adapter.NON_THINKING_GENERATION_KWARGS
+                )
+                self.assertEqual(request["replicate_seeds"], list(adapter.BASELINE_SEEDS))
+
     def test_requests_cli_has_no_benchmark_override(self) -> None:
         with self.assertRaises(SystemExit):
             adapter._parser().parse_args(
@@ -99,6 +129,8 @@ class RequestEnvelopeTests(unittest.TestCase):
                 "messages",
                 "tools",
                 "chat_template_kwargs",
+                "generation_kwargs",
+                "replicate_seeds",
             },
         )
         for forbidden_field in (
