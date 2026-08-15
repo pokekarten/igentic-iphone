@@ -88,18 +88,30 @@ TOOL_SCHEMA: dict[str, Any] = {
 }
 
 
+class DuplicateJSONKeyError(ValidationError):
+    """Raised when a JSON object contains the same key more than once."""
+
+
+class NonFiniteJSONNumberError(ValidationError):
+    """Raised when JSON input uses NaN or Infinity extensions."""
+
+
 def _object_without_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     """Decode a JSON object without silently applying last-key-wins semantics."""
     result: dict[str, Any] = {}
     for key, value in pairs:
         if key in result:
-            raise ValidationError(f"duplicate JSON key: {key}")
+            raise DuplicateJSONKeyError(f"duplicate JSON key: {key}")
         result[key] = value
     return result
 
 
+def _reject_non_finite_json_number(value: str) -> None:
+    raise NonFiniteJSONNumberError(f"non-finite JSON number: {value}")
+
+
 def _load_transport_jsonl(path: Path) -> list[dict[str, Any]]:
-    """Load raw backend transport records with strict duplicate-key handling."""
+    """Load raw backend transport records with strict JSON handling."""
     try:
         text = path.read_bytes().decode("utf-8")
     except OSError as exc:
@@ -112,7 +124,11 @@ def _load_transport_jsonl(path: Path) -> list[dict[str, Any]]:
         if not line.strip():
             raise ValidationError(f"{path}:{line_number}: blank lines are not allowed")
         try:
-            value = json.loads(line, object_pairs_hook=_object_without_duplicate_keys)
+            value = json.loads(
+                line,
+                object_pairs_hook=_object_without_duplicate_keys,
+                parse_constant=_reject_non_finite_json_number,
+            )
         except json.JSONDecodeError as exc:
             raise ValidationError(
                 f"{path}:{line_number}: invalid JSON: {exc.msg}"
@@ -149,7 +165,7 @@ def build_request(record: dict[str, Any]) -> dict[str, Any]:
 
 def _copy_observations(record: dict[str, Any], output: dict[str, Any]) -> None:
     for field in OBSERVATION_FIELDS:
-        if field in record:
+        if field in record and isinstance(record[field], bool):
             output[field] = record[field]
 
 
@@ -173,6 +189,14 @@ def normalize_record(record: dict[str, Any]) -> dict[str, Any]:
     if unexpected:
         return _failure(record, "unexpected_transport_fields")
 
+    invalid_observations = [
+        field
+        for field in OBSERVATION_FIELDS
+        if field in record and not isinstance(record[field], bool)
+    ]
+    if invalid_observations:
+        return _failure(record, "runtime_observations_must_be_boolean")
+
     assistant_text = record.get("assistant_text")
     if not isinstance(assistant_text, str):
         return _failure(record, "assistant_text_must_be_string")
@@ -188,11 +212,17 @@ def normalize_record(record: dict[str, Any]) -> dict[str, Any]:
         return _failure(record, "nested_tool_call")
 
     try:
-        payload = json.loads(inner, object_pairs_hook=_object_without_duplicate_keys)
+        payload = json.loads(
+            inner,
+            object_pairs_hook=_object_without_duplicate_keys,
+            parse_constant=_reject_non_finite_json_number,
+        )
     except json.JSONDecodeError:
         return _failure(record, "tool_call_payload_invalid_json")
-    except ValidationError:
+    except DuplicateJSONKeyError:
         return _failure(record, "tool_call_payload_duplicate_keys")
+    except NonFiniteJSONNumberError:
+        return _failure(record, "tool_call_payload_non_finite_number")
 
     if not isinstance(payload, dict):
         return _failure(record, "tool_call_payload_must_be_object")
@@ -229,10 +259,18 @@ def _write_jsonl(path: Path, records: list[dict[str, Any]]) -> None:
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
         text = "".join(
-            json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n"
+            json.dumps(
+                record,
+                ensure_ascii=False,
+                sort_keys=True,
+                allow_nan=False,
+            )
+            + "\n"
             for record in records
         )
         path.write_text(text, encoding="utf-8")
+    except ValueError as exc:
+        raise ValidationError(f"cannot serialize {path} as strict JSON: {exc}") from exc
     except OSError as exc:
         raise ValidationError(f"cannot write {path}: {exc}") from exc
 
