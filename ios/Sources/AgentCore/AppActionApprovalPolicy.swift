@@ -33,7 +33,7 @@ public struct AppActionApprovalPolicy: Codable, Equatable, Sendable {
     }
 
     public static let setupDefault = AppActionApprovalPolicy(rules: [
-        .init(actionKind: .sendMessage, requiresApproval: false, note: "Default setup allows direct messaging."),
+        .init(actionKind: .sendMessage, requiresApproval: false, note: "Default setup adds no extra messaging approval; core policy still applies."),
         .init(actionKind: .deleteRecord, requiresApproval: true, note: "Default setup requires approval for deletions."),
         .init(actionKind: .updateRecord, requiresApproval: true, note: "Default setup requires approval for edits."),
         .init(actionKind: .exportData, requiresApproval: true, note: "Default setup requires approval for exports.")
