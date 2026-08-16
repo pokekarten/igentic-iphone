@@ -25,6 +25,9 @@ jobs:
   health-summary:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    env:
+      WORKFLOW_RUN_NAME: ${{ github.event.workflow_run.name }}
+      WORKFLOW_RUN_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
     steps:
       - name: Summarize triggering workflow
         run: |
@@ -47,9 +50,9 @@ jobs:
         if: ${{ github.event_name == 'workflow_run' }}
         run: |
           set -euo pipefail
-          echo "Workflow: ${{ github.event.workflow_run.name }}"
-          echo "Conclusion: ${{ github.event.workflow_run.conclusion }}"
-          if [ "${{ github.event.workflow_run.conclusion }}" != "success" ]; then
+          echo "Workflow: ${WORKFLOW_RUN_NAME}"
+          echo "Conclusion: ${WORKFLOW_RUN_CONCLUSION}"
+          if [ "${WORKFLOW_RUN_CONCLUSION}" != "success" ]; then
             echo "Upstream workflow did not pass."
             exit 1
           fi
