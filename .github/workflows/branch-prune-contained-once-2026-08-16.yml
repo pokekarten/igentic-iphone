@@ -24,7 +24,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
-          DRY_RUN: "true"
+          DRY_RUN: "false"
         shell: bash
         run: |
           set -euo pipefail
