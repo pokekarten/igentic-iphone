@@ -1,0 +1,56 @@
+name: One-time contained branch audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/branch-prune-contained-once-2026-08-16.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: one-time-contained-branch-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Identify branches safe to remove
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          DRY_RUN: "true"
+        shell: bash
+        run: |
+          set -euo pipefail
+          owner="${REPO%%/*}"
+          : > /tmp/candidates.tsv
+          : > /tmp/preserved.tsv
+          gh api --paginate "/repos/$REPO/branches?per_page=100" --jq '.[] | [.name, .commit.sha, .protected] | @tsv' > /tmp/branches.tsv
+          while IFS=$'\t' read -r branch initial_sha protected; do
+            if [[ "$branch" == "$DEFAULT_BRANCH" || "$protected" == "true" ]]; then printf '%s\t%s\n' "$branch" "default-or-protected" >> /tmp/preserved.tsv; continue; fi
+            open_count="$(gh api -X GET "/repos/$REPO/pulls" -f state=open -f "head=$owner:$branch" -f per_page=100 --jq 'length')"
+            if [[ "$open_count" != "0" ]]; then printf '%s\t%s\n' "$branch" "open-pr" >> /tmp/preserved.tsv; continue; fi
+            default_enc="$(python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "$DEFAULT_BRANCH")"
+            branch_enc="$(python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "$branch")"
+            ahead_by="$(gh api "/repos/$REPO/compare/$default_enc...$branch_enc" --jq '.ahead_by' 2>/dev/null || true)"
+            reason=""
+            if [[ "$ahead_by" == "0" ]]; then reason="fully-contained-in-main"; else
+              merged_info="$(gh api -X GET "/repos/$REPO/pulls" -f state=closed -f "head=$owner:$branch" -f per_page=100 --jq '[.[] | select(.merged_at != null)] | sort_by(.merged_at) | last // empty | [.number, .head.sha] | @tsv')"
+              if [[ -n "$merged_info" ]]; then IFS=$'\t' read -r pr_number merged_head_sha <<< "$merged_info"; if [[ "$initial_sha" == "$merged_head_sha" ]]; then reason="unchanged-merged-pr-$pr_number"; fi; fi
+            fi
+            if [[ -z "$reason" ]]; then printf '%s\t%s\n' "$branch" "unique-or-unresolved" >> /tmp/preserved.tsv; continue; fi
+            current_sha="$(gh api "/repos/$REPO/branches/$branch_enc" --jq '.commit.sha' 2>/dev/null || true)"
+            current_open_count="$(gh api -X GET "/repos/$REPO/pulls" -f state=open -f "head=$owner:$branch" -f per_page=100 --jq 'length')"
+            if [[ -z "$current_sha" || "$current_sha" != "$initial_sha" || "$current_open_count" != "0" ]]; then printf '%s\t%s\n' "$branch" "race-or-drift" >> /tmp/preserved.tsv; continue; fi
+            printf '%s\t%s\t%s\n' "$branch" "$initial_sha" "$reason" >> /tmp/candidates.tsv
+            if [[ "$DRY_RUN" != "true" ]]; then gh api --silent -X DELETE "/repos/$REPO/git/refs/heads/$branch"; fi
+          done < /tmp/branches.tsv
+          candidate_count="$(wc -l < /tmp/candidates.tsv | tr -d ' ')"; preserved_count="$(wc -l < /tmp/preserved.tsv | tr -d ' ')"
+          { echo "# One-time contained branch audit"; echo; echo "Dry run: $DRY_RUN"; echo "Safe candidates: $candidate_count"; echo "Preserved: $preserved_count"; echo; echo "## Safe candidates"; if [[ -s /tmp/candidates.tsv ]]; then cat /tmp/candidates.tsv; else echo "none"; fi; echo; echo "## Preserved"; cat /tmp/preserved.tsv; } >> "$GITHUB_STEP_SUMMARY"
+          echo "SAFE_CANDIDATES=$candidate_count"; cat /tmp/candidates.tsv
