@@ -1,0 +1,44 @@
+name: Commit Email Privacy
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: commit-email-privacy-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  commit-email-privacy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      BASE_REF: ${{ github.event.pull_request.base.ref }}
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    steps:
+      - name: Fetch trusted base and candidate commit objects
+        run: |
+          set -euo pipefail
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git fetch --no-tags origin \
+            "+refs/heads/${BASE_REF}:refs/remotes/origin/privacy-base" \
+            "+refs/pull/${PR_NUMBER}/head:refs/remotes/origin/privacy-head"
+          test "$(git rev-parse refs/remotes/origin/privacy-base)" = "${BASE_SHA}"
+          test "$(git rev-parse refs/remotes/origin/privacy-head)" = "${HEAD_SHA}"
+          git checkout --detach "${BASE_SHA}"
+          test "$(git rev-parse HEAD)" = "${BASE_SHA}"
+          git clean -fdx
+          git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+
+      - name: Check candidate commit metadata with trusted base code
+        run: python3 scripts/check_commit_email_privacy.py "${BASE_SHA}" "${HEAD_SHA}"

@@ -57,6 +57,9 @@ jobs:
       - name: Test Qwen3 offline host harness
         run: python3 scripts/test_qwen3_host_runner.py
 
+      - name: Test commit email privacy bootstrap contract
+        run: python3 -m unittest tests.test_check_commit_email_privacy -v
+
       - name: Validate untouched baseline manifest
         run: python3 scripts/validate_baseline_run.py
 
@@ -106,6 +109,7 @@ jobs:
             echo "- Canonical action benchmark validation completed."
             echo "- Action proposal evaluator semantic-correctness regression tests completed."
             echo "- Qwen3 baseline adapter and offline host harness regression tests completed."
+            echo "- Commit email privacy checker and trusted-workflow invariants completed."
             echo "- Untouched baseline provenance validation and profile mutation tests completed."
             echo "- Required public project control files are present and non-empty."
           } >> "$GITHUB_STEP_SUMMARY"
