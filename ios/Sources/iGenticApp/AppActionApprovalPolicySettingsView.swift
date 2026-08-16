@@ -49,9 +49,9 @@ public struct AppActionApprovalPolicySettingsView: View {
                     )
                 }
             } header: {
-                Text("Approval required")
+                Text("Additional approval")
             } footer: {
-                Text("Blocked actions remain blocked. These settings only control approval after the deterministic policy gate allows an action.")
+                Text("Blocked actions remain blocked. Core policy approval requirements cannot be turned off here. These settings can only add approval after the deterministic policy gate allows an action.")
             }
 
             Section {
@@ -122,10 +122,10 @@ extension DiagnosticViewState {
     ) -> [DiagnosticSnapshotField] {
         [
             DiagnosticSnapshotField(label: "Policy schema", value: "v\(policy.schemaVersion)"),
-            DiagnosticSnapshotField(label: "Send message approval required", value: approvalText(for: .sendMessage, policy: policy)),
-            DiagnosticSnapshotField(label: "Delete record approval required", value: approvalText(for: .deleteRecord, policy: policy)),
-            DiagnosticSnapshotField(label: "Update record approval required", value: approvalText(for: .updateRecord, policy: policy)),
-            DiagnosticSnapshotField(label: "Export data approval required", value: approvalText(for: .exportData, policy: policy)),
+            DiagnosticSnapshotField(label: "Send message additional approval", value: approvalText(for: .sendMessage, policy: policy)),
+            DiagnosticSnapshotField(label: "Delete record additional approval", value: approvalText(for: .deleteRecord, policy: policy)),
+            DiagnosticSnapshotField(label: "Update record additional approval", value: approvalText(for: .updateRecord, policy: policy)),
+            DiagnosticSnapshotField(label: "Export data additional approval", value: approvalText(for: .exportData, policy: policy)),
         ]
     }
 
