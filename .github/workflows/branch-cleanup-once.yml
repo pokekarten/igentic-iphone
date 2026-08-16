@@ -14,7 +14,7 @@ jobs:
   cleanup:
     runs-on: ubuntu-latest
     steps:
-      - name: Delete only verified obsolete branches
+      - name: Archive unique tips and remove inactive branches
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
@@ -22,7 +22,6 @@ jobs:
           python3 - <<'PY'
           import json
           import os
-          import sys
           import urllib.error
           import urllib.parse
           import urllib.request
@@ -31,20 +30,18 @@ jobs:
           token = os.environ["GH_TOKEN"]
           api = "https://api.github.com"
           keep = {"main", "agent/commit-email-privacy"}
-          ephemeral_prefixes = (
-              "agent/", "codex/", "chatgpt/", "claude/", "dependabot/",
-              "feat/", "feature/", "fix/", "bugfix/", "hotfix/", "chore/",
-              "docs/", "doc/", "research/", "test/", "tests/", "ci/",
-              "refactor/", "security/", "experiment/", "benchmark/", "cleanup/"
-          )
+          archive_prefix = "archive/branch-cleanup-2026-08-16"
 
-          def request(method, path):
+          def request(method, path, payload=None, allowed=()):
+              data = None if payload is None else json.dumps(payload).encode("utf-8")
               req = urllib.request.Request(
                   api + path,
+                  data=data,
                   method=method,
                   headers={
                       "Authorization": f"Bearer {token}",
                       "Accept": "application/vnd.github+json",
+                      "Content-Type": "application/json",
                       "X-GitHub-Api-Version": "2022-11-28",
                       "User-Agent": "igentic-iphone-branch-cleanup",
                   },
@@ -52,16 +49,23 @@ jobs:
               try:
                   with urllib.request.urlopen(req, timeout=30) as r:
                       body = r.read()
-                      return json.loads(body) if body else None
+                      return r.status, (json.loads(body) if body else None)
               except urllib.error.HTTPError as e:
                   body = e.read().decode("utf-8", "replace")
+                  parsed = None
+                  try:
+                      parsed = json.loads(body) if body else None
+                  except json.JSONDecodeError:
+                      parsed = body
+                  if e.code in allowed:
+                      return e.code, parsed
                   raise RuntimeError(f"{method} {path} -> HTTP {e.code}: {body}") from e
 
           def paginate(path):
               page = 1
               while True:
                   sep = "&" if "?" in path else "?"
-                  items = request("GET", f"{path}{sep}per_page=100&page={page}")
+                  _, items = request("GET", f"{path}{sep}per_page=100&page={page}")
                   if not items:
                       return
                   yield from items
@@ -71,15 +75,10 @@ jobs:
 
           branches = list(paginate(f"/repos/{repo}/branches"))
           open_pulls = list(paginate(f"/repos/{repo}/pulls?state=open"))
-          closed_pulls = list(paginate(f"/repos/{repo}/pulls?state=closed"))
-
           open_heads = {p["head"]["ref"] for p in open_pulls}
-          merged_heads = {}
-          for p in closed_pulls:
-              if p.get("merged_at") and p.get("base", {}).get("ref") == "main":
-                  merged_heads.setdefault(p["head"]["ref"], set()).add(p["head"]["sha"])
 
           deleted = []
+          archived = []
           skipped = []
 
           for branch in branches:
@@ -96,28 +95,40 @@ jobs:
                   skipped.append((name, "open PR"))
                   continue
 
-              reason = None
-              if sha in merged_heads.get(name, set()):
-                  reason = "current head is exactly a merged PR head"
-              elif name.startswith(ephemeral_prefixes):
-                  encoded = urllib.parse.quote(name, safe="")
-                  compare = request("GET", f"/repos/{repo}/compare/main...{encoded}")
-                  if compare.get("ahead_by") == 0:
-                      reason = "temporary branch has no commits outside main"
+              encoded_branch = urllib.parse.quote(name, safe="")
+              _, compare = request("GET", f"/repos/{repo}/compare/main...{encoded_branch}")
+              ahead = int(compare.get("ahead_by", 0))
 
-              if not reason:
-                  skipped.append((name, "not proven obsolete"))
-                  continue
+              if ahead > 0:
+                  tag_name = f"{archive_prefix}/{name}"
+                  ref = f"refs/tags/{tag_name}"
+                  status, _ = request(
+                      "POST",
+                      f"/repos/{repo}/git/refs",
+                      {"ref": ref, "sha": sha},
+                      allowed=(422,),
+                  )
+                  if status == 422:
+                      encoded_tag = urllib.parse.quote(tag_name, safe="")
+                      _, existing = request("GET", f"/repos/{repo}/git/ref/tags/{encoded_tag}")
+                      existing_sha = existing.get("object", {}).get("sha")
+                      if existing_sha != sha:
+                          raise RuntimeError(
+                              f"archive tag collision for {name}: {existing_sha} != {sha}"
+                          )
+                  archived.append((name, tag_name, sha, ahead))
+                  print(f"ARCHIVED {name} -> {tag_name} ({ahead} unique commits)")
 
-              encoded = urllib.parse.quote(name, safe="")
-              request("DELETE", f"/repos/{repo}/git/refs/heads/{encoded}")
-              deleted.append((name, reason))
-              print(f"DELETED {name}: {reason}")
+              request("DELETE", f"/repos/{repo}/git/refs/heads/{encoded_branch}")
+              deleted.append((name, ahead))
+              print(f"DELETED {name} (ahead_by={ahead})")
 
           print("\nSUMMARY")
           print(f"branches_seen={len(branches)}")
           print(f"deleted={len(deleted)}")
+          print(f"archived={len(archived)}")
           print(f"kept={len(skipped)}")
           print("deleted_names=" + json.dumps([n for n, _ in deleted]))
+          print("archived_names=" + json.dumps([n for n, _, _, _ in archived]))
           print("kept_names=" + json.dumps([n for n, _ in skipped]))
           PY
