@@ -10,7 +10,7 @@ final class AppActionApprovalPolicyTests: XCTestCase {
         XCTAssertEqual(policy.requiresApproval(for: .deleteRecord), true)
         XCTAssertEqual(policy.requiresApproval(for: .updateRecord), true)
         XCTAssertEqual(policy.requiresApproval(for: .exportData), true)
-        XCTAssertEqual(policy.rule(for: .sendMessage)?.note, "Default setup allows direct messaging.")
+        XCTAssertEqual(policy.rule(for: .sendMessage)?.note, "Default setup adds no extra messaging approval; core policy still applies.")
     }
 
     func testPolicyStoreRoundTripsAndFallsBackToDefault() throws {

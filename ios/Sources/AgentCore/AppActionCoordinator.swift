@@ -94,7 +94,7 @@ public final class AppActionCoordinator: @unchecked Sendable {
     }
 
     private func approvalRequired(for draft: AppActionDraft, decision: PolicyDecision) -> Bool {
-        approvalPolicy?.requiresApproval(for: draft.actionKind) ?? decision.requiresApproval
+        decision.requiresApproval || (approvalPolicy?.requiresApproval(for: draft.actionKind) ?? false)
     }
 
     private func policyContext(for draft: AppActionDraft, privacyMode: PrivacyMode) -> PolicyContext {

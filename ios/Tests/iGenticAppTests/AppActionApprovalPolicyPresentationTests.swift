@@ -22,10 +22,10 @@ final class AppActionApprovalPolicyPresentationTests: XCTestCase {
         )
 
         XCTAssertEqual(fields["Policy schema"], "v4")
-        XCTAssertEqual(fields["Send message approval required"], "Yes")
-        XCTAssertEqual(fields["Delete record approval required"], "No")
-        XCTAssertEqual(fields["Update record approval required"], "Yes")
-        XCTAssertEqual(fields["Export data approval required"], "No")
+        XCTAssertEqual(fields["Send message additional approval"], "Yes")
+        XCTAssertEqual(fields["Delete record additional approval"], "No")
+        XCTAssertEqual(fields["Update record additional approval"], "Yes")
+        XCTAssertEqual(fields["Export data additional approval"], "No")
     }
 }
 #endif
