@@ -26,6 +26,9 @@ Status: living audit companion
 | #176 | resolved / closed | low | Diagnostic model-selection preview coverage exists. |
 | #181 | closed / completed | low | RuntimeBudgetAssessor estimator is implemented; keep it non-authoritative. |
 | #185 | closed / completed | low | Local approval-policy persistence, editing, settings consumption and first-run confirmation are complete; keep this configuration lane closed and scope any future AppAction execution separately. |
+| #286 | open / platform blocker | high | Trusted commit-email privacy workflow and real-PR evidence exist; require PRs for `main` and the exact `commit-email-privacy` check via branch protection/ruleset before closing. |
+| #287 | open / blocked by #286 | high | Do not start implementation until #286 is a hard admission boundary; then add the base-trusted public-content leak check as its own slice. |
+| #291 | closed / completed | high -> resolved | PR #294 preserves `PolicyEngine.requiresApproval` as a non-lowerable floor while allowing configuration to add approval. Keep regression coverage. |
 | #207 | closed / completed | low | MemoryStore sensitivity hardening is merged in PR #208. |
 | #248 | closed / completed | low | Renderer-level coverage pins both model-selection safe-refusal fallback labels; keep closed. |
 | #142 | closed / completed | low | MemoryStore classification/retention design is documented; keep closed. |
