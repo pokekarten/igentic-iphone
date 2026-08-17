@@ -1,7 +1,7 @@
 # iGentic Project Completion Plan
 
 Status: canonical completion plan
-Date: 2026-07-29
+Date: 2026-08-17
 Scope: `pokekarten/igentic-iphone`
 
 ## 1. Purpose
@@ -24,16 +24,16 @@ The execution order remains:
 
 Never revive a closed issue or infer completion from stale documentation.
 
-The 2026-07-29 audit established:
+The 2026-08-17 audit refresh establishes:
 
 - `main` is public and the repository is still an experimental/research prototype.
 - The architecture already contains `AgentKernel`, `PolicyEngine`, `ApprovalManager`, `ApprovalReceipt`, `TaskRouter`, `AuditLog`, `SensitiveDataDetector`, `DelegationBroker`, `ToolRegistry`, `MemoryStore`, `RuntimeBudget`, `RuntimeBudgetAssessor`, `LocalModelRuntime`, `ModelSelectionEngine`, synthetic scenarios and a diagnostic SwiftUI shell.
-- The uploaded repository snapshot passes `python3 scripts/validate_repo_structure.py` and `cd ios && swift test` with 138 tests and 0 failures on the available Linux host. This is host evidence, not physical-iPhone evidence.
+- The current validated repository baseline passes `python3 scripts/validate_repo_structure.py`, `cd ios && swift test` with 226 tests and 0 failures, and `cd ios && swift build` on the available Linux host. This is host evidence, not physical-iPhone evidence.
 - Current GitHub `main` has no open implementation PR. The autonomy protocol is therefore a control mechanism, not evidence that an autonomous cycle is currently active.
 - The diagnostic path is intentionally synthetic/read-only; there is no real App Intents execution, provider execution or committed model weights.
 - `ApprovalReceipt` is already a live `AgentKernel` response contract.
 - Effective data classification is shared across kernel, diagnostic snapshot and app-action coordination.
-- `AppActionCoordinator` already respects `decision.requiresApproval`; the remaining approval-policy work is configuration/setup/admin behavior, not a universal approval hard-code fix.
+- `AppActionCoordinator` preserves `PolicyEngine.requiresApproval` as a non-lowerable safety floor: local AppAction configuration may add approval but cannot waive core policy approval (#291, merged via #294).
 - `RuntimeBudgetAssessor` exists as a deterministic producer and is still not authoritative over routing.
 - `MemoryStore` remains a deliberate pre-integration stub.
 - `ToolRegistry` now has the bounded Phase 1 read-only `AgentKernel` integration: optional dependency plus count-only audit snapshot; no selection or execution path.
@@ -202,7 +202,7 @@ Keep the trace diagnostic-only. It must never become policy authority or evidenc
 - ToolRegistry boundary is decided and metadata integration is tested.
 - RuntimeBudget estimation is deterministic and tested.
 - Model-selection trace is deterministic, rendered, tested and diagnostic-only.
-- All existing 138+ tests remain green after each slice.
+- The full Swift suite remains green after each slice; the 2026-08-17 baseline is 226 tests with 0 failures.
 
 ## 7. Phase 2 — Make the kernel production-shaped without making it autonomous
 
@@ -278,6 +278,7 @@ Issue #185 is **completed**. The local configuration lane now provides:
 - later review and editing in settings/admin;
 - runtime consumption of the persisted policy rather than hidden policy;
 - hard blocking regardless of configuration when deterministic policy denies an action;
+- a non-lowerable core approval floor: configuration can add approval but cannot turn off `PolicyEngine.requiresApproval`;
 - effective-policy diagnostics without private task content.
 
 This lane remains local-only. Any real App Intents or AppAction execution capability requires a new source-backed issue and must not reopen or silently widen #185.
@@ -588,7 +589,9 @@ The final product remains a **privacy-first research prototype**, not an unrestr
 | Tools | #137 -> #121 | spec -> metadata integration -> later execution issue | Yes |
 | Runtime budget | #181 | estimator -> tests -> diagnostic visibility decision | Yes |
 | Model trace | #144–#149 — completed | schema -> generator -> diagnostics rendering -> regression coverage | Completed |
-| App-action policy | #185 — completed | keep the configuration lane closed; scope any future AppAction execution separately | Completed |
+| App-action policy | #185 — completed; #291 — completed | keep the configuration lane closed; preserve the non-lowerable `PolicyEngine` approval floor; scope future execution separately | Completed |
+| Commit metadata privacy | #286 — platform enforcement open | require PRs for `main` and the exact trusted `commit-email-privacy` check through branch protection/ruleset | Blocking security gate |
+| Public content leak admission | #287 — blocked by #286 | implement only after the commit-metadata privacy admission boundary is hard-enforced | Blocked |
 | TaskRouter bypass | #101 | already resolved; keep regression coverage | Guard |
 | Model selection | #103 | expand only after evidence-backed need | Yes before runtime selection |
 | Runtime research | #74, #82, #83, #111 | benchmark -> governance -> runtime evidence -> bounded feasibility | Yes for model/runtime claims |
@@ -722,6 +725,8 @@ The Director should track these gates as binary evidence, not subjective percent
 - [ ] RuntimeBudget estimator/tests closed;
 - [x] model-selection decision trace closed;
 - [x] setup/admin approval policy closed;
+- [x] non-lowerable `PolicyEngine` approval floor closed;
+- [ ] default-branch commit-email privacy admission hard-enforced;
 - [ ] complete synthetic kernel matrix green;
 - [ ] diagnostic shell truthful and complete;
 - [ ] immutable benchmark green;
