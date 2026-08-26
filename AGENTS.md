@@ -1,78 +1,45 @@
-# AGENTS.md — iGentic iPhone Repo Constitution
+# AGENTS.md — iGentic iPhone
 
 Repository: `pokekarten/igentic-iphone`
 
-This repository is designed to be operated by a human product owner, ChatGPT with GitHub Connector, and Codex working through small pull requests.
+The project is a privacy-first iPhone AI runtime layer. Security, local-first behavior, policy decisions and auditability remain product requirements. The work model, however, should stay execution-first rather than process-first.
 
-The project is not a normal chatbot app. It is a privacy-first iPhone AI Runtime Layer. Security, local-first behavior, policy decisions and auditability are product requirements, not implementation details.
+## Progress-first execution default
 
-## Roles
+1. **ChatGPT + live GitHub connector** is the default contributor for repository inspection, source-level edits, tests/docs, PR/review work and task selection.
+2. **ChatGPT's Linux environment** is the first execution lane for repository validation, Python tooling, deterministic tests, architecture checks and any Swift/package work that can be established there.
+3. **Mac/Codex** is used only for the smallest slice that genuinely requires Xcode/macOS, iOS Simulator/device behavior, Apple frameworks, signing, local model runtime, thermal/battery measurement or another result unavailable in Linux.
+4. Other agents may work in parallel only on disjoint tasks after checking live GitHub overlap.
 
-### Human owner
+After a Mac/Codex/device result, ownership returns to ChatGPT/GitHub unless another real platform boundary remains.
 
-- Owns product direction and final decisions.
-- Tests on the real iPhone.
-- Approves critical privacy, security and model decisions.
-- Never has to accept hidden autonomy from the agent.
+Do not require `docs/CODEX_NEXT_TASK.md`, a new branch, Draft PR or Codex run merely because code changes. Use those only when delegation/coordination actually helps.
 
-### ChatGPT project controller
+Master prompts are optional task templates, not a scheduler or prerequisite.
 
-- Reads repo state through the GitHub Connector.
-- Turns product goals into small, reviewable tasks.
-- Updates or prepares `docs/CODEX_NEXT_TASK.md` before delegating implementation.
-- Reviews Codex PRs against scope, allowed files, tests and privacy impact.
-- Keeps architecture, roadmap and state docs aligned.
-- Does not claim a task is done unless repo state, diff or provided logs support it.
+## Governance proportional to risk
 
-### Codex implementation agent
+Do not add approval flows, status files, handoff documents, slot systems, Issues or gates unless they solve a demonstrated problem: real privacy/security risk, write collision, platform-specific execution need or repeated defect.
 
-- Implements one narrow task per branch.
-- Uses the branch and file allowlist specified in `docs/CODEX_NEXT_TASK.md`.
-- Creates Draft PRs only.
-- Stops when stop rules are hit instead of guessing.
-- Does not perform broad rewrites, secret handling, external integrations or App Store changes unless explicitly scoped.
+Prefer implementing, testing and measuring the next product/kernel capability.
 
-### iPhone field tester
+Exact byte/runtime identity is required only when a claim genuinely depends on it. Ordinary engineering should optimize correctness, privacy properties, maintainability, user value, test coverage and current model/runtime quality.
 
-- Runs prototypes on a real iPhone or simulator.
-- Captures screenshots, logs, thermal/battery notes and device constraints.
-- Reports results back into issues or PR comments.
+## Product and safety boundaries
 
-## Operating rules
+- Never commit secrets, tokens, private user data, messages, health/financial content or local credentials.
+- Do not bypass `PolicyEngine`, `ApprovalManager` or `AuditLog` for actions that the current design requires them to mediate.
+- Do not silently enable paid services, signing/account changes or external data flows.
+- Device/platform claims must come from an actual observed iPhone/simulator/Mac run when the claim depends on that platform.
+- Local-first/privacy claims must remain testable rather than becoming documentation slogans.
 
-1. One task equals one branch and one Draft PR.
-2. Prefer docs, tests and policy code before runtime expansion.
-3. Every PR must state data classes touched, action risks changed and approval behavior.
-4. Never store secrets, tokens, health data, financial data, messages or private user data in the repo.
-5. Use English file names and code comments. German product notes are fine in discussion and planning.
-6. For iOS app work, prefer Swift Package tests first; add app targets only after kernel behavior is stable.
-7. If a task touches privacy policy, delegation, model runtime or App Intents, add or update tests.
-8. If uncertainty is high, create a research note or issue instead of shipping speculative code.
+## Work selection
 
-## Sparsamkeit rules
+Refresh live `main`, relevant PRs/issues and recent commits first. Choose the smallest causal product/technical step that removes a blocker or improves the runtime.
 
-- Default Codex context is `AGENTS.md`, `PROJECT_STATE.md`, `docs/CODEX_NEXT_TASK.md`, one task-specific doc and the allowlisted files only.
-- Keep Codex tasks to 3-5 files whenever possible.
-- Prefer under 250 changed lines per PR.
-- Do not ask Codex to explore the whole repository unless the task is explicitly a repo audit.
-- Use ChatGPT + GitHub Connector for review, source verification, issue creation and next-task preparation.
-- Use real iPhone testing only for device behavior, Apple permissions, App Intents, thermal, battery or local model runtime validation.
-- Read `docs/SPARSAMKEIT.md` before expanding task scope.
+Read only the task-specific architecture/docs needed. Do not require a full roadmap/status review before every bounded change.
 
-## Stop rules for agents
-
-Stop and report instead of continuing when:
-
-- required source files are missing,
-- local build/test environment is unavailable,
-- the task requires credentials, signing certificates, Apple Developer account access or private data,
-- a requested change exceeds the allowed files,
-- a model/runtime claim cannot be verified from a current source,
-- the implementation would bypass `PolicyEngine`, `ApprovalManager` or `AuditLog`.
-
-## Validation
-
-Default validation for code changes:
+Use focused validation appropriate to the slice. Common commands include:
 
 ```bash
 python scripts/validate_repo_structure.py
@@ -80,4 +47,23 @@ cd ios && swift test
 cd ios && swift build
 ```
 
-If a command is unavailable because the repo is still being bootstrapped, explain that clearly in the PR body.
+Run them where the environment supports them and report honestly when a platform-specific check requires the Mac.
+
+## Parallel work
+
+Parallel agents are useful for clearly separate kernel, policy, research, test or platform tasks. Do not duplicate work and do not create tasks merely to keep agents busy.
+
+## End of run
+
+A useful run leaves working code, a meaningful test, a measured platform result, a resolved design uncertainty or a smaller blocker.
+
+Report briefly:
+
+```text
+Done:
+Evidence/tests:
+Still open:
+Next causal action:
+```
+
+Use existing GitHub objects when durable coordination is useful; do not create a new status artifact solely for handoff.
