@@ -27,8 +27,33 @@ final class ApprovalDecisionPolicyTests: XCTestCase {
         XCTAssertEqual(manager.requestApproval(sampleRequest()), .pending)
     }
 
-    func testRiskScorePolicyDoesNotCrash() {
+    func testRiskScorePolicyCannotAutoApproveAdvisoryScore() {
         let policy = RiskScoreApprovalPolicy()
-        _ = policy.decide(sampleRequest())
+        XCTAssertEqual(policy.decide(sampleRequest()), .pending)
+    }
+
+    func testRiskScorePolicyCannotSatisfyExplicitExternalProviderApproval() {
+        let kernel = AgentKernel(
+            approvalManager: ApprovalManager(policy: RiskScoreApprovalPolicy())
+        )
+        let response = kernel.handle(
+            TaskRequest(
+                userText: "Synthetic external provider approval boundary.",
+                intent: .summarizeNote,
+                dataClassification: .publicDefault,
+                actionRisk: .prepare,
+                requestedDelegationTarget: .externalProvider
+            ),
+            privacyMode: .trustedDevices
+        )
+
+        XCTAssertTrue(response.policyDecision.isAllowed)
+        XCTAssertTrue(response.policyDecision.requiresApproval)
+        XCTAssertEqual(response.policyDecision.reasonCode, .externalProviderRequiresApproval)
+        XCTAssertEqual(response.approvalStatus, .pending)
+        XCTAssertEqual(
+            response.route,
+            .approvalRequired(reason: "Approval is required before routing.")
+        )
     }
 }
