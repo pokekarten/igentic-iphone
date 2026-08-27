@@ -9,7 +9,19 @@ public struct AppActionDraft: Identifiable, Equatable, Sendable {
 }
 
 extension AppActionDraft {
-    var fingerprint: String { [id.uuidString, actionKind.rawValue, targetDescription, payloadSummary, String(dataClassification.level.rawValue), actionRisk.rawValue].joined(separator: "|") }
+    var fingerprint: String {
+        [
+            id.uuidString,
+            actionKind.rawValue,
+            targetDescription,
+            payloadSummary,
+            String(dataClassification.level.rawValue),
+            actionRisk.rawValue,
+        ]
+        .map { component in "\(component.utf8.count):\(component)" }
+        .joined(separator: "|")
+    }
+
     var requestedDelegationTarget: DelegationTarget {
         switch actionKind {
         case .sendMessage: .externalProvider
