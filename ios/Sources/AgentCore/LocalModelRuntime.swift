@@ -71,15 +71,22 @@ public struct LocalModelRuntimeDescriptor: Equatable, Sendable {
 public struct LocalModelRequest: Equatable, Sendable {
     public let capability: LocalModelCapability
     public let dataSensitivity: DataSensitivityLevel
+    public let allowedExecutionKinds: Set<LocalModelExecutionKind>
 
-    public init(capability: LocalModelCapability, dataSensitivity: DataSensitivityLevel) {
+    public init(
+        capability: LocalModelCapability,
+        dataSensitivity: DataSensitivityLevel,
+        allowedExecutionKinds: Set<LocalModelExecutionKind> = [.system, .local]
+    ) {
         self.capability = capability
         self.dataSensitivity = dataSensitivity
+        self.allowedExecutionKinds = allowedExecutionKinds
     }
 }
 
 public enum LocalModelRequestRejectionReason: Equatable, Sendable {
     case runtimeUnavailable(LocalModelRuntimeUnavailabilityReason)
+    case executionKindNotAllowed(actual: LocalModelExecutionKind)
     case unsupportedCapability(LocalModelCapability)
     case dataSensitivityExceedsCeiling(
         requested: DataSensitivityLevel,
@@ -105,6 +112,10 @@ public extension LocalModelRuntime {
     func assess(_ request: LocalModelRequest) -> LocalModelRequestDecision {
         if case let .unavailable(reason) = availability {
             return .rejected(.runtimeUnavailable(reason))
+        }
+
+        guard request.allowedExecutionKinds.contains(descriptor.executionKind) else {
+            return .rejected(.executionKindNotAllowed(actual: descriptor.executionKind))
         }
 
         guard descriptor.supportedCapabilities.contains(request.capability) else {
