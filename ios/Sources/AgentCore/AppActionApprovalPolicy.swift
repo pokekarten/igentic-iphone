@@ -68,6 +68,10 @@ private extension AppActionApprovalPolicy {
     }
 }
 
+private enum AppActionApprovalPolicyStoreError: Error {
+    case invalidRuleSet
+}
+
 public struct AppActionApprovalPolicyStore: Sendable {
     public let fileURL: URL
 
@@ -110,6 +114,10 @@ public struct AppActionApprovalPolicyStore: Sendable {
     }
 
     public func save(_ policy: AppActionApprovalPolicy, fileManager: FileManager = .default) throws {
+        guard policy.hasCompleteRuleSet else {
+            throw AppActionApprovalPolicyStoreError.invalidRuleSet
+        }
+
         let data = try JSONEncoder.agentKernelPolicy.encode(policy)
         let directoryURL = fileURL.deletingLastPathComponent()
         if directoryURL.path != "/" && directoryURL.path != "." {
