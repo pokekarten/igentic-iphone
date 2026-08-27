@@ -61,6 +61,31 @@ final class AgentKernelLocalModelRuntimeWiringTests: XCTestCase {
         XCTAssertEqual(kernel.auditEvents().last?.type, .routeSelected)
     }
 
+    func testSummarizeNoteBlocksDelegatedRuntimeFromLocalModelPath() {
+        let kernel = AgentKernel(
+            localModelRuntime: FakeLocalModelRuntime(
+                availability: .available,
+                supportedCapabilities: [.summarization],
+                executionKind: .delegated
+            )
+        )
+
+        let response = kernel.handle(makeTask(intent: .summarizeNote), privacyMode: .localOnly)
+        let events = kernel.auditEvents()
+
+        XCTAssertEqual(
+            response.route,
+            .blocked(reason: "Local model runtime unavailable for this capability.")
+        )
+        XCTAssertTrue(
+            events.contains {
+                $0.type == .blocked
+                    && $0.message.contains("executionKindNotAllowed")
+            }
+        )
+        XCTAssertFalse(events.contains { $0.type == .routeSelected })
+    }
+
     func testCreateReminderIsUnaffectedRegardlessOfRuntimeAvailability() {
         let kernel = AgentKernel(
             localModelRuntime: FakeLocalModelRuntime(
@@ -101,13 +126,14 @@ private struct FakeLocalModelRuntime: LocalModelRuntime {
     init(
         availability: LocalModelRuntimeAvailability = .available,
         supportedCapabilities: Set<LocalModelCapability>,
-        maximumDataSensitivity: DataSensitivityLevel = .restrictedSensitiveData
+        maximumDataSensitivity: DataSensitivityLevel = .restrictedSensitiveData,
+        executionKind: LocalModelExecutionKind = .local
     ) {
         self.availability = availability
         self.descriptor = LocalModelRuntimeDescriptor(
             identifier: "synthetic-local-runtime",
             modelFamily: "synthetic-qwen-class",
-            executionKind: .local,
+            executionKind: executionKind,
             supportedCapabilities: supportedCapabilities,
             maximumDataSensitivity: maximumDataSensitivity,
             contextBudgetClass: .standard,
