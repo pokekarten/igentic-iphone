@@ -70,7 +70,7 @@ public struct ScenarioRunner: Sendable {
         let delegationDecision = delegationBroker.decide(
             DelegationRequest(
                 privacyMode: scenario.privacyMode,
-                target: scenario.delegationTarget,
+                target: scenario.task.requestedDelegationTarget,
                 dataClassification: effectiveDataClassification,
                 actionRisk: scenario.task.actionRisk,
                 reason: scenario.id
