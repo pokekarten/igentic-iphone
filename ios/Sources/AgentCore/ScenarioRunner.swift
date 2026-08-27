@@ -54,15 +54,24 @@ public struct ScenarioRunner: Sendable {
     public static let defaultScenarios = SyntheticScenarioCatalog.baseline
 
     public func run(_ scenario: DiagnosticScenario) -> DiagnosticScenarioResult {
+        let detection = SensitiveDataDetector().detect(in: scenario.task.userText)
+        let effectiveDataClassification = DataClassification.effectiveClassification(
+            baseClassification: scenario.task.dataClassification,
+            detectorResult: detection
+        )
         let kernel = AgentKernel(
             approvalManager: ApprovalManager(defaultStatus: scenario.defaultApprovalStatus)
         )
-        let response = kernel.handle(scenario.task, privacyMode: scenario.privacyMode)
+        let response = kernel.handle(
+            scenario.task,
+            privacyMode: scenario.privacyMode,
+            precomputedDetection: detection
+        )
         let delegationDecision = delegationBroker.decide(
             DelegationRequest(
                 privacyMode: scenario.privacyMode,
                 target: scenario.delegationTarget,
-                dataClassification: scenario.task.dataClassification,
+                dataClassification: effectiveDataClassification,
                 actionRisk: scenario.task.actionRisk,
                 reason: scenario.id
             )

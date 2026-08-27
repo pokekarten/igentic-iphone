@@ -38,6 +38,33 @@ final class ScenarioReportTests: XCTestCase {
         XCTAssertEqual(trustedDevice?.delegation, .allowedMetadataOnly)
     }
 
+    func testScenarioDelegationUsesDetectorEscalatedClassification() {
+        let scenario = DiagnosticScenario(
+            id: "detected-restricted-external",
+            task: TaskRequest(
+                userText: "Synthetic IBAN-like value ZZ00AAAAAAAAAAA",
+                intent: .summarizeNote,
+                dataClassification: .publicDefault,
+                actionRisk: .prepare,
+                requestedDelegationTarget: .externalProvider
+            ),
+            privacyMode: .trustedDevices,
+            delegationTarget: .externalProvider
+        )
+
+        let result = ScenarioRunner().run(scenario)
+
+        XCTAssertEqual(
+            result.route,
+            .blocked(reason: "Restricted sensitive data cannot be delegated automatically.")
+        )
+        XCTAssertEqual(
+            result.delegationDecision,
+            .blocked(reason: "Restricted sensitive data cannot be delegated automatically.")
+        )
+        XCTAssertEqual(result.policyDecision.reasonCode, .restrictedDataBlocksAutomaticExternalDelegation)
+    }
+
     func testKernelSeesPropagatedDelegationTargetForSyntheticScenarios() {
         let scenario = SyntheticScenarioCatalog.baseline.first { $0.id == "external-provider-check" }
         XCTAssertNotNil(scenario)
