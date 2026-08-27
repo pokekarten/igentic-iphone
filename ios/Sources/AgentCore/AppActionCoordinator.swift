@@ -57,7 +57,7 @@ public final class AppActionCoordinator: @unchecked Sendable {
         }
         let receipt = approvalManager.approvalReceipt(for: .init(taskSummary: "kind=\(draft.actionKind.rawValue),classification=\(context.effectiveClassification.level.rawValue),risk=\(draft.actionRisk.rawValue)", dataClassification: context.effectiveClassification, actionRisk: draft.actionRisk, reason: context.decision.reason))
         auditLog.record(.init(type: .approvalRequired, message: "Approval evaluated: \(receipt.status.rawValue).", dataSensitivity: context.effectiveClassification.level))
-        guard receipt.mayContinueRouting else { return .blocked(reason: "Approval receipt denied.") }
+        guard receipt.status == .approved, receipt.mayContinueRouting else { return .blocked(reason: "Approval receipt denied.") }
         return .required(.init(draftID: draft.id, fingerprint: draft.fingerprint, approvalReceipt: receipt))
     }
 
@@ -74,7 +74,13 @@ public final class AppActionCoordinator: @unchecked Sendable {
         guard context.decision.isAllowed else { auditLog.record(.init(type: .blocked, message: context.decision.reason, dataSensitivity: context.effectiveClassification.level)); return .rejected }
 
         if approvalRequired(for: draft, decision: context.decision) {
-            guard let approvalReceipt, approvalReceipt.matches(draft), approvalReceipt.approvalReceipt.mayContinueRouting else { auditLog.record(.init(type: .approvalRequired, message: "Approval receipt is stale or missing.", dataSensitivity: context.effectiveClassification.level)); return .blockedPendingApproval }
+            guard let approvalReceipt,
+                  approvalReceipt.matches(draft),
+                  approvalReceipt.approvalReceipt.status == .approved,
+                  approvalReceipt.approvalReceipt.mayContinueRouting else {
+                auditLog.record(.init(type: .approvalRequired, message: "Approval receipt is stale, missing, or not explicitly approved.", dataSensitivity: context.effectiveClassification.level))
+                return .blockedPendingApproval
+            }
             auditLog.record(.init(type: .policyDecision, message: "Draft approved without execution.", dataSensitivity: context.effectiveClassification.level))
             return .approved(approvalReceipt)
         }
