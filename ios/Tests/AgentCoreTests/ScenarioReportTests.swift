@@ -65,6 +65,33 @@ final class ScenarioReportTests: XCTestCase {
         XCTAssertEqual(result.policyDecision.reasonCode, .restrictedDataBlocksAutomaticExternalDelegation)
     }
 
+    func testScenarioRunnerUsesTaskDelegationTargetWhenLegacyScenarioFieldDisagrees() {
+        let scenario = DiagnosticScenario(
+            id: "mismatched-delegation-target",
+            task: TaskRequest(
+                userText: "Synthetic external delegation mismatch.",
+                intent: .summarizeNote,
+                dataClassification: .publicDefault,
+                actionRisk: .prepare,
+                requestedDelegationTarget: .externalProvider
+            ),
+            privacyMode: .trustedDevices,
+            delegationTarget: .localDevice
+        )
+
+        let result = ScenarioRunner().run(scenario)
+
+        XCTAssertEqual(result.policyDecision.reasonCode, .externalProviderRequiresApproval)
+        XCTAssertEqual(
+            result.route,
+            .approvalRequired(reason: "Approval is required before routing.")
+        )
+        XCTAssertEqual(
+            result.delegationDecision,
+            .requiresApproval(reason: "External provider delegation requires explicit approval.")
+        )
+    }
+
     func testKernelSeesPropagatedDelegationTargetForSyntheticScenarios() {
         let scenario = SyntheticScenarioCatalog.baseline.first { $0.id == "external-provider-check" }
         XCTAssertNotNil(scenario)
