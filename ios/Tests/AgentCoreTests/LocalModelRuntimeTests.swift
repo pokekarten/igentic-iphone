@@ -26,6 +26,34 @@ final class LocalModelRuntimeTests: XCTestCase {
         XCTAssertTrue(decision.isAccepted)
     }
 
+    func testDelegatedRuntimeIsRejectedByDefaultLocalBoundary() {
+        let decision = FakeLocalModelRuntime(executionKind: .delegated).assess(
+            LocalModelRequest(
+                capability: .summarization,
+                dataSensitivity: .publicData
+            )
+        )
+
+        XCTAssertEqual(
+            decision,
+            .rejected(.executionKindNotAllowed(actual: .delegated))
+        )
+        XCTAssertFalse(decision.isAccepted)
+    }
+
+    func testDelegatedRuntimeCanBeExplicitlyAssessedByDelegationPath() {
+        let decision = FakeLocalModelRuntime(executionKind: .delegated).assess(
+            LocalModelRequest(
+                capability: .summarization,
+                dataSensitivity: .publicData,
+                allowedExecutionKinds: [.delegated]
+            )
+        )
+
+        XCTAssertEqual(decision, .accepted)
+        XCTAssertTrue(decision.isAccepted)
+    }
+
     func testUnsupportedCapabilityIsRejectedBeforeInvocation() {
         let decision = FakeLocalModelRuntime().assess(
             LocalModelRequest(
@@ -57,9 +85,10 @@ final class LocalModelRuntimeTests: XCTestCase {
         )
     }
 
-    func testUnavailableRuntimeIsRejectedBeforeCapabilityChecks() {
+    func testUnavailableRuntimeIsRejectedBeforeExecutionKindAndCapabilityChecks() {
         let runtime = FakeLocalModelRuntime(
-            availability: .unavailable(.disabledByPolicy)
+            availability: .unavailable(.disabledByPolicy),
+            executionKind: .delegated
         )
 
         let decision = runtime.assess(
@@ -74,18 +103,22 @@ final class LocalModelRuntimeTests: XCTestCase {
 }
 
 private struct FakeLocalModelRuntime: LocalModelRuntime {
-    let descriptor = LocalModelRuntimeDescriptor(
-        identifier: "synthetic-local-runtime",
-        modelFamily: "synthetic-qwen-class",
-        executionKind: .local,
-        supportedCapabilities: [.summarization, .classification],
-        maximumDataSensitivity: .contextualPrivateData,
-        contextBudgetClass: .standard,
-        memoryBudgetClass: .moderate
-    )
+    let descriptor: LocalModelRuntimeDescriptor
     let availability: LocalModelRuntimeAvailability
 
-    init(availability: LocalModelRuntimeAvailability = .available) {
+    init(
+        availability: LocalModelRuntimeAvailability = .available,
+        executionKind: LocalModelExecutionKind = .local
+    ) {
         self.availability = availability
+        self.descriptor = LocalModelRuntimeDescriptor(
+            identifier: "synthetic-local-runtime",
+            modelFamily: "synthetic-qwen-class",
+            executionKind: executionKind,
+            supportedCapabilities: [.summarization, .classification],
+            maximumDataSensitivity: .contextualPrivateData,
+            contextBudgetClass: .standard,
+            memoryBudgetClass: .moderate
+        )
     }
 }
