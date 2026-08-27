@@ -44,20 +44,16 @@ public struct FixedApprovalDecisionPolicy: ApprovalDecisionPolicy {
     }
 }
 
-/// Optional policy using risk signals (not default-wired)
+/// Optional compatibility policy for future risk-score experiments.
+///
+/// Risk scores are advisory metadata in the current authorization design and
+/// cannot represent an explicit user approval. This policy therefore remains
+/// fail-closed at `.pending` rather than turning a low score into `.approved`.
 public struct RiskScoreApprovalPolicy: ApprovalDecisionPolicy {
     public init() {}
 
     public func decide(_ request: ApprovalRequest) -> ApprovalStatus {
-        let riskRequest = RiskScoringRequest(
-            privacyMode: .localOnly,
-            dataClassification: request.dataClassification,
-            actionRisk: request.actionRisk,
-            delegationTarget: .none,
-            sensitiveDataFindings: []
-        )
-        let score = RiskScorer().score(riskRequest)
-        return score.requiresExplicitApproval ? .pending : .approved
+        .pending
     }
 }
 
