@@ -43,6 +43,64 @@ final class AppActionApprovalPolicyStoreTests: XCTestCase {
         XCTAssertEqual(store.loadOrDefault(), .default)
     }
 
+    func testLoadRejectsPolicyMissingRequiredActionKind() throws {
+        let (store, directoryURL) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: directoryURL) }
+
+        let incompletePolicy = AppActionApprovalPolicy(
+            schemaVersion: 7,
+            rules: [
+                .init(actionKind: .sendMessage, requiresApproval: false),
+                .init(actionKind: .deleteRecord, requiresApproval: true),
+                .init(actionKind: .updateRecord, requiresApproval: true)
+            ]
+        )
+        try store.save(incompletePolicy)
+
+        XCTAssertNil(store.load())
+        XCTAssertEqual(store.loadOrDefault(), .default)
+    }
+
+    func testLoadRejectsDuplicateActionKindRules() throws {
+        let (store, directoryURL) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: directoryURL) }
+
+        let duplicatePolicy = AppActionApprovalPolicy(
+            schemaVersion: 3,
+            rules: [
+                .init(actionKind: .sendMessage, requiresApproval: false),
+                .init(actionKind: .deleteRecord, requiresApproval: true),
+                .init(actionKind: .updateRecord, requiresApproval: true),
+                .init(actionKind: .updateRecord, requiresApproval: false)
+            ]
+        )
+        try store.save(duplicatePolicy)
+
+        XCTAssertNil(store.load())
+        XCTAssertEqual(store.loadOrDefault(), .default)
+    }
+
+    func testLoadRejectsUnknownActionKindRule() throws {
+        let (store, directoryURL) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: directoryURL) }
+
+        let unknownRuleJSON = """
+        {
+          "schemaVersion": 4,
+          "rules": [
+            {"actionKindRawValue":"sendMessage","requiresApproval":false,"enabled":true},
+            {"actionKindRawValue":"deleteRecord","requiresApproval":true,"enabled":true},
+            {"actionKindRawValue":"updateRecord","requiresApproval":true,"enabled":true},
+            {"actionKindRawValue":"futureAction","requiresApproval":false,"enabled":true}
+          ]
+        }
+        """
+        try Data(unknownRuleJSON.utf8).write(to: store.fileURL, options: [.atomic])
+
+        XCTAssertNil(store.load())
+        XCTAssertEqual(store.loadOrDefault(), .default)
+    }
+
     func testLoadOrInstallDefaultCreatesDefaultPolicyWhenFileIsMissing() throws {
         let (store, directoryURL) = try makeStore()
         defer { try? FileManager.default.removeItem(at: directoryURL) }
