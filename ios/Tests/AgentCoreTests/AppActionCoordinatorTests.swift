@@ -30,6 +30,40 @@ final class AppActionCoordinatorTests: XCTestCase {
         XCTAssertEqual(coordinator.perform(draft(id: "BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBBBBB", kind: .deleteRecord, payload: "delete"), privacyMode: .trustedDevices), .blockedPendingApproval)
     }
 
+    func testRequiredApprovalRejectsNotRequiredManagerStatus() {
+        let coordinator = AppActionCoordinator(approvalManager: .init(defaultStatus: .notRequired))
+        let action = draft(id: "ABABABAB-ABAB-ABAB-ABAB-ABABABABABAB", kind: .deleteRecord, payload: "delete")
+
+        switch coordinator.approvalEvaluation(for: action, privacyMode: .trustedDevices) {
+        case .blocked(let reason):
+            XCTAssertEqual(reason, "Approval receipt denied.")
+        case .notRequired, .required:
+            XCTFail("A required approval must not accept an ApprovalManager .notRequired result.")
+        }
+
+        XCTAssertNil(coordinator.approvalReceipt(for: action, privacyMode: .trustedDevices))
+    }
+
+    func testRequiredApprovalRejectsNotRequiredReceiptEvenWhenMayContinueRoutingIsTrue() {
+        let coordinator = AppActionCoordinator(approvalManager: .init(defaultStatus: .approved))
+        let action = draft(id: "CDCDCDCD-CDCD-CDCD-CDCD-CDCDCDCDCDCD", kind: .deleteRecord, payload: "delete")
+        let invalidReceipt = AppActionApprovalReceipt(
+            draftID: action.id,
+            fingerprint: action.fingerprint,
+            approvalReceipt: ApprovalReceipt(
+                status: .notRequired,
+                requestID: "synthetic-not-required",
+                reasonCode: "synthetic regression receipt",
+                mayContinueRouting: true
+            )
+        )
+
+        XCTAssertEqual(
+            coordinator.perform(action, privacyMode: .trustedDevices, approvalReceipt: invalidReceipt),
+            .blockedPendingApproval
+        )
+    }
+
     func testApprovalEvaluationDistinguishesBlockedFromNotRequired() {
         let coordinator = AppActionCoordinator(approvalManager: .init(defaultStatus: .approved), auditLog: .init())
         let allowedDraft = draft(id: "BBBBBBBB-CCCC-DDDD-EEEE-FFFFFFFFFFFF", kind: .deleteRecord, payload: "safe cleanup", risk: .read)
