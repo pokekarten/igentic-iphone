@@ -10,6 +10,10 @@ final class AppActionApprovalPolicyStoreTests: XCTestCase {
         return (AppActionApprovalPolicyStore(fileURL: directoryURL.appendingPathComponent("policy.json")), directoryURL)
     }
 
+    private func writeRawPolicy(_ json: String, to store: AppActionApprovalPolicyStore) throws {
+        try Data(json.utf8).write(to: store.fileURL, options: [.atomic])
+    }
+
     override func tearDown() {
         super.tearDown()
     }
@@ -47,15 +51,17 @@ final class AppActionApprovalPolicyStoreTests: XCTestCase {
         let (store, directoryURL) = try makeStore()
         defer { try? FileManager.default.removeItem(at: directoryURL) }
 
-        let incompletePolicy = AppActionApprovalPolicy(
-            schemaVersion: 7,
-            rules: [
-                .init(actionKind: .sendMessage, requiresApproval: false),
-                .init(actionKind: .deleteRecord, requiresApproval: true),
-                .init(actionKind: .updateRecord, requiresApproval: true)
-            ]
-        )
-        try store.save(incompletePolicy)
+        let missingRuleJSON = """
+        {
+          "schemaVersion": 7,
+          "rules": [
+            {"actionKindRawValue":"sendMessage","requiresApproval":false,"enabled":true},
+            {"actionKindRawValue":"deleteRecord","requiresApproval":true,"enabled":true},
+            {"actionKindRawValue":"updateRecord","requiresApproval":true,"enabled":true}
+          ]
+        }
+        """
+        try writeRawPolicy(missingRuleJSON, to: store)
 
         XCTAssertNil(store.load())
         XCTAssertEqual(store.loadOrDefault(), .default)
@@ -65,16 +71,18 @@ final class AppActionApprovalPolicyStoreTests: XCTestCase {
         let (store, directoryURL) = try makeStore()
         defer { try? FileManager.default.removeItem(at: directoryURL) }
 
-        let duplicatePolicy = AppActionApprovalPolicy(
-            schemaVersion: 3,
-            rules: [
-                .init(actionKind: .sendMessage, requiresApproval: false),
-                .init(actionKind: .deleteRecord, requiresApproval: true),
-                .init(actionKind: .updateRecord, requiresApproval: true),
-                .init(actionKind: .updateRecord, requiresApproval: false)
-            ]
-        )
-        try store.save(duplicatePolicy)
+        let duplicateRuleJSON = """
+        {
+          "schemaVersion": 3,
+          "rules": [
+            {"actionKindRawValue":"sendMessage","requiresApproval":false,"enabled":true},
+            {"actionKindRawValue":"deleteRecord","requiresApproval":true,"enabled":true},
+            {"actionKindRawValue":"updateRecord","requiresApproval":true,"enabled":true},
+            {"actionKindRawValue":"updateRecord","requiresApproval":false,"enabled":true}
+          ]
+        }
+        """
+        try writeRawPolicy(duplicateRuleJSON, to: store)
 
         XCTAssertNil(store.load())
         XCTAssertEqual(store.loadOrDefault(), .default)
@@ -95,10 +103,27 @@ final class AppActionApprovalPolicyStoreTests: XCTestCase {
           ]
         }
         """
-        try Data(unknownRuleJSON.utf8).write(to: store.fileURL, options: [.atomic])
+        try writeRawPolicy(unknownRuleJSON, to: store)
 
         XCTAssertNil(store.load())
         XCTAssertEqual(store.loadOrDefault(), .default)
+    }
+
+    func testSaveRejectsIncompletePolicyWithoutWritingFile() throws {
+        let (store, directoryURL) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: directoryURL) }
+
+        let incompletePolicy = AppActionApprovalPolicy(
+            schemaVersion: 8,
+            rules: [
+                .init(actionKind: .sendMessage, requiresApproval: true),
+                .init(actionKind: .deleteRecord, requiresApproval: true),
+                .init(actionKind: .updateRecord, requiresApproval: true)
+            ]
+        )
+
+        XCTAssertThrowsError(try store.save(incompletePolicy))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: store.fileURL.path))
     }
 
     func testLoadOrInstallDefaultCreatesDefaultPolicyWhenFileIsMissing() throws {
