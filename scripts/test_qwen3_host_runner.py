@@ -26,6 +26,21 @@ class FakeTokenizer:
         self.count = count
         self.chat_template = chat_template
         self.calls: list[dict[str, object]] = []
+        self.template_calls: list[object] = []
+
+    def get_chat_template(self, *, tools=None):
+        self.template_calls.append(tools)
+        if isinstance(self.chat_template, str):
+            if not self.chat_template:
+                raise ValueError("empty")
+            return self.chat_template
+        if isinstance(self.chat_template, dict):
+            if tools and "tool_use" in self.chat_template:
+                return self.chat_template["tool_use"]
+            if "default" in self.chat_template:
+                return self.chat_template["default"]
+            raise ValueError("no matching template")
+        raise ValueError("missing template")
 
     def apply_chat_template(self, messages, **kwargs):
         self.calls.append({"messages": messages, **kwargs})
@@ -75,39 +90,52 @@ class Qwen3HostRunnerTests(unittest.TestCase):
         self.assertEqual(set(environment), {"os", "architecture", "python_version"})
         self.assertTrue(all(isinstance(value, str) and value for value in environment.values()))
 
-    def test_prompt_template_hash_binds_actual_tokenizer_template(self) -> None:
+    def test_prompt_template_hash_binds_exact_selected_tool_template(self) -> None:
+        tools = [{"type": "function"}]
         tokenizer = FakeTokenizer(128, chat_template="template-v0")
         self.assertEqual(
-            runner.tokenizer_chat_template_sha256(tokenizer),
+            runner.tokenizer_chat_template_sha256(tokenizer, tools),
             hashlib.sha256(b"template-v0").hexdigest(),
         )
+        self.assertEqual(tokenizer.template_calls, [tools])
         self.assertEqual(runner.PROMPT_TEMPLATE_ID, "qwen3-tokenizer-chat-template")
 
-    def test_prompt_template_mapping_hash_is_canonical(self) -> None:
-        template = {"tool_use": "tool-template", "default": "default-template"}
-        expected = hashlib.sha256(
-            json.dumps(
-                template,
-                ensure_ascii=False,
-                sort_keys=True,
-                separators=(",", ":"),
-                allow_nan=False,
-            ).encode("utf-8")
-        ).hexdigest()
+    def test_prompt_template_mapping_hashes_selected_tool_use_template_only(self) -> None:
+        tools = [{"type": "function"}]
+        tokenizer = FakeTokenizer(
+            128,
+            chat_template={
+                "default": "default-template",
+                "tool_use": "tool-template",
+            },
+        )
         self.assertEqual(
+            runner.tokenizer_chat_template_sha256(tokenizer, tools),
+            hashlib.sha256(b"tool-template").hexdigest(),
+        )
+        self.assertNotEqual(
             runner.tokenizer_chat_template_sha256(
-                FakeTokenizer(128, chat_template=template)
+                FakeTokenizer(128, chat_template="default-template"),
+                tools,
             ),
-            expected,
+            hashlib.sha256(b"tool-template").hexdigest(),
         )
 
-    def test_missing_or_invalid_prompt_template_fails_closed(self) -> None:
-        for template in (None, "", {}, {"default": ""}):
+    def test_missing_or_unresolvable_prompt_template_fails_closed(self) -> None:
+        tools = [{"type": "function"}]
+        for template in (None, "", {}):
             with self.subTest(template=template):
                 with self.assertRaises(ValidationError):
                     runner.tokenizer_chat_template_sha256(
-                        FakeTokenizer(128, chat_template=template)
+                        FakeTokenizer(128, chat_template=template),
+                        tools,
                     )
+
+        class NoGetter:
+            pass
+
+        with self.assertRaises(ValidationError):
+            runner.tokenizer_chat_template_sha256(NoGetter(), tools)
 
     def test_model_context_limit_is_explicit_and_fail_closed(self) -> None:
         self.assertEqual(runner.model_context_limit(FakeModel(32768)), 32768)
