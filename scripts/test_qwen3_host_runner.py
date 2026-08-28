@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import hashlib
+import json
 from pathlib import Path
 import tempfile
 import unittest
@@ -16,8 +18,13 @@ class FakeIds:
 
 
 class FakeTokenizer:
-    def __init__(self, count: int) -> None:
+    def __init__(
+        self,
+        count: int,
+        chat_template: str | dict[str, str] | None = "synthetic-template",
+    ) -> None:
         self.count = count
+        self.chat_template = chat_template
         self.calls: list[dict[str, object]] = []
 
     def apply_chat_template(self, messages, **kwargs):
@@ -57,6 +64,40 @@ class Qwen3HostRunnerTests(unittest.TestCase):
         environment = runner.host_environment()
         self.assertEqual(set(environment), {"os", "architecture", "python_version"})
         self.assertTrue(all(isinstance(value, str) and value for value in environment.values()))
+
+    def test_prompt_template_hash_binds_actual_tokenizer_template(self) -> None:
+        tokenizer = FakeTokenizer(128, chat_template="template-v0")
+        self.assertEqual(
+            runner.tokenizer_chat_template_sha256(tokenizer),
+            hashlib.sha256(b"template-v0").hexdigest(),
+        )
+        self.assertEqual(runner.PROMPT_TEMPLATE_ID, "qwen3-tokenizer-chat-template")
+
+    def test_prompt_template_mapping_hash_is_canonical(self) -> None:
+        template = {"tool_use": "tool-template", "default": "default-template"}
+        expected = hashlib.sha256(
+            json.dumps(
+                template,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+                allow_nan=False,
+            ).encode("utf-8")
+        ).hexdigest()
+        self.assertEqual(
+            runner.tokenizer_chat_template_sha256(
+                FakeTokenizer(128, chat_template=template)
+            ),
+            expected,
+        )
+
+    def test_missing_or_invalid_prompt_template_fails_closed(self) -> None:
+        for template in (None, "", {}, {"default": ""}):
+            with self.subTest(template=template):
+                with self.assertRaises(ValidationError):
+                    runner.tokenizer_chat_template_sha256(
+                        FakeTokenizer(128, chat_template=template)
+                    )
 
     def test_profile_limits_are_canonical(self) -> None:
         self.assertEqual(
