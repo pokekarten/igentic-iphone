@@ -10,7 +10,8 @@ let package = Package(
     ],
     products: [
         .library(name: "AgentCore", targets: ["AgentCore"]),
-        .library(name: "iGenticApp", targets: ["iGenticApp"])
+        .library(name: "iGenticApp", targets: ["iGenticApp"]),
+        .executable(name: "AppleFoundationBaselineHost", targets: ["AppleFoundationBaselineHost"])
     ],
     targets: [
         .target(name: "AgentCore"),
@@ -19,7 +20,13 @@ let package = Package(
             dependencies: ["AgentCore"],
             resources: [.process("Resources")]
         ),
+        .target(name: "ModelResearchSupport"),
+        .executableTarget(
+            name: "AppleFoundationBaselineHost",
+            dependencies: ["ModelResearchSupport"]
+        ),
         .testTarget(name: "AgentCoreTests", dependencies: ["AgentCore"]),
-        .testTarget(name: "iGenticAppTests", dependencies: ["iGenticApp", "AgentCore"])
+        .testTarget(name: "iGenticAppTests", dependencies: ["iGenticApp", "AgentCore"]),
+        .testTarget(name: "ModelResearchSupportTests", dependencies: ["ModelResearchSupport"])
     ]
 )
