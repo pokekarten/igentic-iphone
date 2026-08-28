@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -25,6 +26,7 @@ PROFILES = {
     "Router-normal": {"input_limit_tokens": 1024, "max_new_tokens": 64},
 }
 MIN_TRANSFORMERS_VERSION = (4, 51, 0)
+PROMPT_TEMPLATE_ID = "qwen3-tokenizer-chat-template"
 
 
 def _version_tuple(value: str) -> tuple[int, int, int]:
@@ -69,6 +71,41 @@ def host_environment() -> dict[str, str]:
     if not all(values.values()):
         raise ValidationError("host environment provenance must be non-empty")
     return values
+
+
+def tokenizer_chat_template_sha256(tokenizer: Any) -> str:
+    """Hash the exact tokenizer chat-template object used by apply_chat_template."""
+    template = getattr(tokenizer, "chat_template", None)
+    if isinstance(template, str):
+        if not template:
+            raise ValidationError("tokenizer chat template must be non-empty")
+        payload = template.encode("utf-8")
+    elif isinstance(template, dict):
+        if (
+            not template
+            or not all(
+                isinstance(key, str)
+                and key
+                and isinstance(value, str)
+                and value
+                for key, value in template.items()
+            )
+        ):
+            raise ValidationError(
+                "tokenizer chat-template mapping must contain non-empty string templates"
+            )
+        payload = json.dumps(
+            template,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        ).encode("utf-8")
+    else:
+        raise ValidationError(
+            "tokenizer must expose a string or mapping chat_template for provenance"
+        )
+    return hashlib.sha256(payload).hexdigest()
 
 
 def profile_config(profile: str) -> dict[str, int]:
@@ -196,6 +233,7 @@ def run(snapshot: Path, profile: str, output_dir: Path, device: str) -> None:
     tokenizer, model, set_seed, torch, transformers_version, torch_version = _load_runtime(
         snapshot, device
     )
+    prompt_template_sha256 = tokenizer_chat_template_sha256(tokenizer)
     rendered, token_counts = render_and_preflight(tokenizer, profile)
     generation = applied_generation_config(profile)
     effective_generation = effective_generation_config(
@@ -239,6 +277,8 @@ def run(snapshot: Path, profile: str, output_dir: Path, device: str) -> None:
                 "torch_version": torch_version,
                 "evidence_class": "host",
                 "physical_device_run": False,
+                "prompt_template_id": PROMPT_TEMPLATE_ID,
+                "prompt_template_sha256": prompt_template_sha256,
                 **environment,
             },
         )
