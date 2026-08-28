@@ -70,6 +70,7 @@ RUN_METADATA_FIELDS = {
     "torch_version",
     "evidence_class",
     "physical_device_run",
+    "context_limit_tokens",
     "os",
     "architecture",
     "python_version",
@@ -96,6 +97,25 @@ def _finite_float(value: str) -> float:
     if not math.isfinite(parsed):
         raise ValidationError("JSON number exceeds the finite range")
     return parsed
+
+
+def _require_regular_file(path: Path) -> None:
+    if path.is_symlink():
+        raise ValidationError(f"{path.name} must not be a symlink")
+    if not path.is_file():
+        raise ValidationError(f"required evidence file is missing: {path.name}")
+
+
+def _resolve_run_dir(path: Path) -> Path:
+    if path.is_symlink():
+        raise ValidationError("run directory must not be a symlink")
+    try:
+        resolved = path.expanduser().resolve(strict=True)
+    except OSError as exc:
+        raise ValidationError(f"cannot resolve run directory: {exc}") from exc
+    if not resolved.is_dir():
+        raise ValidationError("run directory must be a directory")
+    return resolved
 
 
 def _load_json(path: Path) -> Any:
@@ -165,23 +185,12 @@ def _sha256_file(path: Path) -> str:
         raise ValidationError(f"cannot hash {path.name}: {exc}") from exc
 
 
-def _require_regular_file(path: Path) -> None:
-    if path.is_symlink():
-        raise ValidationError(f"{path.name} must not be a symlink")
-    if not path.is_file():
-        raise ValidationError(f"required evidence file is missing: {path.name}")
-
-
-def _resolve_run_dir(path: Path) -> Path:
-    if path.is_symlink():
-        raise ValidationError("run directory must not be a symlink")
+def _source_hash(path: Path) -> str:
     try:
-        resolved = path.expanduser().resolve(strict=True)
-    except OSError as exc:
-        raise ValidationError(f"cannot resolve run directory: {exc}") from exc
-    if not resolved.is_dir():
-        raise ValidationError("run directory must be a directory")
-    return resolved
+        path.relative_to(ROOT)
+    except ValueError as exc:
+        raise ValidationError("canonical source path escaped repository root") from exc
+    return _sha256_file(path)
 
 
 def _safe_text(metadata: dict[str, Any], field: str) -> str:
@@ -200,6 +209,12 @@ def _safe_component(metadata: dict[str, Any], field: str) -> str:
     value = _safe_text(metadata, field)
     if not _SAFE_COMPONENT_RE.fullmatch(value):
         raise ValidationError(f"run-metadata.{field} contains unsupported characters")
+    return value
+
+
+def _positive_integer(value: Any, field: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+        raise ValidationError(f"run-metadata.{field} must be a positive integer")
     return value
 
 
@@ -262,6 +277,18 @@ def _validate_metadata(
     if metadata["physical_device_run"] is not False:
         raise ValidationError("host evidence must not claim a physical-device run")
 
+    context_limit = _positive_integer(
+        metadata["context_limit_tokens"], "context_limit_tokens"
+    )
+    profile_values = PROFILES[profile]
+    if (
+        profile_values["input_limit_tokens"] + profile_values["max_new_tokens"]
+        > context_limit
+    ):
+        raise ValidationError(
+            "run metadata context capacity is smaller than the selected V0 profile"
+        )
+
     if metadata["prompt_template_id"] != PROMPT_TEMPLATE_ID:
         raise ValidationError("run metadata prompt-template identity is not canonical")
     prompt_hash = metadata["prompt_template_sha256"]
@@ -270,7 +297,13 @@ def _validate_metadata(
             "run-metadata.prompt_template_sha256 must be a lowercase SHA-256 digest"
         )
 
-    for field in ("device", "model_dtype", "transformers_version", "torch_version", "python_version"):
+    for field in (
+        "device",
+        "model_dtype",
+        "transformers_version",
+        "torch_version",
+        "python_version",
+    ):
         _safe_component(metadata, field)
     for field in ("os", "architecture"):
         _safe_text(metadata, field)
@@ -325,26 +358,25 @@ def _canonical_normalized_input(benchmark: list[dict[str, Any]]) -> bytes:
     return _jsonl_bytes([build_request(record) for record in benchmark])
 
 
-def _source_hash(path: Path) -> str:
-    try:
-        path.relative_to(ROOT)
-    except ValueError as exc:
-        raise ValidationError("canonical source path escaped repository root") from exc
-    return _sha256_file(path)
-
-
 def _observations(result: dict[str, Any]) -> tuple[bool, bool]:
     case_results = result.get("case_results")
-    if not isinstance(case_results, list):
+    if not isinstance(case_results, list) or not case_results:
         raise ValidationError("evaluator result is missing case_results")
-    repetition = any(
-        isinstance(item, dict) and item.get("repetition_detected") is True
-        for item in case_results
-    )
-    truncation = any(
-        isinstance(item, dict) and item.get("truncation_detected") is True
-        for item in case_results
-    )
+
+    for item in case_results:
+        if not isinstance(item, dict):
+            raise ValidationError("evaluator case result must be an object")
+        if item.get("repetition_flag_supplied") is not True:
+            raise ValidationError(
+                "every Qwen raw output must carry explicit repetitionDetected evidence"
+            )
+        if item.get("truncation_flag_supplied") is not True:
+            raise ValidationError(
+                "every Qwen raw output must carry explicit truncationDetected evidence"
+            )
+
+    repetition = any(item.get("repetition_detected") is True for item in case_results)
+    truncation = any(item.get("truncation_detected") is True for item in case_results)
     return repetition, truncation
 
 
@@ -395,9 +427,7 @@ def build_package(run_dir: Path) -> dict[str, bytes]:
 
     manifest = {
         "schema_version": "igentic-baseline-run-v0",
-        "run_id": (
-            f"qwen3-0.6b-v0-{profile.lower()}-seed-{metadata['seed']}"
-        ),
+        "run_id": f"qwen3-0.6b-v0-{profile.lower()}-seed-{metadata['seed']}",
         "untouched_baseline": True,
         "benchmark": {
             "version": "V0",
@@ -445,7 +475,7 @@ def build_package(run_dir: Path) -> dict[str, bytes]:
         },
         "profile": {
             "name": profile,
-            "context_limit_tokens": input_limit + output_limit,
+            "context_limit_tokens": metadata["context_limit_tokens"],
             "input_limit_tokens": input_limit,
             "output_limit_tokens": output_limit,
         },
@@ -500,8 +530,12 @@ def build_package(run_dir: Path) -> dict[str, bytes]:
         "known_limitations": [
             "Host evidence only; this package does not establish physical iPhone Air behavior.",
             (
-                "The packager does not infer repetition or truncation independently; "
-                "those observations aggregate explicit normalized proposal flags only."
+                "The V0 repetition detector records repeated tool-call envelopes; "
+                "it is not a general semantic or lexical-loop detector."
+            ),
+            (
+                "The V0 truncation detector is conservative: consuming the full "
+                "max_new_tokens budget is recorded as truncation evidence."
             ),
         ],
         "next_decision": "unverified",
@@ -522,9 +556,7 @@ def build_package(run_dir: Path) -> dict[str, bytes]:
 
 
 def _ensure_outputs_absent(run_dir: Path) -> None:
-    existing = [
-        name for name in OUTPUT_FILENAMES if (run_dir / name).exists()
-    ]
+    existing = [name for name in OUTPUT_FILENAMES if (run_dir / name).exists()]
     if existing:
         raise ValidationError(
             "refusing to package because target evidence files already exist: "
