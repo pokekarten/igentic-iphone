@@ -2,6 +2,7 @@
 
 Status: external research execution harness  
 Parent: Issue #284  
+Evidence-packaging follow-up: Issue #309  
 Model: `Qwen/Qwen3-0.6B`  
 Pinned revision: `c1899de289a04d12100db370d81485cdf75e47ca`
 
@@ -9,7 +10,7 @@ Pinned revision: `c1899de289a04d12100db370d81485cdf75e47ca`
 
 `scripts/qwen3_host_runner.py` is the smallest executable host boundary for the untouched Qwen3 0.6B Benchmark V0 baseline. It does not belong to the iPhone product runtime and does not add Transformers, PyTorch or model weights to repository dependencies.
 
-The harness consumes the existing canonical adapter contract instead of copying prompts, tool schemas, generation settings or seed lists.
+The harness consumes the existing canonical adapter contract instead of copying prompts, tool schemas, generation settings or seed lists. `scripts/qwen3_baseline_packager.py` is a separate standard-library-only evidence step: it never loads or executes the model.
 
 ## Safety boundary
 
@@ -24,13 +25,19 @@ The harness:
 - does not train, fine-tune, quantize or modify weights;
 - produces host evidence only and never establishes physical iPhone Air readiness.
 
+The evidence packager accepts only a completed host run with the pinned model/revision, canonical profile and one of the precommitted seeds. It refuses physical-device claims, malformed provenance, symlinked evidence inputs and pre-existing package targets.
+
 Deterministic Swift policy, approval, schema validation, execution and audit remain authoritative. Model output is research evidence only.
 
 ## External environment
 
 The repository intentionally does not declare host-model dependencies. Create a separate disposable environment with an already downloaded exact model snapshot and locally installed PyTorch plus Transformers >= 4.51.0.
 
-The pinned Qwen README states that Qwen3 requires Transformers 4.51.0 or newer and loads the reference model with `torch_dtype="auto"`. The host runner therefore uses the same dtype selection while keeping device placement explicit. `run-metadata.json` records the resulting `model_dtype`, exact Transformers and PyTorch versions, Python version, host OS and architecture at model-execution time so later evidence packaging cannot accidentally substitute the packaging machine's environment. Current Hugging Face documentation also supports `local_files_only`, `trust_remote_code=false`, JSON-schema tools in `apply_chat_template`, and the pinned sampling arguments used by the adapter.
+The pinned Qwen README states that Qwen3 requires Transformers 4.51.0 or newer and loads the reference model with `torch_dtype="auto"`. The host runner therefore uses the same dtype selection while keeping device placement explicit. `run-metadata.json` records the resulting `model_dtype`, exact Transformers and PyTorch versions, Python version, host OS and architecture at model-execution time so later evidence packaging cannot accidentally substitute the packaging machine's environment.
+
+The runner also hashes the actual tokenizer `chat_template` object used by `apply_chat_template` and records the canonical template ID plus SHA-256 in `run-metadata.json`. A string template is hashed as its exact UTF-8 bytes. A named-template mapping is canonicalized as sorted compact JSON before hashing. Missing, empty or structurally invalid template metadata fails closed before generation.
+
+Current Hugging Face documentation supports `local_files_only`, `trust_remote_code=false`, JSON-schema tools in `apply_chat_template`, and the pinned sampling arguments used by the adapter.
 
 A standard Hugging Face cache snapshot normally has a path ending in the immutable revision, for example:
 
@@ -95,16 +102,44 @@ For each seed it writes:
 
 `raw-outputs.jsonl` contains only `case_id` and the decoded `assistant_text`; no semantic repair is applied. The pinned tokenizer marks `<tool_call>` and `</tool_call>` as non-special tokens, while transport tokens such as `<|im_end|>` are special. Using `skip_special_tokens=true` therefore preserves the tool-call envelope required by the existing normalizer while dropping tokenizer transport markers. Any stray prose, malformed call or non-thinking-contract violation that remains in the decoded assistant span stays measurable failure evidence.
 
+## Evidence packaging
+
+Package one completed seed/profile directory only after the host runner has finished writing all four raw evidence files:
+
+```bash
+python3 scripts/qwen3_baseline_packager.py \
+  --run-dir /local/igentic-qwen-v0/Router-small/seed-0
+```
+
+The packager performs no model import, download or generation. It first validates all raw provenance, then normalizes through the existing Qwen adapter, evaluates through the existing backend-neutral V0 evaluator, hashes the canonical benchmark/evaluator/adapter inputs and generated artifacts, and validates the generated manifest with `validate_baseline_run.validate_manifest` before writing package files.
+
+A successful package adds:
+
+```text
+<output>/<profile>/seed-N/
+  normalized-input.jsonl
+  normalized-proposals.jsonl
+  evaluator-result.json
+  baseline-run-manifest.json
+```
+
+`normalized-input.jsonl` is a byte-stable reconstruction of the synthetic adapter request envelopes and is bound by `input.normalized_input_sha256`. The manifest records host execution metadata from `run-metadata.json`, not from the later packaging environment. `normalizer.revision` is the SHA-256 of the exact repository adapter source used for packaging.
+
+The packager does not independently infer repetition or truncation from arbitrary text. Manifest observation booleans aggregate explicit normalized proposal flags when supplied; absence of such a flag is not promoted into a stronger model-quality claim.
+
+If any target package file already exists, packaging stops before writing anything. A completed package always uses `next_decision=unverified`; selecting `KEEP`, `REWORK` or `REJECT` remains a later comparison decision.
+
 ## Validation
 
 Repository CI runs:
 
 ```bash
 python3 scripts/test_qwen3_host_runner.py
+python3 scripts/test_qwen3_baseline_packager.py
 ```
 
-Those tests do not import Transformers or PyTorch and do not execute a model. They bind the offline path guard, exact load options, host-environment provenance, exact profiles, fail-closed seed output planning, adapter generation contract, inherited effective-generation provenance, precommitted seeds and fail-closed tokenizer budget preflight.
+These tests do not import Transformers or PyTorch and do not execute a model. They bind the offline path guard, exact load options, host-environment provenance, exact tokenizer-template hash, canonical profiles, fail-closed seed output planning, adapter generation contract, inherited effective-generation provenance, precommitted seeds, tokenizer budget preflight, package identity checks, deterministic hashes, manifest self-validation and no-partial-write behavior for pre-existing outputs.
 
 ## Follow-up
 
-After this harness is independently reviewed and merged, the next bounded slice is evidence packaging: normalize and evaluate each of the five seed/profile raw-output files, hash the generated artifacts and emit one valid `igentic-baseline-run-v0` manifest per seed/profile run. That later slice must still distinguish host evidence from physical-device evidence.
+After Issue #309 is independently reviewed and merged, the next evidence action is an actual external untouched Qwen3 0.6B host run with the pinned snapshot and environment, followed by packaging of every completed seed/profile run. Only those source-backed results may be compared with the other untouched backends. Host evidence still cannot establish physical iPhone Air readiness, and no fine-tuning should begin before comparable untouched-baseline evidence exists.
