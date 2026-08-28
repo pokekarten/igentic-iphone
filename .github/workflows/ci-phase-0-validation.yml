@@ -97,7 +97,7 @@ jobs:
 
   apple-foundation-baseline-compile:
     name: Compile Apple Foundation baseline host
-    runs-on: macos-26
+    runs-on: macos-latest
     timeout-minutes: 15
     env:
       PR_NUMBER: ${{ github.event.pull_request.number }}
