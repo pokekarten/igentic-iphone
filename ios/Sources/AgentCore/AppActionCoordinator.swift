@@ -19,7 +19,7 @@ public final class AppActionCoordinator: @unchecked Sendable {
     private let policyEngine: PolicyEngine
     private let approvalManager: ApprovalManager
     private let auditLog: AuditLog
-    private let sensitiveDataDetector: any SensitiveDataDetecting
+    private let sensitiveDataDetector: (any SensitiveDataDetecting)?
     private let approvalPolicy: AppActionApprovalPolicy?
 
     private struct PolicyContext {
@@ -32,7 +32,7 @@ public final class AppActionCoordinator: @unchecked Sendable {
         riskScorer: RiskScorer = RiskScorer(),
         approvalManager: ApprovalManager = ApprovalManager(),
         auditLog: AuditLog = AuditLog(),
-        sensitiveDataDetector: any SensitiveDataDetecting = SensitiveDataDetector(),
+        sensitiveDataDetector: (any SensitiveDataDetecting)? = nil,
         approvalPolicy: AppActionApprovalPolicy? = nil
     ) {
         policyEngine = PolicyEngine(riskScorer: riskScorer)
@@ -104,8 +104,14 @@ public final class AppActionCoordinator: @unchecked Sendable {
     }
 
     private func policyContext(for draft: AppActionDraft, privacyMode: PrivacyMode) -> PolicyContext {
-        let payloadDetection = sensitiveDataDetector.detect(in: draft.payloadSummary)
-        let targetDetection = sensitiveDataDetector.detect(in: draft.targetDescription)
+        let payloadDetection = requiredSensitiveDataDetection(
+            in: draft.payloadSummary,
+            supplementalDetector: sensitiveDataDetector
+        )
+        let targetDetection = requiredSensitiveDataDetection(
+            in: draft.targetDescription,
+            supplementalDetector: sensitiveDataDetector
+        )
         let findings = payloadDetection.findings + targetDetection.findings
         let effectiveClassification = DataClassification.effectiveClassification(
             baseClassification: draft.dataClassification,
