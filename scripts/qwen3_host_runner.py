@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -16,6 +17,8 @@ from qwen3_baseline_adapter import (
     MODEL_ID,
     MODEL_REVISION,
     NON_THINKING_GENERATION_KWARGS,
+    TOOL_CALL_CLOSE,
+    TOOL_CALL_OPEN,
     build_request,
 )
 from validate_action_benchmark import DEFAULT_BENCHMARK, ValidationError, validate_benchmark
@@ -25,6 +28,7 @@ PROFILES = {
     "Router-normal": {"input_limit_tokens": 1024, "max_new_tokens": 64},
 }
 MIN_TRANSFORMERS_VERSION = (4, 51, 0)
+PROMPT_TEMPLATE_ID = "qwen3-tokenizer-chat-template"
 
 
 def _version_tuple(value: str) -> tuple[int, int, int]:
@@ -69,6 +73,35 @@ def host_environment() -> dict[str, str]:
     if not all(values.values()):
         raise ValidationError("host environment provenance must be non-empty")
     return values
+
+
+def tokenizer_chat_template_sha256(tokenizer: Any, tools: Any) -> str:
+    """Hash the exact chat template selected for the tool-bearing request."""
+    get_chat_template = getattr(tokenizer, "get_chat_template", None)
+    if not callable(get_chat_template):
+        raise ValidationError(
+            "tokenizer must expose get_chat_template for exact template provenance"
+        )
+    try:
+        template = get_chat_template(tools=tools)
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ValidationError(
+            "tokenizer could not resolve the exact tool-bearing chat template"
+        ) from exc
+    if not isinstance(template, str) or not template:
+        raise ValidationError("selected tokenizer chat template must be non-empty text")
+    return hashlib.sha256(template.encode("utf-8")).hexdigest()
+
+
+def model_context_limit(model: Any) -> int:
+    """Read the model's configured positional context capacity fail-closed."""
+    config = getattr(model, "config", None)
+    value = getattr(config, "max_position_embeddings", None)
+    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+        raise ValidationError(
+            "model config must expose a positive integer max_position_embeddings"
+        )
+    return value
 
 
 def profile_config(profile: str) -> dict[str, int]:
@@ -126,6 +159,27 @@ def _token_count(input_ids: Any) -> int:
     raise ValidationError("tokenizer input_ids do not expose a measurable sequence length")
 
 
+def generation_cap_reached(generated_ids: Any, max_new_tokens: int) -> bool:
+    """Conservatively flag output that consumed the full generation budget."""
+    if (
+        isinstance(max_new_tokens, bool)
+        or not isinstance(max_new_tokens, int)
+        or max_new_tokens <= 0
+    ):
+        raise ValidationError("max_new_tokens must be a positive integer")
+    return _token_count(generated_ids) >= max_new_tokens
+
+
+def repeated_proposal_envelope_detected(assistant_text: str) -> bool:
+    """Detect repeated Qwen tool-call envelopes without semantic repair."""
+    if not isinstance(assistant_text, str):
+        raise ValidationError("decoded assistant output must be text")
+    return (
+        assistant_text.count(TOOL_CALL_OPEN) > 1
+        or assistant_text.count(TOOL_CALL_CLOSE) > 1
+    )
+
+
 def render_and_preflight(
     tokenizer: Any, profile: str
 ) -> tuple[list[tuple[dict[str, Any], Any, int]], dict[str, int]]:
@@ -153,7 +207,8 @@ def render_and_preflight(
 
 def _write_json(path: Path, value: Any) -> None:
     path.write_text(
-        json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2, allow_nan=False) + "\n",
+        json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2, allow_nan=False)
+        + "\n",
         encoding="utf-8",
     )
 
@@ -196,6 +251,22 @@ def run(snapshot: Path, profile: str, output_dir: Path, device: str) -> None:
     tokenizer, model, set_seed, torch, transformers_version, torch_version = _load_runtime(
         snapshot, device
     )
+    requests = build_requests()
+    if not requests:
+        raise ValidationError("Benchmark V0 request set must not be empty")
+    prompt_template_sha256 = tokenizer_chat_template_sha256(
+        tokenizer,
+        requests[0]["tools"],
+    )
+    context_limit_tokens = model_context_limit(model)
+    profile_values = profile_config(profile)
+    if (
+        profile_values["input_limit_tokens"] + profile_values["max_new_tokens"]
+        > context_limit_tokens
+    ):
+        raise ValidationError(
+            "selected Benchmark V0 profile exceeds the model context capacity"
+        )
     rendered, token_counts = render_and_preflight(tokenizer, profile)
     generation = applied_generation_config(profile)
     effective_generation = effective_generation_config(
@@ -213,11 +284,19 @@ def run(snapshot: Path, profile: str, output_dir: Path, device: str) -> None:
                 model_batch = batch.to(device) if hasattr(batch, "to") else batch
                 generated = model.generate(**model_batch, **generation)
                 generated_ids = generated[0][input_tokens:]
+                assistant_text = tokenizer.decode(
+                    generated_ids, skip_special_tokens=True
+                )
                 outputs.append(
                     {
                         "case_id": request["case_id"],
-                        "assistant_text": tokenizer.decode(
-                            generated_ids, skip_special_tokens=True
+                        "assistant_text": assistant_text,
+                        "repetitionDetected": repeated_proposal_envelope_detected(
+                            assistant_text
+                        ),
+                        "truncationDetected": generation_cap_reached(
+                            generated_ids,
+                            generation["max_new_tokens"],
                         ),
                     }
                 )
@@ -239,6 +318,9 @@ def run(snapshot: Path, profile: str, output_dir: Path, device: str) -> None:
                 "torch_version": torch_version,
                 "evidence_class": "host",
                 "physical_device_run": False,
+                "context_limit_tokens": context_limit_tokens,
+                "prompt_template_id": PROMPT_TEMPLATE_ID,
+                "prompt_template_sha256": prompt_template_sha256,
                 **environment,
             },
         )

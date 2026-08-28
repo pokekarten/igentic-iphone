@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import hashlib
+import json
 from pathlib import Path
 import tempfile
 import unittest
@@ -16,13 +18,43 @@ class FakeIds:
 
 
 class FakeTokenizer:
-    def __init__(self, count: int) -> None:
+    def __init__(
+        self,
+        count: int,
+        chat_template: str | dict[str, str] | None = "synthetic-template",
+    ) -> None:
         self.count = count
+        self.chat_template = chat_template
         self.calls: list[dict[str, object]] = []
+        self.template_calls: list[object] = []
+
+    def get_chat_template(self, *, tools=None):
+        self.template_calls.append(tools)
+        if isinstance(self.chat_template, str):
+            if not self.chat_template:
+                raise ValueError("empty")
+            return self.chat_template
+        if isinstance(self.chat_template, dict):
+            if tools and "tool_use" in self.chat_template:
+                return self.chat_template["tool_use"]
+            if "default" in self.chat_template:
+                return self.chat_template["default"]
+            raise ValueError("no matching template")
+        raise ValueError("missing template")
 
     def apply_chat_template(self, messages, **kwargs):
         self.calls.append({"messages": messages, **kwargs})
         return {"input_ids": FakeIds(self.count)}
+
+
+class FakeModelConfig:
+    def __init__(self, max_position_embeddings) -> None:
+        self.max_position_embeddings = max_position_embeddings
+
+
+class FakeModel:
+    def __init__(self, max_position_embeddings) -> None:
+        self.config = FakeModelConfig(max_position_embeddings)
 
 
 class Qwen3HostRunnerTests(unittest.TestCase):
@@ -57,6 +89,60 @@ class Qwen3HostRunnerTests(unittest.TestCase):
         environment = runner.host_environment()
         self.assertEqual(set(environment), {"os", "architecture", "python_version"})
         self.assertTrue(all(isinstance(value, str) and value for value in environment.values()))
+
+    def test_prompt_template_hash_binds_exact_selected_tool_template(self) -> None:
+        tools = [{"type": "function"}]
+        tokenizer = FakeTokenizer(128, chat_template="template-v0")
+        self.assertEqual(
+            runner.tokenizer_chat_template_sha256(tokenizer, tools),
+            hashlib.sha256(b"template-v0").hexdigest(),
+        )
+        self.assertEqual(tokenizer.template_calls, [tools])
+        self.assertEqual(runner.PROMPT_TEMPLATE_ID, "qwen3-tokenizer-chat-template")
+
+    def test_prompt_template_mapping_hashes_selected_tool_use_template_only(self) -> None:
+        tools = [{"type": "function"}]
+        tokenizer = FakeTokenizer(
+            128,
+            chat_template={
+                "default": "default-template",
+                "tool_use": "tool-template",
+            },
+        )
+        self.assertEqual(
+            runner.tokenizer_chat_template_sha256(tokenizer, tools),
+            hashlib.sha256(b"tool-template").hexdigest(),
+        )
+        self.assertNotEqual(
+            runner.tokenizer_chat_template_sha256(
+                FakeTokenizer(128, chat_template="default-template"),
+                tools,
+            ),
+            hashlib.sha256(b"tool-template").hexdigest(),
+        )
+
+    def test_missing_or_unresolvable_prompt_template_fails_closed(self) -> None:
+        tools = [{"type": "function"}]
+        for template in (None, "", {}):
+            with self.subTest(template=template):
+                with self.assertRaises(ValidationError):
+                    runner.tokenizer_chat_template_sha256(
+                        FakeTokenizer(128, chat_template=template),
+                        tools,
+                    )
+
+        class NoGetter:
+            pass
+
+        with self.assertRaises(ValidationError):
+            runner.tokenizer_chat_template_sha256(NoGetter(), tools)
+
+    def test_model_context_limit_is_explicit_and_fail_closed(self) -> None:
+        self.assertEqual(runner.model_context_limit(FakeModel(32768)), 32768)
+        for value in (None, 0, -1, True, "32768"):
+            with self.subTest(value=value):
+                with self.assertRaises(ValidationError):
+                    runner.model_context_limit(FakeModel(value))
 
     def test_profile_limits_are_canonical(self) -> None:
         self.assertEqual(
@@ -119,6 +205,19 @@ class Qwen3HostRunnerTests(unittest.TestCase):
         self.assertEqual(upstream["temperature"], 0.6)
         with self.assertRaises(ValidationError):
             runner.effective_generation_config([], "Router-small")
+
+    def test_output_observations_are_explicit_and_conservative(self) -> None:
+        self.assertFalse(runner.generation_cap_reached([1] * 31, 32))
+        self.assertTrue(runner.generation_cap_reached([1] * 32, 32))
+        with self.assertRaises(ValidationError):
+            runner.generation_cap_reached([1], 0)
+
+        single = f"{adapter.TOOL_CALL_OPEN}{{}}{adapter.TOOL_CALL_CLOSE}"
+        repeated = single + single
+        self.assertFalse(runner.repeated_proposal_envelope_detected(single))
+        self.assertTrue(runner.repeated_proposal_envelope_detected(repeated))
+        with self.assertRaises(ValidationError):
+            runner.repeated_proposal_envelope_detected(None)
 
     def test_preflight_uses_adapter_visible_inputs_and_transport_template_kwargs(self) -> None:
         tokenizer = FakeTokenizer(128)
