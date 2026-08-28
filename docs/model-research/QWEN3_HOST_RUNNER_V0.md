@@ -49,7 +49,7 @@ The pinned Qwen README states that Qwen3 requires Transformers 4.51.0 or newer a
 
 The context capacity must be a positive integer and large enough for the selected V0 input plus output budget. The packager revalidates it and copies that observed capacity into `profile.context_limit_tokens`; it never substitutes the smaller benchmark profile budget as if that were the backend context capacity.
 
-The runner hashes the actual tokenizer `chat_template` object used by `apply_chat_template`. A string template is hashed as its exact UTF-8 bytes. A named-template mapping is canonicalized as sorted compact JSON before hashing. Missing, empty or structurally invalid template metadata fails closed before generation.
+For prompt provenance, the runner asks the loaded tokenizer to resolve the exact template for the canonical tool-bearing request via `get_chat_template(tools=...)` and hashes the returned template string as exact UTF-8 bytes. This matters when a tokenizer exposes multiple named templates: the manifest binds the template actually selected for tool use, not a broader template mapping. A missing resolver, resolution failure or empty selected template fails closed before generation.
 
 A standard Hugging Face cache snapshot normally has a path ending in the immutable revision, for example:
 
@@ -167,7 +167,7 @@ python3 scripts/test_qwen3_host_runner.py
 python3 scripts/test_qwen3_baseline_packager.py
 ```
 
-These tests do not import Transformers or PyTorch and do not execute a model. They bind the offline path guard, exact load options, host-environment provenance, actual context-capacity capture, exact tokenizer-template hash, canonical profiles, fail-closed seed output planning, adapter generation contract, inherited effective-generation provenance, explicit output observations, tokenizer budget preflight, package identity checks, deterministic hashes, manifest self-validation and no-partial-write behavior for pre-existing outputs.
+These tests do not import Transformers or PyTorch and do not execute a model. They bind the offline path guard, exact load options, host-environment provenance, actual context-capacity capture, exact selected tokenizer-template hash, canonical profiles, fail-closed seed output planning, adapter generation contract, inherited effective-generation provenance, explicit output observations, tokenizer budget preflight, package identity checks, deterministic hashes, manifest self-validation and no-partial-write behavior for pre-existing outputs.
 
 ## Follow-up
 
