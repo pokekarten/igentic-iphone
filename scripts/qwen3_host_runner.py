@@ -17,6 +17,8 @@ from qwen3_baseline_adapter import (
     MODEL_ID,
     MODEL_REVISION,
     NON_THINKING_GENERATION_KWARGS,
+    TOOL_CALL_CLOSE,
+    TOOL_CALL_OPEN,
     build_request,
 )
 from validate_action_benchmark import DEFAULT_BENCHMARK, ValidationError, validate_benchmark
@@ -108,6 +110,17 @@ def tokenizer_chat_template_sha256(tokenizer: Any) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
+def model_context_limit(model: Any) -> int:
+    """Read the model's configured positional context capacity fail-closed."""
+    config = getattr(model, "config", None)
+    value = getattr(config, "max_position_embeddings", None)
+    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+        raise ValidationError(
+            "model config must expose a positive integer max_position_embeddings"
+        )
+    return value
+
+
 def profile_config(profile: str) -> dict[str, int]:
     try:
         return dict(PROFILES[profile])
@@ -161,6 +174,23 @@ def _token_count(input_ids: Any) -> int:
             return len(input_ids[0])
         return len(input_ids)
     raise ValidationError("tokenizer input_ids do not expose a measurable sequence length")
+
+
+def generation_cap_reached(generated_ids: Any, max_new_tokens: int) -> bool:
+    """Conservatively flag output that consumed the full generation budget."""
+    if isinstance(max_new_tokens, bool) or not isinstance(max_new_tokens, int) or max_new_tokens <= 0:
+        raise ValidationError("max_new_tokens must be a positive integer")
+    return _token_count(generated_ids) >= max_new_tokens
+
+
+def repeated_proposal_envelope_detected(assistant_text: str) -> bool:
+    """Detect repeated Qwen tool-call envelopes without semantic repair."""
+    if not isinstance(assistant_text, str):
+        raise ValidationError("decoded assistant output must be text")
+    return (
+        assistant_text.count(TOOL_CALL_OPEN) > 1
+        or assistant_text.count(TOOL_CALL_CLOSE) > 1
+    )
 
 
 def render_and_preflight(
@@ -234,6 +264,15 @@ def run(snapshot: Path, profile: str, output_dir: Path, device: str) -> None:
         snapshot, device
     )
     prompt_template_sha256 = tokenizer_chat_template_sha256(tokenizer)
+    context_limit_tokens = model_context_limit(model)
+    profile_values = profile_config(profile)
+    if (
+        profile_values["input_limit_tokens"] + profile_values["max_new_tokens"]
+        > context_limit_tokens
+    ):
+        raise ValidationError(
+            "selected Benchmark V0 profile exceeds the model context capacity"
+        )
     rendered, token_counts = render_and_preflight(tokenizer, profile)
     generation = applied_generation_config(profile)
     effective_generation = effective_generation_config(
@@ -251,11 +290,19 @@ def run(snapshot: Path, profile: str, output_dir: Path, device: str) -> None:
                 model_batch = batch.to(device) if hasattr(batch, "to") else batch
                 generated = model.generate(**model_batch, **generation)
                 generated_ids = generated[0][input_tokens:]
+                assistant_text = tokenizer.decode(
+                    generated_ids, skip_special_tokens=True
+                )
                 outputs.append(
                     {
                         "case_id": request["case_id"],
-                        "assistant_text": tokenizer.decode(
-                            generated_ids, skip_special_tokens=True
+                        "assistant_text": assistant_text,
+                        "repetitionDetected": repeated_proposal_envelope_detected(
+                            assistant_text
+                        ),
+                        "truncationDetected": generation_cap_reached(
+                            generated_ids,
+                            generation["max_new_tokens"],
                         ),
                     }
                 )
@@ -277,6 +324,7 @@ def run(snapshot: Path, profile: str, output_dir: Path, device: str) -> None:
                 "torch_version": torch_version,
                 "evidence_class": "host",
                 "physical_device_run": False,
+                "context_limit_tokens": context_limit_tokens,
                 "prompt_template_id": PROMPT_TEMPLATE_ID,
                 "prompt_template_sha256": prompt_template_sha256,
                 **environment,
