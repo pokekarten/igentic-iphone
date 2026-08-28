@@ -34,7 +34,7 @@ The runner:
 | `Router-small` | 512 tokens | 32 tokens |
 | `Router-normal` | 1,024 tokens | 64 tokens |
 
-These names and budgets are inherited from `BASELINE_RUN_CONTRACT_V0.md`. A larger Apple system context does not change the experiment budget.
+These names and budgets are inherited from `docs/model-research/BASELINE_RUN_CONTRACT_V0.md`. A larger Apple system context does not change the experiment budget.
 
 ## Model-visible proposal schema
 
@@ -200,7 +200,7 @@ Phase 0 keeps the existing compatibility paths:
 - Linux package build/test;
 - the Xcode 26.3 `AgentCore` Foundation Models availability compile introduced by #317.
 
-The newer token/context/response-usage evidence APIs require a later stable Foundation Models SDK. Phase 0 therefore also has a narrow `macos-26` job that compiles `ModelResearchSupport` and `AppleFoundationBaselineHost` with the runner image's current stable Xcode 26 toolchain.
+The newer token/context/response-usage evidence APIs require a later stable Foundation Models SDK. Phase 0 therefore also has a narrow `macos-latest` job. GitHub currently maps that label to its macOS 26 image; the job prints the exact Xcode and Swift versions before compiling `ModelResearchSupport` and `AppleFoundationBaselineHost` with the image's current stable Xcode 26 toolchain.
 
 That job **compiles but does not execute the model**. GitHub-hosted hardware is not physical iPhone evidence and is not assumed to have Apple Intelligence available.
 
@@ -220,7 +220,7 @@ It does not prove that the system model executed or produced any quality result.
 After one external host profile completes, a separate standard-library evidence packager should:
 
 1. validate the five runner artifacts;
-2. run `evaluate_action_proposals.py` on the normalized JSONL;
+2. run `scripts/evaluate_action_proposals.py` on the normalized JSONL;
 3. hash benchmark, evaluator, runner contract and artifacts;
 4. emit a valid `igentic-baseline-run-v0` Apple-system manifest;
 5. keep `evidence_class=host` and `physical_device_readiness_claimed=false`.
