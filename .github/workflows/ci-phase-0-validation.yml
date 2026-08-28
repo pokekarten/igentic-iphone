@@ -76,6 +76,17 @@ jobs:
       - name: Show Swift version
         run: swift --version
 
+      - name: Compile AgentCore Foundation Models branch with Xcode 26
+        working-directory: ios
+        env:
+          DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
+        run: |
+          set -euo pipefail
+          test -d "${DEVELOPER_DIR}"
+          xcodebuild -version
+          swift --version
+          swift build --target AgentCore --scratch-path .build-foundation-models-xcode26
+
       - name: Build Swift package
         working-directory: ios
         run: swift build
