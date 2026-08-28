@@ -194,28 +194,28 @@ public struct AppleNormalizedProposal: Codable, Equatable, Sendable {
 public struct AppleRawProposalRecord: Codable, Equatable, Sendable {
     public let caseID: String
     public let proposal: AppleProposalSnapshot
-    public let inputTokenCount: Int
-    public let outputTokenCount: Int
+    public let modelVisibleInputTokenCount: Int
 
     enum CodingKeys: String, CodingKey {
         case caseID = "case_id"
         case proposal
-        case inputTokenCount = "input_token_count"
-        case outputTokenCount = "output_token_count"
+        case modelVisibleInputTokenCount = "model_visible_input_token_count"
     }
 }
 
 public struct AppleTokenCountRecord: Codable, Equatable, Sendable {
     public let caseID: String
-    public let preflightInputTokenCount: Int
-    public let responseInputTokenCount: Int
-    public let responseOutputTokenCount: Int
+    public let instructionsTokenCount: Int
+    public let schemaTokenCount: Int
+    public let promptTokenCount: Int
+    public let modelVisibleInputTokenCount: Int
 
     enum CodingKeys: String, CodingKey {
         case caseID = "case_id"
-        case preflightInputTokenCount = "preflight_input_token_count"
-        case responseInputTokenCount = "response_input_token_count"
-        case responseOutputTokenCount = "response_output_token_count"
+        case instructionsTokenCount = "instructions_token_count"
+        case schemaTokenCount = "schema_token_count"
+        case promptTokenCount = "prompt_token_count"
+        case modelVisibleInputTokenCount = "model_visible_input_token_count"
     }
 }
 
@@ -259,6 +259,8 @@ public struct AppleRunMetadata: Codable, Equatable, Sendable {
     public let os: String
     public let architecture: String
     public let swiftToolchain: String
+    public let minimumEvidenceOS = "26.4"
+    public let tokenEvidenceMethod = "SystemLanguageModel.tokenCount(for:)"
     public let instructionsID = "igentic-apple-router-v0"
     public let instructionsText: String
     public let evidenceClass = "host"
@@ -275,6 +277,8 @@ public struct AppleRunMetadata: Codable, Equatable, Sendable {
         case os
         case architecture
         case swiftToolchain = "swift_toolchain"
+        case minimumEvidenceOS = "minimum_evidence_os"
+        case tokenEvidenceMethod = "token_evidence_method"
         case instructionsID = "instructions_id"
         case instructionsText = "instructions_text"
         case evidenceClass = "evidence_class"
@@ -292,7 +296,6 @@ public enum AppleFoundationBaselineError: Error, Equatable, CustomStringConverti
     case unsupportedPlatform
     case modelUnavailable(String)
     case inputBudgetExceeded(caseID: String, measured: Int, limit: Int)
-    case invalidUsage(caseID: String)
     case evidenceWriteFailed(String)
 
     public var description: String {
@@ -308,13 +311,11 @@ public enum AppleFoundationBaselineError: Error, Equatable, CustomStringConverti
         case .outputDirectoryNotEmpty:
             return "output directory must be empty"
         case .unsupportedPlatform:
-            return "Apple Foundation Models runner is unsupported on this platform or SDK"
+            return "Apple Foundation Models runner requires FoundationModels with macOS/iOS 26.4 or newer"
         case .modelUnavailable(let reason):
             return "Apple system model unavailable: \(reason)"
         case let .inputBudgetExceeded(caseID, measured, limit):
             return "input token budget exceeded for \(caseID): \(measured) > \(limit)"
-        case .invalidUsage(let caseID):
-            return "invalid response token usage for \(caseID)"
         case .evidenceWriteFailed(let file):
             return "failed to write evidence file: \(file)"
         }
@@ -334,9 +335,7 @@ public enum AppleFoundationBaselineContract {
 
         text = text.replacingOccurrences(of: "\r\n", with: "\n")
         var lines = text.components(separatedBy: "\n")
-        if lines.last == "" {
-            lines.removeLast()
-        }
+        if lines.last == "" { lines.removeLast() }
         guard !lines.contains(where: { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) else {
             throw AppleFoundationBaselineError.invalidBenchmark("blank JSONL line")
         }
@@ -391,8 +390,7 @@ public enum AppleFoundationBaselineContract {
         guard values.isSymbolicLink != true else {
             throw AppleFoundationBaselineError.outputDirectoryIsSymlink
         }
-        let contents = try manager.contentsOfDirectory(atPath: url.path)
-        guard contents.isEmpty else {
+        guard try manager.contentsOfDirectory(atPath: url.path).isEmpty else {
             throw AppleFoundationBaselineError.outputDirectoryNotEmpty
         }
     }
@@ -614,7 +612,7 @@ public struct AppleFoundationBaselineRunner: Sendable {
         let cases = try AppleFoundationBaselineContract.loadBenchmark(data: benchmarkData)
 
         #if canImport(FoundationModels)
-        if #available(macOS 26.0, iOS 26.0, *) {
+        if #available(macOS 26.4, iOS 26.4, *) {
             try await runFoundationModels(
                 cases: cases,
                 profile: profile,
@@ -628,7 +626,7 @@ public struct AppleFoundationBaselineRunner: Sendable {
     }
 
     #if canImport(FoundationModels)
-    @available(macOS 26.0, iOS 26.0, *)
+    @available(macOS 26.4, iOS 26.4, *)
     private func runFoundationModels(
         cases: [AppleBenchmarkCase],
         profile: AppleBaselineProfile,
@@ -651,7 +649,7 @@ public struct AppleFoundationBaselineRunner: Sendable {
         }
 
         let instructions = Instructions(AppleFoundationBaselineContract.instructions)
-        let contextLimit = try await model.contextSize
+        let contextLimit = model.contextSize
         let instructionsTokens = try await model.tokenCount(for: instructions)
         let schemaTokens = try await model.tokenCount(for: FMGeneratedProposal.generationSchema)
         let options = GenerationOptions(
@@ -667,11 +665,11 @@ public struct AppleFoundationBaselineRunner: Sendable {
         for benchmarkCase in cases {
             let prompt = Prompt(benchmarkCase.userText)
             let promptTokens = try await model.tokenCount(for: prompt)
-            let preflightInputTokens = instructionsTokens + schemaTokens + promptTokens
-            guard preflightInputTokens <= profile.inputLimitTokens else {
+            let modelVisibleInputTokens = instructionsTokens + schemaTokens + promptTokens
+            guard modelVisibleInputTokens <= profile.inputLimitTokens else {
                 throw AppleFoundationBaselineError.inputBudgetExceeded(
                     caseID: benchmarkCase.caseID,
-                    measured: preflightInputTokens,
+                    measured: modelVisibleInputTokens,
                     limit: profile.inputLimitTokens
                 )
             }
@@ -688,28 +686,13 @@ public struct AppleFoundationBaselineRunner: Sendable {
             ) {
                 benchmarkCase.userText
             }
-
-            let responseInputTokens = response.usage.input.totalTokenCount
-            let responseTotalTokens = response.usage.totalTokenCount
-            guard responseInputTokens <= profile.inputLimitTokens else {
-                throw AppleFoundationBaselineError.inputBudgetExceeded(
-                    caseID: benchmarkCase.caseID,
-                    measured: responseInputTokens,
-                    limit: profile.inputLimitTokens
-                )
-            }
-            guard responseTotalTokens >= responseInputTokens else {
-                throw AppleFoundationBaselineError.invalidUsage(caseID: benchmarkCase.caseID)
-            }
-            let responseOutputTokens = responseTotalTokens - responseInputTokens
             let snapshot = response.content.snapshot
 
             rawRecords.append(
                 AppleRawProposalRecord(
                     caseID: benchmarkCase.caseID,
                     proposal: snapshot,
-                    inputTokenCount: responseInputTokens,
-                    outputTokenCount: responseOutputTokens
+                    modelVisibleInputTokenCount: modelVisibleInputTokens
                 )
             )
             normalizedRecords.append(
@@ -721,19 +704,21 @@ public struct AppleFoundationBaselineRunner: Sendable {
             tokenRecords.append(
                 AppleTokenCountRecord(
                     caseID: benchmarkCase.caseID,
-                    preflightInputTokenCount: preflightInputTokens,
-                    responseInputTokenCount: responseInputTokens,
-                    responseOutputTokenCount: responseOutputTokens
+                    instructionsTokenCount: instructionsTokens,
+                    schemaTokenCount: schemaTokens,
+                    promptTokenCount: promptTokens,
+                    modelVisibleInputTokenCount: modelVisibleInputTokens
                 )
             )
         }
 
+        let os = ProcessInfo.processInfo.operatingSystemVersionString
         let metadata = AppleRunMetadata(
             profile: profile.rawValue,
             benchmarkCaseCount: cases.count,
-            systemModelIdentifier: model.variant.displayName,
+            systemModelIdentifier: "SystemLanguageModel.default|\(os)",
             contextLimitTokens: contextLimit,
-            os: ProcessInfo.processInfo.operatingSystemVersionString,
+            os: os,
             architecture: Self.architecture,
             swiftToolchain: Self.swiftToolchain(),
             instructionsText: AppleFoundationBaselineContract.instructions
