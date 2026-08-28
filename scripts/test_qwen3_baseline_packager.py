@@ -72,6 +72,8 @@ class Qwen3BaselinePackagerTests(unittest.TestCase):
                 {
                     "case_id": record["case_id"],
                     "assistant_text": _assistant_text(record),
+                    "repetitionDetected": False,
+                    "truncationDetected": False,
                 }
                 for record in records
             ],
@@ -97,6 +99,7 @@ class Qwen3BaselinePackagerTests(unittest.TestCase):
             "torch_version": "2.8.0",
             "evidence_class": "host",
             "physical_device_run": False,
+            "context_limit_tokens": 32768,
             "os": "SyntheticOS 1",
             "architecture": "arm64",
             "python_version": "3.12.0",
@@ -125,8 +128,11 @@ class Qwen3BaselinePackagerTests(unittest.TestCase):
             self.assertEqual(manifest["backend"]["model_id"], adapter.MODEL_ID)
             self.assertEqual(manifest["backend"]["model_revision"], adapter.MODEL_REVISION)
             self.assertEqual(manifest["profile"]["name"], "Router-small")
+            self.assertEqual(manifest["profile"]["context_limit_tokens"], 32768)
             self.assertEqual(manifest["decoding"]["seed"], 0)
             self.assertEqual(manifest["execution"]["evidence_class"], "host")
+            self.assertFalse(manifest["observations"]["repetition_observed"])
+            self.assertFalse(manifest["observations"]["truncation_observed"])
             self.assertFalse(manifest["claims"]["physical_device_readiness_claimed"])
             self.assertEqual(manifest["next_decision"], "unverified")
 
@@ -158,6 +164,7 @@ class Qwen3BaselinePackagerTests(unittest.TestCase):
             {"case_count": 39},
             {"evidence_class": "physical_device"},
             {"physical_device_run": True},
+            {"context_limit_tokens": 100},
             {"prompt_template_id": "other-template"},
             {"prompt_template_sha256": "not-a-hash"},
         )
@@ -190,6 +197,36 @@ class Qwen3BaselinePackagerTests(unittest.TestCase):
             _write_json(token_path, counts)
             with self.assertRaises(ValidationError):
                 packager.build_package(run_dir)
+
+    def test_missing_runtime_observation_flag_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            run_dir = self.make_run(Path(temp))
+            raw_path = run_dir / packager.RAW_OUTPUTS
+            records = [
+                json.loads(line)
+                for line in raw_path.read_text(encoding="utf-8").splitlines()
+            ]
+            del records[0]["truncationDetected"]
+            _write_jsonl(raw_path, records)
+            with self.assertRaises(ValidationError):
+                packager.build_package(run_dir)
+
+    def test_observation_flags_are_aggregated_without_semantic_repair(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            run_dir = self.make_run(Path(temp))
+            raw_path = run_dir / packager.RAW_OUTPUTS
+            records = [
+                json.loads(line)
+                for line in raw_path.read_text(encoding="utf-8").splitlines()
+            ]
+            records[0]["repetitionDetected"] = True
+            records[1]["truncationDetected"] = True
+            _write_jsonl(raw_path, records)
+
+            package = packager.build_package(run_dir)
+            manifest = json.loads(package[packager.BASELINE_MANIFEST])
+            self.assertTrue(manifest["observations"]["repetition_observed"])
+            self.assertTrue(manifest["observations"]["truncation_observed"])
 
     def test_existing_output_causes_prewrite_failure_without_partial_package(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
