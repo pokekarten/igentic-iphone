@@ -10,6 +10,26 @@ This contract defines the first untouched Apple `SystemLanguageModel.default` ex
 
 The runner produces **host evidence only**. It does not prove physical iPhone Air execution, readiness, latency, memory, battery or thermal behavior. It does not authorize an action and never executes an iGentic tool.
 
+## Stable API boundary
+
+The runner intentionally targets the stable Foundation Models evidence surface available from macOS/iOS 26.4 onward:
+
+- `SystemLanguageModel.default`;
+- `SystemLanguageModel.availability`;
+- `SystemLanguageModel.contextSize`;
+- `SystemLanguageModel.tokenCount(for:)` for instructions, prompts and generation schemas;
+- `LanguageModelSession` guided generation;
+- `GenerationOptions` with greedy sampling and a maximum response-token cap.
+
+The first Xcode 26.6 compile of this slice proved two important negative boundaries:
+
+- `LanguageModelSession.Response.usage` is **not** part of that stable SDK surface;
+- `SystemLanguageModel.variant` is **not** part of that stable SDK surface.
+
+Those newer beta APIs are therefore not used as evidence. The runner does not invent output-token counts or a model variant name.
+
+`tokenCount(for:)` is guarded by an explicit macOS/iOS 26.4 availability boundary. A 26.0–26.3 runtime fails closed as unsupported for this evidence protocol even though basic Foundation Models generation exists there.
+
 ## Safety and comparison boundary
 
 The runner:
@@ -85,44 +105,33 @@ Swift's `JSONDecoder` ignores the remaining benchmark fields. Expected proposal 
 
 The fixed runner instructions describe only the public routing task and supported route vocabulary. They contain no case-specific expected answer.
 
-## Native token-budget gate
+## Native input-token gate
 
-Apple documents that instructions, prompts, tools and guided-generation schemas consume the model context. The runner therefore measures the native token cost of:
+Apple documents that instructions, prompts and guided-generation schemas consume model context. For every case the runner measures, with the system model's own tokenizer:
 
-1. the fixed instructions;
-2. the current case prompt;
-3. the exact `FMGeneratedProposal.generationSchema`.
+1. fixed instructions tokens;
+2. exact `FMGeneratedProposal.generationSchema` tokens;
+3. exact current case prompt tokens.
 
 There are no tools.
 
-The sum is a **pre-inference gate**. If it exceeds the selected V0 input budget, the run stops before creating a result for that case. It never shortens or rewrites an input.
+The runner records all three component counts and their exact sum as `model_visible_input_token_count`. If the sum exceeds the selected V0 input budget, the run stops before inference. It never shortens or rewrites an input.
 
-After a successful guided response, the runner also records `response.usage.input.totalTokenCount`. This is a second fail-closed check against the same profile budget. A mismatch that crosses the budget invalidates the run rather than being hidden.
+This is the supported stable input-token evidence for V0. The runner does **not** claim response usage or output token counts because Xcode 26.6 does not expose stable `Response.usage` on this API surface.
 
-Output token count is derived exactly as:
-
-```text
-response.usage.totalTokenCount - response.usage.input.totalTokenCount
-```
-
-Apple defines total usage as input plus output. A negative result is rejected as invalid usage.
-
-The runner records `SystemLanguageModel.contextSize` as the actual system-model context capacity. It never substitutes the historical 4,096-token value or the V0 profile budget for this observation.
+`SystemLanguageModel.contextSize` is recorded as the actual system-model context capacity and must be large enough for the selected profile. The runner never substitutes the V0 profile budget for that capability value.
 
 ## System-model identity
 
-Apple updates the system language model with OS releases. iGentic therefore does not invent a custom-model revision for this backend.
+Apple updates the system language model with OS releases. iGentic therefore does not invent a custom-model revision.
 
-The runner records:
+The stable SDK exposes the semantic model identity `SystemLanguageModel.default` but not a stable variant display property in Xcode 26.6. The runner binds system identity as:
 
-- `SystemLanguageModel.default.variant.displayName`;
-- exact host OS version/build string;
-- architecture;
-- the active Swift toolchain string;
-- framework class `Apple Foundation Models`;
-- backend class `apple_system`.
+```text
+SystemLanguageModel.default|<ProcessInfo operatingSystemVersionString>
+```
 
-A later packager will bind these values into the existing Apple-system branch of `igentic-baseline-run-v0`.
+It also records the OS string separately, the host architecture and active Swift toolchain. A later packager can therefore bind the Apple-system run to the exact OS/runtime boundary without pretending that iGentic owns or can hash Apple model weights.
 
 ## Generation settings
 
@@ -141,7 +150,9 @@ include_schema_in_prompt=true
 tools_count=0
 ```
 
-`greedy` is the no-seed deterministic comparison mode. The maximum response token value always equals the selected V0 profile output budget.
+`greedy` is the no-seed deterministic comparison mode. The maximum response-token value always equals the selected V0 profile output budget.
+
+A successful guided-generation response is structurally complete. The normalized record uses `truncationDetected=false`; a generation failure is a failed run rather than a repaired or partial proposal.
 
 ## Output directory contract
 
@@ -157,13 +168,23 @@ applied-generation-config.json
 run-metadata.json
 ```
 
+`token-counts.json` records per case:
+
+```text
+case_id
+instructions_token_count
+schema_token_count
+prompt_token_count
+model_visible_input_token_count
+```
+
 Evidence bytes are constructed before writing. Files use fixed names and no-overwrite writes. If a write fails, files created by that write phase are removed.
 
 No model cache, credentials, host identifiers, private data, screenshot or unrelated machine file belongs in this directory.
 
 ## External host command
 
-Run from a clean checkout of the intended iGentic revision on an eligible Mac with Apple Intelligence and a current Foundation Models SDK/runtime:
+Run from a clean checkout of the intended iGentic revision on an eligible Mac running macOS 26.4 or newer with Apple Intelligence enabled and a compatible Foundation Models SDK/runtime:
 
 ```bash
 set -euo pipefail
@@ -200,7 +221,7 @@ Phase 0 keeps the existing compatibility paths:
 - Linux package build/test;
 - the Xcode 26.3 `AgentCore` Foundation Models availability compile introduced by #317.
 
-The newer token/context/response-usage evidence APIs require a later stable Foundation Models SDK. Phase 0 therefore also has a narrow `macos-latest` job. GitHub currently maps that label to its macOS 26 image; the job prints the exact Xcode and Swift versions before compiling `ModelResearchSupport` and `AppleFoundationBaselineHost` with the image's current stable Xcode 26 toolchain.
+The Benchmark V0 runner additionally compiles on `macos-latest`, which currently resolves to the macOS 26 ARM hosted image and prints the exact Xcode and Swift versions before compiling `ModelResearchSupport` and `AppleFoundationBaselineHost`.
 
 That job **compiles but does not execute the model**. GitHub-hosted hardware is not physical iPhone evidence and is not assumed to have Apple Intelligence available.
 
@@ -210,7 +231,7 @@ A green exact-head CI run proves:
 
 - ordinary iGentic package compatibility remains intact;
 - the research support code compiles on Linux through its unsupported-platform path;
-- the real current Foundation Models runner branch compiles with a current stable Apple SDK;
+- the real stable Foundation Models 26.4+ runner branch compiles with the hosted current Xcode 26 toolchain;
 - pure contract tests pass without model availability.
 
 It does not prove that the system model executed or produced any quality result.
@@ -222,7 +243,7 @@ After one external host profile completes, a separate standard-library evidence 
 1. validate the five runner artifacts;
 2. run `scripts/evaluate_action_proposals.py` on the normalized JSONL;
 3. hash benchmark, evaluator, runner contract and artifacts;
-4. emit a valid `igentic-baseline-run-v0` Apple-system manifest;
+4. emit a valid `igentic-baseline-run-v0` Apple-system manifest under `docs/model-research/BASELINE_RUN_CONTRACT_V0.md`;
 5. keep `evidence_class=host` and `physical_device_readiness_claimed=false`.
 
 Actual physical iPhone Air evidence remains a later, separate protocol.
@@ -231,6 +252,7 @@ Actual physical iPhone Air evidence remains a later, separate protocol.
 
 - Foundation Models framework: https://developer.apple.com/documentation/foundationmodels
 - SystemLanguageModel: https://developer.apple.com/documentation/foundationmodels/systemlanguagemodel
+- `tokenCount(for:)`: https://developer.apple.com/documentation/foundationmodels/systemlanguagemodel/tokencount(for:)
 - LanguageModelSession: https://developer.apple.com/documentation/foundationmodels/languagemodelsession
 - Managing the context window: https://developer.apple.com/documentation/foundationmodels/managing-the-context-window
 - Foundation Models updates: https://developer.apple.com/documentation/updates/foundationmodels
