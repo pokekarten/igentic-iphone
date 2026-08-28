@@ -25,19 +25,31 @@ The harness:
 - does not train, fine-tune, quantize or modify weights;
 - produces host evidence only and never establishes physical iPhone Air readiness.
 
-The evidence packager accepts only a completed host run with the pinned model/revision, canonical profile and one of the precommitted seeds. It refuses physical-device claims, malformed provenance, symlinked evidence inputs and pre-existing package targets.
+The evidence packager accepts only a completed host run with the pinned model/revision, canonical profile and one of the precommitted seeds. It refuses physical-device claims, malformed provenance, missing runtime-observation evidence, symlinked evidence inputs and pre-existing package targets.
 
 Deterministic Swift policy, approval, schema validation, execution and audit remain authoritative. Model output is research evidence only.
 
-## External environment
+## External environment and runtime provenance
 
 The repository intentionally does not declare host-model dependencies. Create a separate disposable environment with an already downloaded exact model snapshot and locally installed PyTorch plus Transformers >= 4.51.0.
 
-The pinned Qwen README states that Qwen3 requires Transformers 4.51.0 or newer and loads the reference model with `torch_dtype="auto"`. The host runner therefore uses the same dtype selection while keeping device placement explicit. `run-metadata.json` records the resulting `model_dtype`, exact Transformers and PyTorch versions, Python version, host OS and architecture at model-execution time so later evidence packaging cannot accidentally substitute the packaging machine's environment.
+The pinned Qwen README states that Qwen3 requires Transformers 4.51.0 or newer and loads the reference model with `torch_dtype="auto"`. The host runner therefore uses the same dtype selection while keeping device placement explicit.
 
-The runner also hashes the actual tokenizer `chat_template` object used by `apply_chat_template` and records the canonical template ID plus SHA-256 in `run-metadata.json`. A string template is hashed as its exact UTF-8 bytes. A named-template mapping is canonicalized as sorted compact JSON before hashing. Missing, empty or structurally invalid template metadata fails closed before generation.
+`run-metadata.json` records at model-execution time:
 
-Current Hugging Face documentation supports `local_files_only`, `trust_remote_code=false`, JSON-schema tools in `apply_chat_template`, and the pinned sampling arguments used by the adapter.
+- exact model ID and immutable revision;
+- selected profile and seed;
+- model dtype;
+- Transformers and PyTorch versions;
+- Python version, host OS and architecture;
+- execution device;
+- host evidence class and `physical_device_run=false`;
+- `model.config.max_position_embeddings` as the actual configured context capacity;
+- the canonical tokenizer chat-template ID and SHA-256.
+
+The context capacity must be a positive integer and large enough for the selected V0 input plus output budget. The packager revalidates it and copies that observed capacity into `profile.context_limit_tokens`; it never substitutes the smaller benchmark profile budget as if that were the backend context capacity.
+
+The runner hashes the actual tokenizer `chat_template` object used by `apply_chat_template`. A string template is hashed as its exact UTF-8 bytes. A named-template mapping is canonicalized as sorted compact JSON before hashing. Missing, empty or structurally invalid template metadata fails closed before generation.
 
 A standard Hugging Face cache snapshot normally has a path ending in the immutable revision, for example:
 
@@ -76,6 +88,15 @@ Seed numbers prevent post-result seed selection. They do not imply equivalent ra
 
 The generation call passes only those explicit Benchmark V0 overrides. For provenance, `applied-generation-config.json` records the complete loaded `model.generation_config` merged with the runner overrides, so inherited stopping/token/default fields remain bound together with the selected non-thinking settings. The explicit runner values win when the upstream model configuration contains different defaults.
 
+## Explicit output observations
+
+Every raw output record carries two booleans in addition to `case_id` and `assistant_text`:
+
+- `repetitionDetected`: true when the decoded output contains more than one Qwen `<tool_call>` opening or closing envelope. This is deliberately a narrow repeated-proposal detector; it is not a general semantic or lexical-loop detector.
+- `truncationDetected`: true when generation consumes the complete selected `max_new_tokens` budget. This is conservative: hitting the cap is retained as truncation evidence rather than guessed away.
+
+The packager requires both booleans on every benchmark case. Missing flags invalidate packaging instead of becoming implicit `false` observations. The existing Qwen normalizer carries valid boolean observation fields into normalized proposal JSONL without changing proposal semantics.
+
 ## Run
 
 Example external host command:
@@ -100,7 +121,7 @@ For each seed it writes:
   token-counts.json
 ```
 
-`raw-outputs.jsonl` contains only `case_id` and the decoded `assistant_text`; no semantic repair is applied. The pinned tokenizer marks `<tool_call>` and `</tool_call>` as non-special tokens, while transport tokens such as `<|im_end|>` are special. Using `skip_special_tokens=true` therefore preserves the tool-call envelope required by the existing normalizer while dropping tokenizer transport markers. Any stray prose, malformed call or non-thinking-contract violation that remains in the decoded assistant span stays measurable failure evidence.
+`raw-outputs.jsonl` retains the decoded `assistant_text` exactly as research evidence; no semantic repair is applied. Using `skip_special_tokens=true` removes tokenizer transport markers while preserving the non-special `<tool_call>` envelope expected by the normalizer. Stray prose, malformed calls, repeated envelopes or capped output remain measurable failure evidence.
 
 ## Evidence packaging
 
@@ -111,7 +132,15 @@ python3 scripts/qwen3_baseline_packager.py \
   --run-dir /local/igentic-qwen-v0/Router-small/seed-0
 ```
 
-The packager performs no model import, download or generation. It first validates all raw provenance, then normalizes through the existing Qwen adapter, evaluates through the existing backend-neutral V0 evaluator, hashes the canonical benchmark/evaluator/adapter inputs and generated artifacts, and validates the generated manifest with `validate_baseline_run.validate_manifest` before writing package files.
+The packager performs no model import, download or generation. It validates all raw provenance first, then:
+
+1. reconstructs byte-stable synthetic adapter request envelopes;
+2. normalizes through the existing Qwen adapter without semantic repair;
+3. evaluates through the existing backend-neutral V0 evaluator;
+4. requires explicit repetition and truncation flags for every case;
+5. hashes benchmark, evaluator contract/scripts, adapter, token counts, generation config and generated artifacts;
+6. builds one host-only `igentic-baseline-run-v0` manifest;
+7. runs the existing manifest validator before writing any package target.
 
 A successful package adds:
 
@@ -123,9 +152,9 @@ A successful package adds:
   baseline-run-manifest.json
 ```
 
-`normalized-input.jsonl` is a byte-stable reconstruction of the synthetic adapter request envelopes and is bound by `input.normalized_input_sha256`. The manifest records host execution metadata from `run-metadata.json`, not from the later packaging environment. `normalizer.revision` is the SHA-256 of the exact repository adapter source used for packaging.
+`normalized-input.jsonl` is a byte-stable reconstruction of the synthetic adapter request envelopes and is bound by `input.normalized_input_sha256`. The manifest records model-execution environment and context capacity from `run-metadata.json`, not from the later packaging environment. `normalizer.revision` is the SHA-256 of the exact repository adapter source used for packaging.
 
-The packager does not independently infer repetition or truncation from arbitrary text. Manifest observation booleans aggregate explicit normalized proposal flags when supplied; absence of such a flag is not promoted into a stronger model-quality claim.
+Manifest-level repetition/truncation observations are the OR across the explicit per-case runner flags. If any case lacks either flag, the package fails closed. Timeout and cancellation remain false for this completed-run packager; a future interrupted-run evidence contract must represent incomplete execution separately rather than package it as completed.
 
 If any target package file already exists, packaging stops before writing anything. A completed package always uses `next_decision=unverified`; selecting `KEEP`, `REWORK` or `REJECT` remains a later comparison decision.
 
@@ -138,7 +167,7 @@ python3 scripts/test_qwen3_host_runner.py
 python3 scripts/test_qwen3_baseline_packager.py
 ```
 
-These tests do not import Transformers or PyTorch and do not execute a model. They bind the offline path guard, exact load options, host-environment provenance, exact tokenizer-template hash, canonical profiles, fail-closed seed output planning, adapter generation contract, inherited effective-generation provenance, precommitted seeds, tokenizer budget preflight, package identity checks, deterministic hashes, manifest self-validation and no-partial-write behavior for pre-existing outputs.
+These tests do not import Transformers or PyTorch and do not execute a model. They bind the offline path guard, exact load options, host-environment provenance, actual context-capacity capture, exact tokenizer-template hash, canonical profiles, fail-closed seed output planning, adapter generation contract, inherited effective-generation provenance, explicit output observations, tokenizer budget preflight, package identity checks, deterministic hashes, manifest self-validation and no-partial-write behavior for pre-existing outputs.
 
 ## Follow-up
 
