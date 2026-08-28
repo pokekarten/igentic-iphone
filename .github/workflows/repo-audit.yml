@@ -57,6 +57,9 @@ jobs:
       - name: Test Qwen3 offline host harness
         run: python3 scripts/test_qwen3_host_runner.py
 
+      - name: Test Qwen3 baseline evidence packager
+        run: python3 scripts/test_qwen3_baseline_packager.py
+
       - name: Test commit email privacy bootstrap contract
         run: python3 -m unittest tests.test_check_commit_email_privacy -v
 
@@ -108,7 +111,7 @@ jobs:
             echo "- Autonomy gate evaluator unit tests completed in this contents-read workflow."
             echo "- Canonical action benchmark validation completed."
             echo "- Action proposal evaluator semantic-correctness regression tests completed."
-            echo "- Qwen3 baseline adapter and offline host harness regression tests completed."
+            echo "- Qwen3 baseline adapter, offline host harness and deterministic evidence-packager regression tests completed."
             echo "- Commit email privacy checker and trusted-workflow invariants completed."
             echo "- Untouched baseline provenance validation and profile mutation tests completed."
             echo "- Required public project control files are present and non-empty."
