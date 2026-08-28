@@ -95,6 +95,43 @@ jobs:
         working-directory: ios
         run: swift test
 
+  apple-foundation-baseline-compile:
+    name: Compile Apple Foundation baseline host
+    runs-on: macos-26
+    timeout-minutes: 15
+    env:
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+
+    steps:
+      - name: Checkout repository without marketplace actions
+        run: |
+          set -euo pipefail
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          if git fetch --no-tags --depth=1 origin "${GITHUB_SHA}"; then
+            echo "Fetched ${GITHUB_SHA}"
+          elif [ "${GITHUB_EVENT_NAME}" = "pull_request" ] && [ -n "${PR_NUMBER:-}" ]; then
+            git fetch --no-tags --depth=1 origin "pull/${PR_NUMBER}/merge"
+          else
+            git fetch --no-tags --depth=1 origin "${GITHUB_REF_NAME:-main}"
+          fi
+          git checkout --force FETCH_HEAD
+          git clean -fdx
+          git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+
+      - name: Show Xcode and Swift versions
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          swift --version
+
+      - name: Compile real Foundation Models research runner
+        working-directory: ios
+        run: |
+          set -euo pipefail
+          swift build --target ModelResearchSupport --scratch-path .build-apple-baseline-current-xcode
+          swift build --target AppleFoundationBaselineHost --scratch-path .build-apple-baseline-current-xcode
+
   swift-package-linux:
     name: Swift package Linux build and test
     runs-on: ubuntu-latest
