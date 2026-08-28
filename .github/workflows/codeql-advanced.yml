@@ -1,12 +1,6 @@
 name: CodeQL Advanced
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-  schedule:
-    - cron: "17 3 * * 1"
   workflow_dispatch:
 
 permissions:
@@ -32,22 +26,14 @@ jobs:
         language:
           - actions
           - python
-    env:
-      PR_NUMBER: ${{ github.event.pull_request.number }}
 
     steps:
-      - name: Checkout repository without marketplace checkout
+      - name: Checkout exact workflow revision
         run: |
           set -euo pipefail
           git init .
           git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
-          if git fetch --no-tags --depth=1 origin "${GITHUB_SHA}"; then
-            echo "Fetched ${GITHUB_SHA}"
-          elif [ "${GITHUB_EVENT_NAME}" = "pull_request" ] && [ -n "${PR_NUMBER:-}" ]; then
-            git fetch --no-tags --depth=1 origin "pull/${PR_NUMBER}/merge"
-          else
-            git fetch --no-tags --depth=1 origin "${GITHUB_REF_NAME:-main}"
-          fi
+          git fetch --no-tags --depth=1 origin "${GITHUB_SHA}"
           git checkout --force FETCH_HEAD
           git clean -fdx
           git config --global --add safe.directory "${GITHUB_WORKSPACE}"
@@ -67,22 +53,15 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 30
     env:
-      PR_NUMBER: ${{ github.event.pull_request.number }}
       DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
 
     steps:
-      - name: Checkout repository without marketplace checkout
+      - name: Checkout exact workflow revision
         run: |
           set -euo pipefail
           git init .
           git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
-          if git fetch --no-tags --depth=1 origin "${GITHUB_SHA}"; then
-            echo "Fetched ${GITHUB_SHA}"
-          elif [ "${GITHUB_EVENT_NAME}" = "pull_request" ] && [ -n "${PR_NUMBER:-}" ]; then
-            git fetch --no-tags --depth=1 origin "pull/${PR_NUMBER}/merge"
-          else
-            git fetch --no-tags --depth=1 origin "${GITHUB_REF_NAME:-main}"
-          fi
+          git fetch --no-tags --depth=1 origin "${GITHUB_SHA}"
           git checkout --force FETCH_HEAD
           git clean -fdx
           git config --global --add safe.directory "${GITHUB_WORKSPACE}"
