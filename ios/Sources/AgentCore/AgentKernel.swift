@@ -31,7 +31,7 @@ public final class AgentKernel: @unchecked Sendable {
     private let taskRouter: TaskRouter
     private let auditLog: AuditLog
     private let approvalManager: ApprovalManager
-    private let sensitiveDataDetector: any SensitiveDataDetecting
+    private let sensitiveDataDetector: (any SensitiveDataDetecting)?
     private let runtimeBudgetAssessor: RuntimeBudgetAssessor?
     private let localModelRuntime: LocalModelRuntime?
     private let toolRegistry: ToolRegistry?
@@ -41,7 +41,7 @@ public final class AgentKernel: @unchecked Sendable {
         taskRouter: TaskRouter = TaskRouter(),
         auditLog: AuditLog = AuditLog(),
         approvalManager: ApprovalManager = ApprovalManager(),
-        sensitiveDataDetector: any SensitiveDataDetecting = SensitiveDataDetector(),
+        sensitiveDataDetector: (any SensitiveDataDetecting)? = nil,
         runtimeBudgetAssessor: RuntimeBudgetAssessor? = nil,
         localModelRuntime: LocalModelRuntime? = nil,
         toolRegistry: ToolRegistry? = nil
@@ -115,7 +115,11 @@ public final class AgentKernel: @unchecked Sendable {
         precomputedDetection: SensitiveDataDetectionResult? = nil,
         modelSelectionProposalInput: ModelSelectionProposalInput? = nil
     ) -> AgentResponse {
-        let detection = precomputedDetection ?? sensitiveDataDetector.detect(in: task.userText)
+        let detection = requiredSensitiveDataDetection(
+            in: task.userText,
+            supplementalDetector: sensitiveDataDetector,
+            precomputedSupplemental: precomputedDetection
+        )
         let effectiveDataClassification = DataClassification.effectiveClassification(
             baseClassification: task.dataClassification,
             detectorResult: detection
