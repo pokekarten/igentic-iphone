@@ -4,14 +4,14 @@ public struct DiagnosticSnapshotProducer: Sendable {
     private let approvalManager: ApprovalManager
     private let riskScorer: RiskScorer
     private let delegationBroker: DelegationBroker
-    private let sensitiveDataDetector: any SensitiveDataDetecting
+    private let sensitiveDataDetector: (any SensitiveDataDetecting)?
     private let runtimeBudgetAssessor: RuntimeBudgetAssessor
 
     public init(
         approvalManager: ApprovalManager = ApprovalManager(),
         riskScorer: RiskScorer = RiskScorer(),
         delegationBroker: DelegationBroker = DelegationBroker(),
-        sensitiveDataDetector: any SensitiveDataDetecting = SensitiveDataDetector(),
+        sensitiveDataDetector: (any SensitiveDataDetecting)? = nil,
         runtimeBudgetAssessor: RuntimeBudgetAssessor = RuntimeBudgetAssessor()
     ) {
         self.approvalManager = approvalManager
@@ -26,7 +26,10 @@ public struct DiagnosticSnapshotProducer: Sendable {
         privacyMode: PrivacyMode,
         generatedAt: Date = Date()
     ) -> DiagnosticSnapshot {
-        let detection = sensitiveDataDetector.detect(in: task.userText)
+        let detection = requiredSensitiveDataDetection(
+            in: task.userText,
+            supplementalDetector: sensitiveDataDetector
+        )
         let effectiveDataClassification = DataClassification.effectiveClassification(
             baseClassification: task.dataClassification,
             detectorResult: detection
@@ -34,7 +37,6 @@ public struct DiagnosticSnapshotProducer: Sendable {
 
         let kernel = AgentKernel(
             approvalManager: approvalManager,
-            sensitiveDataDetector: sensitiveDataDetector,
             runtimeBudgetAssessor: runtimeBudgetAssessor
         )
         let response = kernel.handle(task, privacyMode: privacyMode, precomputedDetection: detection)
