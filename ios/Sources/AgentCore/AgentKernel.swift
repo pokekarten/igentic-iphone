@@ -35,6 +35,7 @@ public final class AgentKernel: @unchecked Sendable {
     private let runtimeBudgetAssessor: RuntimeBudgetAssessor?
     private let localModelRuntime: LocalModelRuntime?
     private let toolRegistry: ToolRegistry?
+    private let memoryStore: MemoryStore?
 
     public init(
         policyEngine: PolicyEngine = PolicyEngine(),
@@ -44,7 +45,8 @@ public final class AgentKernel: @unchecked Sendable {
         sensitiveDataDetector: (any SensitiveDataDetecting)? = nil,
         runtimeBudgetAssessor: RuntimeBudgetAssessor? = nil,
         localModelRuntime: LocalModelRuntime? = nil,
-        toolRegistry: ToolRegistry? = nil
+        toolRegistry: ToolRegistry? = nil,
+        memoryStore: MemoryStore? = nil
     ) {
         self.policyEngine = policyEngine
         self.taskRouter = taskRouter
@@ -54,6 +56,7 @@ public final class AgentKernel: @unchecked Sendable {
         self.runtimeBudgetAssessor = runtimeBudgetAssessor
         self.localModelRuntime = localModelRuntime
         self.toolRegistry = toolRegistry
+        self.memoryStore = memoryStore
     }
 
     private func requiredLocalModelCapability(for intent: TaskIntent) -> LocalModelCapability? {
@@ -132,6 +135,18 @@ public final class AgentKernel: @unchecked Sendable {
                 AuditEvent(
                     type: .toolRegistrySnapshot,
                     message: "toolRegistryToolCount=\(toolRegistry.allTools().count)",
+                    dataSensitivity: effectiveDataClassification.level
+                )
+            )
+        }
+
+        if let memoryStore {
+            let sessionCount = memoryStore.entries(in: .session).count
+            let taskCount = memoryStore.entries(in: .task).count
+            auditLog.record(
+                AuditEvent(
+                    type: .memoryStoreSnapshot,
+                    message: "memoryStoreSessionCount=\(sessionCount),memoryStoreTaskCount=\(taskCount)",
                     dataSensitivity: effectiveDataClassification.level
                 )
             )
