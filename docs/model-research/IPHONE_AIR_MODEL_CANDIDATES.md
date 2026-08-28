@@ -1,7 +1,7 @@
 # iPhone Air Model Candidate Manifest
 
 Status: research gate, no runtime integration  
-Sources checked: 2026-06-22; Qwen3 0.6B adapter pin rechecked 2026-08-15  
+Sources checked: 2026-06-22; Qwen3 0.6B adapter pin rechecked 2026-08-15; LFM2 1.2B Tool license reviewed 2026-08-28  
 Parent issues: #74 and #75
 
 ## Purpose
@@ -139,25 +139,27 @@ Primary source: https://huggingface.co/Qwen/Qwen3-0.6B/tree/c1899de289a04d12100d
 MODEL_ID: LiquidAI/LFM2-1.2B-Tool
 MODEL_REVISION: unpinned; pin before download, evaluation or training
 MODEL_ROLE: dedicated non-thinking tool-router comparison
-STATUS: later comparison, license-gated
+STATUS: license reviewed for a conditional research path; model revision and native template remain unpinned
 PARAMETER_SCALE: 1.2B family name; exact pinned configuration required
 MODALITY: text
 LANGUAGES: German is advertised; exact quality must be measured
 CONTEXT_ADVERTISED: unverified for the exact pinned artifact
-LICENSE: lfm1.0
-LICENSE_GATE: required before adapter publication, redistribution or product release
-NATIVE_TOOL_FORMAT: model-specific tool-call special tokens and Python-like output; strict normalization required
-TRAINING_PATH: publisher-linked LoRA/SFT examples for TRL, Axolotl and Unsloth
+LICENSE: LFM Open License v1.0 (lfm1.0)
+LICENSE_GATE: conditional research review recorded; commercial/product/redistribution eligibility remains use- and entity-specific, and a future baseline must re-bind the exact model revision, license reference and intended use before license_gate_status can be approved
+NATIVE_TOOL_FORMAT: model-specific tool-call special tokens and Python-like output; exact template bytes/semantics must be pinned before a baseline adapter
+TRAINING_PATH: publisher-linked LoRA/SFT examples for TRL, Axolotl and Unsloth; no training before comparable untouched baselines
 KNOWN_PORTABLE_FORMATS: Hugging Face safetensors; publisher-linked GGUF path
 RUNTIME_EVIDENCE: LFM2 family implementations exist in llama.cpp and ExecuTorch source; exact iOS artifact untested
 IPHONE_AIR_EVIDENCE: none
-KNOWN_RISKS: custom license, parser complexity, larger footprint, public schema leakage
-NEXT_TEST: untouched native-template baseline only after the license gate
+KNOWN_RISKS: custom license conditions, parser complexity, larger footprint, public schema leakage, unresolved exact model/template provenance
+NEXT_TEST: separately pin the immutable model revision and native tool template, then re-check the license reference for that exact revision before proposing an untouched native-template baseline
 ROLLBACK: FunctionGemma, Qwen3 or deterministic routing
-SOURCES_CHECKED_AT: 2026-06-22
+SOURCES_CHECKED_AT: 2026-08-28
 ```
 
-Primary source: https://huggingface.co/LiquidAI/LFM2-1.2B-Tool
+Canonical license review: `docs/model-research/LFM2_1_2B_TOOL_LICENSE_REVIEW_V0.md`  
+Primary source: https://huggingface.co/LiquidAI/LFM2-1.2B-Tool  
+Immutable license source reviewed: https://huggingface.co/LiquidAI/LFM2-1.2B-Tool/blob/a6323e1f0ded5e89dd217d2a5b38d16380fc308d/LICENSE
 
 ### 4. Qwen3 1.7B
 
@@ -328,7 +330,7 @@ No training run is selected until comparable untouched results exist for:
 2. FunctionGemma 270M;
 3. Qwen3 0.6B in non-thinking mode.
 
-LFM2 Tool may enter only after its license gate.
+LFM2 Tool's license text has a conditional research review, but an untouched LFM2 baseline remains blocked until a separate technical slice pins the exact model revision and native tool template and re-checks the license reference for that exact revision and intended use.
 
 ### Evaluation set
 

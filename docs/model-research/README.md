@@ -1,7 +1,7 @@
 # iGentic Model Research
 
 Status: canonical research index  
-Last reviewed: 2026-08-15
+Last reviewed: 2026-08-28
 
 This directory contains public-safe, source-backed contracts for selecting, evaluating and eventually testing local models for iGentic on the iPhone Air. It does not prove that any custom model currently runs on the device.
 
@@ -13,7 +13,8 @@ This directory contains public-safe, source-backed contracts for selecting, eval
 4. [`docs/model-research/IGENTIC_ACTION_BENCHMARK_V0.md`](IGENTIC_ACTION_BENCHMARK_V0.md) — immutable action-routing benchmark contract.
 5. [The V0 JSONL dataset](igentic-action-benchmark-v0.jsonl) — 40 synthetic German/English V0 cases.
 6. [Qwen3 0.6B Benchmark V0 adapter](QWEN3_0_6B_BASELINE_ADAPTER_V0.md) — pinned, dependency-free request and native-output adapter contract for the Qwen3 0.6B untouched baseline.
-7. Parent research issue `#74` and knowledge-export roadmap `#79` — current source-backed follow-up sequence.
+7. [LFM2 1.2B Tool License Review V0](LFM2_1_2B_TOOL_LICENSE_REVIEW_V0.md) — immutable-source review of the conditional LFM Open License v1.0 research/product boundary; it does not pin or approve a model artifact.
+8. Parent research issue `#74` and knowledge-export roadmap `#79` — current source-backed follow-up sequence.
 
 The product-wide routing rules are in [`docs/KNOWLEDGE_MAP.md`](../KNOWLEDGE_MAP.md).
 
@@ -39,6 +40,10 @@ FunctionGemma is the first very-small task-specialization candidate for a fixed 
 ### Qwen3 0.6B multilingual comparison
 
 Qwen3 0.6B is the first Apache-2.0 multilingual custom-model comparison. The Benchmark V0 adapter pins the exact model/tokenizer revision and non-thinking request/native-output envelope without adding a model runtime dependency. Runtime support or conversion still does not establish acceptable iPhone Air memory, latency, battery or thermal behavior.
+
+### LFM2 1.2B Tool conditional comparison
+
+The LFM Open License v1.0 has a source-bound research review in this directory. That review records a conditional research path and explicit commercial/redistribution obligations, but it is not blanket product approval and it does not determine any entity's revenue status. The exact LFM2 model revision and native tool template remain unpinned, so no untouched LFM2 baseline is authorized by the license review alone.
 
 ### Compact candidate snapshot
 
