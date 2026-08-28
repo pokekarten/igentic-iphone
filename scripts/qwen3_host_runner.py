@@ -75,39 +75,22 @@ def host_environment() -> dict[str, str]:
     return values
 
 
-def tokenizer_chat_template_sha256(tokenizer: Any) -> str:
-    """Hash the exact tokenizer chat-template object used by apply_chat_template."""
-    template = getattr(tokenizer, "chat_template", None)
-    if isinstance(template, str):
-        if not template:
-            raise ValidationError("tokenizer chat template must be non-empty")
-        payload = template.encode("utf-8")
-    elif isinstance(template, dict):
-        if (
-            not template
-            or not all(
-                isinstance(key, str)
-                and key
-                and isinstance(value, str)
-                and value
-                for key, value in template.items()
-            )
-        ):
-            raise ValidationError(
-                "tokenizer chat-template mapping must contain non-empty string templates"
-            )
-        payload = json.dumps(
-            template,
-            ensure_ascii=False,
-            sort_keys=True,
-            separators=(",", ":"),
-            allow_nan=False,
-        ).encode("utf-8")
-    else:
+def tokenizer_chat_template_sha256(tokenizer: Any, tools: Any) -> str:
+    """Hash the exact chat template selected for the tool-bearing request."""
+    get_chat_template = getattr(tokenizer, "get_chat_template", None)
+    if not callable(get_chat_template):
         raise ValidationError(
-            "tokenizer must expose a string or mapping chat_template for provenance"
+            "tokenizer must expose get_chat_template for exact template provenance"
         )
-    return hashlib.sha256(payload).hexdigest()
+    try:
+        template = get_chat_template(tools=tools)
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ValidationError(
+            "tokenizer could not resolve the exact tool-bearing chat template"
+        ) from exc
+    if not isinstance(template, str) or not template:
+        raise ValidationError("selected tokenizer chat template must be non-empty text")
+    return hashlib.sha256(template.encode("utf-8")).hexdigest()
 
 
 def model_context_limit(model: Any) -> int:
@@ -178,7 +161,11 @@ def _token_count(input_ids: Any) -> int:
 
 def generation_cap_reached(generated_ids: Any, max_new_tokens: int) -> bool:
     """Conservatively flag output that consumed the full generation budget."""
-    if isinstance(max_new_tokens, bool) or not isinstance(max_new_tokens, int) or max_new_tokens <= 0:
+    if (
+        isinstance(max_new_tokens, bool)
+        or not isinstance(max_new_tokens, int)
+        or max_new_tokens <= 0
+    ):
         raise ValidationError("max_new_tokens must be a positive integer")
     return _token_count(generated_ids) >= max_new_tokens
 
@@ -220,7 +207,8 @@ def render_and_preflight(
 
 def _write_json(path: Path, value: Any) -> None:
     path.write_text(
-        json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2, allow_nan=False) + "\n",
+        json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2, allow_nan=False)
+        + "\n",
         encoding="utf-8",
     )
 
@@ -263,7 +251,13 @@ def run(snapshot: Path, profile: str, output_dir: Path, device: str) -> None:
     tokenizer, model, set_seed, torch, transformers_version, torch_version = _load_runtime(
         snapshot, device
     )
-    prompt_template_sha256 = tokenizer_chat_template_sha256(tokenizer)
+    requests = build_requests()
+    if not requests:
+        raise ValidationError("Benchmark V0 request set must not be empty")
+    prompt_template_sha256 = tokenizer_chat_template_sha256(
+        tokenizer,
+        requests[0]["tools"],
+    )
     context_limit_tokens = model_context_limit(model)
     profile_values = profile_config(profile)
     if (
