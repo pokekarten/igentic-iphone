@@ -3,8 +3,17 @@ import Foundation
 public struct AppActionApprovalReceipt: Equatable, Sendable {
     public let draftID: UUID
     public let fingerprint: String
+    public let effectiveDataSensitivity: DataSensitivityLevel
     public let approvalReceipt: ApprovalReceipt
-    public func matches(_ draft: AppActionDraft) -> Bool { draftID == draft.id && fingerprint == draft.fingerprint }
+
+    public func matches(
+        _ draft: AppActionDraft,
+        effectiveDataSensitivity: DataSensitivityLevel
+    ) -> Bool {
+        draftID == draft.id
+            && fingerprint == draft.fingerprint
+            && self.effectiveDataSensitivity == effectiveDataSensitivity
+    }
 }
 
 public enum AppActionApprovalEvaluation: Equatable, Sendable {
@@ -58,7 +67,14 @@ public final class AppActionCoordinator: @unchecked Sendable {
         let receipt = approvalManager.approvalReceipt(for: .init(taskSummary: "kind=\(draft.actionKind.rawValue),classification=\(context.effectiveClassification.level.rawValue),risk=\(draft.actionRisk.rawValue)", dataClassification: context.effectiveClassification, actionRisk: draft.actionRisk, reason: context.decision.reason))
         auditLog.record(.init(type: .approvalRequired, message: "Approval evaluated: \(receipt.status.rawValue).", dataSensitivity: context.effectiveClassification.level))
         guard receipt.status == .approved, receipt.mayContinueRouting else { return .blocked(reason: "Approval receipt denied.") }
-        return .required(.init(draftID: draft.id, fingerprint: draft.fingerprint, approvalReceipt: receipt))
+        return .required(
+            .init(
+                draftID: draft.id,
+                fingerprint: draft.fingerprint,
+                effectiveDataSensitivity: context.effectiveClassification.level,
+                approvalReceipt: receipt
+            )
+        )
     }
 
     public func approvalReceipt(for draft: AppActionDraft, privacyMode: PrivacyMode) -> AppActionApprovalReceipt? {
@@ -75,7 +91,10 @@ public final class AppActionCoordinator: @unchecked Sendable {
 
         if approvalRequired(for: draft, decision: context.decision) {
             guard let approvalReceipt,
-                  approvalReceipt.matches(draft),
+                  approvalReceipt.matches(
+                    draft,
+                    effectiveDataSensitivity: context.effectiveClassification.level
+                  ),
                   approvalReceipt.approvalReceipt.status == .approved,
                   approvalReceipt.approvalReceipt.mayContinueRouting else {
                 auditLog.record(.init(type: .approvalRequired, message: "Approval receipt is stale, missing, or not explicitly approved.", dataSensitivity: context.effectiveClassification.level))
@@ -88,6 +107,7 @@ public final class AppActionCoordinator: @unchecked Sendable {
         let notRequiredReceipt = AppActionApprovalReceipt(
             draftID: draft.id,
             fingerprint: draft.fingerprint,
+            effectiveDataSensitivity: context.effectiveClassification.level,
             approvalReceipt: .init(
                 status: .notRequired,
                 requestID: UUID().uuidString,
