@@ -152,3 +152,23 @@ public struct SensitiveDataDetector: SensitiveDataDetecting {
         return regex.firstMatch(in: text, options: [], range: range) != nil
     }
 }
+
+func requiredSensitiveDataDetection(
+    in text: String,
+    supplementalDetector: (any SensitiveDataDetecting)? = nil,
+    precomputedSupplemental: SensitiveDataDetectionResult? = nil
+) -> SensitiveDataDetectionResult {
+    let baseline = SensitiveDataDetector().detect(in: text)
+    let supplemental = precomputedSupplemental ?? supplementalDetector?.detect(in: text)
+
+    guard let supplemental else {
+        return baseline
+    }
+
+    var seenCategories = Set<String>()
+    let mergedFindings = (baseline.findings + supplemental.findings).filter { finding in
+        seenCategories.insert(finding.category.rawValue).inserted
+    }
+
+    return SensitiveDataDetectionResult(findings: mergedFindings)
+}
