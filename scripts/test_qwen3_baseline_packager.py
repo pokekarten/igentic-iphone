@@ -242,6 +242,27 @@ class Qwen3BaselinePackagerTests(unittest.TestCase):
                 if name != packager.NORMALIZED_PROPOSALS:
                     self.assertFalse((run_dir / name).exists())
 
+    def test_dangling_output_symlink_causes_prewrite_failure(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            run_dir = self.make_run(Path(temp))
+            target = run_dir / packager.NORMALIZED_PROPOSALS
+            try:
+                target.symlink_to("missing-normalized-proposals.jsonl")
+            except OSError:
+                self.skipTest("symlinks are unavailable in this environment")
+
+            self.assertTrue(target.is_symlink())
+            self.assertFalse(target.exists())
+            with self.assertRaises(ValidationError):
+                packager.package_run(run_dir)
+
+            self.assertTrue(target.is_symlink())
+            self.assertFalse(target.exists())
+            for name in packager.OUTPUT_FILENAMES:
+                candidate = run_dir / name
+                if name != packager.NORMALIZED_PROPOSALS:
+                    self.assertFalse(candidate.exists() or candidate.is_symlink())
+
     def test_symlinked_input_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
