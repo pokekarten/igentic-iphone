@@ -2,6 +2,19 @@ import XCTest
 @testable import AgentCore
 
 final class AppActionCoordinatorTests: XCTestCase {
+    private struct ForcedIBANSensitiveDataDetector: SensitiveDataDetecting {
+        func detect(in text: String) -> SensitiveDataDetectionResult {
+            SensitiveDataDetectionResult(
+                findings: [
+                    SensitiveDataFinding(
+                        category: .iban,
+                        reason: SensitiveDataCategory.iban.detectionReason
+                    )
+                ]
+            )
+        }
+    }
+
     private func draft(
         id: String,
         kind: AppActionDraft.ActionKind,
@@ -50,6 +63,7 @@ final class AppActionCoordinatorTests: XCTestCase {
         let invalidReceipt = AppActionApprovalReceipt(
             draftID: action.id,
             fingerprint: action.fingerprint,
+            effectiveDataSensitivity: .publicData,
             approvalReceipt: ApprovalReceipt(
                 status: .notRequired,
                 requestID: "synthetic-not-required",
@@ -94,6 +108,7 @@ final class AppActionCoordinatorTests: XCTestCase {
         case .approved(let receipt):
             XCTAssertEqual(receipt.draftID, draft.id)
             XCTAssertEqual(receipt.fingerprint, draft.fingerprint)
+            XCTAssertEqual(receipt.effectiveDataSensitivity, .publicData)
             XCTAssertEqual(receipt.approvalReceipt.status, .notRequired)
             XCTAssertTrue(receipt.approvalReceipt.mayContinueRouting)
         default:
@@ -197,6 +212,54 @@ final class AppActionCoordinatorTests: XCTestCase {
                 approvalReceipt: approval
             ),
             .blockedPendingApproval
+        )
+    }
+
+    func testChangedEffectiveClassificationInvalidatesReceipt() {
+        let action = draft(
+            id: "44444444-5555-6666-7777-888888888888",
+            kind: .updateRecord,
+            payload: "ordinary payload",
+            risk: .execute
+        )
+        let originalCoordinator = AppActionCoordinator(
+            approvalManager: .init(defaultStatus: .approved)
+        )
+        guard let originalReceipt = originalCoordinator.approvalReceipt(
+            for: action,
+            privacyMode: .trustedDevices
+        ) else {
+            return XCTFail("Expected initial approval receipt.")
+        }
+        XCTAssertEqual(originalReceipt.effectiveDataSensitivity, .publicData)
+
+        let stricterCoordinator = AppActionCoordinator(
+            approvalManager: .init(defaultStatus: .approved),
+            sensitiveDataDetector: ForcedIBANSensitiveDataDetector()
+        )
+        guard let freshReceipt = stricterCoordinator.approvalReceipt(
+            for: action,
+            privacyMode: .trustedDevices
+        ) else {
+            return XCTFail("Expected a fresh receipt for the stricter effective classification.")
+        }
+        XCTAssertEqual(freshReceipt.effectiveDataSensitivity, .restrictedSensitiveData)
+
+        XCTAssertEqual(
+            stricterCoordinator.perform(
+                action,
+                privacyMode: .trustedDevices,
+                approvalReceipt: originalReceipt
+            ),
+            .blockedPendingApproval
+        )
+        XCTAssertEqual(
+            stricterCoordinator.perform(
+                action,
+                privacyMode: .trustedDevices,
+                approvalReceipt: freshReceipt
+            ),
+            .approved(freshReceipt)
         )
     }
 
