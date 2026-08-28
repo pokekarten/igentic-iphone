@@ -51,6 +51,27 @@ public struct AppActionApprovalPolicy: Codable, Equatable, Sendable {
     }
 }
 
+private extension AppActionApprovalPolicy {
+    var hasCompleteRuleSet: Bool {
+        let expectedActionKinds = Set([
+            AppActionDraft.ActionKind.sendMessage.rawValue,
+            AppActionDraft.ActionKind.deleteRecord.rawValue,
+            AppActionDraft.ActionKind.updateRecord.rawValue,
+            AppActionDraft.ActionKind.exportData.rawValue
+        ])
+        let storedActionKinds = rules.map(\.actionKindRawValue)
+
+        return rules.count == expectedActionKinds.count
+            && Set(storedActionKinds).count == storedActionKinds.count
+            && Set(storedActionKinds) == expectedActionKinds
+            && rules.allSatisfy { $0.actionKind != nil }
+    }
+}
+
+private enum AppActionApprovalPolicyStoreError: Error {
+    case invalidRuleSet
+}
+
 public struct AppActionApprovalPolicyStore: Sendable {
     public let fileURL: URL
 
@@ -67,8 +88,12 @@ public struct AppActionApprovalPolicyStore: Sendable {
     }
 
     public func load() -> AppActionApprovalPolicy? {
-        guard let data = try? Data(contentsOf: fileURL) else { return nil }
-        return try? JSONDecoder.agentKernelPolicy.decode(AppActionApprovalPolicy.self, from: data)
+        guard let data = try? Data(contentsOf: fileURL),
+              let policy = try? JSONDecoder.agentKernelPolicy.decode(AppActionApprovalPolicy.self, from: data),
+              policy.hasCompleteRuleSet else {
+            return nil
+        }
+        return policy
     }
 
     public func loadOrDefault() -> AppActionApprovalPolicy {
@@ -89,6 +114,10 @@ public struct AppActionApprovalPolicyStore: Sendable {
     }
 
     public func save(_ policy: AppActionApprovalPolicy, fileManager: FileManager = .default) throws {
+        guard policy.hasCompleteRuleSet else {
+            throw AppActionApprovalPolicyStoreError.invalidRuleSet
+        }
+
         let data = try JSONEncoder.agentKernelPolicy.encode(policy)
         let directoryURL = fileURL.deletingLastPathComponent()
         if directoryURL.path != "/" && directoryURL.path != "." {
