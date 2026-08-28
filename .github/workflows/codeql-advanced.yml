@@ -1,0 +1,131 @@
+name: CodeQL Advanced
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  interpreted:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        language:
+          - actions
+          - python
+    env:
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+
+    steps:
+      - name: Checkout repository without marketplace checkout
+        run: |
+          set -euo pipefail
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          if git fetch --no-tags --depth=1 origin "${GITHUB_SHA}"; then
+            echo "Fetched ${GITHUB_SHA}"
+          elif [ "${GITHUB_EVENT_NAME}" = "pull_request" ] && [ -n "${PR_NUMBER:-}" ]; then
+            git fetch --no-tags --depth=1 origin "pull/${PR_NUMBER}/merge"
+          else
+            git fetch --no-tags --depth=1 origin "${GITHUB_REF_NAME:-main}"
+          fi
+          git checkout --force FETCH_HEAD
+          git clean -fdx
+          git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:${{ matrix.language }}"
+
+  swift:
+    name: Analyze (swift)
+    runs-on: macos-15
+    timeout-minutes: 30
+    env:
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
+
+    steps:
+      - name: Checkout repository without marketplace checkout
+        run: |
+          set -euo pipefail
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          if git fetch --no-tags --depth=1 origin "${GITHUB_SHA}"; then
+            echo "Fetched ${GITHUB_SHA}"
+          elif [ "${GITHUB_EVENT_NAME}" = "pull_request" ] && [ -n "${PR_NUMBER:-}" ]; then
+            git fetch --no-tags --depth=1 origin "pull/${PR_NUMBER}/merge"
+          else
+            git fetch --no-tags --depth=1 origin "${GITHUB_REF_NAME:-main}"
+          fi
+          git checkout --force FETCH_HEAD
+          git clean -fdx
+          git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+
+      - name: Verify Xcode and Swift toolchain
+        run: |
+          set -euo pipefail
+          test -d "${DEVELOPER_DIR}"
+          xcodebuild -version
+          swift --version
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: swift
+          build-mode: manual
+
+      - name: Build Swift package and iOS wrapper for CodeQL
+        run: |
+          set -euo pipefail
+
+          rm -rf ios/.build-codeql "${RUNNER_TEMP}/iGenticCodeQLDerivedData"
+
+          (
+            cd ios
+            swift build --scratch-path .build-codeql
+          )
+
+          xcodebuild \
+            -project app/iGenticDiagnostics/iGenticDiagnostics.xcodeproj \
+            -scheme iGenticDiagnostics \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "${RUNNER_TEMP}/iGenticCodeQLDerivedData" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            COMPILATION_CACHE_ENABLE_CACHING=NO \
+            SWIFT_ENABLE_COMPILE_CACHE=NO \
+            SWIFT_USE_INTEGRATED_DRIVER=NO \
+            build
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:swift"
