@@ -61,7 +61,7 @@ class AppleFoundationBaselinePackagerTests(unittest.TestCase):
             raw[0]["proposal"] = {
                 "proposalType": "clarify",
                 "intent": "findFile",
-                "tool": "createReminder",
+                "tool": "findFile",
                 "arguments": {"title": "model-generated but wrong"},
                 "missingArguments": ["query", "query"],
                 "reasonCode": "ambiguous_file_reference",
@@ -70,7 +70,7 @@ class AppleFoundationBaselinePackagerTests(unittest.TestCase):
                 "case_id": raw[0]["case_id"],
                 "proposalType": "clarify",
                 "intent": "findFile",
-                "tool": "createReminder",
+                "tool": "findFile",
                 "arguments": {"title": "model-generated but wrong"},
                 "missingArguments": ["query", "query"],
                 "reasonCode": "ambiguous_file_reference",
