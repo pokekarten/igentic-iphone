@@ -556,7 +556,11 @@ def build_package(run_dir: Path) -> dict[str, bytes]:
 
 
 def _ensure_outputs_absent(run_dir: Path) -> None:
-    existing = [name for name in OUTPUT_FILENAMES if (run_dir / name).exists()]
+    existing = [
+        name
+        for name in OUTPUT_FILENAMES
+        if (run_dir / name).exists() or (run_dir / name).is_symlink()
+    ]
     if existing:
         raise ValidationError(
             "refusing to package because target evidence files already exist: "
