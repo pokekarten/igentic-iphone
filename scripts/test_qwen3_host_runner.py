@@ -32,6 +32,16 @@ class FakeTokenizer:
         return {"input_ids": FakeIds(self.count)}
 
 
+class FakeModelConfig:
+    def __init__(self, max_position_embeddings) -> None:
+        self.max_position_embeddings = max_position_embeddings
+
+
+class FakeModel:
+    def __init__(self, max_position_embeddings) -> None:
+        self.config = FakeModelConfig(max_position_embeddings)
+
+
 class Qwen3HostRunnerTests(unittest.TestCase):
     def test_snapshot_must_be_exact_pinned_revision(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -99,6 +109,13 @@ class Qwen3HostRunnerTests(unittest.TestCase):
                         FakeTokenizer(128, chat_template=template)
                     )
 
+    def test_model_context_limit_is_explicit_and_fail_closed(self) -> None:
+        self.assertEqual(runner.model_context_limit(FakeModel(32768)), 32768)
+        for value in (None, 0, -1, True, "32768"):
+            with self.subTest(value=value):
+                with self.assertRaises(ValidationError):
+                    runner.model_context_limit(FakeModel(value))
+
     def test_profile_limits_are_canonical(self) -> None:
         self.assertEqual(
             runner.profile_config("Router-small"),
@@ -160,6 +177,19 @@ class Qwen3HostRunnerTests(unittest.TestCase):
         self.assertEqual(upstream["temperature"], 0.6)
         with self.assertRaises(ValidationError):
             runner.effective_generation_config([], "Router-small")
+
+    def test_output_observations_are_explicit_and_conservative(self) -> None:
+        self.assertFalse(runner.generation_cap_reached([1] * 31, 32))
+        self.assertTrue(runner.generation_cap_reached([1] * 32, 32))
+        with self.assertRaises(ValidationError):
+            runner.generation_cap_reached([1], 0)
+
+        single = f"{adapter.TOOL_CALL_OPEN}{{}}{adapter.TOOL_CALL_CLOSE}"
+        repeated = single + single
+        self.assertFalse(runner.repeated_proposal_envelope_detected(single))
+        self.assertTrue(runner.repeated_proposal_envelope_detected(repeated))
+        with self.assertRaises(ValidationError):
+            runner.repeated_proposal_envelope_detected(None)
 
     def test_preflight_uses_adapter_visible_inputs_and_transport_template_kwargs(self) -> None:
         tokenizer = FakeTokenizer(128)
