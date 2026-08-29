@@ -19,9 +19,9 @@ proposal
 -> PolicyEngine
 -> explicit ApprovalManager approval
 -> one-shot CreateReminderExecutionCapability
--> platform permission/preflight
 -> CreateReminderExecuting.execute(...)
--> exactly one EventKit save attempt
+-> platform permission/preflight
+-> at most one EventKit save attempt
 -> metadata-minimized audit result
 ```
 
