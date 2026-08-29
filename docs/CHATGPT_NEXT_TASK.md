@@ -4,166 +4,91 @@ Repository: `pokekarten/igentic-iphone`
 
 ## Source-of-truth contract
 
-Current verified GitHub source overrides this file, Brain and memory for pull-request, issue, branch, check and merge state.
+Current verified GitHub source is authoritative for pull requests, issues, branches, checks, merged state and active work.
 
-The only mutable source for the active iGentic target and lane stage is the authorized private Brain lane. This file defines durable execution rules only. It must not store a live PR number, current head SHA, mergeability result or current lane stage.
+This file contains durable execution rules only. It must not be treated as a live task queue and must not store an authoritative current PR number, branch head, mergeability result or scheduler lane stage.
 
-A merged or closed target must never be revived from stale text.
+Private Brain notes, old task envelopes, memory and historical automation state are supporting context only. They never override live GitHub.
+
+A merged, closed, superseded or otherwise terminal target must never be revived from stale text.
 
 ## Operating mode
 
-Mode: `IGENTIC_FIVE_TASK_AUTONOMY`.
+Mode: `MANUAL_GITHUB_FIRST`.
 
-Status note: the five-slot autonomy system is currently suspended and must not be treated as active until explicitly resumed.
+The historical five-slot/private-Brain autonomy controller is suspended. Slot00/12/30/42/54 role sequencing is not an active iGentic execution contract and must not be recreated unless the owner explicitly authorizes a new migration.
 
-The platform defines five scheduled task slots. The complete product cycle is therefore:
+Normal work is direct and source-backed:
 
-```text
-00 Director
-12 Producer
-30 Validate + Review
-42 Closer
-54 Sequencer
-```
+1. read live GitHub;
+2. adopt an existing open implementation PR if one exists;
+3. otherwise select one smallest safe issue whose ordering constraints are satisfied;
+4. implement, validate, review and close that one bounded change;
+5. re-read GitHub before selecting more work.
 
-Adding another active task requires deliberately replacing one of these five. Historical context, reviewer, validation-watcher, blocker, failover and hygiene automations remain disabled unless a reviewed migration explicitly replaces an active task.
+## WIP rules
 
-Operating rules:
-
-- Exactly one active iGentic implementation target is allowed.
-- At most one active iGentic implementation PR is allowed.
-- Existing open iGentic PRs take priority over selecting new issues.
-- When no PR exists, select one smallest safe source-backed iGentic issue.
-- Pokekartenkiste remains controlled by its paused Brain lane and outside this product cycle.
-- `agentic-dev-playbook` and `agentic-slm-lab` are support repositories, never implicit product targets.
-- GitHub Actions provide technical evidence; scheduled tasks provide routing, implementation, semantic review and controlled closure.
-
-## Five-task roles
-
-### Slot00 Director
-
-- reconciles stale, terminal or missing targets;
-- verifies that no duplicate target or PR exists;
-- selects exactly one next safe target only in a context stage;
-- writes the complete target envelope to the private lane;
-- never edits product files, reviews or merges.
-
-### Slot12 Producer
-
-- acts only in `PRODUCER_PENDING/PRODUCER`;
-- adopts an equivalent branch or PR instead of creating parallel scope;
-- changes only the allowlisted files;
-- creates or updates exactly one bounded Draft PR;
-- re-reads branch files and PR head;
-- routes the exact head to `REVIEW_PENDING/REVIEWER`;
-- never reviews or merges its own work.
-
-### Slot30 Validate + Review
-
-- acts only in `REVIEW_PENDING/REVIEWER`;
-- combines current-head workflow reconciliation with independent semantic review;
-- reads the issue, PR body, complete diff, comments, reviews and review threads;
-- routes concrete defects back to the Producer;
-- routes a clean exact head to `CLOSER_PENDING/CLOSER`;
-- never implements or merges.
-
-### Slot42 Closer
-
-- acts only in `CLOSER_PENDING/CLOSER` with explicit same-head authorization;
-- marks a Draft Ready only after all gates pass;
-- re-checks the stable head and current required evidence;
-- squash-merges at most one PR with expected-head protection;
-- confirms terminal GitHub state and synchronizes the lane to `COMPLETE/CONTEXT`;
-- never selects the next target.
-
-### Slot54 Sequencer
-
-- reconciles the active lane, rollup and paused lane;
-- verifies legal transitions and detects drift or duplicate scope;
-- records complete autonomous cycles only from source-backed evidence;
-- does not implement, review or merge;
-- after three consecutive complete untouched cycles, may record `AUTONOMY_PROVEN=three_cycles` and notify the owner once.
-
-## Legal stage sequence
-
-```text
-CONTEXT_PENDING/CONTEXT
--> PRODUCER_PENDING/PRODUCER
--> REVIEW_PENDING/REVIEWER
--> CLOSER_PENDING/CLOSER
--> COMPLETE/CONTEXT
-```
-
-Alternative safe states:
-
-```text
-WAITING_RUNNER
-WAITING_API
-BLOCKED_TOOL_RETRYABLE
-OWNER_BOUNDARY
-```
-
-A non-authorized task reads the lane once, returns `NO_TRIGGER` and performs no product read or mutation.
+- Exactly one active iGentic implementation target at a time.
+- At most one active iGentic implementation PR at a time.
+- Existing open implementation PRs take priority over selecting new work.
+- Do not create placeholder, no-op or duplicate PRs merely to generate activity.
+- Waiting for a required runner is not a code defect and does not justify changing the branch.
+- A settings, hardware, license or external-host blocker must remain explicit rather than being converted into unrelated repository code.
+- `agentic-dev-playbook`, `agentic-slm-lab`, `agentic-private-brain` and other support repositories are never implicit iGentic product targets.
 
 ## Mandatory reconciliation preflight
 
-Before an authorized action:
+Before a product mutation:
 
 ```text
-1. Read the private lane.
-2. Confirm stage and next role authorize this task.
-3. Read the exact named GitHub target.
-4. Confirm repository, target kind, number, state, lane ID and revision.
-5. For PRs, confirm current head, draft state and complete changed-file scope.
-6. Confirm no duplicate implementation target, PR or equivalent branch exists.
-7. Confirm the action stays inside allowed files and stop rules.
-8. If the target is terminal, missing or mismatched, perform no product mutation and route repair.
+1. Read current main and current open PRs.
+2. Read the exact selected issue plus relevant current comments.
+3. Confirm ordering prerequisites and stop rules.
+4. Search for an equivalent open PR or branch before creating another.
+5. Record the exact starting main SHA and, after writing, the exact branch head.
+6. Confirm the proposed change stays inside the selected scope.
+7. If the target is already terminal or the prerequisite is unmet, do not mutate product code.
 ```
 
-## Target envelope
+## Review and merge contract
 
-The private lane must carry:
+For an implementation PR:
 
-```text
-TARGET_REPO
-TARGET_KIND
-TARGET_NUMBER
-TARGET_BRANCH when applicable
-TARGET_BASE_SHA when applicable
-TARGET_HEAD
-TARGET_STATE
-LANE_ID
-STAGE
-REVISION
-ALLOWED_FILES
-ACCEPTANCE_CRITERIA
-VALIDATION
-STOP_RULES
-NEXT_ALLOWED_ROLE
-WATCHED_TARGETS
-```
+- read the complete current-head diff;
+- read issue/PR comments, reviews and open review threads;
+- require evidence for the exact current head;
+- distinguish semantic review from CI status;
+- fix only concrete current-head defects;
+- merge with expected-head protection only after the required evidence is terminal and green.
 
-For a PR target, all review and closure evidence must match the current live head SHA.
+Do not create a new commit solely to retrigger already-valid CI.
 
 ## Required technical evidence
 
-The source contract is `docs/WORKFLOWS.md`.
+The workflow source contract is `docs/WORKFLOWS.md`.
 
-Baseline required checks:
+Baseline repository checks include:
 
-- PR Change Scope
-- Pull Request Quality
-- Repo Audit
-- Phase 0 CI Validation
+- PR Change Scope;
+- Pull Request Quality;
+- Repo Audit;
+- Phase 0 CI Validation.
 
-Additional checks:
+Additional checks apply by scope, including Docs Consistency for project-control/documentation changes and Workflow Lint for workflow changes.
 
-- Docs Consistency for documentation and project-control changes;
-- Workflow Lint for `.github/workflows/**` changes.
+Baseline local commands are:
 
-Standalone Swift is supporting evidence only when required Phase 0 succeeds.
+```bash
+python3 scripts/validate_repo_structure.py
+```
 
-The `PR Autonomy Gate` marker is an index only. `CI_GREEN` is technical evidence, not semantic approval or merge authorization.
+Swift source changes normally also require:
+
+```bash
+cd ios && swift test
+```
+
+The iOS App Wrapper is required when the scoped change can affect the diagnostic app target. Compile/simulator evidence is platform evidence only and is not physical-device readiness evidence.
 
 ## Resource-aware behavior
 
@@ -173,21 +98,19 @@ API 403/429 -> WAITING_API
 concrete current-head failure -> FIX_NEEDED
 required checks green + semantic review clean -> READY_FOR_CLOSE
 terminal GitHub state -> COMPLETE
+settings/hardware/license boundary -> OWNER_OR_EXTERNAL_BOUNDARY
 ```
 
 Rules:
 
-- Runner waiting is not a code defect.
-- Do not retry, rewrite a branch or create a no-op commit to retrigger CI.
-- Connector calls are serial and lane-first.
-- Successful job logs are not downloaded.
-- Detailed steps or logs are fetched only for a concrete current-head failure.
-- One authorized Producer or Closer performs at most one product mutation before readback.
-- On API `403` or `429`, stop and do not probe alternate mutation endpoints.
+- Do not rewrite a correct branch while runners are merely queued.
+- Fetch detailed logs only for a concrete failure or when needed to distinguish a real blocker from runner delay.
+- On an unavailable mutation API, do not probe risky alternate write paths.
+- Do not claim work happened on a physical Mac, device, account setting or gated upstream service without source-backed evidence from that environment.
 
 ## Pull-request contract
 
-Every iGentic PR body must contain:
+Every iGentic PR body should make these sections explicit:
 
 ```text
 Summary
@@ -197,60 +120,55 @@ Safety
 Follow-up
 ```
 
-It must name `python3 scripts/validate_repo_structure.py` and either `cd ios && swift test` or an explicit reason that Swift tests are not applicable.
+It should name `python3 scripts/validate_repo_structure.py` and either `cd ios && swift test` or an explicit reason Swift tests do not apply.
 
-## Safety boundaries
+## Product safety boundaries
 
-Do not add or claim:
+Models may propose. Deterministic policy, approval, schema validation, execution boundaries and audit remain authoritative.
+
+Do not add or claim without an explicitly source-backed scope:
 
 - networking or external providers;
-- real model execution unless explicitly authorized by a later scoped issue;
+- real model execution;
 - persistence of private user data;
-- App Intents execution or side effects;
+- App Intents/Siri execution or side effects;
 - signing files, entitlements or provisioning profiles;
-- physical-device performance or readiness without physical-device evidence;
 - credentials, secrets, real messages, contacts, files or identifiers;
-- Pokekartenkiste, Playbook or SLM-lab product mutations from this lane;
+- physical-device performance/readiness from host or simulator evidence;
 - a second active implementation PR.
 
-Models may propose. Deterministic policy, approval, schema validation, execution and audit remain authoritative.
+For Safe Action work, a platform permission grant is setup/access control, never approval for a specific action. Existing-reminder content must not be read merely because EventKit Full Access technically permits it. A real reminder save remains a separately reviewed side-effect boundary and must not be inferred from completion of approval, destination-resolution or TOCTOU components.
+
+## Research execution boundary
+
+Untouched model baselines must preserve their frozen benchmark, model revision, decoding and seed contracts. Do not repair weak outputs, select favorable cases/seeds or substitute a newer repository/model SHA without re-establishing the execution gate.
+
+Host evidence remains host evidence. Physical iPhone claims require physical-device evidence.
 
 ## Completion transaction
 
-After merge or source-backed issue closure:
+After a merge or source-backed issue closure:
 
 ```text
-1. Re-read the target and confirm terminal GitHub state.
-2. Confirm changed content on main when applicable.
-3. Close the linked implementation issue only when acceptance criteria are satisfied.
-4. Record terminal artifact and merge/closure evidence.
-5. Increment lane revision and set COMPLETE/CONTEXT.
-6. Preserve watched targets and clear the completed target as active work.
-7. Re-read the lane.
-8. Allow Slot00 to select the next target on its next authorized run.
+1. Re-read the PR/issue and confirm terminal GitHub state.
+2. Confirm the expected content exists on main.
+3. Confirm any linked issue closed only when its acceptance criteria were satisfied.
+4. Clear the completed work from the mental/automation queue.
+5. Re-read open PRs and issue ordering before selecting another target.
 ```
-
-## Current migration rule
-
-The previous control repair, iGentic PR #99 on branch `phase2/model-selection-engine-v3`, is closed on GitHub and was not merged. There is currently no active implementation target, so the repo is in manual mode until a new source-backed target is explicitly authorized.
-
-Issue #88 is already terminal (`closed` / `completed`). Its untouched-baseline provenance scope is closed history, not the next active target, and it must not be implemented in the migration PR.
 
 ## Expected terminal results
 
 ```text
 PR_OPENED
-COLLISION_ADOPTED
-WRITE_SKIPPED_IDENTICAL
 VALIDATION_EVIDENCE
 REVIEW_EVIDENCE
 READY_FOR_CLOSE
-MERGED_AND_SYNCED
-STATE_SYNCED
+MERGED_AND_CONFIRMED
+STATE_RECONCILED
 WAITING_RUNNER
 WAITING_API
-BLOCKED_TOOL_RETRYABLE
-OWNER_BOUNDARY
+OWNER_OR_EXTERNAL_BOUNDARY
 NEXT_TARGET_NEEDED
 NO_TRIGGER
 ```
