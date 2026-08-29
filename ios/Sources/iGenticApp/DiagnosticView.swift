@@ -8,6 +8,8 @@ public struct DiagnosticView: View {
     private let setupConfirmationStore: AppActionApprovalPolicySetupConfirmationStore?
     @State private var approvalPolicy: AppActionApprovalPolicy
     @State private var isInitialSetupPresented: Bool
+    @State private var isReminderApprovalPresented: Bool
+    @State private var reminderApprovalOutcome: String
 
     public init(
         state: DiagnosticViewState = DiagnosticViewState(),
@@ -25,6 +27,8 @@ public struct DiagnosticView: View {
                 && approvalPolicyStore != nil
                 && setupConfirmationStore != nil
         )
+        self._isReminderApprovalPresented = State(initialValue: false)
+        self._reminderApprovalOutcome = State(initialValue: "Not reviewed")
     }
 
     public var body: some View {
@@ -46,6 +50,19 @@ public struct DiagnosticView: View {
                     Text("Bundled sample content only. No network or model execution.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
+                }
+
+                Section("Safe Action approval (synthetic, no execution)") {
+                    Button("Review synthetic reminder") {
+                        isReminderApprovalPresented = true
+                    }
+
+                    LabeledContent("Last decision", value: reminderApprovalOutcome)
+
+                    Text("This uses one fixed public-safe reminder subject to exercise the real human approval surface. Approval creates only an in-memory bound decision receipt; it does not issue a capability or write a reminder.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
 
                 Section("Sample / preview snapshot") {
@@ -113,6 +130,21 @@ public struct DiagnosticView: View {
                     )
                 }
                 .interactiveDismissDisabled()
+            }
+        }
+        .sheet(isPresented: $isReminderApprovalPresented) {
+            CreateReminderApprovalView(
+                subject: CreateReminderApprovalSubject.syntheticDiagnosticPreview()
+            ) { decision in
+                switch decision {
+                case .approved:
+                    reminderApprovalOutcome = "Approved (no execution)"
+                case .rejected:
+                    reminderApprovalOutcome = "Rejected"
+                case .cancelled:
+                    reminderApprovalOutcome = "Cancelled"
+                }
+                isReminderApprovalPresented = false
             }
         }
     }
