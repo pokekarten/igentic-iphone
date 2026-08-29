@@ -209,6 +209,39 @@ final class CreateReminderApprovalBindingTests: XCTestCase {
         XCTAssertNil(ledger.state(for: secondCapabilityID))
     }
 
+    func testFreshApprovalRequestMayMintFreshCapability() throws {
+        let ledger = SafeActionExecutionCapabilityLedger()
+        let issuer = CreateReminderCapabilityIssuer(ledger: ledger)
+        let value = try draft()
+        let firstCapabilityID = UUID(uuidString: "00000000-0000-0000-0000-000000000995")!
+        let secondCapabilityID = UUID(uuidString: "00000000-0000-0000-0000-000000000994")!
+
+        guard case .issued = issuer.issue(
+            draft: value,
+            approval: receipt(for: value, requestID: "approval-attempt-1"),
+            privacyMode: .localOnly,
+            use: .productionSideEffect,
+            capabilityID: firstCapabilityID
+        ) else {
+            return XCTFail("Expected first fresh approval to issue a capability")
+        }
+
+        let second = issuer.issue(
+            draft: value,
+            approval: receipt(for: value, requestID: "approval-attempt-2"),
+            privacyMode: .localOnly,
+            use: .productionSideEffect,
+            capabilityID: secondCapabilityID
+        )
+
+        guard case .issued(let capability) = second else {
+            return XCTFail("Expected a fresh approval identity to permit a fresh capability")
+        }
+        XCTAssertEqual(capability.approvalRequestID, "approval-attempt-2")
+        XCTAssertEqual(ledger.state(for: firstCapabilityID), .issued)
+        XCTAssertEqual(ledger.state(for: secondCapabilityID), .issued)
+    }
+
     func testDuplicateCapabilityIdentityFailsClosed() throws {
         let ledger = SafeActionExecutionCapabilityLedger()
         let issuer = CreateReminderCapabilityIssuer(ledger: ledger)
