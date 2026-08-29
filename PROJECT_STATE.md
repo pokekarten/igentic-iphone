@@ -55,20 +55,20 @@ The bounded `createReminder` path now has a reviewed pre-save authority chain on
 - pre-save TOCTOU recheck of destination class and opaque target identity;
 - an application-level non-read boundary that does not fetch or enumerate existing reminders merely because Reminders Full Access permits reads.
 
-This foundation does **not** authorize a real reminder save. EventKit permission setup and any first `EKReminder` creation/save remain separate side-effect boundaries. Repository/platform security prerequisites must be satisfied before a real side-effect path is enabled.
+This foundation does **not** authorize a real reminder save. EventKit permission setup and any first `EKReminder` creation/save remain separate side-effect boundaries. Repository admission prerequisites — required default-branch enforcement followed by the planned public-content admission gate — must be satisfied before a real side-effect path is enabled.
 
 ## Current execution and security frontier
 
 Live GitHub must be re-read before acting. The remaining work classes include:
 
 - repository admission/security enforcement, including required commit-metadata privacy protection and the follow-on public-content admission gate;
-- completion of the GitHub CodeQL Advanced Setup platform migration;
+- continued healthy CodeQL Default Setup evidence; Advanced Setup remains optional hardening unless a concrete customization need emerges;
 - untouched host baseline execution for Qwen3 0.6B;
 - untouched host baseline execution for Apple Foundation Models on an eligible Apple-Silicon Mac;
 - FunctionGemma transport/decoding provenance before any adapter or training work;
 - physical-Mac autonomous-worker activation/evidence before relying on unattended host execution;
 - later physical iPhone evidence before any on-device performance/readiness claim;
-- only after required platform gates, a separately reviewed first real Safe Action side-effect slice.
+- only after required repository admission gates, a separately reviewed first real Safe Action side-effect slice.
 
 Planning or execution issues are not proof that these results already exist.
 
@@ -117,7 +117,7 @@ If the sources diverge, current GitHub source wins.
 
 - The safety-first kernel includes policy, approval, sensitive-data classification, runtime-budget/model-selection diagnostics, ToolRegistry observability and bounded MemoryStore count-only observability.
 - Benchmark/evaluator, baseline-manifest, Qwen host-runner and Apple Foundation Models host-runner/packager contracts exist on `main`.
-- The Advanced CodeQL workflow contains an explicit manual Swift build path instead of relying on Swift autobuild; platform migration/enforcement must still be verified separately before claiming CodeQL admission is complete.
+- GitHub CodeQL Default Setup currently has successful real PR evidence for actions, Python and Swift. The staged Advanced workflow preserves an explicit manual Swift build as a hardening/fallback option, not a current product prerequisite.
 - The Explore diagnostic shell supports bundled local Markdown discovery and deterministic local navigation/search behavior.
 - Safe Action V0 now has the side-effect-free human approval surface and the read-only EventKit destination/TOCTOU boundary described above.
 
@@ -125,6 +125,6 @@ If the sources diverge, current GitHub source wins.
 
 Do not revive old early-kernel or old slot-controller tasks merely because they remain in historical notes.
 
-The next action must be chosen from live GitHub after checking for open PRs, issue ordering constraints and exact required evidence. Until the repository/platform admission gates are satisfied, do not add a real Reminder save merely because the pre-save Safe Action chain is now present.
+The next action must be chosen from live GitHub after checking for open PRs, issue ordering constraints and exact required evidence. Until the repository admission gates are satisfied, do not add a real Reminder save merely because the pre-save Safe Action chain is now present.
 
-Near-term value should come from closing platform admission gaps, producing untouched model evidence, activating/proving the bounded Mac worker, and preparing physical-device evidence. Do not expand memory content, external delegation or broad tool execution ahead of those gates.
+Near-term value should come from closing repository admission gaps, producing untouched model evidence, activating/proving the bounded Mac worker, and preparing physical-device evidence. Do not expand memory content, external delegation or broad tool execution ahead of those gates.
