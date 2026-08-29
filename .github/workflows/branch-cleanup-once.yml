@@ -1,0 +1,46 @@
+name: One-time verified branch cleanup
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/branch-cleanup-once.yml
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete exact merged PR branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch='chatgpt/reminder-destination-policy-v0'
+          expected_sha='93925ff2b5bf41e882877953c5b1f917e7e53c83'
+          expected_merge='3fa86ce535c71cc55e2d927ac886758d4423bfd3'
+          pr_number='351'
+          owner="${GH_REPO%%/*}"
+          default_branch="$(gh api "/repos/$GH_REPO" --jq '.default_branch')"
+          [[ "$branch" != "$default_branch" ]]
+          current_sha="$(gh api "/repos/$GH_REPO/git/ref/heads/$branch" --jq '.object.sha')"
+          [[ "$current_sha" == "$expected_sha" ]]
+          enc="$(python3 -c 'import sys,urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "$branch")"
+          protected="$(gh api "/repos/$GH_REPO/branches/$enc" --jq '.protected')"
+          [[ "$protected" == 'false' ]]
+          prs="$(gh api -X GET "/repos/$GH_REPO/pulls" -f state=open -f "head=$owner:$branch" -f per_page=100 --jq 'length')"
+          [[ "$prs" == '0' ]]
+          pr_json="$(gh api "/repos/$GH_REPO/pulls/$pr_number")"
+          [[ "$(jq -r '.merged_at // empty' <<<"$pr_json")" != '' ]]
+          [[ "$(jq -r '.head.ref' <<<"$pr_json")" == "$branch" ]]
+          [[ "$(jq -r '.head.sha' <<<"$pr_json")" == "$expected_sha" ]]
+          [[ "$(jq -r '.merge_commit_sha' <<<"$pr_json")" == "$expected_merge" ]]
+          current_sha2="$(gh api "/repos/$GH_REPO/git/ref/heads/$branch" --jq '.object.sha')"
+          [[ "$current_sha2" == "$expected_sha" ]]
+          gh api --silent -X DELETE "/repos/$GH_REPO/git/refs/heads/$branch"
+          echo "DELETED $branch $expected_sha"
