@@ -46,7 +46,7 @@ public struct CreateReminderBoundApprovalReceipt: Equatable, Sendable {
     public let status: ApprovalStatus
     public let origin: CreateReminderApprovalOrigin
 
-    public init(
+    package init(
         requestID: String,
         subject: CreateReminderApprovalSubject,
         status: ApprovalStatus,
