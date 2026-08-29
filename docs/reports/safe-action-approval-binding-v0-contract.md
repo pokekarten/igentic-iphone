@@ -3,7 +3,7 @@
 Status: normative design refinement for Safe Action Execution V0; no real side effect authorized  
 Tracks: #342  
 Baseline: `a3f9025a017a4d981bdcff91b10fe42fecc7d29b`  
-Related contracts: `reminder-due-date-v0-contract.md`, `reminder-storage-destination-v0-contract.md`
+Related contracts: `docs/reports/reminder-due-date-v0-contract.md`, `docs/reports/reminder-storage-destination-v0-contract.md`
 
 ## Purpose
 
