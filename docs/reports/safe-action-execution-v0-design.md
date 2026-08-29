@@ -19,9 +19,9 @@ proposal
 -> PolicyEngine
 -> explicit ApprovalManager approval
 -> one-shot CreateReminderExecutionCapability
--> platform permission/preflight
 -> CreateReminderExecuting.execute(...)
--> exactly one EventKit save attempt
+-> platform permission/preflight
+-> at most one EventKit save attempt
 -> metadata-minimized audit result
 ```
 
@@ -345,7 +345,7 @@ Platform errors should be mapped to bounded categories before generic audit emis
 
 ## 10. Cancellation and no-side-effect invariant
 
-The coordinator must prove with tests that the executor receives **zero calls** when any of these occurs:
+The coordinator must prove with tests that the executor receives **zero calls** when any pre-executor authority or validation boundary fails:
 
 - malformed/unsupported proposal;
 - missing or ambiguous title/time;
@@ -354,9 +354,9 @@ The coordinator must prove with tests that the executor receives **zero calls** 
 - stale/mismatched approval;
 - stale/mismatched/consumed capability;
 - ToolRegistry explicitly supplied but missing the typed `createReminder` tool;
-- user cancels before execution;
-- platform permission is denied or unavailable;
-- EventKit preflight cannot identify a default reminders calendar.
+- user cancels before executor invocation.
+
+Platform preflight outcomes are different because they are owned by the EventKit executor boundary. Permission denied/restricted/unavailable or a missing default reminders calendar may require one executor invocation, but they must produce **zero EventKit save attempts** and no reminder persistence side effect. The capability is still consumed after that first executor attempt; V0 does not retry it.
 
 Once the single EventKit save attempt starts, cancellation must not be reported as though the save were guaranteed not to have happened. The adapter must return the actual bounded outcome it can establish. Do not manufacture rollback claims EventKit cannot prove.
 
@@ -445,7 +445,7 @@ Future model adapters end at the proposal/schema boundary. They never receive an
 | Already-consumed capability | No | Already terminal | No new side effect |
 | Permission denied before executor save | Executor preflight only | Yes | No |
 | No default calendar | Executor preflight only | Yes | No |
-| User cancellation before save | No save | Yes | No |
+| User cancellation before save | Executor may have started; zero save attempts | Yes | No |
 | EventKit save throws | One save attempt | Yes | Not claimed successful |
 | EventKit save succeeds | One save attempt | Yes | Exactly one intended reminder |
 
