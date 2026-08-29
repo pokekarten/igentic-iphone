@@ -12,6 +12,16 @@ enum SafeActionExecutionCapabilityRejection: Equatable, Sendable {
     case alreadyConsumed
 }
 
+enum SafeActionExecutionCapabilityIssueRejection: Equatable, Sendable {
+    case duplicateCapabilityID
+    case duplicateAuthorityID
+}
+
+enum SafeActionExecutionCapabilityIssueResult: Equatable, Sendable {
+    case issued
+    case rejected(SafeActionExecutionCapabilityIssueRejection)
+}
+
 enum SafeActionExecutionCapabilityConsumption<Output: Sendable>: Sendable {
     case rejected(SafeActionExecutionCapabilityRejection)
     case completed(Output)
@@ -23,26 +33,53 @@ enum SafeActionExecutionCapabilityConsumption<Output: Sendable>: Sendable {
 /// `consuming` owns the execution attempt. Every normal return or thrown error
 /// after that transition terminalizes the capability as `consumed`.
 ///
+/// Authority-bound issuance can additionally claim one authority identity at
+/// the same atomic boundary as the capability ID. Reusing that authority
+/// identity cannot mint another capability during the process lifetime.
+///
 /// This type intentionally provides no persistence, retry, reset, or
 /// `consuming -> issued` transition.
 final class SafeActionExecutionCapabilityLedger: @unchecked Sendable {
-    private let states = LockedBox<[UUID: SafeActionExecutionCapabilityState]>([:])
+    private struct Storage {
+        var capabilityStates: [UUID: SafeActionExecutionCapabilityState] = [:]
+        var authorityIDs: Set<String> = []
+    }
+
+    private let storage = LockedBox(Storage())
 
     init() {}
 
     @discardableResult
     func issue(_ capabilityID: UUID) -> Bool {
-        states.withValue { states in
-            guard states[capabilityID] == nil else {
+        storage.withValue { storage in
+            guard storage.capabilityStates[capabilityID] == nil else {
                 return false
             }
-            states[capabilityID] = .issued
+            storage.capabilityStates[capabilityID] = .issued
             return true
         }
     }
 
+    func issue(
+        _ capabilityID: UUID,
+        authorityID: String
+    ) -> SafeActionExecutionCapabilityIssueResult {
+        storage.withValue { storage in
+            guard storage.capabilityStates[capabilityID] == nil else {
+                return .rejected(.duplicateCapabilityID)
+            }
+            guard !storage.authorityIDs.contains(authorityID) else {
+                return .rejected(.duplicateAuthorityID)
+            }
+
+            storage.capabilityStates[capabilityID] = .issued
+            storage.authorityIDs.insert(authorityID)
+            return .issued
+        }
+    }
+
     func state(for capabilityID: UUID) -> SafeActionExecutionCapabilityState? {
-        states.withValue { $0[capabilityID] }
+        storage.withValue { $0.capabilityStates[capabilityID] }
     }
 
     func consume<Output: Sendable>(
@@ -61,14 +98,14 @@ final class SafeActionExecutionCapabilityLedger: @unchecked Sendable {
     }
 
     private func beginConsumption(_ capabilityID: UUID) -> SafeActionExecutionCapabilityRejection? {
-        states.withValue { states in
-            guard let state = states[capabilityID] else {
+        storage.withValue { storage in
+            guard let state = storage.capabilityStates[capabilityID] else {
                 return .unknownCapability
             }
 
             switch state {
             case .issued:
-                states[capabilityID] = .consuming
+                storage.capabilityStates[capabilityID] = .consuming
                 return nil
             case .consuming:
                 return .alreadyConsuming
@@ -79,11 +116,11 @@ final class SafeActionExecutionCapabilityLedger: @unchecked Sendable {
     }
 
     private func terminalizeConsumption(_ capabilityID: UUID) {
-        states.withValue { states in
-            guard states[capabilityID] == .consuming else {
+        storage.withValue { storage in
+            guard storage.capabilityStates[capabilityID] == .consuming else {
                 return
             }
-            states[capabilityID] = .consumed
+            storage.capabilityStates[capabilityID] = .consumed
         }
     }
 }

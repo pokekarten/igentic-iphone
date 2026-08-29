@@ -63,16 +63,22 @@ public struct CreateReminderExecutionCapability: Identifiable, Equatable, Sendab
     public let id: UUID
     public let draftID: UUID
     public let draftFingerprint: String
+    public let approvalRequestID: String
     public let effectiveDataSensitivity: DataSensitivityLevel
     public let actionRisk: ActionRisk
     public let actionDataDestination: ActionDataDestination
 
     let targetBinding: ReminderTargetBinding
 
-    init(id: UUID, draft: CreateReminderDraft) {
+    init(
+        id: UUID,
+        draft: CreateReminderDraft,
+        approvalRequestID: String
+    ) {
         self.id = id
         draftID = draft.id
         draftFingerprint = draft.fingerprint
+        self.approvalRequestID = approvalRequestID
         effectiveDataSensitivity = draft.effectiveDataSensitivity
         actionRisk = draft.actionRisk
         actionDataDestination = draft.actionDataDestination
@@ -86,6 +92,7 @@ public enum CreateReminderCapabilityIssueRejection: Equatable, Sendable {
     case approvalSubjectMismatch
     case syntheticApprovalNotAllowedForProduction
     case destinationBlocked(CreateReminderDestinationBlockReason)
+    case approvalRequestAlreadyUsed
     case duplicateCapabilityID
 }
 
@@ -113,7 +120,8 @@ struct CreateReminderCapabilityIssuer: Sendable {
         use: CreateReminderCapabilityUse,
         capabilityID: UUID = UUID()
     ) -> CreateReminderCapabilityIssueResult {
-        guard !approval.requestID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+        let approvalRequestID = approval.requestID.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !approvalRequestID.isEmpty else {
             return .rejected(.emptyApprovalRequestID)
         }
         guard approval.status == .approved else {
@@ -133,10 +141,18 @@ struct CreateReminderCapabilityIssuer: Sendable {
             return .rejected(.destinationBlocked(reason))
         }
 
-        let capability = CreateReminderExecutionCapability(id: capabilityID, draft: draft)
-        guard ledger.issue(capability.id) else {
+        let capability = CreateReminderExecutionCapability(
+            id: capabilityID,
+            draft: draft,
+            approvalRequestID: approvalRequestID
+        )
+        switch ledger.issue(capability.id, authorityID: approvalRequestID) {
+        case .issued:
+            return .issued(capability)
+        case .rejected(.duplicateAuthorityID):
+            return .rejected(.approvalRequestAlreadyUsed)
+        case .rejected(.duplicateCapabilityID):
             return .rejected(.duplicateCapabilityID)
         }
-        return .issued(capability)
     }
 }
