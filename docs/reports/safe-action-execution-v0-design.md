@@ -147,6 +147,7 @@ V0 classification procedure:
 5. Freeze that level into both the canonical draft fingerprint and execution capability.
 
 The due date is structured metadata rather than free text and is not passed through the regex detector. It is nevertheless protected by the draft's effective classification and must not appear in generic audit messages.
+
 If later research changes the reminder classification floor, that must be a separate policy decision with regression tests. The executor may never lower the already-computed effective classification.
 
 ## 4. Risk and approval semantics
@@ -296,6 +297,7 @@ V0 protects against process-local duplicate execution in four places:
 No automatic retry exists.
 
 Out of scope for V0:
+
 - durable execution ledger across app restarts;
 - querying EventKit to deduplicate semantically similar reminders;
 - remote idempotency tokens;
