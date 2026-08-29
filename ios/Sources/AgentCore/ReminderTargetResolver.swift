@@ -152,13 +152,13 @@ package struct EventKitReminderTargetResolver {
             )
         }
 
-        guard let calendar = eventStore.defaultCalendarForNewReminders() else {
+        guard let calendar = eventStore.defaultCalendarForNewReminders(),
+              let source = calendar.source else {
             return resolver.resolve(
                 ReminderTargetSnapshot(authorization: .fullAccess)
             )
         }
 
-        let source = calendar.source
         let targetBinding = Self.processLocalTargetBinding(
             calendarIdentifier: calendar.calendarIdentifier,
             sourceIdentifier: source.sourceIdentifier
