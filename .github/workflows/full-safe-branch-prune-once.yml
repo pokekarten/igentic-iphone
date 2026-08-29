@@ -45,7 +45,8 @@ jobs:
             if [[ "$ahead" == 0 ]]; then
               reason="fully-contained-in-$default_branch"
             else
-              merged_exact="$(gh api -X GET "/repos/$GH_REPO/pulls" -f state=closed -f "head=$owner:$branch" -f per_page=100 --jq --arg sha "$current_sha" --arg base "$default_branch" '[.[] | select(.merged_at != null and .head.sha == $sha and .base.ref == $base)] | length')"
+              merged_json="$(gh api -X GET "/repos/$GH_REPO/pulls" -f state=closed -f "head=$owner:$branch" -f per_page=100)"
+              merged_exact="$(jq --arg sha "$current_sha" --arg base "$default_branch" '[.[] | select(.merged_at != null and .head.sha == $sha and .base.ref == $base)] | length' <<<"$merged_json")"
               if [[ "$merged_exact" != 0 ]]; then
                 reason="exact-head-of-merged-pr"
               fi
