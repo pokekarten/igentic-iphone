@@ -1,0 +1,111 @@
+name: One-time final safe branch prune
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/final-safe-branch-prune-once.yml
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  prune:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete branches whose work is already represented on main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          owner="${GH_REPO%%/*}"
+          default_branch="$(gh api "/repos/$GH_REPO" --jq '.default_branch')"
+          : >/tmp/deleted.txt
+          : >/tmp/kept.txt
+          gh api --paginate "/repos/$GH_REPO/pulls?state=closed&base=$default_branch&per_page=100" --jq '.[] | select(.merged_at != null) | .head.sha' | sort -u >/tmp/merged-head-shas.txt
+          gh api --paginate "/repos/$GH_REPO/branches?per_page=100" --jq '.[] | [.name,.commit.sha,.protected] | @tsv' >/tmp/branches.tsv
+
+          file_matches_main() {
+            local path="$1" branch_sha="$2"
+            local enc_path main_sha
+            enc_path="$(python3 -c 'import sys,urllib.parse; print(urllib.parse.quote(sys.argv[1], safe="/"))' "$path")"
+            main_sha="$(gh api "/repos/$GH_REPO/contents/$enc_path?ref=$default_branch" --jq '.sha' 2>/dev/null || true)"
+            [[ -n "$main_sha" && "$main_sha" == "$branch_sha" ]]
+          }
+
+          path_absent_on_main() {
+            local path="$1" enc_path
+            enc_path="$(python3 -c 'import sys,urllib.parse; print(urllib.parse.quote(sys.argv[1], safe="/"))' "$path")"
+            ! gh api "/repos/$GH_REPO/contents/$enc_path?ref=$default_branch" >/dev/null 2>&1
+          }
+
+          branch_delta_is_represented() {
+            local branch="$1" enc="$2" compare count status path sha previous
+            compare="$(gh api "/repos/$GH_REPO/compare/$default_branch...$enc")"
+            count="$(jq '.files | length' <<<"$compare")"
+            [[ "$count" -gt 0 && "$count" -lt 300 ]] || return 1
+            while IFS=$'\t' read -r status path sha previous; do
+              case "$status" in
+                removed)
+                  path_absent_on_main "$path" || return 1
+                  ;;
+                renamed)
+                  file_matches_main "$path" "$sha" || return 1
+                  [[ -z "$previous" ]] || path_absent_on_main "$previous" || return 1
+                  ;;
+                added|modified|changed|copied)
+                  file_matches_main "$path" "$sha" || return 1
+                  ;;
+                *)
+                  return 1
+                  ;;
+              esac
+            done < <(jq -r '.files[] | [.status,.filename,.sha,(.previous_filename // "")] | @tsv' <<<"$compare")
+          }
+
+          while IFS=$'\t' read -r branch listed_sha protected; do
+            [[ -z "$branch" ]] && continue
+            if [[ "$branch" == "$default_branch" || "$protected" == true ]]; then
+              echo "$branch protected/default" >>/tmp/kept.txt
+              continue
+            fi
+            enc="$(python3 -c 'import sys,urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "$branch")"
+            current_json="$(gh api "/repos/$GH_REPO/branches/$enc" 2>/dev/null || true)"
+            [[ -n "$current_json" ]] || continue
+            current_sha="$(jq -r '.commit.sha' <<<"$current_json")"
+            current_protected="$(jq -r '.protected' <<<"$current_json")"
+            [[ "$current_sha" == "$listed_sha" && "$current_protected" == false ]] || { echo "$branch moved/protected" >>/tmp/kept.txt; continue; }
+            open_prs="$(gh api -X GET "/repos/$GH_REPO/pulls" -f state=open -f "head=$owner:$branch" -f per_page=100 --jq 'length')"
+            [[ "$open_prs" == 0 ]] || { echo "$branch open-pr" >>/tmp/kept.txt; continue; }
+
+            ahead="$(gh api "/repos/$GH_REPO/compare/$default_branch...$enc" --jq '.ahead_by')"
+            reason=""
+            if [[ "$ahead" == 0 ]]; then
+              reason="fully-contained-in-$default_branch"
+            elif grep -Fxq "$current_sha" /tmp/merged-head-shas.txt; then
+              reason="sha-is-a-merged-pr-head"
+            elif branch_delta_is_represented "$branch" "$enc"; then
+              reason="branch-delta-blobs-match-$default_branch"
+            fi
+            [[ -n "$reason" ]] || { echo "$branch unique-content" >>/tmp/kept.txt; continue; }
+
+            verify_json="$(gh api "/repos/$GH_REPO/branches/$enc" 2>/dev/null || true)"
+            [[ -n "$verify_json" ]] || continue
+            verify_sha="$(jq -r '.commit.sha' <<<"$verify_json")"
+            verify_protected="$(jq -r '.protected' <<<"$verify_json")"
+            verify_open="$(gh api -X GET "/repos/$GH_REPO/pulls" -f state=open -f "head=$owner:$branch" -f per_page=100 --jq 'length')"
+            [[ "$verify_sha" == "$current_sha" && "$verify_protected" == false && "$verify_open" == 0 ]] || { echo "$branch changed-before-delete" >>/tmp/kept.txt; continue; }
+            gh api --silent -X DELETE "/repos/$GH_REPO/git/refs/heads/$enc"
+            echo "$branch $current_sha $reason" | tee -a /tmp/deleted.txt
+          done </tmp/branches.tsv
+
+          echo '--- SUMMARY ---'
+          echo "deleted=$(wc -l </tmp/deleted.txt | tr -d ' ')"
+          echo "kept=$(wc -l </tmp/kept.txt | tr -d ' ')"
+          echo 'DELETED:'
+          cat /tmp/deleted.txt
+          echo 'KEPT:'
+          cat /tmp/kept.txt
