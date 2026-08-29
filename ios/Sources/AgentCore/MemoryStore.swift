@@ -37,12 +37,13 @@ public struct MemoryEntry: Identifiable, Equatable, Sendable {
     }
 }
 
-/// Deliberate pre-integration store.
+/// Bounded local memory store with observational kernel integration only.
 ///
-/// The store now enforces the completed classification design locally, but it
-/// remains intentionally unwired from `AgentKernel` and all authorization
-/// paths. See `docs/reports/memory-store-classification-design.md` and
-/// `docs/reports/memory-store-integration-decision.md`.
+/// The store enforces the completed classification design locally. `AgentKernel`
+/// may observe aggregate session/task entry counts, but memory keys and values do
+/// not participate in policy, approval, routing, delegation, model selection or
+/// tool authorization. See `docs/reports/memory-store-classification-design.md`
+/// and `docs/reports/memory-store-integration-decision.md`.
 public final class MemoryStore: @unchecked Sendable {
     private let entriesByScope = LockedBox<[MemoryScope: [String: MemoryEntry]]>([:])
 
