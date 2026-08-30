@@ -74,8 +74,13 @@ public struct SensitiveDataDetector: SensitiveDataDetecting {
         // normalized text is never retained in findings or audit output.
         let detectionText = normalizedDetectionText(text)
 
-        // Email detection first (keeps expected ordering in tests)
-        if contains(pattern: #"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b"#, in: detectionText) {
+        // Email detection first (keeps expected ordering in tests). This is a
+        // privacy heuristic rather than a mailbox validator, so recognize
+        // internationalized letter/number forms and ASCII punycode TLDs too.
+        if contains(
+            pattern: #"[\p{L}\p{N}._%+\-]+@[\p{L}\p{N}.-]+\.(?:[\p{L}]{2,}|xn--[A-Z0-9-]{2,})"#,
+            in: detectionText
+        ) {
             findings.append(
                 SensitiveDataFinding(category: .emailAddress, reason: SensitiveDataCategory.emailAddress.detectionReason)
             )
