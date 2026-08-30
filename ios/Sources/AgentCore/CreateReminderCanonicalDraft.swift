@@ -145,6 +145,19 @@ public struct CanonicalReminderTitle: Equatable, Sendable {
         if scalar.properties.generalCategory == .control {
             return false
         }
+        if scalar.properties.isDefaultIgnorableCodePoint {
+            // Preserve the narrow invisible scalars that carry legitimate
+            // orthographic/emoji display semantics. Other default-ignorables
+            // can render invisibly and must not create approval-display aliases.
+            switch scalar.value {
+            case 0x200C, 0x200D,
+                 0xFE00...0xFE0F,
+                 0xE0100...0xE01EF:
+                break
+            default:
+                return false
+            }
+        }
         switch scalar.value {
         case 0x2028, 0x2029,
              0x061C, 0x200E, 0x200F,
