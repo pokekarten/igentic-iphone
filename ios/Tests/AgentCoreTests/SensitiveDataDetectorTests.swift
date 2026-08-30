@@ -5,6 +5,32 @@ final class SensitiveDataDetectorTests: XCTestCase {
 
     private let detector = SensitiveDataDetector()
 
+    private func compatibilityFullWidth(_ text: String) -> String {
+        var result = ""
+        for scalar in text.unicodeScalars {
+            let value = scalar.value
+            if (0x21...0x7E).contains(value), let mapped = UnicodeScalar(value + 0xFEE0) {
+                result.unicodeScalars.append(mapped)
+            } else {
+                result.unicodeScalars.append(scalar)
+            }
+        }
+        return result
+    }
+
+    private func arabicIndicDigits(_ text: String) -> String {
+        var result = ""
+        for scalar in text.unicodeScalars {
+            let value = scalar.value
+            if (0x30...0x39).contains(value), let mapped = UnicodeScalar(0x0660 + value - 0x30) {
+                result.unicodeScalars.append(mapped)
+            } else {
+                result.unicodeScalars.append(scalar)
+            }
+        }
+        return result
+    }
+
     // MARK: - IBAN detection
 
     func testDetectsGermanIBANLikePattern() {
@@ -17,6 +43,42 @@ final class SensitiveDataDetectorTests: XCTestCase {
     func testOrdinaryTextDoesNotMatchIBANPattern() {
         let result = detector.detect(in: "Please review the quarterly report by Friday.")
         XCTAssertFalse(result.hasFindings)
+    }
+
+    func testDetectsCompatibilityEquivalentFullWidthIBAN() {
+        let syntheticIBAN = ["DE", "89", "3704", "0044", "0532", "0130", "00"].joined()
+        let result = detector.detect(in: compatibilityFullWidth(syntheticIBAN))
+        XCTAssertTrue(result.findings.contains { $0.category == .iban })
+    }
+
+    func testDetectsIBANWithUnicodeDecimalDigits() {
+        let syntheticIBAN = ["DE", "89", "3704", "0044", "0532", "0130", "00"].joined()
+        let result = detector.detect(in: arabicIndicDigits(syntheticIBAN))
+        XCTAssertTrue(result.findings.contains { $0.category == .iban })
+    }
+
+    func testDetectsCompatibilityEquivalentFullWidthEmail() {
+        let syntheticEmail = ["user", "@", "example", ".", "com"].joined()
+        let result = detector.detect(in: compatibilityFullWidth(syntheticEmail))
+        XCTAssertTrue(result.findings.contains { $0.category == .emailAddress })
+    }
+
+    func testDetectsInternationalizedEmailLocalPart() {
+        let syntheticEmail = ["m", "\u{00FC}", "ller", "@", "example", ".", "de"].joined()
+        let result = detector.detect(in: syntheticEmail)
+        XCTAssertTrue(result.findings.contains { $0.category == .emailAddress })
+    }
+
+    func testDetectsInternationalizedEmailDomain() {
+        let syntheticEmail = ["user", "@", "b", "\u{00FC}", "cher", ".", "de"].joined()
+        let result = detector.detect(in: syntheticEmail)
+        XCTAssertTrue(result.findings.contains { $0.category == .emailAddress })
+    }
+
+    func testDetectsPunycodeEmailTLD() {
+        let syntheticEmail = ["user", "@", "example", ".", "xn--", "p1ai"].joined()
+        let result = detector.detect(in: syntheticEmail)
+        XCTAssertTrue(result.findings.contains { $0.category == .emailAddress })
     }
 
     // MARK: - German phone-like pattern detection
@@ -36,6 +98,18 @@ final class SensitiveDataDetectorTests: XCTestCase {
     func testDetectsInternationalPlusPrefixPhoneNumber() {
         // "+49" + digits reaching total length >= 10 triggers a match.
         let result = detector.detect(in: "+491701234567")
+        XCTAssertTrue(result.findings.contains { $0.category == .phoneNumber })
+    }
+
+    func testDetectsCompatibilityEquivalentFullWidthPhoneNumber() {
+        let syntheticPhone = ["+", "49", "170", "123", "4567"].joined()
+        let result = detector.detect(in: compatibilityFullWidth(syntheticPhone))
+        XCTAssertTrue(result.findings.contains { $0.category == .phoneNumber })
+    }
+
+    func testDetectsPhoneNumberWithUnicodeDecimalDigits() {
+        let syntheticPhone = ["00", "49", "170", "123", "4567"].joined()
+        let result = detector.detect(in: arabicIndicDigits(syntheticPhone))
         XCTAssertTrue(result.findings.contains { $0.category == .phoneNumber })
     }
 

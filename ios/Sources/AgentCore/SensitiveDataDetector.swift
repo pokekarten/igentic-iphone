@@ -68,15 +68,26 @@ public struct SensitiveDataDetector: SensitiveDataDetecting {
     public func detect(in text: String) -> SensitiveDataDetectionResult {
         var findings: [SensitiveDataFinding] = []
 
-        // Email detection first (keeps expected ordering in tests)
-        if contains(pattern: #"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b"#, in: text) {
+        // Normalize Unicode representations for classification only.
+        // Compatibility forms (for example full-width ASCII) and non-ASCII
+        // decimal digits must not bypass the built-in privacy floor. The
+        // normalized text is never retained in findings or audit output.
+        let detectionText = normalizedDetectionText(text)
+
+        // Email detection first (keeps expected ordering in tests). This is a
+        // privacy heuristic rather than a mailbox validator, so recognize
+        // internationalized letter/number forms and ASCII punycode TLDs too.
+        if contains(
+            pattern: #"[\p{L}\p{N}._%+\-]+@[\p{L}\p{N}.-]+\.(?:[\p{L}]{2,}|xn--[A-Z0-9-]{2,})"#,
+            in: detectionText
+        ) {
             findings.append(
                 SensitiveDataFinding(category: .emailAddress, reason: SensitiveDataCategory.emailAddress.detectionReason)
             )
         }
 
         // Phone detection next
-        if containsGermanPhoneLikePattern(in: text) {
+        if containsGermanPhoneLikePattern(in: detectionText) {
             findings.append(
                 SensitiveDataFinding(category: .phoneNumber, reason: SensitiveDataCategory.phoneNumber.detectionReason)
             )
@@ -84,13 +95,31 @@ public struct SensitiveDataDetector: SensitiveDataDetecting {
 
         // IBAN detection last and stricter: require word boundaries to avoid
         // accidental matches across adjacent text fragments.
-        if containsIBANLikePattern(in: text) {
+        if containsIBANLikePattern(in: detectionText) {
             findings.append(
                 SensitiveDataFinding(category: .iban, reason: SensitiveDataCategory.iban.detectionReason)
             )
         }
 
         return SensitiveDataDetectionResult(findings: findings)
+    }
+
+    private func normalizedDetectionText(_ text: String) -> String {
+        let compatibilityMapped = text.precomposedStringWithCompatibilityMapping
+        var normalized = ""
+
+        for scalar in compatibilityMapped.unicodeScalars {
+            if scalar.properties.numericType == .decimal,
+               let numericValue = scalar.properties.numericValue,
+               (0...9).contains(numericValue),
+               let asciiDigit = UnicodeScalar(0x30 + UInt32(numericValue)) {
+                normalized.unicodeScalars.append(asciiDigit)
+            } else {
+                normalized.unicodeScalars.append(scalar)
+            }
+        }
+
+        return normalized
     }
 
     private func containsIBANLikePattern(in text: String) -> Bool {
