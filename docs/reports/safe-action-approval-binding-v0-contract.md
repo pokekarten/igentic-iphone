@@ -196,7 +196,7 @@ This is feasibility evidence only. It does not prove a production human approval
 
 This contract can merge as documentation while GitHub settings are deferred.
 
-Production Safe Action work remains behind the repository prerequisites tracked in #286, #287, and #334.
+Production Safe Action work remains behind the repository prerequisites tracked in #286 and #287. Keep CodeQL Default Setup healthy; Advanced Setup remains optional hardening per the completed #334 decision and is not a Safe Action prerequisite.
 
 Within Safe Action Slice A, the logical order is:
 

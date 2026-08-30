@@ -189,8 +189,9 @@ This contract may merge as documentation while GitHub platform settings remain p
 Production Slice A remains behind the repository prerequisites already tracked separately:
 
 - #286 default-branch enforcement;
-- #287 base-trusted public-content admission;
-- #334 CodeQL Advanced manual all-language proof.
+- #287 base-trusted public-content admission.
+
+CodeQL security posture is tracked separately: keep healthy Default Setup evidence; Advanced Setup remains optional hardening per the completed #334 decision and is not a Slice A prerequisite.
 
 Once those gates permit the bounded implementation, Slice A should be decomposed into reviewable changes rather than publishing the large scratch spike wholesale.
 
