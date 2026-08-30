@@ -62,7 +62,6 @@ final class AppActionCoordinatorTests: XCTestCase {
         let action = draft(id: "CDCDCDCD-CDCD-CDCD-CDCD-CDCDCDCDCDCD", kind: .deleteRecord, payload: "delete")
         let invalidReceipt = AppActionApprovalReceipt(
             draftID: action.id,
-            fingerprint: action.fingerprint,
             effectiveDataSensitivity: .publicData,
             approvalReceipt: ApprovalReceipt(
                 status: .notRequired,
@@ -107,7 +106,6 @@ final class AppActionCoordinatorTests: XCTestCase {
         switch coordinator.perform(draft, privacyMode: .trustedDevices) {
         case .approved(let receipt):
             XCTAssertEqual(receipt.draftID, draft.id)
-            XCTAssertEqual(receipt.fingerprint, draft.fingerprint)
             XCTAssertEqual(receipt.effectiveDataSensitivity, .publicData)
             XCTAssertEqual(receipt.approvalReceipt.status, .notRequired)
             XCTAssertTrue(receipt.approvalReceipt.mayContinueRouting)
@@ -260,6 +258,112 @@ final class AppActionCoordinatorTests: XCTestCase {
                 approvalReceipt: freshReceipt
             ),
             .approved(freshReceipt)
+        )
+    }
+
+    func testPublicApprovalReceiptDoesNotCarryRawTargetOrPayload() {
+        let coordinator = AppActionCoordinator(approvalManager: .init(defaultStatus: .approved))
+        let targetSentinel = "private-target-sentinel-360"
+        let payloadSentinel = "private-payload-sentinel-360"
+        let action = draft(
+            id: "51515151-6161-7171-8181-919191919191",
+            kind: .deleteRecord,
+            payload: payloadSentinel,
+            target: targetSentinel
+        )
+
+        guard let receipt = coordinator.approvalReceipt(for: action, privacyMode: .trustedDevices) else {
+            return XCTFail("Expected an approval receipt.")
+        }
+
+        let reflectedReceipt = String(reflecting: receipt)
+        XCTAssertFalse(reflectedReceipt.contains(targetSentinel))
+        XCTAssertFalse(reflectedReceipt.contains(payloadSentinel))
+        XCTAssertFalse(receipt.approvalReceipt.requestID.isEmpty)
+        XCTAssertEqual(
+            coordinator.perform(action, privacyMode: .trustedDevices, approvalReceipt: receipt),
+            .approved(receipt)
+        )
+    }
+
+    func testApprovalReceiptRemainsReusableWhileProcessLocalBindingIsRetained() {
+        let coordinator = AppActionCoordinator(approvalManager: .init(defaultStatus: .approved))
+        let action = draft(
+            id: "53535353-6363-7373-8383-939393939393",
+            kind: .deleteRecord,
+            payload: "reusable authorization evidence"
+        )
+
+        guard let receipt = coordinator.approvalReceipt(for: action, privacyMode: .trustedDevices) else {
+            return XCTFail("Expected an approval receipt.")
+        }
+
+        XCTAssertEqual(
+            coordinator.perform(action, privacyMode: .trustedDevices, approvalReceipt: receipt),
+            .approved(receipt)
+        )
+        XCTAssertEqual(
+            coordinator.perform(action, privacyMode: .trustedDevices, approvalReceipt: receipt),
+            .approved(receipt)
+        )
+    }
+
+    func testApprovalBindingIsProcessLocal() {
+        let issuingCoordinator = AppActionCoordinator(approvalManager: .init(defaultStatus: .approved))
+        let otherCoordinator = AppActionCoordinator(approvalManager: .init(defaultStatus: .approved))
+        let action = draft(
+            id: "52525252-6262-7272-8282-929292929292",
+            kind: .deleteRecord,
+            payload: "process-local binding"
+        )
+
+        guard let receipt = issuingCoordinator.approvalReceipt(for: action, privacyMode: .trustedDevices) else {
+            return XCTFail("Expected an approval receipt.")
+        }
+
+        XCTAssertEqual(
+            otherCoordinator.perform(action, privacyMode: .trustedDevices, approvalReceipt: receipt),
+            .blockedPendingApproval
+        )
+        XCTAssertEqual(
+            issuingCoordinator.perform(action, privacyMode: .trustedDevices, approvalReceipt: receipt),
+            .approved(receipt)
+        )
+    }
+
+    func testApprovalBindingRetentionIsBoundedAndEvictsFailClosed() {
+        let coordinator = AppActionCoordinator(approvalManager: .init(defaultStatus: .approved))
+        var first: (draft: AppActionDraft, receipt: AppActionApprovalReceipt)?
+        var latest: (draft: AppActionDraft, receipt: AppActionApprovalReceipt)?
+
+        for index in 0...AppActionCoordinator.approvalBindingRetentionLimit {
+            let action = AppActionDraft(
+                id: UUID(),
+                actionKind: .deleteRecord,
+                targetDescription: "bounded-target-\(index)",
+                payloadSummary: "bounded-payload-\(index)",
+                dataClassification: .publicDefault,
+                actionRisk: .execute
+            )
+            guard let receipt = coordinator.approvalReceipt(for: action, privacyMode: .trustedDevices) else {
+                return XCTFail("Expected approval receipt at index \(index).")
+            }
+            if index == 0 {
+                first = (action, receipt)
+            }
+            latest = (action, receipt)
+        }
+
+        guard let first, let latest else {
+            return XCTFail("Expected retained approval fixtures.")
+        }
+        XCTAssertEqual(
+            coordinator.perform(first.draft, privacyMode: .trustedDevices, approvalReceipt: first.receipt),
+            .blockedPendingApproval
+        )
+        XCTAssertEqual(
+            coordinator.perform(latest.draft, privacyMode: .trustedDevices, approvalReceipt: latest.receipt),
+            .approved(latest.receipt)
         )
     }
 
