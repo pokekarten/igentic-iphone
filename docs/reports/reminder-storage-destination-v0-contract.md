@@ -263,7 +263,7 @@ This design contract may merge while GitHub platform settings remain pending.
 
 Real Safe Action implementation remains ordered as follows:
 
-1. complete repository admission/platform prerequisites tracked in #286, #287, and #334;
+1. complete repository admission/platform prerequisites tracked in #286 and #287; keep CodeQL Default Setup healthy, with Advanced Setup remaining optional hardening per the completed #334 decision;
 2. implement the pure Slice A authority/date/fingerprint path using fakes;
 3. integrate the destination policy dimension in a bounded reviewable slice;
 4. only then implement the EventKit adapter and real target re-resolution;
