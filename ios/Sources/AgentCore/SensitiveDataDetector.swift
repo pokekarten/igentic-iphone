@@ -68,15 +68,21 @@ public struct SensitiveDataDetector: SensitiveDataDetecting {
     public func detect(in text: String) -> SensitiveDataDetectionResult {
         var findings: [SensitiveDataFinding] = []
 
+        // Normalize compatibility-equivalent Unicode for classification only.
+        // Full-width Latin letters, digits and punctuation are visually equivalent
+        // to their ASCII forms and must not bypass the built-in privacy floor.
+        // The normalized text is never retained in findings or audit output.
+        let detectionText = text.precomposedStringWithCompatibilityMapping
+
         // Email detection first (keeps expected ordering in tests)
-        if contains(pattern: #"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b"#, in: text) {
+        if contains(pattern: #"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b"#, in: detectionText) {
             findings.append(
                 SensitiveDataFinding(category: .emailAddress, reason: SensitiveDataCategory.emailAddress.detectionReason)
             )
         }
 
         // Phone detection next
-        if containsGermanPhoneLikePattern(in: text) {
+        if containsGermanPhoneLikePattern(in: detectionText) {
             findings.append(
                 SensitiveDataFinding(category: .phoneNumber, reason: SensitiveDataCategory.phoneNumber.detectionReason)
             )
@@ -84,7 +90,7 @@ public struct SensitiveDataDetector: SensitiveDataDetecting {
 
         // IBAN detection last and stricter: require word boundaries to avoid
         // accidental matches across adjacent text fragments.
-        if containsIBANLikePattern(in: text) {
+        if containsIBANLikePattern(in: detectionText) {
             findings.append(
                 SensitiveDataFinding(category: .iban, reason: SensitiveDataCategory.iban.detectionReason)
             )
