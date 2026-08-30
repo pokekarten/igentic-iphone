@@ -111,6 +111,18 @@ final class CreateReminderCanonicalDraftTests: XCTestCase {
         XCTAssertThrowsError(try CanonicalReminderTitle("abc\u{FEFF}def"))
     }
 
+    func testTitleRejectsOtherDefaultIgnorableDisplayAliases() {
+        XCTAssertThrowsError(try CanonicalReminderTitle("pay\u{00AD}load")) // SOFT HYPHEN
+        XCTAssertThrowsError(try CanonicalReminderTitle("pay\u{034F}load")) // COMBINING GRAPHEME JOINER
+        XCTAssertThrowsError(try CanonicalReminderTitle("pay\u{180E}load")) // MONGOLIAN VOWEL SEPARATOR
+        XCTAssertThrowsError(try CanonicalReminderTitle("pay\u{3164}load")) // HANGUL FILLER
+        XCTAssertThrowsError(try CanonicalReminderTitle("pay\u{E0020}load")) // TAG SPACE
+    }
+
+    func testTitlePreservesEmojiVariationSelector() throws {
+        XCTAssertEqual(try CanonicalReminderTitle("✈️").value, "✈️")
+    }
+
     func testFingerprintIsStableForCanonicallyEquivalentTitles() throws {
         let first = try draft(title: "Café")
         let second = try draft(title: "Cafe\u{301}")
