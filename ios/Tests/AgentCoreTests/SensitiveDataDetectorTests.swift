@@ -5,6 +5,18 @@ final class SensitiveDataDetectorTests: XCTestCase {
 
     private let detector = SensitiveDataDetector()
 
+    private func compatibilityFullWidth(_ text: String) -> String {
+        String(text.unicodeScalars.map { scalar in
+            let value = scalar.value
+            switch value {
+            case 0x21...0x7E:
+                return UnicodeScalar(value + 0xFEE0)!
+            default:
+                return scalar
+            }
+        })
+    }
+
     // MARK: - IBAN detection
 
     func testDetectsGermanIBANLikePattern() {
@@ -17,6 +29,20 @@ final class SensitiveDataDetectorTests: XCTestCase {
     func testOrdinaryTextDoesNotMatchIBANPattern() {
         let result = detector.detect(in: "Please review the quarterly report by Friday.")
         XCTAssertFalse(result.hasFindings)
+    }
+
+    func testDetectsCompatibilityEquivalentFullWidthIBAN() {
+        let syntheticIBAN = ["DE", "89", "3704", "0044", "0532", "0130", "00"].joined()
+        let result = detector.detect(in: compatibilityFullWidth(syntheticIBAN))
+        XCTAssertTrue(result.findings.contains { $0.category == .iban })
+    }
+
+    func testDetectsCompatibilityEquivalentFullWidthEmail() {
+        let syntheticEmail = ["user", "example", "com"].joined(separator: "|")
+            .replacingOccurrences(of: "|", with: "@", options: [], range: nil)
+            .replacingOccurrences(of: "@example@", with: "@example.")
+        let result = detector.detect(in: compatibilityFullWidth(syntheticEmail))
+        XCTAssertTrue(result.findings.contains { $0.category == .emailAddress })
     }
 
     // MARK: - German phone-like pattern detection
@@ -36,6 +62,12 @@ final class SensitiveDataDetectorTests: XCTestCase {
     func testDetectsInternationalPlusPrefixPhoneNumber() {
         // "+49" + digits reaching total length >= 10 triggers a match.
         let result = detector.detect(in: "+491701234567")
+        XCTAssertTrue(result.findings.contains { $0.category == .phoneNumber })
+    }
+
+    func testDetectsCompatibilityEquivalentFullWidthPhoneNumber() {
+        let syntheticPhone = ["+", "49", "170", "123", "4567"].joined()
+        let result = detector.detect(in: compatibilityFullWidth(syntheticPhone))
         XCTAssertTrue(result.findings.contains { $0.category == .phoneNumber })
     }
 
