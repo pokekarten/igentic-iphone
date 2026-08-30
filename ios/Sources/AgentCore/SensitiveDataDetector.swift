@@ -68,11 +68,11 @@ public struct SensitiveDataDetector: SensitiveDataDetecting {
     public func detect(in text: String) -> SensitiveDataDetectionResult {
         var findings: [SensitiveDataFinding] = []
 
-        // Normalize compatibility-equivalent Unicode for classification only.
-        // Full-width Latin letters, digits and punctuation are visually equivalent
-        // to their ASCII forms and must not bypass the built-in privacy floor.
-        // The normalized text is never retained in findings or audit output.
-        let detectionText = text.precomposedStringWithCompatibilityMapping
+        // Normalize Unicode representations for classification only.
+        // Compatibility forms (for example full-width ASCII) and non-ASCII
+        // decimal digits must not bypass the built-in privacy floor. The
+        // normalized text is never retained in findings or audit output.
+        let detectionText = normalizedDetectionText(text)
 
         // Email detection first (keeps expected ordering in tests)
         if contains(pattern: #"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b"#, in: detectionText) {
@@ -97,6 +97,24 @@ public struct SensitiveDataDetector: SensitiveDataDetecting {
         }
 
         return SensitiveDataDetectionResult(findings: findings)
+    }
+
+    private func normalizedDetectionText(_ text: String) -> String {
+        let compatibilityMapped = text.precomposedStringWithCompatibilityMapping
+        var normalized = ""
+
+        for scalar in compatibilityMapped.unicodeScalars {
+            if scalar.properties.numericType == .decimal,
+               let numericValue = scalar.properties.numericValue,
+               (0...9).contains(numericValue),
+               let asciiDigit = UnicodeScalar(0x30 + UInt32(numericValue)) {
+                normalized.unicodeScalars.append(asciiDigit)
+            } else {
+                normalized.unicodeScalars.append(scalar)
+            }
+        }
+
+        return normalized
     }
 
     private func containsIBANLikePattern(in text: String) -> Bool {
