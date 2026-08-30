@@ -475,7 +475,8 @@ Real side-effect implementation is blocked until:
 
 1. #286 default-branch privacy enforcement is terminal.
 2. #287 base-trusted public-content admission is implemented, proven on a real PR event, and required by branch protection/ruleset.
-3. #334 CodeQL Advanced migration has at least one successful manual all-language run using the explicit Swift build.
+
+CodeQL security posture is tracked separately: keep healthy Default Setup evidence; Advanced Setup remains optional hardening per the completed #334 decision and is not a Safe Action prerequisite.
 
 The design PR itself does not need to wait for those platform gates because it changes documentation only.
 
