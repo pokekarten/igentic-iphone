@@ -9,15 +9,16 @@ final class SensitiveDataBaselineEnforcementTests: XCTestCase {
     }
 
     private func compatibilityFullWidth(_ text: String) -> String {
-        String(text.unicodeScalars.map { scalar in
+        var result = ""
+        for scalar in text.unicodeScalars {
             let value = scalar.value
-            switch value {
-            case 0x21...0x7E:
-                return UnicodeScalar(value + 0xFEE0)!
-            default:
-                return scalar
+            if (0x21...0x7E).contains(value), let mapped = UnicodeScalar(value + 0xFEE0) {
+                result.unicodeScalars.append(mapped)
+            } else {
+                result.unicodeScalars.append(scalar)
             }
-        })
+        }
+        return result
     }
 
     private func restrictedExternalTask() -> TaskRequest {
