@@ -6,15 +6,16 @@ final class SensitiveDataDetectorTests: XCTestCase {
     private let detector = SensitiveDataDetector()
 
     private func compatibilityFullWidth(_ text: String) -> String {
-        String(text.unicodeScalars.map { scalar in
+        var result = ""
+        for scalar in text.unicodeScalars {
             let value = scalar.value
-            switch value {
-            case 0x21...0x7E:
-                return UnicodeScalar(value + 0xFEE0)!
-            default:
-                return scalar
+            if (0x21...0x7E).contains(value), let mapped = UnicodeScalar(value + 0xFEE0) {
+                result.unicodeScalars.append(mapped)
+            } else {
+                result.unicodeScalars.append(scalar)
             }
-        })
+        }
+        return result
     }
 
     // MARK: - IBAN detection
@@ -38,9 +39,7 @@ final class SensitiveDataDetectorTests: XCTestCase {
     }
 
     func testDetectsCompatibilityEquivalentFullWidthEmail() {
-        let syntheticEmail = ["user", "example", "com"].joined(separator: "|")
-            .replacingOccurrences(of: "|", with: "@", options: [], range: nil)
-            .replacingOccurrences(of: "@example@", with: "@example.")
+        let syntheticEmail = ["user", "@", "example", ".", "com"].joined()
         let result = detector.detect(in: compatibilityFullWidth(syntheticEmail))
         XCTAssertTrue(result.findings.contains { $0.category == .emailAddress })
     }
