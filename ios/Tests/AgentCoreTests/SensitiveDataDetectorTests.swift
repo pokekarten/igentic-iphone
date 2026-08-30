@@ -18,6 +18,19 @@ final class SensitiveDataDetectorTests: XCTestCase {
         return result
     }
 
+    private func arabicIndicDigits(_ text: String) -> String {
+        var result = ""
+        for scalar in text.unicodeScalars {
+            let value = scalar.value
+            if (0x30...0x39).contains(value), let mapped = UnicodeScalar(0x0660 + value - 0x30) {
+                result.unicodeScalars.append(mapped)
+            } else {
+                result.unicodeScalars.append(scalar)
+            }
+        }
+        return result
+    }
+
     // MARK: - IBAN detection
 
     func testDetectsGermanIBANLikePattern() {
@@ -35,6 +48,12 @@ final class SensitiveDataDetectorTests: XCTestCase {
     func testDetectsCompatibilityEquivalentFullWidthIBAN() {
         let syntheticIBAN = ["DE", "89", "3704", "0044", "0532", "0130", "00"].joined()
         let result = detector.detect(in: compatibilityFullWidth(syntheticIBAN))
+        XCTAssertTrue(result.findings.contains { $0.category == .iban })
+    }
+
+    func testDetectsIBANWithUnicodeDecimalDigits() {
+        let syntheticIBAN = ["DE", "89", "3704", "0044", "0532", "0130", "00"].joined()
+        let result = detector.detect(in: arabicIndicDigits(syntheticIBAN))
         XCTAssertTrue(result.findings.contains { $0.category == .iban })
     }
 
@@ -67,6 +86,12 @@ final class SensitiveDataDetectorTests: XCTestCase {
     func testDetectsCompatibilityEquivalentFullWidthPhoneNumber() {
         let syntheticPhone = ["+", "49", "170", "123", "4567"].joined()
         let result = detector.detect(in: compatibilityFullWidth(syntheticPhone))
+        XCTAssertTrue(result.findings.contains { $0.category == .phoneNumber })
+    }
+
+    func testDetectsPhoneNumberWithUnicodeDecimalDigits() {
+        let syntheticPhone = ["00", "49", "170", "123", "4567"].joined()
+        let result = detector.detect(in: arabicIndicDigits(syntheticPhone))
         XCTAssertTrue(result.findings.contains { $0.category == .phoneNumber })
     }
 
