@@ -8,6 +8,18 @@ final class SensitiveDataBaselineEnforcementTests: XCTestCase {
         }
     }
 
+    private func compatibilityFullWidth(_ text: String) -> String {
+        String(text.unicodeScalars.map { scalar in
+            let value = scalar.value
+            switch value {
+            case 0x21...0x7E:
+                return UnicodeScalar(value + 0xFEE0)!
+            default:
+                return scalar
+            }
+        })
+    }
+
     private func restrictedExternalTask() -> TaskRequest {
         let iban = ["DE", "89", "3704", "0044", "0532", "0130", "00"].joined()
         return TaskRequest(
@@ -35,6 +47,34 @@ final class SensitiveDataBaselineEnforcementTests: XCTestCase {
             // Expected: built-in IBAN detection still blocks external delegation.
         } else {
             XCTFail("An injected empty detector must not suppress the built-in sensitive-data baseline.")
+        }
+        XCTAssertEqual(
+            kernel.auditEvents().first { $0.type == .taskReceived }?.dataSensitivity,
+            .restrictedSensitiveData
+        )
+    }
+
+    func testCompatibilityEquivalentIBANStillBlocksExternalDelegation() {
+        let kernel = AgentKernel(
+            approvalManager: ApprovalManager(defaultStatus: .approved)
+        )
+        let syntheticIBAN = ["DE", "89", "3704", "0044", "0532", "0130", "00"].joined()
+        let compatibilityIBAN = compatibilityFullWidth(syntheticIBAN)
+        let task = TaskRequest(
+            userText: "Please send account \(compatibilityIBAN) to the external provider.",
+            intent: .summarizeNote,
+            dataClassification: .publicDefault,
+            actionRisk: .prepare,
+            requestedDelegationTarget: .externalProvider
+        )
+
+        let response = kernel.handle(task, privacyMode: .trustedDevices)
+
+        XCTAssertFalse(response.policyDecision.isAllowed)
+        if case .blocked = response.route {
+            // Expected: Unicode compatibility forms cannot bypass the privacy floor.
+        } else {
+            XCTFail("Compatibility-equivalent IBAN text must remain restricted-sensitive.")
         }
         XCTAssertEqual(
             kernel.auditEvents().first { $0.type == .taskReceived }?.dataSensitivity,
