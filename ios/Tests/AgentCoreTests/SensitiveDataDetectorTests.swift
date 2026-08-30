@@ -63,6 +63,24 @@ final class SensitiveDataDetectorTests: XCTestCase {
         XCTAssertTrue(result.findings.contains { $0.category == .emailAddress })
     }
 
+    func testDetectsInternationalizedEmailLocalPart() {
+        let syntheticEmail = ["m", "\u{00FC}", "ller", "@", "example", ".", "de"].joined()
+        let result = detector.detect(in: syntheticEmail)
+        XCTAssertTrue(result.findings.contains { $0.category == .emailAddress })
+    }
+
+    func testDetectsInternationalizedEmailDomain() {
+        let syntheticEmail = ["user", "@", "b", "\u{00FC}", "cher", ".", "de"].joined()
+        let result = detector.detect(in: syntheticEmail)
+        XCTAssertTrue(result.findings.contains { $0.category == .emailAddress })
+    }
+
+    func testDetectsPunycodeEmailTLD() {
+        let syntheticEmail = ["user", "@", "example", ".", "xn--", "p1ai"].joined()
+        let result = detector.detect(in: syntheticEmail)
+        XCTAssertTrue(result.findings.contains { $0.category == .emailAddress })
+    }
+
     // MARK: - German phone-like pattern detection
 
     func testDetectsNationalPrefixPhoneNumber() {
