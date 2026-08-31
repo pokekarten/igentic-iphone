@@ -18,6 +18,7 @@ env:
   PACK_SHA256: 5c0ff179397b9d6c277e1b8b5716bbc7d56b1140353d5af6f178f54b90fedeea
   WEIGHT_SHA256: 80521b40281d6ce74e35c9282c22539e75aa0ac8578892b2a59955ef78d55da1
   RUNTIME_ARCHIVE_SHA256: 25bf4f4dcb0fac676b1b0076f03f09f0b91c81733b3dba873acadbf4d7bba6e2
+  SLM_LAB_REVISION: d0fc2d3cb9990e6d6e03fee53146aa60c936f6b1
   UPLOAD_ARTIFACT_COMMIT: ea165f8d65b6e75b540449e92b4886f43607fa02
 
 jobs:
@@ -57,6 +58,38 @@ jobs:
           echo "$RUNTIME_ARCHIVE_SHA256  $OUT/actuarial-hf-runtime-wheelhouse.tar.gz" | sha256sum --check --strict
           sha256sum "$OUT/tiny-actuarial-pipeline.tar" "$OUT/actuarial-hf-runtime-wheelhouse.tar.gz"
 
+      - name: Export exact public SLM runner sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          SRC="$RUNNER_TEMP/slm-lab-source"
+          OUT="$RUNNER_TEMP/actuarial-pack-export"
+          rm -rf "$SRC"
+          git init "$SRC"
+          cd "$SRC"
+          git remote add origin "https://github.com/pokekarten/agentic-slm-lab.git"
+          git fetch --depth=1 origin "$SLM_LAB_REVISION"
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$SLM_LAB_REVISION"
+          FILES=(
+            scripts/generate_actuarialbench_v1.py
+            scripts/native_smol_runtime.py
+            scripts/run_actuarialbench_native.py
+            scripts/score_actuarialbench.py
+            evals/actuarial/specs/actuarialbench-v1.json
+            tests/test_generate_actuarialbench_v1.py
+          )
+          mkdir -p "$OUT/slm-source"
+          for f in "${FILES[@]}"; do
+            test -f "$f"
+            mkdir -p "$OUT/slm-source/$(dirname "$f")"
+            cp --preserve=mode,timestamps "$f" "$OUT/slm-source/$f"
+          done
+          git ls-files --stage -- "${FILES[@]}" > "$OUT/slm-source-git-stage.txt"
+          (cd "$OUT" && sha256sum "${FILES[@]/#/slm-source/}" > slm-source-sha256.txt)
+          cat "$OUT/slm-source-git-stage.txt"
+          cat "$OUT/slm-source-sha256.txt"
+
       - name: Write public transport provenance receipt
         shell: bash
         run: |
@@ -68,7 +101,7 @@ jobs:
 
           out = Path(os.environ['RUNNER_TEMP']) / 'actuarial-pack-export' / 'transport-receipt.json'
           receipt = {
-              'schema_version': '1.3',
+              'schema_version': '1.4',
               'receipt_type': 'public_offline_worker_transport',
               'repository': os.environ['GITHUB_REPOSITORY'],
               'workflow_run_id': os.environ['GITHUB_RUN_ID'],
@@ -82,7 +115,17 @@ jobs:
               'runtime_release_tag': os.environ['RUNTIME_RELEASE_TAG'],
               'runtime_asset': 'actuarial-hf-runtime-wheelhouse.tar.gz',
               'runtime_archive_sha256': os.environ['RUNTIME_ARCHIVE_SHA256'],
+              'slm_lab_revision': os.environ['SLM_LAB_REVISION'],
+              'slm_source_files': [
+                  'scripts/generate_actuarialbench_v1.py',
+                  'scripts/native_smol_runtime.py',
+                  'scripts/run_actuarialbench_native.py',
+                  'scripts/score_actuarialbench.py',
+                  'evals/actuarial/specs/actuarialbench-v1.json',
+                  'tests/test_generate_actuarialbench_v1.py',
+              ],
               'contains_private_dev_eval': False,
+              'contains_generated_eval': False,
               'all_transport_archives_sha256_observed_and_verified': True,
               'artifact_uploader_source': 'actions/upload-artifact',
               'artifact_uploader_commit': os.environ['UPLOAD_ARTIFACT_COMMIT'],
@@ -97,7 +140,7 @@ jobs:
       - name: Upload verified complete tiny worker bundle
         uses: ./.github/actions/pinned-upload-artifact
         with:
-          name: tiny-actuarial-offline-worker-bundle
+          name: tiny-actuarial-offline-worker-bundle-with-slm-source
           path: ${{ runner.temp }}/actuarial-pack-export/
           if-no-files-found: error
           retention-days: '1'
