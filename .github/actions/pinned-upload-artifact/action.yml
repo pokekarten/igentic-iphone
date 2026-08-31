@@ -1,0 +1,25 @@
+name: Pinned local upload-artifact bridge
+description: Runs the official upload-artifact implementation at an exact pinned commit while keeping workflow uses local.
+inputs:
+  name:
+    required: true
+  path:
+    required: true
+  if-no-files-found:
+    required: false
+    default: error
+  retention-days:
+    required: false
+    default: '1'
+  compression-level:
+    required: false
+    default: '0'
+  overwrite:
+    required: false
+    default: 'true'
+  include-hidden-files:
+    required: false
+    default: 'false'
+runs:
+  using: node20
+  main: index.js
