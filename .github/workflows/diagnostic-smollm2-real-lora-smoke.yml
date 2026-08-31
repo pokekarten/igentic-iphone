@@ -17,7 +17,7 @@ concurrency:
 jobs:
   real-weight-update-smoke:
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 60
     env:
       GH_TOKEN: ${{ github.token }}
       BASE_RELEASE: actuarial-base-weights-2026-08-31
@@ -44,15 +44,22 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          try:
-              import torch
-              print('torch_preinstalled', torch.__version__)
-          except Exception:
-              raise SystemExit(2)
-          PY
+          python3 -m pip install --disable-pip-version-check --quiet \
+            --index-url https://download.pytorch.org/whl/cpu torch==2.10.0
           python3 -m pip install --disable-pip-version-check --quiet \
             transformers==5.16.1 peft==0.20.0 accelerate==1.14.0 safetensors==0.8.0
+          python3 - <<'PY'
+          import torch
+          import transformers
+          import peft
+          import accelerate
+          import safetensors
+          print('torch', torch.__version__)
+          print('transformers', transformers.__version__)
+          print('peft', peft.__version__)
+          print('accelerate', accelerate.__version__)
+          print('safetensors', safetensors.__version__)
+          PY
 
       - name: Run real LoRA optimizer steps
         shell: bash
