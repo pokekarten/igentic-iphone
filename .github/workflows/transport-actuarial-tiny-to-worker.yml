@@ -1,0 +1,41 @@
+name: Transport verified actuarial tiny assets
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/transport-actuarial-tiny-to-worker.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  transport:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Re-download and verify published assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/transport"
+          cd "$RUNNER_TEMP/transport"
+          curl --fail --location --retry 3 -o tiny-actuarial-pipeline.tar \
+            https://github.com/pokekarten/igentic-iphone/releases/download/actuarial-base-weights-2026-08-31/tiny-actuarial-pipeline.tar
+          echo "1b9b273838a337b43daaaf997cb37ffe9d377f9973438c9dcf1a99e517e64799  tiny-actuarial-pipeline.tar" | sha256sum --check --strict
+          curl --fail --location --retry 3 -o actuarial-hf-runtime-wheelhouse.tar.gz \
+            https://github.com/pokekarten/igentic-iphone/releases/download/actuarial-hf-runtime-2026-08-31/actuarial-hf-runtime-wheelhouse.tar.gz
+          echo "25bf4f4dcb0fac676b1b0076f03f09f0b91c81733b3dba873acadbf4d7bba6e2  actuarial-hf-runtime-wheelhouse.tar.gz" | sha256sum --check --strict
+          sha256sum tiny-actuarial-pipeline.tar actuarial-hf-runtime-wheelhouse.tar.gz > transport.sha256
+
+      - name: Upload verified transport artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: actuarial-tiny-worker-transport
+          path: |
+            ${{ runner.temp }}/transport/tiny-actuarial-pipeline.tar
+            ${{ runner.temp }}/transport/actuarial-hf-runtime-wheelhouse.tar.gz
+            ${{ runner.temp }}/transport/transport.sha256
+          compression-level: 0
+          retention-days: 1
