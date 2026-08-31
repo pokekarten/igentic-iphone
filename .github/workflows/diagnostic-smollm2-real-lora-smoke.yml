@@ -1,0 +1,211 @@
+name: Diagnostic real SmolLM2 LoRA weight update
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/diagnostic-smollm2-real-lora-smoke.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: diagnostic-real-smollm2-lora-smoke
+  cancel-in-progress: false
+
+jobs:
+  real-weight-update-smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BASE_RELEASE: actuarial-base-weights-2026-08-31
+      BASE_ARCHIVE: tiny-actuarial-pipeline.tar
+      BASE_ARCHIVE_SHA256: 1b9b273838a337b43daaaf997cb37ffe9d377f9973438c9dcf1a99e517e64799
+      BASE_WEIGHT_SHA256: 80521b40281d6ce74e35c9282c22539e75aa0ac8578892b2a59955ef78d55da1
+      BASE_REVISION: 93efa2f097d58c2a74874c7e644dbc9b0cee75a2
+      OUTPUT_RELEASE: diagnostic-smollm2-real-lora-smoke-2026-09-01
+    steps:
+      - name: Materialize exact public base pack
+        shell: bash
+        run: |
+          set -euo pipefail
+          WORK="$RUNNER_TEMP/real-lora-smoke"
+          mkdir -p "$WORK"
+          cd "$WORK"
+          gh release download "$BASE_RELEASE" --repo "$GITHUB_REPOSITORY" --pattern "$BASE_ARCHIVE" --clobber
+          echo "$BASE_ARCHIVE_SHA256  $BASE_ARCHIVE" | sha256sum --check --strict
+          tar -xf "$BASE_ARCHIVE"
+          echo "$BASE_WEIGHT_SHA256  $WORK/tiny-actuarial-pipeline/model.safetensors" | sha256sum --check --strict
+          echo "WORK=$WORK" >> "$GITHUB_ENV"
+
+      - name: Prepare runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          try:
+              import torch
+              print('torch_preinstalled', torch.__version__)
+          except Exception:
+              raise SystemExit(2)
+          PY
+          python3 -m pip install --disable-pip-version-check --quiet \
+            transformers==5.16.1 peft==0.20.0 accelerate==1.14.0 safetensors==0.8.0
+
+      - name: Run real LoRA optimizer steps
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          import platform
+          import time
+          from pathlib import Path
+
+          import torch
+          from peft import LoraConfig, TaskType, get_peft_model
+          from safetensors.torch import load_file
+          from transformers import AutoModelForCausalLM, AutoTokenizer
+
+          torch.manual_seed(20260901)
+          work = Path(os.environ['WORK'])
+          model_path = work / 'tiny-actuarial-pipeline'
+          out = work / 'output'
+          adapter_dir = out / 'adapter'
+          out.mkdir()
+
+          examples = [
+              ('A portfolio has claim frequency 0.12 and mean severity EUR 800. Return only the pure premium in EUR.', '96'),
+              ('A loss is EUR 250 and a quota-share treaty cedes 30%. Return only the ceded amount in EUR.', '75'),
+              ('Discount EUR 110 one year at 10%. Return only the present value in EUR.', '100'),
+              ('Gross loss is EUR 250 and ceded loss is EUR 90. Return only the net loss in EUR.', '160'),
+          ]
+
+          tokenizer = AutoTokenizer.from_pretrained(str(model_path), local_files_only=True)
+          if tokenizer.pad_token is None:
+              tokenizer.pad_token = tokenizer.eos_token
+
+          base = AutoModelForCausalLM.from_pretrained(
+              str(model_path), local_files_only=True, dtype=torch.float32, low_cpu_mem_usage=True
+          )
+          base.config.use_cache = False
+          model = get_peft_model(
+              base,
+              LoraConfig(
+                  r=2,
+                  lora_alpha=4,
+                  lora_dropout=0.0,
+                  bias='none',
+                  task_type=TaskType.CAUSAL_LM,
+                  target_modules=['q_proj', 'v_proj'],
+              ),
+          )
+          model.train()
+          trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
+          total = sum(p.numel() for p in model.parameters())
+          optimizer = torch.optim.AdamW([p for p in model.parameters() if p.requires_grad], lr=5e-4)
+
+          def batch(prompt, completion):
+              p = tokenizer.encode(prompt.rstrip() + '\n', add_special_tokens=False)
+              c = tokenizer.encode(completion, add_special_tokens=False) + [tokenizer.eos_token_id]
+              ids = torch.tensor([p + c], dtype=torch.long)
+              labels = torch.tensor([[-100] * len(p) + c], dtype=torch.long)
+              return ids, labels
+
+          with torch.no_grad():
+              ids0, labels0 = batch(*examples[0])
+              initial_loss = float(model(input_ids=ids0, labels=labels0).loss)
+
+          losses = []
+          started = time.time()
+          for epoch in range(2):
+              for prompt, completion in examples:
+                  ids, labels = batch(prompt, completion)
+                  optimizer.zero_grad(set_to_none=True)
+                  loss = model(input_ids=ids, labels=labels).loss
+                  if not torch.isfinite(loss):
+                      raise RuntimeError('non-finite loss')
+                  loss.backward()
+                  optimizer.step()
+                  losses.append(float(loss.detach()))
+          elapsed = time.time() - started
+
+          model.eval()
+          with torch.no_grad():
+              final_loss = float(model(input_ids=ids0, labels=labels0).loss)
+
+          model.save_pretrained(str(adapter_dir), safe_serialization=True)
+          weight_path = adapter_dir / 'adapter_model.safetensors'
+          if not weight_path.is_file():
+              candidates = list(adapter_dir.glob('*.safetensors'))
+              if len(candidates) != 1:
+                  raise RuntimeError(f'cannot identify adapter safetensors: {candidates}')
+              weight_path = candidates[0]
+          adapter_sha = hashlib.sha256(weight_path.read_bytes()).hexdigest()
+          tensors = load_file(str(weight_path), device='cpu')
+          nonzero = sum(int(torch.count_nonzero(t).item()) for t in tensors.values())
+          elements = sum(t.numel() for t in tensors.values())
+          max_abs = max(float(t.abs().max()) for t in tensors.values())
+          if nonzero <= 0 or max_abs <= 0:
+              raise RuntimeError('adapter tensors remained all-zero; no real weight update proven')
+
+          receipt = {
+              'schema_version': '1.0',
+              'receipt_type': 'DIAGNOSTIC_ONLY_real_weight_update_smoke',
+              'status': 'REAL_LORA_WEIGHT_UPDATE_OBSERVED',
+              'production_training_authorized': False,
+              'promotion_authorized': False,
+              'model_id': 'tiny-actuarial-pipeline',
+              'upstream_revision': os.environ['BASE_REVISION'],
+              'base_archive_sha256': os.environ['BASE_ARCHIVE_SHA256'],
+              'base_weight_sha256': os.environ['BASE_WEIGHT_SHA256'],
+              'workflow_commit': os.environ['GITHUB_SHA'],
+              'seed': 20260901,
+              'examples': len(examples),
+              'epochs': 2,
+              'optimizer_steps': len(losses),
+              'lora': {'r': 2, 'alpha': 4, 'targets': ['q_proj', 'v_proj']},
+              'trainable_parameters': trainable,
+              'total_parameters_in_peft_model': total,
+              'first_example_loss_before': initial_loss,
+              'first_example_loss_after': final_loss,
+              'all_step_losses': losses,
+              'adapter_safetensors': weight_path.name,
+              'adapter_sha256': adapter_sha,
+              'adapter_nonzero_elements': nonzero,
+              'adapter_elements': elements,
+              'adapter_max_abs': max_abs,
+              'elapsed_seconds': elapsed,
+              'runtime': {'python': platform.python_version(), 'torch': torch.__version__},
+              'data_policy': 'Four fresh generic public-safe actuarial arithmetic examples only. No FFBK/RIM private data and no EVAL/DEV targets were used.',
+              'interpretation': 'Proves real optimizer-driven LoRA adapter weight changes on the exact released SmolLM2-135M base. Does NOT prove actuarial quality, baseline authorization, evaluation improvement, or release eligibility.',
+          }
+          receipt_path = out / 'diagnostic-receipt.json'
+          receipt_path.write_text(json.dumps(receipt, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+          (out / 'diagnostic-receipt.sha256').write_text(
+              hashlib.sha256(receipt_path.read_bytes()).hexdigest() + '  diagnostic-receipt.json\n', encoding='utf-8'
+          )
+          print(json.dumps(receipt, indent=2, sort_keys=True))
+          PY
+
+      - name: Publish diagnostic evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$WORK/output"
+          tar -czf "$RUNNER_TEMP/diagnostic-lora-adapter.tar.gz" adapter
+          sha256sum "$RUNNER_TEMP/diagnostic-lora-adapter.tar.gz" > "$RUNNER_TEMP/diagnostic-lora-adapter.tar.gz.sha256"
+          if ! gh release view "$OUTPUT_RELEASE" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$OUTPUT_RELEASE" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+              --title "DIAGNOSTIC ONLY — real SmolLM2 LoRA weight-update smoke" \
+              --notes "Non-promotable public-safe diagnostic. Proves optimizer-driven LoRA adapter weight changes on the exact released SmolLM2-135M bytes. It does not use private FFBK/RIM data or held-out evaluation targets and cannot authorize actuarial training or release."
+          fi
+          gh release upload "$OUTPUT_RELEASE" --repo "$GITHUB_REPOSITORY" --clobber \
+            diagnostic-receipt.json diagnostic-receipt.sha256 \
+            "$RUNNER_TEMP/diagnostic-lora-adapter.tar.gz" \
+            "$RUNNER_TEMP/diagnostic-lora-adapter.tar.gz.sha256"
+          gh release view "$OUTPUT_RELEASE" --repo "$GITHUB_REPOSITORY" --json url,tagName,assets
