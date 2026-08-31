@@ -1,0 +1,225 @@
+name: Actuarial tiny native baseline
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/actuarial-tiny-native-baseline.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: actuarial-tiny-native-baseline-v1
+  cancel-in-progress: false
+
+env:
+  BASE_RELEASE_TAG: actuarial-base-weights-2026-08-31
+  BASELINE_RELEASE_TAG: actuarial-tiny-baseline-2026-08-31-native-v1
+  ARCHIVE_SHA256: 1b9b273838a337b43daaaf997cb37ffe9d377f9973438c9dcf1a99e517e64799
+  PACK_SHA256: 5c0ff179397b9d6c277e1b8b5716bbc7d56b1140353d5af6f178f54b90fedeea
+  MODEL_ID: tiny-actuarial-pipeline
+  BASE_REVISION: 93efa2f097d58c2a74874c7e644dbc9b0cee75a2
+  TOKENIZER_REVISION: 93efa2f097d58c2a74874c7e644dbc9b0cee75a2
+  DEV_BLOB_SHA: 7587dca22d5a4113d09b638a661800b08e0def26
+  EVAL_BLOB_SHA: fba47dac8a2efce610f63b294a9488df7d001f26
+  PARITY_RECEIPT_BLOB_SHA: 58ffce682404144446baa4cdb60dd53287804a71
+
+jobs:
+  baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Materialize exact pack and canonical gate surfaces
+        shell: bash
+        run: |
+          set -euo pipefail
+          WORK="$RUNNER_TEMP/actuarial-tiny-baseline"
+          mkdir -p "$WORK/unpacked" "$WORK/scripts" "$WORK/runner" "$WORK/models/acquisition" "$WORK/surfaces" "$WORK/evidence"
+
+          if gh release view "$BASELINE_RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Refusing to overwrite existing baseline release: $BASELINE_RELEASE_TAG" >&2
+            exit 1
+          fi
+
+          gh release download "$BASE_RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+            --pattern 'tiny-actuarial-pipeline.tar' \
+            --pattern 'tiny-actuarial-pipeline.acquisition-receipt.json' \
+            --dir "$WORK"
+          echo "$ARCHIVE_SHA256  $WORK/tiny-actuarial-pipeline.tar" | sha256sum --check --strict
+          tar -xf "$WORK/tiny-actuarial-pipeline.tar" -C "$WORK/unpacked"
+          PACK="$WORK/unpacked/tiny-actuarial-pipeline"
+          test -d "$PACK"
+
+          fetch_current() {
+            local source_path="$1"
+            local target_path="$2"
+            gh api "repos/$GITHUB_REPOSITORY/contents/$source_path?ref=$GITHUB_SHA" \
+              --jq .content | tr -d '\n' | base64 -d > "$target_path"
+          }
+
+          fetch_current Tools/ActuarialTransport/native_smol_runtime.py "$WORK/scripts/native_smol_runtime.py"
+          fetch_current Tools/ActuarialTransport/native_parity_gate.py "$WORK/scripts/native_parity_gate.py"
+          fetch_current Tools/ActuarialTransport/validate_model_pack_against_acquisition.py "$WORK/scripts/validate_model_pack_against_acquisition.py"
+          fetch_current Tools/ActuarialTransport/inspect_model_pack.py "$WORK/runner/inspect_model_pack.py"
+          fetch_current Tools/ActuarialTransport/verify_model_acquisition.py "$WORK/runner/verify_model_acquisition.py"
+          fetch_current Tools/ActuarialTransport/run_actuarialbench_native.py "$WORK/runner/run_actuarialbench_native.py"
+          fetch_current Tools/ActuarialTransport/score_actuarialbench.py "$WORK/runner/score_actuarialbench.py"
+          fetch_current Tools/ActuarialTransport/create_actuarial_baseline_receipt.py "$WORK/runner/create_actuarial_baseline_receipt.py"
+          fetch_current Tools/ActuarialTransport/registry.json "$WORK/models/registry.json"
+          fetch_current Tools/ActuarialTransport/tiny-actuarial-pipeline-acquisition.json "$WORK/models/acquisition/tiny-actuarial-pipeline.json"
+          fetch_current Tools/ActuarialTransport/native-hf-parity-receipt.json "$WORK/parity-receipt.json"
+          fetch_current Tools/ActuarialTransport/dev-v0.jsonl "$WORK/surfaces/dev-v0.jsonl"
+          fetch_current Tools/ActuarialTransport/actuarialbench-v0.jsonl "$WORK/surfaces/actuarialbench-v0.jsonl"
+
+          test "$(git hash-object "$WORK/surfaces/dev-v0.jsonl")" = "$DEV_BLOB_SHA"
+          test "$(git hash-object "$WORK/surfaces/actuarialbench-v0.jsonl")" = "$EVAL_BLOB_SHA"
+          test "$(git hash-object "$WORK/parity-receipt.json")" = "$PARITY_RECEIPT_BLOB_SHA"
+          test "$(git hash-object "$WORK/scripts/native_smol_runtime.py")" = "02091290ea18beac96258c14480916bd410595f7"
+          test "$(git hash-object "$WORK/scripts/native_parity_gate.py")" = "cfc6906ebe8df23d464f8b92fbaff6928573fbb3"
+          test "$(git hash-object "$WORK/scripts/validate_model_pack_against_acquisition.py")" = "4f19a5c66a992d9613651588f1a2d280b4e719cc"
+          test "$(git hash-object "$WORK/runner/inspect_model_pack.py")" = "7ca28772fbf6c072a804a6a8265611a8998b768f"
+          test "$(git hash-object "$WORK/runner/verify_model_acquisition.py")" = "2296f268a8a3c94bf2e01021464183cb4e0eac6c"
+          test "$(git hash-object "$WORK/runner/run_actuarialbench_native.py")" = "6be0247b15a5776883af2c6e9a99060cf34f15e4"
+          test "$(git hash-object "$WORK/runner/score_actuarialbench.py")" = "a507d807e066462ea4b244b3baf18de883cbd696"
+          test "$(git hash-object "$WORK/runner/create_actuarial_baseline_receipt.py")" = "00a65432bec3118fccb2c13c69dd2adfe98106bd"
+          test "$(git hash-object "$WORK/models/registry.json")" = "8f18ef7879ee23e0273b7bae8e94e6db1a563527"
+          test "$(git hash-object "$WORK/models/acquisition/tiny-actuarial-pipeline.json")" = "22c0c3b6f0e461c0721ddc8a0cf502e4350d971d"
+
+          echo "WORK=$WORK" >> "$GITHUB_ENV"
+          echo "PACK=$PACK" >> "$GITHUB_ENV"
+
+      - name: Install minimal native runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --disable-pip-version-check --quiet \
+            --index-url https://download.pytorch.org/whl/cpu torch
+          python3 -m pip install --disable-pip-version-check --quiet safetensors==0.8.0 regex
+
+      - name: Inspect and canonically verify acquisition
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 "$WORK/runner/inspect_model_pack.py" "$PACK" --output "$WORK/evidence/pack-manifest.json"
+          test "$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["pack_sha256"])' "$WORK/evidence/pack-manifest.json")" = "$PACK_SHA256"
+          python3 "$WORK/runner/verify_model_acquisition.py" \
+            --receipt "$WORK/tiny-actuarial-pipeline.acquisition-receipt.json" \
+            --pack-manifest "$WORK/evidence/pack-manifest.json" \
+            --registry "$WORK/models/registry.json" \
+            --output "$WORK/evidence/acquisition-verification.json"
+          test "$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["status"])' "$WORK/evidence/acquisition-verification.json")" = verified
+          sha256sum "$WORK/evidence/pack-manifest.json" "$WORK/evidence/acquisition-verification.json"
+
+      - name: Select generation budget on DEV only
+        shell: bash
+        run: |
+          set -euo pipefail
+          for TOKENS in 16 32; do
+            OUT="$WORK/dev-$TOKENS"
+            python3 "$WORK/runner/run_actuarialbench_native.py" \
+              --model-path "$PACK" \
+              --model-id "$MODEL_ID" \
+              --model-pack-sha256 "$PACK_SHA256" \
+              --base-revision "$BASE_REVISION" \
+              --tokenizer-revision "$TOKENIZER_REVISION" \
+              --parity-receipt "$WORK/parity-receipt.json" \
+              --benchmark "$WORK/surfaces/dev-v0.jsonl" \
+              --data-class DEV_ONLY \
+              --output-dir "$OUT" \
+              --max-new-tokens "$TOKENS" \
+              --base-dtype float32
+            python3 "$WORK/runner/score_actuarialbench.py" "$OUT/predictions.jsonl" \
+              --benchmark "$WORK/surfaces/dev-v0.jsonl" \
+              --output "$OUT/score.json" || true
+            test -s "$OUT/score.json"
+          done
+
+          python3 - "$WORK/dev-16/score.json" "$WORK/dev-32/score.json" "$WORK/evidence/dev-selection.json" <<'PY'
+          import json, sys
+          from pathlib import Path
+          rows=[]
+          for tokens, path in ((16, Path(sys.argv[1])), (32, Path(sys.argv[2]))):
+              score=json.loads(path.read_text())
+              if score.get('benchmark_cases') != 10 or score.get('prediction_cases') != 10 or score.get('missing_case_ids') != []:
+                  raise SystemExit(f'invalid DEV score for {tokens}')
+              rows.append({'max_new_tokens': tokens, 'accuracy': float(score['accuracy']), 'passed': int(score['passed']), 'failed': int(score['failed'])})
+          selected=sorted(rows, key=lambda x: (-x['accuracy'], x['max_new_tokens']))[0]
+          receipt={'schema_version':'0.1','selection_surface':'DEV_ONLY','selection_rule':'max_accuracy_then_lower_max_new_tokens','candidates':rows,'selected_max_new_tokens':selected['max_new_tokens']}
+          Path(sys.argv[3]).write_text(json.dumps(receipt, indent=2, sort_keys=True)+'\n')
+          print(json.dumps(receipt, indent=2, sort_keys=True))
+          PY
+          SELECTED_TOKENS="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["selected_max_new_tokens"])' "$WORK/evidence/dev-selection.json")"
+          echo "SELECTED_TOKENS=$SELECTED_TOKENS" >> "$GITHUB_ENV"
+
+      - name: Run frozen EVAL exactly once after DEV freeze
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$WORK/eval-base"
+          python3 "$WORK/runner/run_actuarialbench_native.py" \
+            --model-path "$PACK" \
+            --model-id "$MODEL_ID" \
+            --model-pack-sha256 "$PACK_SHA256" \
+            --base-revision "$BASE_REVISION" \
+            --tokenizer-revision "$TOKENIZER_REVISION" \
+            --parity-receipt "$WORK/parity-receipt.json" \
+            --benchmark "$WORK/surfaces/actuarialbench-v0.jsonl" \
+            --data-class EVAL_ONLY \
+            --output-dir "$OUT" \
+            --max-new-tokens "$SELECTED_TOKENS" \
+            --base-dtype float32
+          python3 "$WORK/runner/score_actuarialbench.py" "$OUT/predictions.jsonl" \
+            --benchmark "$WORK/surfaces/actuarialbench-v0.jsonl" \
+            --output "$OUT/score.json" || true
+          test -s "$OUT/score.json"
+
+      - name: Build fail-closed baseline receipt and evidence manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 "$WORK/runner/create_actuarial_baseline_receipt.py" \
+            --pack-manifest "$WORK/evidence/pack-manifest.json" \
+            --acquisition-verification "$WORK/evidence/acquisition-verification.json" \
+            --run-metadata "$WORK/eval-base/run-metadata.json" \
+            --score "$WORK/eval-base/score.json" \
+            --output "$WORK/evidence/baseline-receipt.json"
+
+          cp "$WORK/dev-16/predictions.jsonl" "$WORK/evidence/dev-16-predictions.jsonl"
+          cp "$WORK/dev-16/run-metadata.json" "$WORK/evidence/dev-16-run-metadata.json"
+          cp "$WORK/dev-16/score.json" "$WORK/evidence/dev-16-score.json"
+          cp "$WORK/dev-32/predictions.jsonl" "$WORK/evidence/dev-32-predictions.jsonl"
+          cp "$WORK/dev-32/run-metadata.json" "$WORK/evidence/dev-32-run-metadata.json"
+          cp "$WORK/dev-32/score.json" "$WORK/evidence/dev-32-score.json"
+          cp "$WORK/eval-base/predictions.jsonl" "$WORK/evidence/eval-base-predictions.jsonl"
+          cp "$WORK/eval-base/run-metadata.json" "$WORK/evidence/eval-base-run-metadata.json"
+          cp "$WORK/eval-base/score.json" "$WORK/evidence/eval-base-score.json"
+          cp "$WORK/parity-receipt.json" "$WORK/evidence/native-hf-parity-receipt.json"
+          cp "$WORK/tiny-actuarial-pipeline.acquisition-receipt.json" "$WORK/evidence/release-acquisition-receipt.json"
+
+          (
+            cd "$WORK/evidence"
+            sha256sum *.json *.jsonl | sort > SHA256SUMS
+          )
+          echo '===DEV_SELECTION_JSON==='
+          cat "$WORK/evidence/dev-selection.json"
+          echo '===BASE_SCORE_JSON==='
+          cat "$WORK/evidence/eval-base-score.json"
+          echo '===BASELINE_RECEIPT_JSON==='
+          cat "$WORK/evidence/baseline-receipt.json"
+          echo '===EVIDENCE_SHA256SUMS==='
+          cat "$WORK/evidence/SHA256SUMS"
+
+      - name: Publish immutable baseline evidence outside Git history
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release create "$BASELINE_RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title 'Actuarial tiny base baseline evidence (2026-08-31)' \
+            --notes 'Parity-gated unchanged SmolLM2-135M base. Generation budget selected on DEV_ONLY before the frozen EVAL_ONLY run. Contains predictions, scores, run metadata, acquisition/parity/baseline receipts and SHA-256 manifest. No adapter weights.' \
+            "$WORK/evidence/"*
