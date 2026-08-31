@@ -15,6 +15,7 @@ env:
   ARCHIVE_SHA256: 1b9b273838a337b43daaaf997cb37ffe9d377f9973438c9dcf1a99e517e64799
   PACK_SHA256: 5c0ff179397b9d6c277e1b8b5716bbc7d56b1140353d5af6f178f54b90fedeea
   WEIGHT_SHA256: 80521b40281d6ce74e35c9282c22539e75aa0ac8578892b2a59955ef78d55da1
+  UPLOAD_ARTIFACT_COMMIT: ea165f8d65b6e75b540449e92b4886f43607fa02
 
 jobs:
   export-pack:
@@ -56,6 +57,7 @@ jobs:
               'pack_sha256': os.environ['PACK_SHA256'],
               'base_revision': os.environ['BASE_REVISION'],
               'weight_sha256': os.environ['WEIGHT_SHA256'],
+              'upload_artifact_commit': os.environ['UPLOAD_ARTIFACT_COMMIT'],
               'contains_private_dev_eval': False,
               'archive_sha256_observed_and_verified': True,
           }
@@ -64,11 +66,22 @@ jobs:
           PY
           sha256sum "$RUNNER_TEMP/actuarial-pack-export/transport-receipt.json"
 
-      - name: Upload verified base archive as transport artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: tiny-actuarial-pipeline-verified-transport
-          path: ${{ runner.temp }}/actuarial-pack-export/
-          compression-level: 0
-          retention-days: 1
-          if-no-files-found: error
+      - name: Upload verified base archive as transport artifact without marketplace action
+        shell: bash
+        run: |
+          set -euo pipefail
+          UPLOADER="$RUNNER_TEMP/upload-artifact"
+          git init "$UPLOADER"
+          git -C "$UPLOADER" remote add origin https://github.com/actions/upload-artifact.git
+          git -C "$UPLOADER" fetch --no-tags --depth=1 origin "$UPLOAD_ARTIFACT_COMMIT"
+          git -C "$UPLOADER" checkout --detach FETCH_HEAD
+          test "$(git -C "$UPLOADER" rev-parse HEAD)" = "$UPLOAD_ARTIFACT_COMMIT"
+          env \
+            'INPUT_NAME=tiny-actuarial-pipeline-verified-transport' \
+            "INPUT_PATH=$RUNNER_TEMP/actuarial-pack-export/" \
+            'INPUT_COMPRESSION-LEVEL=0' \
+            'INPUT_RETENTION-DAYS=1' \
+            'INPUT_IF-NO-FILES-FOUND=error' \
+            'INPUT_OVERWRITE=false' \
+            'INPUT_INCLUDE-HIDDEN-FILES=false' \
+            node "$UPLOADER/dist/upload/index.js"
