@@ -5,6 +5,7 @@ on:
   push:
     paths:
       - .github/workflows/export-actuarial-tiny-pack-artifact.yml
+      - .github/actions/pinned-upload-artifact/**
 
 permissions:
   contents: read
@@ -22,6 +23,22 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
+      - name: Checkout exact iGentic commit without marketplace checkout
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          rm -rf "$GITHUB_WORKSPACE"/* "$GITHUB_WORKSPACE"/.[!.]* "$GITHUB_WORKSPACE"/..?* 2>/dev/null || true
+          git init "$GITHUB_WORKSPACE"
+          cd "$GITHUB_WORKSPACE"
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git fetch --depth=1 origin "$GITHUB_SHA"
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -f .github/actions/pinned-upload-artifact/action.yml
+          test -f .github/actions/pinned-upload-artifact/index.js
+
       - name: Re-download and verify exact base archive
         shell: bash
         env:
@@ -46,7 +63,7 @@ jobs:
 
           out = Path(os.environ['RUNNER_TEMP']) / 'actuarial-pack-export' / 'transport-receipt.json'
           receipt = {
-              'schema_version': '1.1',
+              'schema_version': '1.2',
               'receipt_type': 'public_binary_transport',
               'repository': os.environ['GITHUB_REPOSITORY'],
               'workflow_run_id': os.environ['GITHUB_RUN_ID'],
@@ -61,6 +78,7 @@ jobs:
               'archive_sha256_observed_and_verified': True,
               'artifact_uploader_source': 'actions/upload-artifact',
               'artifact_uploader_commit': os.environ['UPLOAD_ARTIFACT_COMMIT'],
+              'artifact_uploader_execution': 'local_js_action_bootstrap',
               'marketplace_uses_syntax': False,
           }
           out.write_text(json.dumps(receipt, indent=2, sort_keys=True) + '\n', encoding='utf-8')
@@ -68,22 +86,13 @@ jobs:
           PY
           sha256sum "$RUNNER_TEMP/actuarial-pack-export/transport-receipt.json"
 
-      - name: Upload verified base archive as transport artifact without marketplace uses
-        shell: bash
-        run: |
-          set -euo pipefail
-          ACTION_DIR="$RUNNER_TEMP/upload-artifact-source"
-          git clone --quiet https://github.com/actions/upload-artifact.git "$ACTION_DIR"
-          cd "$ACTION_DIR"
-          git checkout --quiet "$UPLOAD_ARTIFACT_COMMIT"
-          test "$(git rev-parse HEAD)" = "$UPLOAD_ARTIFACT_COMMIT"
-          test -f dist/upload/index.js
-          env \
-            INPUT_NAME='tiny-actuarial-pipeline-verified-transport' \
-            INPUT_PATH="$RUNNER_TEMP/actuarial-pack-export/" \
-            INPUT_IF-NO-FILES-FOUND='error' \
-            INPUT_RETENTION-DAYS='1' \
-            INPUT_COMPRESSION-LEVEL='0' \
-            INPUT_OVERWRITE='true' \
-            INPUT_INCLUDE-HIDDEN-FILES='false' \
-            node dist/upload/index.js
+      - name: Upload verified base archive as transport artifact
+        uses: ./.github/actions/pinned-upload-artifact
+        with:
+          name: tiny-actuarial-pipeline-verified-transport
+          path: ${{ runner.temp }}/actuarial-pack-export/
+          if-no-files-found: error
+          retention-days: '1'
+          compression-level: '0'
+          overwrite: 'true'
+          include-hidden-files: 'false'
