@@ -1,0 +1,164 @@
+name: Fetch actuarial model weights
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/fetch-actuarial-model-weights.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: actuarial-base-weight-release
+  cancel-in-progress: false
+
+jobs:
+  fetch-verify-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      RELEASE_TAG: actuarial-base-weights-2026-08-31
+      HF_BASE: https://huggingface.co
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout provenance commit
+        uses: actions/checkout@v4
+
+      - name: Show runner capacity
+        run: |
+          set -euo pipefail
+          df -h /
+          free -h
+          curl --version | head -n 1
+          gh --version | head -n 1
+
+      - name: Download and verify pinned model packs
+        shell: bash
+        run: |
+          set -euo pipefail
+          WORK="$RUNNER_TEMP/actuarial-models"
+          OUT="$RUNNER_TEMP/release-assets"
+          mkdir -p "$WORK" "$OUT"
+
+          download_pack() {
+            local id="$1" repo="$2" revision="$3" expected_weight_sha="$4"
+            shift 4
+            local files=("$@")
+            local dir="$WORK/$id"
+            mkdir -p "$dir"
+
+            echo "==> $id :: $repo @ $revision"
+            for file in "${files[@]}"; do
+              echo "Downloading $file"
+              curl \
+                --fail \
+                --location \
+                --retry 6 \
+                --retry-delay 3 \
+                --retry-all-errors \
+                --connect-timeout 30 \
+                --output "$dir/$file" \
+                "$HF_BASE/$repo/resolve/$revision/$file?download=true"
+            done
+
+            echo "$expected_weight_sha  $dir/model.safetensors" | sha256sum --check --strict
+            (
+              cd "$dir"
+              sha256sum "${files[@]}" > "$OUT/$id.files.sha256"
+            )
+
+            local archive="$OUT/$id.tar"
+            tar -C "$WORK" -cf "$archive" "$id"
+            sha256sum "$archive" > "$archive.sha256"
+
+            local archive_bytes
+            archive_bytes="$(stat -c%s "$archive")"
+            if [ "$archive_bytes" -ge 2147483648 ]; then
+              echo "Release asset exceeds GitHub's 2 GiB per-file limit: $archive_bytes bytes" >&2
+              exit 1
+            fi
+
+            ARCHIVE="$archive" \
+            ID="$id" \
+            REPO="$repo" \
+            REVISION="$revision" \
+            EXPECTED_WEIGHT_SHA="$expected_weight_sha" \
+            FILE_SUMS="$OUT/$id.files.sha256" \
+            python3 - <<'PY' > "$OUT/$id.acquisition-receipt.json"
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+
+          archive = Path(os.environ["ARCHIVE"])
+          file_sums = Path(os.environ["FILE_SUMS"])
+          files = []
+          for line in file_sums.read_text(encoding="utf-8").splitlines():
+              digest, path = line.split("  ", 1)
+              files.append({"path": path, "sha256": digest})
+
+          receipt = {
+              "schema_version": "0.1",
+              "model_id": os.environ["ID"],
+              "upstream_repo": os.environ["REPO"],
+              "upstream_revision": os.environ["REVISION"],
+              "tokenizer_revision": os.environ["REVISION"],
+              "license_claim": "apache-2.0",
+              "known_upstream_weight_sha256": os.environ["EXPECTED_WEIGHT_SHA"],
+              "archive_name": archive.name,
+              "archive_bytes": archive.stat().st_size,
+              "archive_sha256": hashlib.sha256(archive.read_bytes()).hexdigest(),
+              "files": files,
+              "transport": "github-actions-to-github-release",
+          }
+          print(json.dumps(receipt, indent=2, sort_keys=True))
+          PY
+          }
+
+          download_pack \
+            tiny-actuarial-pipeline \
+            HuggingFaceTB/SmolLM2-135M \
+            93efa2f097d58c2a74874c7e644dbc9b0cee75a2 \
+            80521b40281d6ce74e35c9282c22539e75aa0ac8578892b2a59955ef78d55da1 \
+            .gitattributes README.md config.json generation_config.json merges.txt \
+            model.safetensors special_tokens_map.json tokenizer.json tokenizer_config.json vocab.json
+
+          download_pack \
+            actuarial-small \
+            HuggingFaceTB/SmolLM2-360M-Instruct \
+            a10cc1512eabd3dde888204e902eca88bddb4951 \
+            e6bffe7435d7ddc10fd3b9a9efd429dafbacb1cb17015fb5562664e7532bf86e \
+            .gitattributes README.md config.json generation_config.json merges.txt \
+            model.safetensors special_tokens_map.json tokenizer.json tokenizer_config.json vocab.json
+
+          download_pack \
+            actuarial-reasoning \
+            Qwen/Qwen3-0.6B \
+            c1899de289a04d12100db370d81485cdf75e47ca \
+            f47f71177f32bcd101b7573ec9171e6a57f4f4d31148d38e382306f42996874b \
+            .gitattributes LICENSE README.md config.json generation_config.json merges.txt \
+            model.safetensors tokenizer.json tokenizer_config.json vocab.json
+
+          echo "Release assets prepared:"
+          ls -lh "$OUT"
+          echo "OUT=$OUT" >> "$GITHUB_ENV"
+
+      - name: Create or update GitHub release
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" \
+              --title "Pinned actuarial base-model weights (2026-08-31)" \
+              --notes "Pinned Apache-2.0 base-model packs used by pokekarten/agentic-slm-lab. Each archive is tied to an immutable Hugging Face revision and a verified upstream model.safetensors SHA-256. Binary weights are release assets only and are never committed to the Git tree. Sources: HuggingFaceTB/SmolLM2-135M, HuggingFaceTB/SmolLM2-360M-Instruct, Qwen/Qwen3-0.6B."
+          fi
+
+          gh release upload "$RELEASE_TAG" "$OUT"/* --clobber
+          gh release view "$RELEASE_TAG" --json url,tagName,assets
+
+      - name: Final checksums
+        run: |
+          set -euo pipefail
+          cat "$OUT"/*.tar.sha256
