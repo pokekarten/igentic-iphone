@@ -1,0 +1,39 @@
+name: Actuarial base artifact transport v2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/actuarial-base-artifact-transport-v2.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  transport:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Download exact public base release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA256: 1b9b273838a337b43daaaf997cb37ffe9d377f9973438c9dcf1a99e517e64799
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/actuarial-base-transport"
+          gh release download actuarial-base-weights-2026-08-31 \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern 'tiny-actuarial-pipeline.tar' \
+            --dir "$RUNNER_TEMP/actuarial-base-transport"
+          echo "$EXPECTED_SHA256  $RUNNER_TEMP/actuarial-base-transport/tiny-actuarial-pipeline.tar" | sha256sum --check --strict
+
+      - name: Upload short-lived verified base artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: actuarial-base-transport-v2
+          path: ${{ runner.temp }}/actuarial-base-transport/tiny-actuarial-pipeline.tar
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
