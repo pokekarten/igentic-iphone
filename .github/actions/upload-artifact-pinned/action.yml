@@ -1,0 +1,25 @@
+name: Upload artifact via pinned upstream implementation
+description: Run the official upload-artifact implementation at an exact commit from a local action context.
+inputs:
+  name:
+    required: true
+  path:
+    required: true
+  if-no-files-found:
+    required: false
+    default: error
+  retention-days:
+    required: false
+    default: '1'
+  compression-level:
+    required: false
+    default: '0'
+  overwrite:
+    required: false
+    default: 'false'
+  include-hidden-files:
+    required: false
+    default: 'false'
+runs:
+  using: node20
+  main: index.js
