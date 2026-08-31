@@ -15,11 +15,12 @@ env:
   ARCHIVE_SHA256: 1b9b273838a337b43daaaf997cb37ffe9d377f9973438c9dcf1a99e517e64799
   PACK_SHA256: 5c0ff179397b9d6c277e1b8b5716bbc7d56b1140353d5af6f178f54b90fedeea
   WEIGHT_SHA256: 80521b40281d6ce74e35c9282c22539e75aa0ac8578892b2a59955ef78d55da1
+  UPLOAD_ARTIFACT_COMMIT: ea165f8d65b6e75b540449e92b4886f43607fa02
 
 jobs:
   export-pack:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - name: Re-download and verify exact base archive
         shell: bash
@@ -45,7 +46,7 @@ jobs:
 
           out = Path(os.environ['RUNNER_TEMP']) / 'actuarial-pack-export' / 'transport-receipt.json'
           receipt = {
-              'schema_version': '1.0',
+              'schema_version': '1.1',
               'receipt_type': 'public_binary_transport',
               'repository': os.environ['GITHUB_REPOSITORY'],
               'workflow_run_id': os.environ['GITHUB_RUN_ID'],
@@ -58,17 +59,31 @@ jobs:
               'weight_sha256': os.environ['WEIGHT_SHA256'],
               'contains_private_dev_eval': False,
               'archive_sha256_observed_and_verified': True,
+              'artifact_uploader_source': 'actions/upload-artifact',
+              'artifact_uploader_commit': os.environ['UPLOAD_ARTIFACT_COMMIT'],
+              'marketplace_uses_syntax': False,
           }
           out.write_text(json.dumps(receipt, indent=2, sort_keys=True) + '\n', encoding='utf-8')
           print(out.read_text(encoding='utf-8'))
           PY
           sha256sum "$RUNNER_TEMP/actuarial-pack-export/transport-receipt.json"
 
-      - name: Upload verified base archive as transport artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: tiny-actuarial-pipeline-verified-transport
-          path: ${{ runner.temp }}/actuarial-pack-export/
-          compression-level: 0
-          retention-days: 1
-          if-no-files-found: error
+      - name: Upload verified base archive as transport artifact without marketplace uses
+        shell: bash
+        run: |
+          set -euo pipefail
+          ACTION_DIR="$RUNNER_TEMP/upload-artifact-source"
+          git clone --quiet https://github.com/actions/upload-artifact.git "$ACTION_DIR"
+          cd "$ACTION_DIR"
+          git checkout --quiet "$UPLOAD_ARTIFACT_COMMIT"
+          test "$(git rev-parse HEAD)" = "$UPLOAD_ARTIFACT_COMMIT"
+          test -f dist/upload/index.js
+          env \
+            INPUT_NAME='tiny-actuarial-pipeline-verified-transport' \
+            INPUT_PATH="$RUNNER_TEMP/actuarial-pack-export/" \
+            INPUT_IF-NO-FILES-FOUND='error' \
+            INPUT_RETENTION-DAYS='1' \
+            INPUT_COMPRESSION-LEVEL='0' \
+            INPUT_OVERWRITE='true' \
+            INPUT_INCLUDE-HIDDEN-FILES='false' \
+            node dist/upload/index.js
