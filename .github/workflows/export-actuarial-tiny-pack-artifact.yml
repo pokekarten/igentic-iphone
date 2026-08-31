@@ -1,0 +1,41 @@
+name: Export actuarial tiny pack artifact
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/export-actuarial-tiny-pack-artifact.yml
+
+permissions:
+  contents: read
+
+env:
+  RELEASE_TAG: actuarial-base-weights-2026-08-31
+  ARCHIVE_SHA256: 1b9b273838a337b43daaaf997cb37ffe9d377f9973438c9dcf1a99e517e64799
+
+jobs:
+  export-pack:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Re-download and verify exact base archive
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/actuarial-pack-export"
+          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+            --pattern 'tiny-actuarial-pipeline.tar' \
+            --dir "$RUNNER_TEMP/actuarial-pack-export"
+          echo "$ARCHIVE_SHA256  $RUNNER_TEMP/actuarial-pack-export/tiny-actuarial-pipeline.tar" | sha256sum --check --strict
+          sha256sum "$RUNNER_TEMP/actuarial-pack-export/tiny-actuarial-pipeline.tar"
+
+      - name: Upload verified base archive as transport artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tiny-actuarial-pipeline-verified-transport
+          path: ${{ runner.temp }}/actuarial-pack-export/tiny-actuarial-pipeline.tar
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
