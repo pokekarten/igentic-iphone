@@ -1,0 +1,74 @@
+name: Run actuarial tiny parity gate
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/run-actuarial-tiny-parity.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: actuarial-tiny-parity
+  cancel-in-progress: false
+
+jobs:
+  parity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: actuarial-base-weights-2026-08-31
+      ARCHIVE_SHA256: 1b9b273838a337b43daaaf997cb37ffe9d377f9973438c9dcf1a99e517e64799
+      PACK_SHA256: 5c0ff179397b9d6c277e1b8b5716bbc7d56b1140353d5af6f178f54b90fedeea
+      BASE_REVISION: 93efa2f097d58c2a74874c7e644dbc9b0cee75a2
+      TOKENIZER_REVISION: 93efa2f097d58c2a74874c7e644dbc9b0cee75a2
+      PARITY_BLOB_SHA: 6d51771aec28d69255bb54c34a713db31658ac95
+      NATIVE_BLOB_SHA: 02091290ea18beac96258c14480916bd410595f7
+    steps:
+      - name: Materialize exact model and canonical scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          WORK="$RUNNER_TEMP/actuarial-tiny-parity"
+          mkdir -p "$WORK/scripts" "$WORK/unpacked"
+          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+            --pattern 'tiny-actuarial-pipeline.tar' --dir "$WORK"
+          echo "$ARCHIVE_SHA256  $WORK/tiny-actuarial-pipeline.tar" | sha256sum --check --strict
+          tar -xf "$WORK/tiny-actuarial-pipeline.tar" -C "$WORK/unpacked"
+          gh api "repos/$GITHUB_REPOSITORY/contents/Tools/ActuarialTransport/check_native_hf_parity.py?ref=$GITHUB_SHA" \
+            --jq .content | tr -d '\n' | base64 -d > "$WORK/scripts/check_native_hf_parity.py"
+          gh api "repos/$GITHUB_REPOSITORY/contents/Tools/ActuarialTransport/native_smol_runtime.py?ref=$GITHUB_SHA" \
+            --jq .content | tr -d '\n' | base64 -d > "$WORK/scripts/native_smol_runtime.py"
+          test "$(git hash-object "$WORK/scripts/check_native_hf_parity.py")" = "$PARITY_BLOB_SHA"
+          test "$(git hash-object "$WORK/scripts/native_smol_runtime.py")" = "$NATIVE_BLOB_SHA"
+          echo "WORK=$WORK" >> "$GITHUB_ENV"
+          echo "PACK=$WORK/unpacked/tiny-actuarial-pipeline" >> "$GITHUB_ENV"
+
+      - name: Install reference runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --disable-pip-version-check --quiet \
+            --index-url https://download.pytorch.org/whl/cpu torch
+          python3 -m pip install --disable-pip-version-check --quiet \
+            transformers==5.16.1 tokenizers==0.23.1 safetensors==0.8.0 regex
+
+      - name: Execute canonical native-HF parity gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          TRANSFORMERS_OFFLINE=1 HF_HUB_OFFLINE=1 \
+          python3 "$WORK/scripts/check_native_hf_parity.py" \
+            --model-path "$PACK" \
+            --model-id tiny-actuarial-pipeline \
+            --model-pack-sha256 "$PACK_SHA256" \
+            --base-revision "$BASE_REVISION" \
+            --tokenizer-revision "$TOKENIZER_REVISION" \
+            --output "$WORK/parity-receipt.json"
+          echo '===PARITY_RECEIPT_JSON==='
+          cat "$WORK/parity-receipt.json"
+          echo '===END_PARITY_RECEIPT_JSON==='
+          sha256sum "$WORK/parity-receipt.json"
