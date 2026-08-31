@@ -1,0 +1,21 @@
+name: Stop compromised actuarial EVAL execution
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/actuarial-tiny-stop-compromised-eval.yml
+  workflow_dispatch:
+
+concurrency:
+  group: actuarial-tiny-native-baseline-v1
+  cancel-in-progress: true
+
+jobs:
+  stop:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Record fail-closed stop
+        run: |
+          echo 'Public DEV/EVAL surfaces are not eligible for an acceptance baseline.'
+          echo 'This run exists only to cancel any in-progress workflow sharing the baseline concurrency group.'
