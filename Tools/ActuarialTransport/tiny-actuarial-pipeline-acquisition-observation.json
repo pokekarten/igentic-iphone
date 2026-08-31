@@ -1,0 +1,39 @@
+{
+  "custom_code_reviewed": true,
+  "local_pack_sha256": "5c0ff179397b9d6c277e1b8b5716bbc7d56b1140353d5af6f178f54b90fedeea",
+  "model_id": "tiny-actuarial-pipeline",
+  "offline_load_test": {
+    "logits_shape": [
+      1,
+      5,
+      49152
+    ],
+    "notes": "GitHub Actions re-download; local_files_only tokenizer/model load and forward pass on exact release bytes.",
+    "passed": true,
+    "runtime": {
+      "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+      "python": "3.12.3",
+      "safetensors": "0.8.0",
+      "tokenizers": "0.23.1",
+      "torch": "2.13.0+cpu",
+      "transformers": "5.16.1"
+    },
+    "token_count": 5
+  },
+  "pack_kind": "huggingface_trainable",
+  "receipt_type": "model_acquisition_observation",
+  "schema_version": "0.2",
+  "tokenizer_revision": "93efa2f097d58c2a74874c7e644dbc9b0cee75a2",
+  "transport": {
+    "archive_sha256": "1b9b273838a337b43daaaf997cb37ffe9d377f9973438c9dcf1a99e517e64799",
+    "canonical_inspector_blob_sha": "7ca28772fbf6c072a804a6a8265611a8998b768f",
+    "repository": "pokekarten/igentic-iphone",
+    "slm_main_sha": "ad69c4778a007a64917a5c6b3107d69efa0bc410",
+    "workflow_commit": "cb8342124f11d05eea1f6d73a4fdf87adc8ad45b",
+    "workflow_run_attempt": "1",
+    "workflow_run_id": "33440339413"
+  },
+  "upstream_license_claim": "apache-2.0",
+  "upstream_repo": "HuggingFaceTB/SmolLM2-135M",
+  "upstream_revision": "93efa2f097d58c2a74874c7e644dbc9b0cee75a2"
+}
