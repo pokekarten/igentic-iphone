@@ -1,0 +1,144 @@
+name: Production actuarial LoRA training
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/actuarial-production-lora-train.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: actuarial-production-lora-tiny-r3
+  cancel-in-progress: false
+
+jobs:
+  train-publish-redownload-verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SLM_LAB_COMMIT: d4f4a2c953db4ad60cb82a1c8467afaa5c27b577
+      BASE_RELEASE: actuarial-base-weights-2026-08-31
+      BASE_ARCHIVE: tiny-actuarial-pipeline.tar
+      BASE_ARCHIVE_SHA256: 1b9b273838a337b43daaaf997cb37ffe9d377f9973438c9dcf1a99e517e64799
+      BASE_WEIGHT_SHA256: 80521b40281d6ce74e35c9282c22539e75aa0ac8578892b2a59955ef78d55da1
+      MODEL_PACK_SHA256: 5c0ff179397b9d6c277e1b8b5716bbc7d56b1140353d5af6f178f54b90fedeea
+      BASE_REVISION: 93efa2f097d58c2a74874c7e644dbc9b0cee75a2
+      TRAIN_SEED_SHA256: 2fd5035f79250e2d702198b50b30cf379416aff2119bf98204f3e713286483e9
+      BASELINE_RECEIPT_SHA256: 041845af738d9a49b2c35f600c7c5238b1cdda3af3d54e243f6c24df2dcc454b
+      ACTIVATION_RECEIPT_SHA256: 14bc2cc1eeac9e8b1660d3e97341af730c349ae41e6a563168904bcb630a4a61
+      OUTPUT_RELEASE: actuarial-production-lora-tiny-2026-09-01-r3
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Materialize exact base and exact TRAIN generator
+        shell: bash
+        run: |
+          set -euo pipefail
+          WORK="$RUNNER_TEMP/actuarial-production-lora"
+          mkdir -p "$WORK"
+          cd "$WORK"
+          gh release download "$BASE_RELEASE" --repo "$GITHUB_REPOSITORY" --pattern "$BASE_ARCHIVE" --clobber
+          echo "$BASE_ARCHIVE_SHA256  $BASE_ARCHIVE" | sha256sum --check --strict
+          tar -xf "$BASE_ARCHIVE"
+          echo "$BASE_WEIGHT_SHA256  $WORK/tiny-actuarial-pipeline/model.safetensors" | sha256sum --check --strict
+          gh api "repos/pokekarten/agentic-slm-lab/contents/scripts/generate_actuarial_seed_corpus.py?ref=$SLM_LAB_COMMIT" --jq .content | base64 -d > generate_actuarial_seed_corpus.py
+          python3 generate_actuarial_seed_corpus.py --output synthetic-v0.jsonl --manifest synthetic-v0.manifest.json
+          echo "$TRAIN_SEED_SHA256  synthetic-v0.jsonl" | sha256sum --check --strict
+          python3 - <<'PY'
+          import json
+          rows=[json.loads(x) for x in open('synthetic-v0.jsonl',encoding='utf-8') if x.strip()]
+          assert len(rows)==120
+          assert all(r['data_class']=='TRAIN_ELIGIBLE' and r['training_eligible'] is True and r['immutable_eval'] is False for r in rows)
+          assert not any('EVAL_ONLY' in json.dumps(r, sort_keys=True) for r in rows)
+          print('TRAIN boundary verified:', len(rows))
+          PY
+          echo "WORK=$WORK" >> "$GITHUB_ENV"
+
+      - name: Prepare pinned runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --disable-pip-version-check --quiet --index-url https://download.pytorch.org/whl/cpu torch==2.10.0
+          python3 -m pip install --disable-pip-version-check --quiet transformers==5.16.1 peft==0.20.0 accelerate==1.14.0 safetensors==0.8.0
+
+      - name: Run authorized offline PEFT LoRA
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/actuarial_production_lora.py \
+            --model-dir "$WORK/tiny-actuarial-pipeline" \
+            --train-jsonl "$WORK/synthetic-v0.jsonl" \
+            --output-dir "$WORK/output"
+
+      - name: Publish adapter outside Git history
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$WORK/output"
+          tar -czf "$RUNNER_TEMP/actuarial-production-lora-adapter.tar.gz" adapter
+          sha256sum "$RUNNER_TEMP/actuarial-production-lora-adapter.tar.gz" > "$RUNNER_TEMP/actuarial-production-lora-adapter.tar.gz.sha256"
+          if ! gh release view "$OUTPUT_RELEASE" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$OUTPUT_RELEASE" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+              --title "Actuarial production LoRA — tiny r3" \
+              --notes "Receipt-bound TRAIN_ELIGIBLE-only SmolLM2-135M LoRA. No DEV or EVAL targets were available during training. Promotion remains separate and requires frozen DEV selection plus private held-out EVAL comparison."
+          fi
+          gh release upload "$OUTPUT_RELEASE" --repo "$GITHUB_REPOSITORY" --clobber \
+            training-receipt.json training-receipt.sha256 \
+            "$RUNNER_TEMP/actuarial-production-lora-adapter.tar.gz" \
+            "$RUNNER_TEMP/actuarial-production-lora-adapter.tar.gz.sha256"
+
+      - name: Redownload, rehash and offline-smoke released adapter
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERIFY="$RUNNER_TEMP/release-verify"
+          mkdir -p "$VERIFY"
+          cd "$VERIFY"
+          gh release download "$OUTPUT_RELEASE" --repo "$GITHUB_REPOSITORY" \
+            --pattern 'actuarial-production-lora-adapter.tar.gz' \
+            --pattern 'actuarial-production-lora-adapter.tar.gz.sha256' \
+            --pattern 'training-receipt.json' --clobber
+          sha256sum --check --strict actuarial-production-lora-adapter.tar.gz.sha256
+          tar -xzf actuarial-production-lora-adapter.tar.gz
+          export VERIFY BASE_DIR="$WORK/tiny-actuarial-pipeline"
+          python3 - <<'PY'
+          import hashlib, json, os, socket
+          from pathlib import Path
+          def blocked(*_a, **_k): raise RuntimeError('offline release verification network guard')
+          original=socket.socket
+          class G(original):
+              def connect(self,*a,**k): return blocked()
+              def connect_ex(self,*a,**k): return blocked()
+          socket.socket=G; socket.create_connection=blocked
+          os.environ['HF_HUB_OFFLINE']='1'; os.environ['TRANSFORMERS_OFFLINE']='1'
+          import torch
+          from transformers import AutoTokenizer, AutoModelForCausalLM
+          from peft import PeftModel
+          verify=Path(os.environ['VERIFY']); base_dir=Path(os.environ['BASE_DIR'])
+          receipt=json.loads((verify/'training-receipt.json').read_text())
+          adapter_weight=verify/'adapter'/'adapter_model.safetensors'
+          observed=hashlib.sha256(adapter_weight.read_bytes()).hexdigest()
+          assert observed==receipt['adapter']['sha256']
+          tok=AutoTokenizer.from_pretrained(str(base_dir),local_files_only=True)
+          base=AutoModelForCausalLM.from_pretrained(str(base_dir),local_files_only=True,dtype=torch.float32,low_cpu_mem_usage=True)
+          model=PeftModel.from_pretrained(base,str(verify/'adapter'),local_files_only=True)
+          model.eval()
+          prompt='Claim frequency is 0.05 and mean severity is EUR 2000. Pure premium? Number only.'
+          enc=tok(prompt,return_tensors='pt')
+          with torch.no_grad(): out=model.generate(**enc,max_new_tokens=8,do_sample=False,num_beams=1)
+          answer=tok.decode(out[0,enc['input_ids'].shape[1]:],skip_special_tokens=True).strip()
+          verification={
+            'schema_version':'1.0','status':'released_adapter_redownloaded_rehashed_offline_smoke_complete',
+            'release_tag':os.environ['OUTPUT_RELEASE'],'adapter_sha256':observed,
+            'training_receipt_sha256':hashlib.sha256((verify/'training-receipt.json').read_bytes()).hexdigest(),
+            'smoke_prompt_class':'fresh_generic_TRAIN_style_not_DEV_or_EVAL','smoke_output_sha256':hashlib.sha256(answer.encode()).hexdigest(),
+            'network_guard_enabled':True,'base_weight_sha256':os.environ['BASE_WEIGHT_SHA256']
+          }
+          (verify/'release-verification.json').write_text(json.dumps(verification,indent=2,sort_keys=True)+'\n')
+          print(json.dumps(verification,indent=2,sort_keys=True))
+          PY
+          gh release upload "$OUTPUT_RELEASE" --repo "$GITHUB_REPOSITORY" --clobber release-verification.json
