@@ -11,7 +11,10 @@ permissions:
 
 env:
   RELEASE_TAG: actuarial-base-weights-2026-08-31
+  BASE_REVISION: 93efa2f097d58c2a74874c7e644dbc9b0cee75a2
   ARCHIVE_SHA256: 1b9b273838a337b43daaaf997cb37ffe9d377f9973438c9dcf1a99e517e64799
+  PACK_SHA256: 5c0ff179397b9d6c277e1b8b5716bbc7d56b1140353d5af6f178f54b90fedeea
+  WEIGHT_SHA256: 80521b40281d6ce74e35c9282c22539e75aa0ac8578892b2a59955ef78d55da1
 
 jobs:
   export-pack:
@@ -31,11 +34,41 @@ jobs:
           echo "$ARCHIVE_SHA256  $RUNNER_TEMP/actuarial-pack-export/tiny-actuarial-pipeline.tar" | sha256sum --check --strict
           sha256sum "$RUNNER_TEMP/actuarial-pack-export/tiny-actuarial-pipeline.tar"
 
+      - name: Write public transport provenance receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          out = Path(os.environ['RUNNER_TEMP']) / 'actuarial-pack-export' / 'transport-receipt.json'
+          receipt = {
+              'schema_version': '1.0',
+              'receipt_type': 'public_binary_transport',
+              'repository': os.environ['GITHUB_REPOSITORY'],
+              'workflow_run_id': os.environ['GITHUB_RUN_ID'],
+              'workflow_head_sha': os.environ['GITHUB_SHA'],
+              'release_tag': os.environ['RELEASE_TAG'],
+              'asset': 'tiny-actuarial-pipeline.tar',
+              'archive_sha256': os.environ['ARCHIVE_SHA256'],
+              'pack_sha256': os.environ['PACK_SHA256'],
+              'base_revision': os.environ['BASE_REVISION'],
+              'weight_sha256': os.environ['WEIGHT_SHA256'],
+              'contains_private_dev_eval': False,
+              'archive_sha256_observed_and_verified': True,
+          }
+          out.write_text(json.dumps(receipt, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+          print(out.read_text(encoding='utf-8'))
+          PY
+          sha256sum "$RUNNER_TEMP/actuarial-pack-export/transport-receipt.json"
+
       - name: Upload verified base archive as transport artifact
         uses: actions/upload-artifact@v4
         with:
           name: tiny-actuarial-pipeline-verified-transport
-          path: ${{ runner.temp }}/actuarial-pack-export/tiny-actuarial-pipeline.tar
+          path: ${{ runner.temp }}/actuarial-pack-export/
           compression-level: 0
           retention-days: 1
           if-no-files-found: error
