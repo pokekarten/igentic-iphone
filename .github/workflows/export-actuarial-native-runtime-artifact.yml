@@ -1,0 +1,63 @@
+name: Export actuarial native runtime artifact
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/export-actuarial-native-runtime-artifact.yml
+
+permissions:
+  contents: read
+
+jobs:
+  export-runtime:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout transport branch without marketplace checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git fetch --no-tags --depth=1 origin "${GITHUB_SHA}"
+          git checkout --force FETCH_HEAD
+          git clean -fdx
+          git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+
+      - name: Stage public native runtime with receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          SRC=Tools/ActuarialTransport/native_smol_runtime.py
+          OUT="$RUNNER_TEMP/actuarial-runtime-export"
+          mkdir -p "$OUT"
+          cp "$SRC" "$OUT/native_smol_runtime.py"
+          RUNTIME_SHA="$(sha256sum "$OUT/native_smol_runtime.py" | cut -d' ' -f1)"
+          python3 - "$OUT/runtime-transport-receipt.json" "$RUNTIME_SHA" <<'PY'
+          import json, os, sys
+          from pathlib import Path
+          out = Path(sys.argv[1])
+          receipt = {
+              'schema_version': '1.0',
+              'receipt_type': 'public_runtime_transport',
+              'repository': os.environ['GITHUB_REPOSITORY'],
+              'workflow_run_id': os.environ['GITHUB_RUN_ID'],
+              'workflow_head_sha': os.environ['GITHUB_SHA'],
+              'source_path': 'Tools/ActuarialTransport/native_smol_runtime.py',
+              'runtime_sha256': sys.argv[2],
+              'contains_private_dev_eval': False,
+          }
+          out.write_text(json.dumps(receipt, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+          print(out.read_text(encoding='utf-8'))
+          PY
+          sha256sum "$OUT/native_smol_runtime.py" "$OUT/runtime-transport-receipt.json"
+
+      - name: Upload native runtime artifact
+        uses: ./.github/actions/upload-artifact-pinned
+        with:
+          name: actuarial-native-runtime-verified-transport
+          path: ${{ runner.temp }}/actuarial-runtime-export/
+          compression-level: '0'
+          retention-days: '1'
+          if-no-files-found: error
