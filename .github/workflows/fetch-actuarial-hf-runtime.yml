@@ -1,0 +1,89 @@
+name: Fetch actuarial HF runtime wheels
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/fetch-actuarial-hf-runtime.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: actuarial-hf-runtime-release
+  cancel-in-progress: false
+
+jobs:
+  fetch-verify-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      RELEASE_TAG: actuarial-hf-runtime-2026-08-31
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Download pinned wheels without dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/hf-runtime"
+          mkdir -p "$OUT/wheelhouse"
+          python3 -m pip download --disable-pip-version-check --no-deps --only-binary=:all: --dest "$OUT/wheelhouse" \
+            transformers==5.16.1 \
+            tokenizers==0.23.1 \
+            peft==0.20.0 \
+            accelerate==1.14.0 \
+            safetensors==0.8.0
+          (cd "$OUT/wheelhouse" && sha256sum * | sort > ../wheelhouse.sha256)
+          python3 - <<'PY' > "$OUT/runtime-receipt.json"
+          import hashlib
+          import json
+          import os
+          import platform
+          from pathlib import Path
+
+          out = Path(os.environ["RUNNER_TEMP"]) / "hf-runtime"
+          wheels = []
+          for path in sorted((out / "wheelhouse").iterdir()):
+              wheels.append({
+                  "name": path.name,
+                  "bytes": path.stat().st_size,
+                  "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+              })
+          receipt = {
+              "schema_version": "1.0",
+              "purpose": "Minimal optional HF/PEFT lane wheels; PyTorch and ordinary transitive dependencies are intentionally not bundled.",
+              "workflow_commit": os.environ["GITHUB_SHA"],
+              "runner_python": platform.python_version(),
+              "packages": {
+                  "transformers": "5.16.1",
+                  "tokenizers": "0.23.1",
+                  "peft": "0.20.0",
+                  "accelerate": "1.14.0",
+                  "safetensors": "0.8.0",
+              },
+              "torch_bundled": False,
+              "install_policy": "pip install --no-index --find-links wheelhouse <wheelhouse paths>; verify imports and record exact runtime before training",
+              "wheels": wheels,
+          }
+          print(json.dumps(receipt, indent=2, sort_keys=True))
+          PY
+          tar -C "$OUT" -czf "$RUNNER_TEMP/actuarial-hf-runtime-wheelhouse.tar.gz" wheelhouse runtime-receipt.json wheelhouse.sha256
+          sha256sum "$RUNNER_TEMP/actuarial-hf-runtime-wheelhouse.tar.gz" > "$RUNNER_TEMP/actuarial-hf-runtime-wheelhouse.tar.gz.sha256"
+          echo "OUT=$OUT" >> "$GITHUB_ENV"
+
+      - name: Publish runtime release
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+              --title "Pinned actuarial HF runtime wheels (2026-08-31)" \
+              --notes "Minimal no-deps wheelhouse for the optional Transformers/PEFT actuarial training lane. PyTorch is not bundled. Workers must verify local transitive dependencies and record the exact runtime receipt before training."
+          fi
+          gh release upload "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --clobber \
+            "$RUNNER_TEMP/actuarial-hf-runtime-wheelhouse.tar.gz" \
+            "$RUNNER_TEMP/actuarial-hf-runtime-wheelhouse.tar.gz.sha256" \
+            "$OUT/runtime-receipt.json" \
+            "$OUT/wheelhouse.sha256"
+          gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json url,tagName,assets
