@@ -83,6 +83,33 @@ final class SensitiveDataBaselineEnforcementTests: XCTestCase {
         )
     }
 
+    func testDefaultIgnorableIBANStillBlocksExternalDelegation() {
+        let kernel = AgentKernel(
+            approvalManager: ApprovalManager(defaultStatus: .approved)
+        )
+        let syntheticIBAN = ["DE89", "\u{200B}", "370400440532013000"].joined()
+        let task = TaskRequest(
+            userText: "Please send account \(syntheticIBAN) to the external provider.",
+            intent: .summarizeNote,
+            dataClassification: .publicDefault,
+            actionRisk: .prepare,
+            requestedDelegationTarget: .externalProvider
+        )
+
+        let response = kernel.handle(task, privacyMode: .trustedDevices)
+
+        XCTAssertFalse(response.policyDecision.isAllowed)
+        if case .blocked = response.route {
+            // Expected: invisible Unicode separators cannot bypass the privacy floor.
+        } else {
+            XCTFail("A default-ignorable split IBAN must remain restricted-sensitive.")
+        }
+        XCTAssertEqual(
+            kernel.auditEvents().first { $0.type == .taskReceived }?.dataSensitivity,
+            .restrictedSensitiveData
+        )
+    }
+
     func testEmptyPrecomputedDetectionCannotDowngradeKernelBaseline() {
         let kernel = AgentKernel(
             approvalManager: ApprovalManager(defaultStatus: .approved)

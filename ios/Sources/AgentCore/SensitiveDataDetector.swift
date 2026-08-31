@@ -69,8 +69,8 @@ public struct SensitiveDataDetector: SensitiveDataDetecting {
         var findings: [SensitiveDataFinding] = []
 
         // Normalize Unicode representations for classification only.
-        // Compatibility forms (for example full-width ASCII) and non-ASCII
-        // decimal digits must not bypass the built-in privacy floor. The
+        // Compatibility forms, non-ASCII decimal digits and invisible
+        // default-ignorables must not bypass the built-in privacy floor. The
         // normalized text is never retained in findings or audit output.
         let detectionText = normalizedDetectionText(text)
 
@@ -109,6 +109,14 @@ public struct SensitiveDataDetector: SensitiveDataDetecting {
         var normalized = ""
 
         for scalar in compatibilityMapped.unicodeScalars {
+            // Classification intentionally collapses invisible formatting
+            // distinctions. The original text is preserved everywhere else;
+            // removing default-ignorables here prevents visually hidden
+            // separators from lowering privacy sensitivity.
+            if scalar.properties.isDefaultIgnorableCodePoint {
+                continue
+            }
+
             if scalar.properties.numericType == .decimal,
                let numericValue = scalar.properties.numericValue,
                (0...9).contains(numericValue),

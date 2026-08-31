@@ -5,6 +5,10 @@ final class SensitiveDataDetectorTests: XCTestCase {
 
     private let detector = SensitiveDataDetector()
 
+    private var defaultIgnorableSeparators: [String] {
+        ["\u{200B}", "\u{200C}", "\u{200D}"]
+    }
+
     private func compatibilityFullWidth(_ text: String) -> String {
         var result = ""
         for scalar in text.unicodeScalars {
@@ -57,6 +61,17 @@ final class SensitiveDataDetectorTests: XCTestCase {
         XCTAssertTrue(result.findings.contains { $0.category == .iban })
     }
 
+    func testDetectsIBANSplitByDefaultIgnorableScalars() {
+        for separator in defaultIgnorableSeparators {
+            let syntheticIBAN = ["DE89", separator, "370400440532013000"].joined()
+            let result = detector.detect(in: syntheticIBAN)
+            XCTAssertTrue(
+                result.findings.contains { $0.category == .iban },
+                "Default-ignorable separators must not hide an IBAN-like pattern."
+            )
+        }
+    }
+
     func testDetectsCompatibilityEquivalentFullWidthEmail() {
         let syntheticEmail = ["user", "@", "example", ".", "com"].joined()
         let result = detector.detect(in: compatibilityFullWidth(syntheticEmail))
@@ -79,6 +94,17 @@ final class SensitiveDataDetectorTests: XCTestCase {
         let syntheticEmail = ["user", "@", "example", ".", "xn--", "p1ai"].joined()
         let result = detector.detect(in: syntheticEmail)
         XCTAssertTrue(result.findings.contains { $0.category == .emailAddress })
+    }
+
+    func testDetectsEmailSplitByDefaultIgnorableScalars() {
+        for separator in defaultIgnorableSeparators {
+            let syntheticEmail = ["user@exa", separator, "mple.com"].joined()
+            let result = detector.detect(in: syntheticEmail)
+            XCTAssertTrue(
+                result.findings.contains { $0.category == .emailAddress },
+                "Default-ignorable separators must not hide an email-like pattern."
+            )
+        }
     }
 
     // MARK: - German phone-like pattern detection
@@ -111,6 +137,17 @@ final class SensitiveDataDetectorTests: XCTestCase {
         let syntheticPhone = ["00", "49", "170", "123", "4567"].joined()
         let result = detector.detect(in: arabicIndicDigits(syntheticPhone))
         XCTAssertTrue(result.findings.contains { $0.category == .phoneNumber })
+    }
+
+    func testDetectsPhoneNumberSplitByDefaultIgnorableScalars() {
+        for separator in defaultIgnorableSeparators {
+            let syntheticPhone = ["+49170", separator, "1234567"].joined()
+            let result = detector.detect(in: syntheticPhone)
+            XCTAssertTrue(
+                result.findings.contains { $0.category == .phoneNumber },
+                "Default-ignorable separators must not hide a phone-like pattern."
+            )
+        }
     }
 
     func testPlainNonZeroLeadingDigitsDoNotMatch() {
