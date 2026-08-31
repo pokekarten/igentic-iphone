@@ -18,8 +18,11 @@ env:
   BASE_RELEASE_TAG: actuarial-base-weights-2026-08-31
   BASELINE_RELEASE_TAG: actuarial-tiny-baseline-2026-08-31-native-v1
   ARCHIVE_SHA256: 1b9b273838a337b43daaaf997cb37ffe9d377f9973438c9dcf1a99e517e64799
+  RELEASE_RECEIPT_SHA256: 8e9780f2df441e4ccf749b0f619b6a5bd305cacab13420bcfe5cf1817bf25031
   PACK_SHA256: 5c0ff179397b9d6c277e1b8b5716bbc7d56b1140353d5af6f178f54b90fedeea
+  WEIGHT_SHA256: 80521b40281d6ce74e35c9282c22539e75aa0ac8578892b2a59955ef78d55da1
   MODEL_ID: tiny-actuarial-pipeline
+  UPSTREAM_REPO: HuggingFaceTB/SmolLM2-135M
   BASE_REVISION: 93efa2f097d58c2a74874c7e644dbc9b0cee75a2
   TOKENIZER_REVISION: 93efa2f097d58c2a74874c7e644dbc9b0cee75a2
   DEV_BLOB_SHA: 7587dca22d5a4113d09b638a661800b08e0def26
@@ -50,6 +53,7 @@ jobs:
             --pattern 'tiny-actuarial-pipeline.acquisition-receipt.json' \
             --dir "$WORK"
           echo "$ARCHIVE_SHA256  $WORK/tiny-actuarial-pipeline.tar" | sha256sum --check --strict
+          echo "$RELEASE_RECEIPT_SHA256  $WORK/tiny-actuarial-pipeline.acquisition-receipt.json" | sha256sum --check --strict
           tar -xf "$WORK/tiny-actuarial-pipeline.tar" -C "$WORK/unpacked"
           PACK="$WORK/unpacked/tiny-actuarial-pipeline"
           test -d "$PACK"
@@ -100,19 +104,79 @@ jobs:
             --index-url https://download.pytorch.org/whl/cpu torch
           python3 -m pip install --disable-pip-version-check --quiet safetensors==0.8.0 regex
 
-      - name: Inspect and canonically verify acquisition
+      - name: Inspect, smoke-load, and canonically verify acquisition
         shell: bash
         run: |
           set -euo pipefail
           python3 "$WORK/runner/inspect_model_pack.py" "$PACK" --output "$WORK/evidence/pack-manifest.json"
           test "$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["pack_sha256"])' "$WORK/evidence/pack-manifest.json")" = "$PACK_SHA256"
+
+          python3 "$WORK/scripts/native_smol_runtime.py" \
+            --model-path "$PACK" \
+            --prompt 'Actuarial acquisition smoke test.' \
+            --max-new-tokens 1 \
+            --dtype float32 > "$WORK/evidence/acquisition-smoke-output.txt"
+
+          python3 - \
+            "$WORK/tiny-actuarial-pipeline.acquisition-receipt.json" \
+            "$WORK/evidence/pack-manifest.json" \
+            "$WORK/evidence/runtime-acquisition-receipt.json" <<'PY'
+          import hashlib, json, os, sys
+          from pathlib import Path
+          release_path, pack_path, out_path = map(Path, sys.argv[1:4])
+          release = json.loads(release_path.read_text())
+          pack = json.loads(pack_path.read_text())
+          required = {
+              'model_id': os.environ['MODEL_ID'],
+              'upstream_repo': os.environ['UPSTREAM_REPO'],
+              'upstream_revision': os.environ['BASE_REVISION'],
+              'tokenizer_revision': os.environ['TOKENIZER_REVISION'],
+              'license_claim': 'apache-2.0',
+              'known_upstream_weight_sha256': os.environ['WEIGHT_SHA256'],
+              'archive_sha256': os.environ['ARCHIVE_SHA256'],
+          }
+          for key, expected in required.items():
+              if release.get(key) != expected:
+                  raise SystemExit(f'release acquisition receipt mismatch for {key}: {release.get(key)!r} != {expected!r}')
+          files = release.get('files')
+          if not isinstance(files, list):
+              raise SystemExit('release acquisition receipt missing files')
+          weights = [x for x in files if isinstance(x, dict) and x.get('path') == 'model.safetensors']
+          if len(weights) != 1 or weights[0].get('sha256') != os.environ['WEIGHT_SHA256']:
+              raise SystemExit('release receipt weight identity mismatch')
+          if pack.get('pack_sha256') != os.environ['PACK_SHA256'] or pack.get('pack_kind') != 'huggingface_trainable':
+              raise SystemExit('inspected pack identity mismatch')
+          runtime = {
+              'schema_version': '0.2',
+              'model_id': os.environ['MODEL_ID'],
+              'upstream_repo': os.environ['UPSTREAM_REPO'],
+              'upstream_revision': os.environ['BASE_REVISION'],
+              'tokenizer_revision': os.environ['TOKENIZER_REVISION'],
+              'upstream_license_claim': release['license_claim'],
+              'local_pack_sha256': pack['pack_sha256'],
+              'pack_kind': pack['pack_kind'],
+              'offline_load_test': {
+                  'passed': True,
+                  'runtime': 'native_pytorch_llama',
+                  'notes': 'Fresh GitHub Actions CPU load plus one-token greedy generation completed before canonical verification.'
+              },
+              'transport_receipt_sha256': hashlib.sha256(release_path.read_bytes()).hexdigest(),
+              'transport_archive_sha256': release['archive_sha256'],
+          }
+          out_path.write_text(json.dumps(runtime, indent=2, sort_keys=True) + '\n')
+          PY
+
           python3 "$WORK/runner/verify_model_acquisition.py" \
-            --receipt "$WORK/tiny-actuarial-pipeline.acquisition-receipt.json" \
+            --receipt "$WORK/evidence/runtime-acquisition-receipt.json" \
             --pack-manifest "$WORK/evidence/pack-manifest.json" \
             --registry "$WORK/models/registry.json" \
             --output "$WORK/evidence/acquisition-verification.json"
           test "$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["status"])' "$WORK/evidence/acquisition-verification.json")" = verified
-          sha256sum "$WORK/evidence/pack-manifest.json" "$WORK/evidence/acquisition-verification.json"
+          sha256sum \
+            "$WORK/tiny-actuarial-pipeline.acquisition-receipt.json" \
+            "$WORK/evidence/runtime-acquisition-receipt.json" \
+            "$WORK/evidence/pack-manifest.json" \
+            "$WORK/evidence/acquisition-verification.json"
 
       - name: Select generation budget on DEV only
         shell: bash
@@ -202,7 +266,7 @@ jobs:
 
           (
             cd "$WORK/evidence"
-            sha256sum *.json *.jsonl | sort > SHA256SUMS
+            sha256sum *.json *.jsonl *.txt | sort > SHA256SUMS
           )
           echo '===DEV_SELECTION_JSON==='
           cat "$WORK/evidence/dev-selection.json"
