@@ -1,0 +1,42 @@
+name: Transport tiny actuarial base artifact
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/transport-tiny-actuarial-base-artifact.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: transport-tiny-actuarial-base-artifact
+  cancel-in-progress: false
+
+env:
+  BASE_URL: https://github.com/pokekarten/igentic-iphone/releases/download/actuarial-base-weights-2026-08-31/tiny-actuarial-pipeline.tar
+  BASE_SHA256: 1b9b273838a337b43daaaf997cb37ffe9d377f9973438c9dcf1a99e517e64799
+
+jobs:
+  transport:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Download and verify released public base archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/actuarial-base-transport"
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/actuarial-base-transport/tiny-actuarial-pipeline.tar" "$BASE_URL"
+          echo "$BASE_SHA256  $RUNNER_TEMP/actuarial-base-transport/tiny-actuarial-pipeline.tar" | sha256sum --check --strict
+          sha256sum "$RUNNER_TEMP/actuarial-base-transport/tiny-actuarial-pipeline.tar" > "$RUNNER_TEMP/actuarial-base-transport/SHA256SUMS"
+
+      - name: Upload short-lived transport artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tiny-actuarial-pipeline-public-base
+          path: ${{ runner.temp }}/actuarial-base-transport
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
