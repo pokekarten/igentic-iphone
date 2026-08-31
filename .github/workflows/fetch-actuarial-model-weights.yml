@@ -23,12 +23,10 @@ jobs:
       HF_BASE: https://huggingface.co
       GH_TOKEN: ${{ github.token }}
     steps:
-      - name: Checkout provenance commit
-        uses: actions/checkout@v4
-
       - name: Show runner capacity
         run: |
           set -euo pipefail
+          echo "provenance_commit=$GITHUB_SHA"
           df -h /
           free -h
           curl --version | head -n 1
@@ -112,6 +110,7 @@ jobs:
               "archive_sha256": hashlib.sha256(archive.read_bytes()).hexdigest(),
               "files": files,
               "transport": "github-actions-to-github-release",
+              "workflow_commit": os.environ.get("GITHUB_SHA"),
           }
           print(json.dumps(receipt, indent=2, sort_keys=True))
           PY
@@ -149,14 +148,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+          if ! gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release create "$RELEASE_TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" \
               --title "Pinned actuarial base-model weights (2026-08-31)" \
               --notes "Pinned Apache-2.0 base-model packs used by pokekarten/agentic-slm-lab. Each archive is tied to an immutable Hugging Face revision and a verified upstream model.safetensors SHA-256. Binary weights are release assets only and are never committed to the Git tree. Sources: HuggingFaceTB/SmolLM2-135M, HuggingFaceTB/SmolLM2-360M-Instruct, Qwen/Qwen3-0.6B."
           fi
 
-          gh release upload "$RELEASE_TAG" "$OUT"/* --clobber
-          gh release view "$RELEASE_TAG" --json url,tagName,assets
+          gh release upload "$RELEASE_TAG" "$OUT"/* --repo "$GITHUB_REPOSITORY" --clobber
+          gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json url,tagName,assets
 
       - name: Final checksums
         run: |
