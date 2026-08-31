@@ -1,0 +1,30 @@
+{
+  "schema_version": "0.1",
+  "model_id": "tiny-actuarial-pipeline",
+  "upstream_repo": "HuggingFaceTB/SmolLM2-135M",
+  "upstream_revision": "93efa2f097d58c2a74874c7e644dbc9b0cee75a2",
+  "tokenizer_revision": "93efa2f097d58c2a74874c7e644dbc9b0cee75a2",
+  "license_claim": "apache-2.0",
+  "pack_policy": "runtime_training_allowlist",
+  "required_files": [
+    ".gitattributes",
+    "README.md",
+    "config.json",
+    "generation_config.json",
+    "merges.txt",
+    "model.safetensors",
+    "special_tokens_map.json",
+    "tokenizer.json",
+    "tokenizer_config.json",
+    "vocab.json"
+  ],
+  "excluded_patterns": [],
+  "known_upstream_weight": {
+    "path": "model.safetensors",
+    "size_label": "269 MB",
+    "sha256": "80521b40281d6ce74e35c9282c22539e75aa0ac8578892b2a59955ef78d55da1"
+  },
+  "expected_architecture": "LlamaForCausalLM",
+  "expected_model_type": "llama",
+  "notes": "Smallest first-lane candidate. Upload the listed files as one directory without changing bytes."
+}
