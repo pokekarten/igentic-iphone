@@ -1,0 +1,39 @@
+name: Actuarial small artifact transport
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/actuarial-small-artifact-transport.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  transport:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Download exact public actuarial-small release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA256: f3addb0635c11dd9b71362feb05dc8f7bb11650e4d56529a0b94c7374352ef69
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/actuarial-small-transport"
+          gh release download actuarial-base-weights-2026-08-31 \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern 'actuarial-small.tar' \
+            --dir "$RUNNER_TEMP/actuarial-small-transport"
+          echo "$EXPECTED_SHA256  $RUNNER_TEMP/actuarial-small-transport/actuarial-small.tar" | sha256sum --check --strict
+
+      - name: Upload verified actuarial-small artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: actuarial-small-transport
+          path: ${{ runner.temp }}/actuarial-small-transport/actuarial-small.tar
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
