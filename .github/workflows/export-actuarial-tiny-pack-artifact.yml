@@ -1,4 +1,4 @@
-name: Export actuarial small pack artifact
+name: Export actuarial small split artifacts
 
 on:
   workflow_dispatch:
@@ -12,11 +12,9 @@ permissions:
 
 env:
   BASE_RELEASE_TAG: actuarial-base-weights-2026-08-31
-  RUNTIME_RELEASE_TAG: actuarial-hf-runtime-2026-08-31
   BASE_REVISION: a10cc1512eabd3dde888204e902eca88bddb4951
   BASE_ARCHIVE_SHA256: f3addb0635c11dd9b71362feb05dc8f7bb11650e4d56529a0b94c7374352ef69
   WEIGHT_SHA256: e6bffe7435d7ddc10fd3b9a9efd429dafbacb1cb17015fb5562664e7532bf86e
-  RUNTIME_ARCHIVE_SHA256: 25bf4f4dcb0fac676b1b0076f03f09f0b91c81733b3dba873acadbf4d7bba6e2
   UPLOAD_ARTIFACT_COMMIT: ea165f8d65b6e75b540449e92b4886f43607fa02
 
 jobs:
@@ -38,73 +36,68 @@ jobs:
           git checkout --detach FETCH_HEAD
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           test -f .github/actions/pinned-upload-artifact/action.yml
-          test -f .github/actions/pinned-upload-artifact/index.js
 
-      - name: Re-download and verify exact worker inputs
+      - name: Download, verify and split exact actuarial-small asset
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          OUT="$RUNNER_TEMP/actuarial-pack-export"
-          mkdir -p "$OUT"
+          OUT="$RUNNER_TEMP/actuarial-small-split"
+          mkdir -p "$OUT/full" "$OUT/parts"
           gh release download "$BASE_RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
-            --pattern 'actuarial-small.tar' --dir "$OUT"
-          gh release download "$RUNTIME_RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
-            --pattern 'actuarial-hf-runtime-wheelhouse.tar.gz' --dir "$OUT"
-          echo "$BASE_ARCHIVE_SHA256  $OUT/actuarial-small.tar" | sha256sum --check --strict
-          echo "$RUNTIME_ARCHIVE_SHA256  $OUT/actuarial-hf-runtime-wheelhouse.tar.gz" | sha256sum --check --strict
+            --pattern 'actuarial-small.tar' --dir "$OUT/full"
+          echo "$BASE_ARCHIVE_SHA256  $OUT/full/actuarial-small.tar" | sha256sum --check --strict
           mkdir -p "$OUT/unpacked"
-          tar -xf "$OUT/actuarial-small.tar" -C "$OUT/unpacked"
-          test -f "$OUT/unpacked/actuarial-small/model.safetensors"
+          tar -xf "$OUT/full/actuarial-small.tar" -C "$OUT/unpacked"
           echo "$WEIGHT_SHA256  $OUT/unpacked/actuarial-small/model.safetensors" | sha256sum --check --strict
           rm -rf "$OUT/unpacked"
-          sha256sum "$OUT/actuarial-small.tar" "$OUT/actuarial-hf-runtime-wheelhouse.tar.gz"
-
-      - name: Write public transport provenance receipt
-        shell: bash
-        run: |
-          set -euo pipefail
+          split -b 300M -d -a 2 "$OUT/full/actuarial-small.tar" "$OUT/parts/actuarial-small.tar.part-"
+          test "$(find "$OUT/parts" -type f | wc -l)" -eq 3
+          sha256sum "$OUT/parts"/* > "$OUT/parts/SHA256SUMS"
           python3 - <<'PY'
-          import json
-          import os
+          import json, os
           from pathlib import Path
-
-          out = Path(os.environ['RUNNER_TEMP']) / 'actuarial-pack-export' / 'transport-receipt.json'
-          receipt = {
-              'schema_version': '1.4',
-              'receipt_type': 'public_offline_worker_transport',
-              'repository': os.environ['GITHUB_REPOSITORY'],
-              'workflow_run_id': os.environ['GITHUB_RUN_ID'],
-              'workflow_head_sha': os.environ['GITHUB_SHA'],
-              'model_id': 'actuarial-small',
-              'base_release_tag': os.environ['BASE_RELEASE_TAG'],
-              'base_asset': 'actuarial-small.tar',
-              'base_archive_sha256': os.environ['BASE_ARCHIVE_SHA256'],
-              'base_revision': os.environ['BASE_REVISION'],
-              'weight_sha256': os.environ['WEIGHT_SHA256'],
-              'runtime_release_tag': os.environ['RUNTIME_RELEASE_TAG'],
-              'runtime_asset': 'actuarial-hf-runtime-wheelhouse.tar.gz',
-              'runtime_archive_sha256': os.environ['RUNTIME_ARCHIVE_SHA256'],
-              'contains_private_dev_eval': False,
-              'all_transport_archives_sha256_observed_and_verified': True,
-              'artifact_uploader_source': 'actions/upload-artifact',
-              'artifact_uploader_commit': os.environ['UPLOAD_ARTIFACT_COMMIT'],
-              'artifact_uploader_execution': 'local_js_action_bootstrap',
-              'marketplace_external_uses_syntax': False,
+          root=Path(os.environ['RUNNER_TEMP'])/'actuarial-small-split'
+          parts=sorted(p.name for p in (root/'parts').glob('actuarial-small.tar.part-*'))
+          receipt={
+            'schema_version':'1.0','receipt_type':'public_split_model_transport',
+            'model_id':'actuarial-small','base_revision':os.environ['BASE_REVISION'],
+            'base_archive_sha256':os.environ['BASE_ARCHIVE_SHA256'],
+            'weight_sha256':os.environ['WEIGHT_SHA256'],
+            'parts':parts,'contains_private_dev_eval':False,
+            'workflow_run_id':os.environ['GITHUB_RUN_ID'],'workflow_head_sha':os.environ['GITHUB_SHA']
           }
-          out.write_text(json.dumps(receipt, indent=2, sort_keys=True) + '\n', encoding='utf-8')
-          print(out.read_text(encoding='utf-8'))
+          (root/'parts'/'transport-receipt.json').write_text(json.dumps(receipt,indent=2,sort_keys=True)+'\n')
+          print(json.dumps(receipt,indent=2,sort_keys=True))
           PY
-          sha256sum "$RUNNER_TEMP/actuarial-pack-export/transport-receipt.json"
 
-      - name: Upload verified complete small worker bundle
+      - name: Upload part 00
         uses: ./.github/actions/pinned-upload-artifact
         with:
-          name: actuarial-small-offline-worker-bundle
-          path: ${{ runner.temp }}/actuarial-pack-export/
-          if-no-files-found: error
+          name: actuarial-small-part-00
+          path: ${{ runner.temp }}/actuarial-small-split/parts/actuarial-small.tar.part-00
           retention-days: '1'
           compression-level: '0'
           overwrite: 'true'
-          include-hidden-files: 'false'
+
+      - name: Upload part 01
+        uses: ./.github/actions/pinned-upload-artifact
+        with:
+          name: actuarial-small-part-01
+          path: ${{ runner.temp }}/actuarial-small-split/parts/actuarial-small.tar.part-01
+          retention-days: '1'
+          compression-level: '0'
+          overwrite: 'true'
+
+      - name: Upload part 02 and receipt
+        uses: ./.github/actions/pinned-upload-artifact
+        with:
+          name: actuarial-small-part-02
+          path: |
+            ${{ runner.temp }}/actuarial-small-split/parts/actuarial-small.tar.part-02
+            ${{ runner.temp }}/actuarial-small-split/parts/SHA256SUMS
+            ${{ runner.temp }}/actuarial-small-split/parts/transport-receipt.json
+          retention-days: '1'
+          compression-level: '0'
+          overwrite: 'true'
