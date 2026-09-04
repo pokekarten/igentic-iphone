@@ -30,7 +30,7 @@ jobs:
           echo "$EXPECTED_SHA256  $RUNNER_TEMP/actuarial-small-transport/actuarial-small.tar" | sha256sum --check --strict
 
       - name: Upload verified actuarial-small artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: actuarial-small-transport
           path: ${{ runner.temp }}/actuarial-small-transport/actuarial-small.tar
