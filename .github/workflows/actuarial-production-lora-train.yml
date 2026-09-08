@@ -32,7 +32,7 @@ jobs:
       ACTIVATION_RECEIPT_SHA256: 14bc2cc1eeac9e8b1660d3e97341af730c349ae41e6a563168904bcb630a4a61
       OUTPUT_RELEASE: actuarial-production-lora-tiny-2026-09-01-r3
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Materialize exact base and exact TRAIN generator
         shell: bash
