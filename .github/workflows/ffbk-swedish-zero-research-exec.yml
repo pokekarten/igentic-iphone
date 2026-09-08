@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - ResearchExecution/ffbk_swedish_zero_20260908.py
+      - ResearchExecution/ffbk_swedish_zero_statsmodels_audit_20260908.py
       - .github/workflows/ffbk-swedish-zero-research-exec.yml
 
 permissions:
@@ -15,16 +16,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Fetch exact PR-head reconstruction and execute
+      - name: Fetch exact PR-head independent audit and execute
         env:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
           python3 --version
-          python3 -m pip install --disable-pip-version-check 'numpy==2.3.5'
+          python3 -m pip install --disable-pip-version-check 'numpy==2.3.5' 'statsmodels==0.15.0'
           curl --fail --location --silent --show-error \
-            "https://raw.githubusercontent.com/pokekarten/igentic-iphone/${HEAD_SHA}/ResearchExecution/ffbk_swedish_zero_20260908.py" \
-            --output /tmp/ffbk_swedish_zero_20260908.py
-          python3 -m py_compile /tmp/ffbk_swedish_zero_20260908.py
-          sha256sum /tmp/ffbk_swedish_zero_20260908.py
-          python3 /tmp/ffbk_swedish_zero_20260908.py | tee /tmp/swedish-zero-result.log
+            "https://raw.githubusercontent.com/pokekarten/igentic-iphone/${HEAD_SHA}/ResearchExecution/ffbk_swedish_zero_statsmodels_audit_20260908.py" \
+            --output /tmp/ffbk_swedish_zero_statsmodels_audit_20260908.py
+          python3 -m py_compile /tmp/ffbk_swedish_zero_statsmodels_audit_20260908.py
+          sha256sum /tmp/ffbk_swedish_zero_statsmodels_audit_20260908.py
+          python3 /tmp/ffbk_swedish_zero_statsmodels_audit_20260908.py | tee /tmp/swedish-zero-statsmodels-audit.log
