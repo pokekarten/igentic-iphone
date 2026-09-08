@@ -41,7 +41,7 @@ jobs:
           cat "$RUNNER_TEMP/transport/wheelhouse.sha256"
 
       - name: Upload exact model transport artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: actuarial-tiny-model-transport
           path: ${{ runner.temp }}/transport/model/tiny-actuarial-pipeline.tar
@@ -49,7 +49,7 @@ jobs:
           retention-days: 1
 
       - name: Upload pinned runtime wheelhouse
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: actuarial-tiny-hf-wheelhouse
           path: |
