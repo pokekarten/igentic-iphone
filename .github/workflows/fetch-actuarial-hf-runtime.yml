@@ -34,7 +34,7 @@ jobs:
             peft==0.20.0 \
             accelerate==1.14.0 \
             safetensors==0.8.0
-          (cd "$OUT/wheelhouse" && sha256sum * | sort > ../wheelhouse.sha256)
+          (cd "$OUT/wheelhouse" && sha256sum -- ./* | sort > ../wheelhouse.sha256)
           python3 - <<'PY' > "$OUT/runtime-receipt.json"
           import hashlib
           import json
