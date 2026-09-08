@@ -1,0 +1,29 @@
+name: FFBK Swedish zero research execution
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ResearchExecution/ffbk_swedish_zero_20260908.py
+      - .github/workflows/ffbk-swedish-zero-research-exec.yml
+
+permissions:
+  contents: read
+
+jobs:
+  execute:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Install pinned numerical runtime
+        run: python -m pip install --disable-pip-version-check 'numpy==2.3.5'
+      - name: Execute frozen reconstructed FFBK tournament
+        run: |
+          set -euo pipefail
+          python -m py_compile ResearchExecution/ffbk_swedish_zero_20260908.py
+          sha256sum ResearchExecution/ffbk_swedish_zero_20260908.py
+          python ResearchExecution/ffbk_swedish_zero_20260908.py | tee /tmp/swedish-zero-result.log
