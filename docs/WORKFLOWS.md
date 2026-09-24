@@ -1,8 +1,8 @@
 # Project Workflows
 
-Last reviewed: 2026-06-22
+Last reviewed: 2026-09-24
 
-This document defines the GitHub Actions evidence used by the public iGentic repository and how that evidence connects to the five-task autonomous cycle.
+This document defines the GitHub Actions evidence used by the public iGentic repository and how that evidence fits the current manual GitHub-first operating mode. Historical slot-based autonomy machinery is not an active product-work controller.
 
 ## CI principle
 
@@ -140,83 +140,50 @@ File: `.github/workflows/project-control.yml`
 
 Verifies durable control files and publishes project-control guidance. It does not own mutable lane state.
 
-## Five-task scheduled cycle
+## Current operating mode
 
-The active scheduled product cycle is:
+The repository is currently in **manual GitHub-first mode**.
 
-```text
-Issue or terminal state
--> Slot00 Director
--> Slot12 Producer
--> GitHub Actions + PR Autonomy Gate
--> Slot30 Validate + Review
--> Slot42 Closer
--> Slot54 Sequencer
--> next Slot00 context
-```
-
-Role boundaries:
-
-- **Slot00 Director:** reconcile state and select one target only in a context stage.
-- **Slot12 Producer:** implement one bounded artifact and open or adopt one Draft PR.
-- **Slot30 Validate + Review:** reconcile required current-head workflows and independently review scope, semantics, safety and discussions.
-- **Slot42 Closer:** mark Ready, re-check the stable head, squash-merge once and synchronize terminal state.
-- **Slot54 Sequencer:** reconcile lane and rollup and count complete autonomous cycles.
-
-Historical separate Slot18 Reviewer, Slot24 Closer and Slot30 Validation Watcher roles are not active. Slot30 now combines validation and semantic review; Slot42 is the closer.
-
-The platform permits five active scheduled tasks. Adding a role requires replacing an active task through an explicit reviewed automation update.
+- Live GitHub repository state is authoritative for pull requests, issues, branches, checks and merged state.
+- Scheduled repository-control workflows are reconciliation and observability helpers; they do not select product work, authorize semantic changes or merge pull requests.
+- `PR Autonomy Gate` may summarize exact-head CI state, but `CI_GREEN` is technical evidence only.
+- ChatGPT with the live GitHub connector is the default repository inspection/edit/review lane for bounded work.
+- Mac/Codex or physical-device execution is used only when a result genuinely depends on Xcode, Apple frameworks, signing, local model runtime, hardware behavior or another unavailable platform boundary.
+- Historical private-Brain or Slot00/12/30/42/54 state must not override current GitHub source.
 
 ## Exact-head and resource policy
 
-- Exactly one active implementation target and at most one active PR.
-- Current GitHub source overrides Brain, rollup and remembered state.
-- Only the newest exact-head run of each required workflow may authorize review.
+- Exactly one active implementation target and at most one active implementation PR.
+- Current GitHub source overrides historical Brain, slot-controller, rollup or remembered state.
+- Only the newest exact-head run of each required workflow may support review.
 - A green old-head run cannot authorize a changed PR.
-- Queued or running checks are `WAITING_RUNNER`, not defects.
-- No no-op commit, branch rewrite or automatic retry to trigger CI.
-- Linux checks provide broad inexpensive validation; Phase 0 is the required Swift/iOS gate.
-- Successful logs are not downloaded.
-- Detailed steps or logs are inspected only for a concrete latest-head failure.
-- Connector calls remain serial and role-gated.
-- API `403` or `429` stops the operation as `WAITING_API`; do not probe alternate mutation endpoints.
-- Each authorized Producer or Closer performs at most one product mutation before readback.
+- Queued or running required checks are waiting evidence, not defects.
+- Do not create no-op commits, rewrite branches or weaken gates merely to obtain a green status.
+- Linux checks provide broad inexpensive validation; Phase 0 remains the required Swift/iOS package gate where applicable.
+- Successful logs need not be downloaded; inspect detailed steps or logs only for a concrete current-head failure.
+- API `403` or `429` is a real access/rate-limit boundary; do not probe alternate mutation endpoints to work around it.
+- Platform-specific claims require evidence from the platform they depend on.
 
 ## Review and merge decisions
 
-Use `FIX_NEEDED` only for a concrete current-head defect, unsafe diff, scope mismatch, missing required test or broken contract.
-
-Use `WAITING_RUNNER` when required checks are queued, running or temporarily absent.
-
-Use `READY_FOR_CLOSE` only when:
+A pull request is merge-ready only when:
 
 - the exact head is stable;
-- all required workflows are successful;
+- all required workflows for its change type are successful;
 - the changed-file scope is correct;
-- the linked issue and acceptance criteria are satisfied;
-- semantic review is clean;
+- linked acceptance criteria, when present, are satisfied;
+- semantic and safety review is clean;
 - no unresolved review thread remains;
-- the PR is mergeable.
+- GitHub reports the PR as mergeable.
 
-Slot42 must not merge Draft directly. It marks Ready, re-checks the same head and then squash-merges with `expected_head_sha`.
+A Draft PR is not merge-ready. Technical CI success does not replace semantic review or user/repository authority for sensitive changes.
 
-## Autonomous-cycle evidence
+## Historical autonomy notes
 
-A complete counted cycle requires:
+The former five-slot autonomous product cycle (Slot00/12/30/42/54), private Brain lane and counted-cycle proof rules are historical operating material, not current execution authority. Do not create work, merge changes or block bounded repository progress merely to satisfy that retired controller shape.
 
-- one source-backed target;
-- at most one implementation PR;
-- bounded allowlisted scope;
-- persisted Producer result;
-- current-head required checks;
-- independent Slot30 semantic review;
-- expected-head closure or accurate terminal synchronization;
-- final GitHub readback;
-- private lane and rollup synchronization;
-- no interactive repair during that counted cycle.
-
-Three consecutive complete untouched cycles are required before the system may record `AUTONOMY_PROVEN=three_cycles`. This does not create or enable a sixth task.
+If an old issue, comment or document refers to the slot controller, interpret it as historical unless current GitHub source explicitly reactivates that mechanism.
 
 ## Support repositories
 
-Pokekartenkiste remains paused and cannot consume an iGentic product task. Playbook and SLM Lab remain separate support repositories and cannot become implicit iGentic implementation targets.
+Playbook, SLM Lab, Mac-worker and other repositories remain separate support or execution lanes. They do not become implicit iGentic implementation targets, and their state must not override live iGentic GitHub source.
