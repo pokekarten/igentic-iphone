@@ -209,9 +209,9 @@ def main(argv: list[str] | None = None) -> int:
             if args.action == "run":
                 if not args.execute or not args.acknowledge_model_io:
                     raise ValueError("Run requires --execute and --acknowledge-model-io.")
+                require_pinned(path)
                 if not args.physical:
                     require_simulator_target(args.device)
-                require_pinned(path)
                 checks = doctor(path)
                 if not checks["xcode_27_or_newer"] or not checks["uv_available"]:
                     raise ValueError("macOS, Xcode 27+, and uv are required.")
