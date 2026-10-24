@@ -63,7 +63,7 @@ def is_pinned(path: Path) -> bool:
 def require_simulator_target(device: str) -> None:
     """Refuse to select a physical device without the explicit --physical mode."""
     code, inventory = command_output(
-        ["xcrun", "simctl", "list", "devices", "available", "--json"]
+        ["xcrun", "simctl", "list", "devices", "available", "-j"]
     )
     if code != 0:
         raise ValueError("Cannot confirm simulator inventory; refusing device control.")
