@@ -1,0 +1,47 @@
+name: ARTEMIS iOS contract (no device)
+
+on:
+  pull_request:
+    paths:
+      - "scripts/igentic_artemis_ios.py"
+      - "tests/test_igentic_artemis_ios.py"
+      - "docs/integrations/ARTEMIS_IOS.md"
+      - ".github/workflows/artemis-ios-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-contract:
+    name: Validate pinned host adapter without installing ARTEMIS
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact PR merge head without marketplace actions
+        env:
+          REPOSITORY: ${{ github.repository }}
+          EVENT_NAME: ${{ github.event_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          git init .
+          git remote add origin "https://github.com/${REPOSITORY}.git"
+          if git fetch --no-tags --depth=1 origin "${COMMIT_SHA}"; then
+            echo "Fetched ${COMMIT_SHA}"
+          elif [ "${EVENT_NAME}" = "pull_request" ] && [ -n "${PR_NUMBER:-}" ]; then
+            git fetch --no-tags --depth=1 origin "pull/${PR_NUMBER}/merge"
+          else
+            exit 1
+          fi
+          git checkout --force FETCH_HEAD
+          git clean -fdx
+
+      - name: Offline Python contract tests
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s tests -p 'test_igentic_artemis_ios.py' -v
+          python3 -m py_compile scripts/igentic_artemis_ios.py
+          python3 scripts/igentic_artemis_ios.py plan
+          python3 scripts/validate_repo_structure.py
