@@ -50,7 +50,36 @@ def revision(path: Path) -> str | None:
 
 
 def is_pinned(path: Path) -> bool:
-    return revision(path) == UPSTREAM_SHA
+    if revision(path) != UPSTREAM_SHA:
+        return False
+    # A matching commit is not enough if its tracked source was edited after
+    # checkout. Untracked local provider configuration is not evaluated here.
+    code, changes = command_output(
+        ["git", "-C", str(path), "status", "--porcelain", "--untracked-files=no"]
+    )
+    return code == 0 and changes == ""
+
+
+def require_simulator_target(device: str) -> None:
+    """Refuse to select a physical device without the explicit --physical mode."""
+    code, inventory = command_output(
+        ["xcrun", "simctl", "list", "devices", "available", "--json"]
+    )
+    if code != 0:
+        raise ValueError("Cannot confirm simulator inventory; refusing device control.")
+    try:
+        devices = [
+            entry
+            for group in json.loads(inventory).get("devices", {}).values()
+            for entry in group
+        ]
+    except (ValueError, AttributeError, TypeError):
+        raise ValueError("Simulator inventory is not valid JSON.") from None
+    if device == "booted":
+        if len([item for item in devices if item.get("state") == "Booted"]) != 1:
+            raise ValueError("Exactly one booted simulator is required.")
+    elif not any(item.get("udid") == device for item in devices):
+        raise ValueError("Device is not an available iOS simulator; use explicit --physical.")
 
 
 def require_pinned(path: Path) -> None:
@@ -180,8 +209,8 @@ def main(argv: list[str] | None = None) -> int:
             if args.action == "run":
                 if not args.execute or not args.acknowledge_model_io:
                     raise ValueError("Run requires --execute and --acknowledge-model-io.")
-                if args.physical is False and args.device != "booted" and not args.device:
-                    raise ValueError("Specify a simulator target.")
+                if not args.physical:
+                    require_simulator_target(args.device)
                 require_pinned(path)
                 checks = doctor(path)
                 if not checks["xcode_27_or_newer"] or not checks["uv_available"]:
