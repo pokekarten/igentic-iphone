@@ -31,7 +31,7 @@ bash scripts/setup_ios_env.sh
 
 Set a model provider in the upstream configuration as documented by ARTEMIS. Never commit credentials, screenshots, phone identifiers, project signing data, or private content. A remote provider can receive screenshots/UI information. Prefer a trusted local model endpoint and keep its listener limited to loopback; the wrapper does **not** verify a provider is local.
 
-For the complete ARTEMIS CLI, daemon, console, Python SDK, and video/replay capabilities, follow the pinned upstream `docs/ios.md`. Those capabilities remain on the Mac host, not embedded into the iGentic iPhone app.
+For the complete ARTEMIS CLI, daemon, console, Python SDK, and video/replay capabilities, follow the pinned upstream [the pinned ARTEMIS iOS guide](https://github.com/banggaoo/artemis/blob/31df538d3e8a0ff11e735a4e2c04e6e0936fc68f/docs/ios.md). Those capabilities remain on the Mac host, not embedded into the iGentic iPhone app.
 
 ## Run a synthetic iGentic UI test
 
@@ -52,7 +52,7 @@ python3 scripts/igentic_artemis_ios.py run \
 
 `--profile pro` selects ARTEMIS's more thorough agent workflow. To use an explicitly selected simulator, pass its UDID. ARTEMIS supports `--platform ios`; omitting it silently selects Android. The iGentic wrapper always passes it.
 
-For a physical iPhone, use an explicit UDID and `--physical`; ensure the device is yours and you have approved it. The upstream flow requires a signed iOS app, trust pairing, Developer Mode, Xcode consent, and a signed WebDriverAgent runner. Follow pinned `docs/ios.md` for setup and verify the WDA endpoint belongs to the intended device. Never use another person's phone without authorization.
+For a physical iPhone, use an explicit UDID and `--physical`; ensure the device is yours and you have approved it. The upstream flow requires a signed iOS app, trust pairing, Developer Mode, Xcode consent, and a signed WebDriverAgent runner. Follow pinned [the pinned ARTEMIS iOS guide](https://github.com/banggaoo/artemis/blob/31df538d3e8a0ff11e735a4e2c04e6e0936fc68f/docs/ios.md) for setup and verify the WDA endpoint belongs to the intended device. Never use another person's phone without authorization.
 
 This is **test automation**, not a way around the iOS sandbox or permission prompts. The prompt is advisory; ARTEMIS's UI tool may be capable of opening other apps. Use a dedicated simulator with synthetic data only. Do not use a production iPhone containing private content until we have reviewed and implemented a stricter host-to-iGentic action-policy binding.
 
