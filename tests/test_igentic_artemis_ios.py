@@ -86,6 +86,41 @@ class ArtemisIosIntegrationTests(unittest.TestCase):
             self.assertIn("mcp_server", config)
             self.assertIn("PYTHONPATH", config)
 
+    def test_simulator_inventory_accepts_single_booted_device(self):
+        inventory = json.dumps({
+            "devices": {"iOS 27": [{"udid": "SIM-123", "state": "Booted"}]}
+        })
+        with patch.object(MODULE, "command_output", return_value=(0, inventory)):
+            MODULE.require_simulator_target("booted")
+            MODULE.require_simulator_target("SIM-123")
+
+    def test_simulator_inventory_rejects_physical_udid(self):
+        inventory = json.dumps({
+            "devices": {"iOS 27": [{"udid": "SIM-123", "state": "Booted"}]}
+        })
+        with patch.object(MODULE, "command_output", return_value=(0, inventory)):
+            with self.assertRaisesRegex(ValueError, "not an available iOS simulator"):
+                MODULE.require_simulator_target("REAL-PHONE")
+
+    def test_simulator_inventory_rejects_ambiguous_booted_state(self):
+        with patch.object(MODULE, "command_output", return_value=(0, '{"devices": {}}')):
+            with self.assertRaisesRegex(ValueError, "Exactly one"):
+                MODULE.require_simulator_target("booted")
+
+    def test_simulator_inventory_refuses_invalid_data(self):
+        with patch.object(MODULE, "command_output", return_value=(0, "not json")):
+            with self.assertRaisesRegex(ValueError, "not valid JSON"):
+                MODULE.require_simulator_target("booted")
+
+    def test_pinned_checkout_rejects_dirty_source(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / ".git").mkdir()
+            with patch.object(MODULE, "command_output", side_effect=[
+                (0, MODULE.UPSTREAM_SHA), (0, " M artemis/drivers/ios/xcode_driver.py")
+            ]):
+                self.assertFalse(MODULE.is_pinned(root))
+
     def test_doctor_reports_missing_local_prereqs(self):
         with tempfile.TemporaryDirectory() as temporary:
             with patch.object(MODULE.platform, "system", return_value="Linux"):
