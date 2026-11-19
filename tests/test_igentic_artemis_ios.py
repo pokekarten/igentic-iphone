@@ -1,6 +1,7 @@
 """No-device tests for the opt-in ARTEMIS iOS host integration."""
 import importlib.util
 import io
+import subprocess
 import json
 import sys
 import tempfile
@@ -8,7 +9,7 @@ import unittest
 from contextlib import redirect_stdout, redirect_stderr
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 MODULE_PATH = Path(__file__).resolve().parents[1] / "scripts/igentic_artemis_ios.py"
 SPEC = importlib.util.spec_from_file_location("igentic_artemis_ios", MODULE_PATH)
@@ -42,7 +43,7 @@ class ArtemisIosIntegrationTests(unittest.TestCase):
         with patch.object(MODULE, "require_pinned"), \
              patch.object(MODULE, "require_simulator_target"), \
              patch.object(MODULE, "doctor", return_value=checks), \
-             patch.object(MODULE.subprocess, "run", return_value=SimpleNamespace(returncode=0)) as run:
+             patch.object(MODULE, "run_bounded", return_value=0) as run:
             with redirect_stdout(io.StringIO()):
                 result = MODULE.main(["run", "--execute", "--acknowledge-model-io"])
         self.assertEqual(result, 0)
@@ -53,6 +54,40 @@ class ArtemisIosIntegrationTests(unittest.TestCase):
             ["uv", "run", "--frozen", "--no-sync", "--offline", "artemis", "run"],
         )
         self.assertEqual(run.call_args.kwargs["cwd"], MODULE.DEFAULT_CHECKOUT.resolve())
+
+    def test_bounded_runner_uses_new_process_session(self):
+        with patch.object(MODULE.subprocess, "Popen") as popen:
+            popen.return_value.wait.return_value = 0
+            self.assertEqual(MODULE.run_bounded(["uv", "run"], Path("/tmp")), 0)
+            popen.assert_called_once_with(
+                ["uv", "run"], cwd=Path("/tmp"), start_new_session=True
+            )
+            popen.return_value.wait.assert_called_once_with(
+                timeout=MODULE.MAX_RUN_SECONDS
+            )
+
+    def test_bounded_runner_timeout_terminates_group(self):
+        timed_out = subprocess.TimeoutExpired("artemis", MODULE.MAX_RUN_SECONDS)
+        with patch.object(MODULE.subprocess, "Popen") as popen, \
+             patch.object(MODULE.os, "killpg") as kill_group:
+            popen.return_value.pid = 12345
+            popen.return_value.wait.side_effect = [timed_out, 0]
+            with self.assertRaisesRegex(ValueError, "exceeded"):
+                MODULE.run_bounded(["uv", "run"], Path("/tmp"))
+            kill_group.assert_called_once_with(12345, MODULE.signal.SIGTERM)
+
+    def test_bounded_runner_escalates_if_group_does_not_exit(self):
+        timed_out = subprocess.TimeoutExpired("artemis", MODULE.MAX_RUN_SECONDS)
+        with patch.object(MODULE.subprocess, "Popen") as popen, \
+             patch.object(MODULE.os, "killpg") as kill_group:
+            popen.return_value.pid = 12345
+            popen.return_value.wait.side_effect = [timed_out, timed_out, 0]
+            with self.assertRaisesRegex(ValueError, "exceeded"):
+                MODULE.run_bounded(["uv", "run"], Path("/tmp"))
+            self.assertEqual(kill_group.call_args_list, [
+                call(12345, MODULE.signal.SIGTERM),
+                call(12345, MODULE.signal.SIGKILL),
+            ])
 
     def test_physical_requires_explicit_udid(self):
         args = SimpleNamespace(device="booted", profile="flash",

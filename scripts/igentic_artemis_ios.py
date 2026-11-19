@@ -8,7 +8,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import platform
+import signal
 import shutil
 import subprocess
 import sys
@@ -20,6 +22,8 @@ UPSTREAM_SHA = "31df538d3e8a0ff11e735a4e2c04e6e0936fc68f"
 UPSTREAM_PR = "https://github.com/google/artemis/pull/175"
 DEFAULT_CHECKOUT = Path.home() / ".cache" / "igentic" / "artemis-ios-pr175"
 DIAGNOSTIC_APP = "org.example.iGenticDiagnostics"
+MAX_RUN_SECONDS = 600
+STOP_GRACE_SECONDS = 5
 SAFE_TASK = (
     "Test only the iGentic Diagnostics app (" + DIAGNOSTIC_APP + "). "
     "Inspect the synthetic Safety and Explore diagnostic views, then report "
@@ -164,6 +168,33 @@ def build_command(args: argparse.Namespace) -> list[str]:
     return command
 
 
+def run_bounded(command: list[str], cwd: Path) -> int:
+    """Bound developer-side device automation and terminate its process group.
+
+    The upstream ARTEMIS flash profile permits unbounded turns by default.
+    This cap limits this opt-in subprocess, not the behavior of all host apps.
+    """
+    process = subprocess.Popen(command, cwd=cwd, start_new_session=True)
+    try:
+        return process.wait(timeout=MAX_RUN_SECONDS)
+    except subprocess.TimeoutExpired as error:
+        try:
+            os.killpg(process.pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+        try:
+            process.wait(timeout=STOP_GRACE_SECONDS)
+        except subprocess.TimeoutExpired:
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            process.wait()
+        raise ValueError(
+            f"ARTEMIS host run exceeded {MAX_RUN_SECONDS} seconds; terminated the process group."
+        ) from error
+
+
 def mcp_config(path: Path) -> str:
     require_pinned(path)
     python = path / ".venv/bin/python"
@@ -221,7 +252,7 @@ def main(argv: list[str] | None = None) -> int:
                     raise ValueError("The iGentic Xcode project is missing.")
                 # The user owns provider configuration, signing, Xcode approvals,
                 # pairing and WDA. No subprocess shell invocation or implicit setup.
-                return subprocess.run(command, cwd=path, check=False).returncode
+                return run_bounded(command, cwd=path)
         return 0
     except (ValueError, subprocess.CalledProcessError) as error:
         print(f"ARTEMIS iOS: {error}", file=sys.stderr)

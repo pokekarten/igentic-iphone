@@ -31,7 +31,11 @@ bash scripts/setup_ios_env.sh
 
 The opt-in `run` command uses `uv run --frozen --no-sync --offline` to prevent
 **implicit** dependency downloads, environment synchronization, or lockfile
-updates when starting a device test. Prepare/review the local Python environment
+updates when starting a device test. The host runner also sets a 10-minute
+maximum for a synthetic test, sends SIGTERM to its own subprocess group on a
+timeout, and escalates to SIGKILL after 5 seconds. This is a bounded host-side
+process lifetime, **not** an iOS app sandbox, model token budget, or guarantee
+that an externally launched service cannot outlive the runner. Prepare/review the local Python environment
 explicitly with `uv sync --dev` beforehand. These flags govern only **uv package
 management**, not ARTEMIS model-provider traffic: a configured external model
 may still receive screenshots/UI information after the explicit acknowledgment.
