@@ -1,5 +1,6 @@
 name: ARTEMIS iOS contract (no device)
 
+# Intentionally PR-only: do not mix untrusted PR execution with manual/default-branch runs.
 on:
   pull_request:
     paths:
@@ -7,7 +8,6 @@ on:
       - "tests/test_igentic_artemis_ios.py"
       - "docs/integrations/ARTEMIS_IOS.md"
       - ".github/workflows/artemis-ios-contract.yml"
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -18,24 +18,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Checkout exact PR merge head without marketplace actions
-        env:
-          REPOSITORY: ${{ github.repository }}
-          EVENT_NAME: ${{ github.event_name }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          COMMIT_SHA: ${{ github.sha }}
+      - name: Checkout exact PR merge commit without marketplace actions
         run: |
           set -euo pipefail
           git init .
-          git remote add origin "https://github.com/${REPOSITORY}.git"
-          if git fetch --no-tags --depth=1 origin "${COMMIT_SHA}"; then
-            echo "Fetched ${COMMIT_SHA}"
-          elif [ "${EVENT_NAME}" = "pull_request" ] && [ -n "${PR_NUMBER:-}" ]; then
-            git fetch --no-tags --depth=1 origin "pull/${PR_NUMBER}/merge"
-          else
-            exit 1
-          fi
-          git checkout --force FETCH_HEAD
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git fetch --no-tags --depth=1 origin "${GITHUB_SHA}"
+          test "$(git rev-parse FETCH_HEAD)" = "${GITHUB_SHA}"
+          git checkout --detach --force "${GITHUB_SHA}"
           git clean -fdx
 
       - name: Offline Python contract tests
