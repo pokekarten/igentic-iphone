@@ -36,7 +36,27 @@ explicitly with `uv sync --dev` beforehand. These flags govern only **uv package
 management**, not ARTEMIS model-provider traffic: a configured external model
 may still receive screenshots/UI information after the explicit acknowledgment.
 
-Set a model provider in the upstream configuration as documented by ARTEMIS. Never commit credentials, screenshots, phone identifiers, project signing data, or private content. A remote provider can receive screenshots/UI information. Prefer a trusted local model endpoint and keep its listener limited to loopback; the wrapper does **not** verify a provider is local.
+Configure the model provider before running a device test. The pinned upstream
+`config/artemis.jsonc` is **tracked source**, so editing it in-place makes the
+checkout fail `require_pinned`. For a custom model configuration, keep a
+separate, privately stored copy outside the Git checkout and point the pinned
+ARTEMIS configuration resolver to it:
+
+```bash
+mkdir -p ~/.config/igentic
+cp config/artemis.jsonc ~/.config/igentic/artemis.jsonc
+# Review/edit only this external copy, then set for the test session:
+export ARTEMIS_ARTEMIS_JSONC="$HOME/.config/igentic/artemis.jsonc"
+```
+
+The `ARTEMIS_ARTEMIS_JSONC` override is supported by the pinned upstream
+`get_config_path("artemis.jsonc")` resolver. Keep credentials in a private
+`.env` file (ignored by upstream Git) or protected environment variables, not
+in the external config or the public iGentic repo. Never commit credentials,
+screenshots, phone identifiers, project signing data, or private content.
+A remote provider can receive screenshots/UI information. Prefer a trusted local
+model endpoint and keep its listener limited to loopback; the wrapper does
+**not** verify a provider is local.
 
 For the complete ARTEMIS CLI, daemon, console, Python SDK, and video/replay capabilities, follow the pinned upstream [the pinned ARTEMIS iOS guide](https://github.com/banggaoo/artemis/blob/31df538d3e8a0ff11e735a4e2c04e6e0936fc68f/docs/ios.md). Those capabilities remain on the Mac host, not embedded into the iGentic iPhone app.
 
