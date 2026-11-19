@@ -144,6 +144,16 @@ class ArtemisIosIntegrationTests(unittest.TestCase):
             ]):
                 self.assertFalse(MODULE.is_pinned(root))
 
+    def test_pinned_checkout_rejects_untracked_python_source(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / ".git").mkdir()
+            with patch.object(MODULE, "command_output", side_effect=[
+                (0, MODULE.UPSTREAM_SHA), (0, "?? injected_module.py")
+            ]) as command:
+                self.assertFalse(MODULE.is_pinned(root))
+            self.assertIn("--untracked-files=normal", command.call_args_list[1].args[0])
+
     def test_doctor_reports_missing_local_prereqs(self):
         with tempfile.TemporaryDirectory() as temporary:
             with patch.object(MODULE.platform, "system", return_value="Linux"):

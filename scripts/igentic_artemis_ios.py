@@ -52,10 +52,11 @@ def revision(path: Path) -> str | None:
 def is_pinned(path: Path) -> bool:
     if revision(path) != UPSTREAM_SHA:
         return False
-    # A matching commit is not enough if its tracked source was edited after
-    # checkout. Untracked local provider configuration is not evaluated here.
+    # A matching commit is not enough: reject tracked edits and non-ignored
+    # untracked source files. Ignored local runtime artifacts (e.g. .env,
+    # .venv) still require separate manual review before executing ARTEMIS.
     code, changes = command_output(
-        ["git", "-C", str(path), "status", "--porcelain", "--untracked-files=no"]
+        ["git", "-C", str(path), "status", "--porcelain", "--untracked-files=normal"]
     )
     return code == 0 and changes == ""
 
