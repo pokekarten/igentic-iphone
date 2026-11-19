@@ -151,7 +151,8 @@ def build_command(args: argparse.Namespace) -> list[str]:
     if args.physical and args.device == "booted":
         raise ValueError("A physical device requires an explicit UDID.")
     command = [
-        "uv", "run", "artemis", "run", SAFE_TASK,
+        "uv", "run", "--frozen", "--no-sync", "--offline",
+        "artemis", "run", SAFE_TASK,
         "--platform", "ios", "--standalone",
         "--device-serial", args.device,
         "--profile", args.profile,

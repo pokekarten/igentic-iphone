@@ -25,11 +25,34 @@ class ArtemisIosIntegrationTests(unittest.TestCase):
         args = SimpleNamespace(device="booted", profile="flash",
                                physical=False, app_path=None)
         command = MODULE.build_command(args)
-        self.assertEqual(command[:4], ["uv", "run", "artemis", "run"])
+        self.assertEqual(command[:7], [
+            "uv", "run", "--frozen", "--no-sync", "--offline", "artemis", "run"
+        ])
         self.assertEqual(command[command.index("--platform") + 1], "ios")
-        self.assertIn("org.example.iGenticDiagnostics", command[4])
+        self.assertIn("org.example.iGenticDiagnostics", command[7])
         self.assertIn("--standalone", command)
-        self.assertNotIn("http", command[4])
+        self.assertNotIn("http", command[7])
+
+    def test_run_preserves_no_implicit_dependency_setup(self):
+        checks = {
+            "xcode_27_or_newer": True,
+            "uv_available": True,
+            "ios_project_exists": True,
+        }
+        with patch.object(MODULE, "require_pinned"), \
+             patch.object(MODULE, "require_simulator_target"), \
+             patch.object(MODULE, "doctor", return_value=checks), \
+             patch.object(MODULE.subprocess, "run", return_value=SimpleNamespace(returncode=0)) as run:
+            with redirect_stdout(io.StringIO()):
+                result = MODULE.main(["run", "--execute", "--acknowledge-model-io"])
+        self.assertEqual(result, 0)
+        run.assert_called_once()
+        argv = run.call_args.args[0]
+        self.assertEqual(
+            argv[:7],
+            ["uv", "run", "--frozen", "--no-sync", "--offline", "artemis", "run"],
+        )
+        self.assertEqual(run.call_args.kwargs["cwd"], MODULE.DEFAULT_CHECKOUT.resolve())
 
     def test_physical_requires_explicit_udid(self):
         args = SimpleNamespace(device="booted", profile="flash",
