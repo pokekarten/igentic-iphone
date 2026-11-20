@@ -3,6 +3,7 @@ import importlib.util
 import io
 import subprocess
 import json
+import plistlib
 import sys
 import tempfile
 import unittest
@@ -88,6 +89,50 @@ class ArtemisIosIntegrationTests(unittest.TestCase):
                 call(12345, MODULE.signal.SIGTERM),
                 call(12345, MODULE.signal.SIGKILL),
             ])
+
+    def test_diagnostic_app_bundle_accepts_exact_identifier(self):
+        with tempfile.TemporaryDirectory() as temp:
+            bundle = Path(temp) / "iGenticDiagnostics.app"
+            bundle.mkdir()
+            with (bundle / "Info.plist").open("wb") as output:
+                plistlib.dump({"CFBundleIdentifier": MODULE.DIAGNOSTIC_APP}, output)
+            MODULE.require_diagnostic_app_bundle(str(bundle))
+
+    def test_diagnostic_app_bundle_rejects_unrelated_identifier(self):
+        with tempfile.TemporaryDirectory() as temp:
+            bundle = Path(temp) / "Unrelated.app"
+            bundle.mkdir()
+            with (bundle / "Info.plist").open("wb") as output:
+                plistlib.dump({"CFBundleIdentifier": "com.example.other"}, output)
+            with self.assertRaisesRegex(ValueError, "not the iGentic"):
+                MODULE.require_diagnostic_app_bundle(str(bundle))
+
+    def test_diagnostic_app_bundle_rejects_invalid_or_missing_plist(self):
+        with tempfile.TemporaryDirectory() as temp:
+            bundle = Path(temp) / "iGenticDiagnostics.app"
+            bundle.mkdir()
+            with self.assertRaisesRegex(ValueError, "Cannot read"):
+                MODULE.require_diagnostic_app_bundle(str(bundle))
+            (bundle / "Info.plist").write_text("not a plist")
+            with self.assertRaisesRegex(ValueError, "Cannot read"):
+                MODULE.require_diagnostic_app_bundle(str(bundle))
+
+    def test_run_fails_closed_before_execution_for_wrong_app(self):
+        with tempfile.TemporaryDirectory() as temp:
+            bundle = Path(temp) / "Wrong.app"
+            bundle.mkdir()
+            with (bundle / "Info.plist").open("wb") as output:
+                plistlib.dump({"CFBundleIdentifier": "org.example.Other"}, output)
+            with patch.object(MODULE, "require_pinned") as pinned, \
+                 patch.object(MODULE, "run_bounded") as run:
+                with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+                    code = MODULE.main([
+                        "run", "--execute", "--acknowledge-model-io",
+                        "--app-path", str(bundle),
+                    ])
+            self.assertEqual(code, 2)
+            pinned.assert_not_called()
+            run.assert_not_called()
 
     def test_physical_requires_explicit_udid(self):
         args = SimpleNamespace(device="booted", profile="flash",

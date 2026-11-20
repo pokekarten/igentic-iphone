@@ -10,6 +10,7 @@ import argparse
 import json
 import os
 import platform
+import plistlib
 import signal
 import shutil
 import subprocess
@@ -85,6 +86,24 @@ def require_simulator_target(device: str) -> None:
             raise ValueError("Exactly one booted simulator is required.")
     elif not any(item.get("udid") == device for item in devices):
         raise ValueError("Device is not an available iOS simulator; use explicit --physical.")
+
+
+def require_diagnostic_app_bundle(app_path: str) -> None:
+    """Refuse to install a non-diagnostic .app before invoking ARTEMIS.
+
+    Validates the bundle's Info.plist, not its code signature or runtime
+    behavior. A separate Xcode/device review is required for those.
+    """
+    bundle = Path(app_path).expanduser().resolve()
+    if bundle.suffix != ".app" or not bundle.is_dir():
+        raise ValueError("App path must be an existing iGentic Diagnostics .app bundle.")
+    try:
+        with (bundle / "Info.plist").open("rb") as handle:
+            metadata = plistlib.load(handle)
+    except (OSError, ValueError, TypeError, plistlib.InvalidFileException):
+        raise ValueError("Cannot read the diagnostic app Info.plist.") from None
+    if not isinstance(metadata, dict) or metadata.get("CFBundleIdentifier") != DIAGNOSTIC_APP:
+        raise ValueError("App bundle identifier is not the iGentic Diagnostics identifier.")
 
 
 def require_pinned(path: Path) -> None:
@@ -242,6 +261,8 @@ def main(argv: list[str] | None = None) -> int:
             if args.action == "run":
                 if not args.execute or not args.acknowledge_model_io:
                     raise ValueError("Run requires --execute and --acknowledge-model-io.")
+                if args.app_path:
+                    require_diagnostic_app_bundle(args.app_path)
                 require_pinned(path)
                 if not args.physical:
                     require_simulator_target(args.device)
