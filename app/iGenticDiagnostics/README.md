@@ -70,7 +70,7 @@ The separate `iGenticDiagnosticsUITests` target uses Apple's `AppIntentsTesting`
 from an **out-of-process UI test**. It runs
 `iGenticReadOnlyDiagnosticsIntent` through the same App Intents system path
 used by Shortcuts/Siri and asserts that the exact privacy-safe static response
-is returned. This is stronger than inspecting `Metadata.appintents` or launching
+is returned on **three consecutive system-dispatched invocations**. This is stronger than inspecting `Metadata.appintents` or launching
 the app, but it does **not** demonstrate a spoken Siri trigger or physical-device
 behavior.
 
