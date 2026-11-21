@@ -49,7 +49,7 @@ public struct AppleOnDeviceProposalPreview: Sendable {
 
     public func generateReview(
         for instruction: String,
-        trustedDataClassification: DataClassification = .publicDefault
+        trustedDataClassification: DataClassification
     ) async -> AppleProposalPreviewOutcome {
         guard allowsPrompt(
             instruction,
