@@ -68,6 +68,19 @@ class OpenWeightArtifactVerificationTests(unittest.TestCase):
         self.manifest["size_bytes"] = True
         self.check_rejected()
 
+    def test_rejects_duplicate_manifest_fields_even_if_values_match(self):
+        # JSON allows duplicate object members syntactically, but a pinned
+        # artifact manifest must not depend on the parser\'s last-key policy.
+        encoded = json.dumps(self.manifest)
+        duplicate = encoded.replace(
+            '"license_reviewed": true',
+            '"license_reviewed": true, "license_reviewed": true',
+        )
+        self.assertNotEqual(encoded, duplicate)
+        self.manifest_path.write_text(duplicate)
+        with self.assertRaisesRegex(ArtifactRejected, "duplicate manifest field"):
+            verify(self.manifest_path, self.directory)
+
     def test_rejects_undeclared_manifest_fields(self):
         self.manifest["download_url"] = "https://example.org/evil"
         self.check_rejected()
