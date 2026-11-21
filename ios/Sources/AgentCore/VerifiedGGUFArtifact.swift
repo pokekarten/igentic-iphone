@@ -53,8 +53,9 @@ public enum VerifiedGGUFArtifact {
     /// object members. The manifest is deliberately a flat, six-scalar object.
     /// Keys are decoded as JSON strings so escaped aliases also collide.
     private static func hasUniqueManifestKeys(_ data: Data) -> Bool {
+        // Reject oversized input before allocating a separate byte array.
+        guard !data.isEmpty, data.count <= 16_384 else { return false }
         let bytes = Array(data)
-        guard !bytes.isEmpty, bytes.count <= 16_384 else { return false }
         var offset = 0
 
         func skipWhitespace() {
