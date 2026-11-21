@@ -3,9 +3,9 @@
 # All merging and build artifacts stay inside a new temporary clone.
 set -euo pipefail
 
-root="$(cd "$(dirname "\${BASH_SOURCE[0]}")/.." && pwd)"
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 remote="$(git -C "$root" remote get-url origin)"
-work="$(mktemp -d "\${TMPDIR:-/tmp}/igentic-integration.XXXXXXXX")"
+work="$(mktemp -d "${TMPDIR:-/tmp}/igentic-integration.XXXXXXXX")"
 cleanup() {
   if [[ -n "$work" && -d "$work" && "$work" == *igentic-integration.* ]]; then
     rm -rf -- "$work"
@@ -40,7 +40,7 @@ swift run --jobs 2 --scratch-path "$work/scratch" AppleOnDeviceProposalProbe >"$
 grep -q '^LOCAL_MODEL_PROBE=skipped (explicit opt-in required)$' "$work/optout.log"
 echo 'INTEGRATED_DEFAULT_MODEL_INFERENCE=skipped'
 
-if [[ "\${IGENTIC_RUN_LOCAL_MODEL_PROBE:-0}" == "1" ]]; then
+if [[ "${IGENTIC_RUN_LOCAL_MODEL_PROBE:-0}" == "1" ]]; then
   if ! IGENTIC_RUN_LOCAL_MODEL_PROBE=1 swift run --jobs 2 \
     --scratch-path "$work/scratch" AppleOnDeviceProposalProbe >"$work/optin.log" 2>&1; then
     echo 'INTEGRATED_LOCAL_MODEL_PROBE=failed'
@@ -51,11 +51,11 @@ if [[ "\${IGENTIC_RUN_LOCAL_MODEL_PROBE:-0}" == "1" ]]; then
   grep '^LOCAL_MODEL_' "$work/optin.log" || true
 fi
 
-if [[ "\${IGENTIC_RUN_SIGNED_SIMULATOR_TEST:-0}" == "1" ]]; then
+if [[ "${IGENTIC_RUN_SIGNED_SIMULATOR_TEST:-0}" == "1" ]]; then
   command -v xcodebuild >/dev/null
   if ! xcodebuild -project ../app/iGenticDiagnostics/iGenticDiagnostics.xcodeproj \
     -scheme iGenticDiagnostics -configuration Debug \
-    -destination "\${IGENTIC_SIMULATOR_DESTINATION:-platform=iOS Simulator,name=iPhone Air,OS=27.2}" \
+    -destination "${IGENTIC_SIMULATOR_DESTINATION:-platform=iOS Simulator,name=iPhone Air,OS=27.2}" \
     -derivedDataPath "$work/derived" \
     -only-testing:iGenticDiagnosticsUITests/iGenticAppIntentsTests \
     test >"$work/ios-system-test.log" 2>&1; then
