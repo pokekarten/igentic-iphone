@@ -88,7 +88,7 @@ def require_simulator_target(device: str) -> None:
         raise ValueError("Device is not an available iOS simulator; use explicit --physical.")
 
 
-def require_diagnostic_app_bundle(app_path: str) -> None:
+def require_diagnostic_app_bundle(app_path: str, expected_bundle_id: str = DIAGNOSTIC_APP) -> None:
     """Refuse to install a non-diagnostic .app before invoking ARTEMIS.
 
     Validates the bundle's Info.plist, not its code signature or runtime
@@ -102,7 +102,7 @@ def require_diagnostic_app_bundle(app_path: str) -> None:
             metadata = plistlib.load(handle)
     except (OSError, ValueError, TypeError, plistlib.InvalidFileException):
         raise ValueError("Cannot read the diagnostic app Info.plist.") from None
-    if not isinstance(metadata, dict) or metadata.get("CFBundleIdentifier") != DIAGNOSTIC_APP:
+    if not isinstance(metadata, dict) or metadata.get("CFBundleIdentifier") != expected_bundle_id:
         raise ValueError("App bundle identifier is not the iGentic Diagnostics identifier.")
 
 
@@ -174,6 +174,14 @@ def build_command(args: argparse.Namespace) -> list[str]:
         raise ValueError("A device identifier is required.")
     if args.physical and args.device == "booted":
         raise ValueError("A physical device requires an explicit UDID.")
+    expected_bundle_id = getattr(args, "expected_bundle_id", None)
+    if args.physical:
+        if not args.app_path:
+            raise ValueError("A physical device requires --app-path for the signed diagnostics app.")
+        if not expected_bundle_id or expected_bundle_id == DIAGNOSTIC_APP:
+            raise ValueError("A physical device requires an explicit, non-placeholder --expected-bundle-id.")
+    elif expected_bundle_id:
+        raise ValueError("--expected-bundle-id is only valid with --physical.")
     command = [
         "uv", "run", "--frozen", "--no-sync", "--offline",
         "artemis", "run", SAFE_TASK,
@@ -241,7 +249,9 @@ def main(argv: list[str] | None = None) -> int:
         p.add_argument("--device", default="booted", help="Simulator UDID, booted, or physical UDID")
         p.add_argument("--physical", action="store_true", help="Explicitly select an owned physical iPhone")
         p.add_argument("--profile", choices=("flash", "pro"), default="flash")
-        p.add_argument("--app-path", help="Optional prebuilt and appropriately signed .app")
+        p.add_argument("--app-path", help="Prebuilt .app; required for physical iPhone runs")
+        p.add_argument("--expected-bundle-id",
+                       help="Owner-configured signed diagnostics bundle ID; required for physical iPhone runs")
         if name == "run":
             p.add_argument("--execute", action="store_true", help="Explicit consent for device input")
             p.add_argument("--acknowledge-model-io", action="store_true",
@@ -262,7 +272,10 @@ def main(argv: list[str] | None = None) -> int:
                 if not args.execute or not args.acknowledge_model_io:
                     raise ValueError("Run requires --execute and --acknowledge-model-io.")
                 if args.app_path:
-                    require_diagnostic_app_bundle(args.app_path)
+                    require_diagnostic_app_bundle(
+                        args.app_path,
+                        expected_bundle_id=(args.expected_bundle_id if args.physical else DIAGNOSTIC_APP),
+                    )
                 require_pinned(path)
                 if not args.physical:
                     require_simulator_target(args.device)
