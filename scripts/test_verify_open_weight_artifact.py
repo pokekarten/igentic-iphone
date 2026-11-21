@@ -56,6 +56,16 @@ class OpenWeightArtifactVerificationTests(unittest.TestCase):
         self.model.symlink_to(self.manifest_path)
         self.check_rejected()
 
+    def test_rejects_noncanonical_model_identity(self):
+        for model_id in (
+            "publisher/../private", "publisher//model",
+            "publisher/model/extra", "publisher/.", "/model",
+            "model-without-publisher",
+        ):
+            with self.subTest(model_id=model_id):
+                self.manifest["model_id"] = model_id
+                self.check_rejected()
+
     def test_rejects_unpinned_revision(self):
         self.manifest["source_revision"] = "main"
         self.check_rejected()
