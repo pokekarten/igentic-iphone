@@ -21,6 +21,24 @@ final class AppleOnDeviceProposalPreviewTests: XCTestCase {
         }
     }
 
+    func testUTF8ByteBoundaryIsEnforcedBeforeInference() async {
+        let atLimit = String(repeating: "a", count: 256)
+        let beyondLimit = String(repeating: "ä", count: 129)
+        XCTAssertEqual(atLimit.utf8.count, 256)
+        XCTAssertEqual(beyondLimit.utf8.count, 258)
+        XCTAssertTrue(preview.allowsPrompt(atLimit, trustedDataClassification: .publicDefault))
+        XCTAssertFalse(preview.allowsPrompt(beyondLimit, trustedDataClassification: .publicDefault))
+        let result = await preview.generateReview(for: beyondLimit, trustedDataClassification: .publicDefault)
+        XCTAssertEqual(result, .inputRejected)
+    }
+
+    func testRejectsWhitespaceOnlyUnicodeBeforeInference() async {
+        let prompt = "\n\t  \r"
+        XCTAssertFalse(preview.allowsPrompt(prompt, trustedDataClassification: .publicDefault))
+        let result = await preview.generateReview(for: prompt, trustedDataClassification: .publicDefault)
+        XCTAssertEqual(result, .inputRejected)
+    }
+
     func testRejectsKnownSensitivePatternsWithoutModel() async {
         for prompt in [
             "Send a reminder to sample@example.org",
