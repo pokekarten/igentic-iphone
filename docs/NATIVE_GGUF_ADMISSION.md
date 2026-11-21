@@ -7,6 +7,10 @@ This Swift component is iOS/macOS capable with CryptoKit. On unsupported platfor
 Native acceptance tests use synthetic files only, never real weights. Next step: pin a compatible llama.cpp revision and iOS XCFramework with a reproducible signed build, connect a trusted immutable model store, then verify physical-device memory/performance and review all tool proposals against an independent approval gate.
 
 
-## Open native JSON admission parity gap
+## Native JSON admission: duplicate member rejection
 
-**Must resolve before merge or production use:** the Swift verifier currently validates the six keys of the *decoded JSON object* using `JSONSerialization` and `JSONDecoder`. Unlike Python verifier PR #383, this does **not** establish that the raw input contained unique keys. Duplicate JSON object members may be normalized/overwritten before the strict key-set check. The native format therefore **does not yet match** the Python verifier's duplicate-key rejection. Add an unambiguous top-level member parser (including escaped member names) and a regression asserting that even identical duplicate keys are rejected before upgrading this native verifier to full parity. A SHA-256 match by itself also cannot authenticate untrusted manifest provenance.
+The verifier first scans the **raw, bounded (maximum 16 KiB), flat six-field JSON object** and decodes each member name as a JSON string. It rejects duplicate members, including escaped equivalent keys (for example `"model_id"` versus `"\\u006dodel_id"`), nested values, extra members, missing fields and malformed syntax, **before** `JSONDecoder` decodes the typed schema. Unlike a dictionary/JSONSerialization key-set check, this preserves the necessary evidence that the source JSON contained six **unique** members. Regression tests cover repeated identical and conflicting values, escaped duplicate names and nested/oversized inputs.
+
+This closes the **known duplicate-key normalization gap** with Python PR #383 for the declared flat schema. The native verifier remains a proof of *matching bytes to a supplied digest*, not a guarantee of manifest provenance, license rights, immutable staging, device RAM limits or safe inference. The parser is intentionally not a general-purpose JSON parser: nested values are invalid for this manifest.
+
+**Acceptance:** run the `VerifiedGGUFArtifactTests` suite on the exact PR head. A successful macOS test is not a physical iPhone inference test.
