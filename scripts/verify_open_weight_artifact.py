@@ -23,8 +23,19 @@ class ArtifactRejected(ValueError):
 
 
 def verify(manifest_path: Path, model_directory: Path) -> dict:
+    def reject_duplicate_keys(pairs):
+        manifest_object = {}
+        for key, value in pairs:
+            if key in manifest_object:
+                raise ArtifactRejected("duplicate manifest field")
+            manifest_object[key] = value
+        return manifest_object
+
     try:
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest = json.loads(
+            manifest_path.read_text(encoding="utf-8"),
+            object_pairs_hook=reject_duplicate_keys,
+        )
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         raise ArtifactRejected("unreadable manifest") from exc
     if not isinstance(manifest, dict) or set(manifest) != REQUIRED_FIELDS:
