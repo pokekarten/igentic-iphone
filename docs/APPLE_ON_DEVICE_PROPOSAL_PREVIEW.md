@@ -14,6 +14,7 @@ or save callbacks.
 
 ## Guardrails
 
+- The caller MUST explicitly provide a trusted, independently determined `DataClassification` to `generateReview(for:trustedDataClassification:)`; no `publicDefault` fallback exists. The method fails at **compile time** when classification is omitted. A model-generated classification is not independent evidence.
 - Only independently classified **public** prompts of at most **256 UTF-8
   bytes** reach the model; empty and recognized sensitive-pattern prompts
   are rejected before session construction.
