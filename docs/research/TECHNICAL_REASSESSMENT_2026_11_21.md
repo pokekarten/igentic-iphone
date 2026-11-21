@@ -181,3 +181,22 @@ Keep two product profiles: **A. public-API/possible App Store distribution**; **
 The **next meaningful green result** is *one buildable iGentic app with a read-only App Intent callable from system pathways, whose proposed action passes through the unchanged Swift authorization chain, verified in Xcode 27.2 simulator*. Then collect explicit, privacy-preserving evidence on the iPhone Air. Do not promote unverified hardware claims, enable a real reminder save, or merge the Draft PRs around #286/#287.
 
 **Reason to change priority:** Apple's Xcode MCP / Device Hub and iOS-27 App Intents/Models are now foundational first-party capabilities; host ARTEMIS and general external agent frameworks are **optional comparisons**. The true blocker is an end-to-end authorized product action, not a lack of more agent repositories.
+
+### F. Observed Xcode 27.2 Mac / simulator acceptance — 2026-11-21
+
+**New direct, independent environment evidence (not merely upstream source claims):** An authorized remote macOS host was actually connected for this run. Read-only environment discovery showed **macOS 27.0.1, Xcode 27.2 (27B52), Apple Swift 6.4.2, and an already-booted iOS 27.2 iPhone Air simulator**. This establishes the development host and *simulated* phone, not an owned physical iPhone Air's OS, signing status, or Apple model availability.
+
+Tested **unchanged `main` commit `0bb24b750d90da9f810af9648aae5fc2058a7069`** in the Mac's clean `~/Developer/igentic-iphone` checkout:
+
+| Check | How it was run | Observed result |
+| --- | --- | --- |
+| Swift Package unit tests | `cd ios && swift test --jobs 2 --scratch-path /tmp/igentic-test-xcode27-20261121` | **PASS 288/288**, 0 failures, exit 0 |
+| Real Xcode iPhone Air simulator build | `xcodebuild -project app/iGenticDiagnostics/iGenticDiagnostics.xcodeproj -scheme iGenticDiagnostics -configuration Debug -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone Air,OS=27.2' -derivedDataPath /tmp/igentic-xcode27-air-20261121 CODE_SIGNING_ALLOWED=NO build` | **BUILD SUCCEEDED**, exit 0 |
+| Synthetic app simulator installation/start | `xcrun simctl install booted <built-diagnostics.app>` then `xcrun simctl launch booted org.example.iGenticDiagnostics` | Installed and launched; process ID returned, exit 0 |
+| Repository structure validator on an archive of the tracked tree | `git archive HEAD | tar -x -C <temporary-dir>` then `python3 scripts/validate_repo_structure.py` | **PASS** (`Repo structure looks good.`), exit 0 |
+| Validator on original Mac working directory | `python3 scripts/validate_repo_structure.py` | **FAIL** on existing ignored `ios/.build` generated build artifacts despite a clean `git status`. This is a local validator behavior gap, **not** a tracked-file failure; no build cache was deleted |
+
+The Xcode build printed `Metadata extraction skipped, no AppIntents.framework dependency found`. This confirms the diagnostics target currently lacks a real App Intents integration; it is **not** an App Intents success claim. No user accounts, reminders, real device settings, cloud models or personal screenshots were accessed in these tests. The simulator launch does not prove interactive navigation, correctness of screenshots/vision, full action approval, iOS background recovery or real phone execution.
+
+**Next measured product step:** add one read-only, synthetic App Intent to iGentic through the existing Swift authority (after the required repository admission/security review); compile and test it through Xcode + AppIntentsTesting, then validate on the physical phone separately. **Owner branch protection #286/#287 remains unresolved**; no merge or live write is authorized by these test results.
+
