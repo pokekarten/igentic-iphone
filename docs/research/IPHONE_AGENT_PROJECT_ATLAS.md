@@ -182,6 +182,15 @@ The 2026 Apple platform release changes model-provider and eval architecture eno
 
 [Architecture reassessment and prioritized experiments](TECHNICAL_REASSESSMENT_2026_11_21.md) distinguish product APIs, developer-mode cross-app research and Mac-hosted testing. The Apple on-device system model documents a [4,096-token shared context](https://developer.apple.com/documentation/technotes/tn3193-managing-the-on-device-foundation-model-s-context-window); custom/remote `LanguageModel` providers may have different limits. The common provider API does **not** imply that any model is local or authorized to execute side effects.
 
+## H. Reproducible iPhone model and memory benchmarks
+
+| Project | Upstream | Why it matters | Guardrail | Triage |
+| --- | --- | --- | --- | --- |
+| **Pocket AI Lab** | [ananasDDA/pocket-ai-lab](https://github.com/ananasDDA/pocket-ai-lab) | iOS 26+ runtime comparison of MLX, llama.cpp, Apple model and more; **actual process memory/jetsam budget** and Metal working-set reporting, live CPU/thermal diagnostics | Upstream measurements come from other devices. No claim that our iPhone Air has the same budget or performance. | **P0 method** |
+| **edge-llm-bench** | [john-rocky/edge-llm-bench](https://github.com/john-rocky/edge-llm-bench) | Reproducible trial fixtures and raw result records for MLX, LiteRT-LM, llama.cpp, Core AI and others across real devices; preserves failures and avoids unsupported headline rankings | Independent methodology and external device results only; exact model artifact and version pins matter. | **P0 method** |
+
+**Officially supported experiment to investigate:** [Apple's Qwen3 Core AI export recipe](https://github.com/apple/coreai-models/blob/main/models/qwen3/README.md) currently documents the existing iGentic Qwen3-0.6B family as an iOS export candidate. Example command `uv run coreai.llm.export Qwen/Qwen3-0.6B --platform iOS` is a **source example only**, **not executed by this PR**. First pin exporter and source revision, compare against the existing frozen benchmark, and evaluate the process memory limit without silently granting entitlements or mixing different model checkpoints. See the [reassessment](TECHNICAL_REASSESSMENT_2026_11_21.md).
+
 ## Decision matrix: what should iGentic actually try?
 
 | Question / use case | Compare first | Why | Acceptance signal |
