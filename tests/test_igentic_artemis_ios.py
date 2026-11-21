@@ -140,9 +140,71 @@ class ArtemisIosIntegrationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "explicit UDID"):
             MODULE.build_command(args)
 
+    def test_physical_requires_explicit_signed_bundle_path_and_id(self):
+        args = SimpleNamespace(device="OWNED-DEVICE", profile="flash",
+                               physical=True, app_path=None,
+                               expected_bundle_id="com.example.owned.igentic")
+        with self.assertRaisesRegex(ValueError, "--app-path"):
+            MODULE.build_command(args)
+        args.app_path = "/tmp/Diagnostics.app"
+        args.expected_bundle_id = None
+        with self.assertRaisesRegex(ValueError, "--expected-bundle-id"):
+            MODULE.build_command(args)
+        args.expected_bundle_id = MODULE.DIAGNOSTIC_APP
+        with self.assertRaisesRegex(ValueError, "non-placeholder"):
+            MODULE.build_command(args)
+
+    def test_simulator_rejects_physical_bundle_id_override(self):
+        args = SimpleNamespace(device="booted", profile="flash",
+                               physical=False, app_path=None,
+                               expected_bundle_id="com.example.owned.igentic")
+        with self.assertRaisesRegex(ValueError, "only valid with --physical"):
+            MODULE.build_command(args)
+
+    def test_physical_run_accepts_matching_owner_signed_bundle(self):
+        with tempfile.TemporaryDirectory() as temp:
+            bundle = Path(temp) / "iGenticDiagnostics.app"
+            bundle.mkdir()
+            with (bundle / "Info.plist").open("wb") as output:
+                plistlib.dump({"CFBundleIdentifier": "com.example.owned.igentic"}, output)
+            checks = {"xcode_27_or_newer": True, "uv_available": True,
+                      "ios_project_exists": True}
+            with patch.object(MODULE, "require_pinned"), \
+                 patch.object(MODULE, "doctor", return_value=checks), \
+                 patch.object(MODULE, "run_bounded", return_value=0) as run:
+                with redirect_stdout(io.StringIO()):
+                    code = MODULE.main([
+                        "run", "--execute", "--acknowledge-model-io",
+                        "--physical", "--device", "OWNED-DEVICE",
+                        "--app-path", str(bundle),
+                        "--expected-bundle-id", "com.example.owned.igentic",
+                    ])
+            self.assertEqual(code, 0)
+            run.assert_called_once()
+
+    def test_physical_run_refuses_mismatched_signed_bundle_before_execution(self):
+        with tempfile.TemporaryDirectory() as temp:
+            bundle = Path(temp) / "iGenticDiagnostics.app"
+            bundle.mkdir()
+            with (bundle / "Info.plist").open("wb") as output:
+                plistlib.dump({"CFBundleIdentifier": "com.example.other"}, output)
+            with patch.object(MODULE, "require_pinned") as pinned, \
+                 patch.object(MODULE, "run_bounded") as run:
+                with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+                    code = MODULE.main([
+                        "run", "--execute", "--acknowledge-model-io",
+                        "--physical", "--device", "OWNED-DEVICE",
+                        "--app-path", str(bundle),
+                        "--expected-bundle-id", "com.example.owned.igentic",
+                    ])
+            self.assertEqual(code, 2)
+            pinned.assert_not_called()
+            run.assert_not_called()
+
     def test_profile_pro_is_forwarded(self):
         args = SimpleNamespace(device="1234", profile="pro",
-                               physical=True, app_path="/tmp/demo.app")
+                               physical=True, app_path="/tmp/demo.app",
+                               expected_bundle_id="com.example.owned.igentic")
         command = MODULE.build_command(args)
         self.assertEqual(command[command.index("--profile") + 1], "pro")
         self.assertEqual(command[command.index("--app-path") + 1], "/tmp/demo.app")
