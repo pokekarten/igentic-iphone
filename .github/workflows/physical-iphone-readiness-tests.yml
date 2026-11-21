@@ -1,0 +1,53 @@
+name: Physical iPhone Readiness Parser
+
+on:
+  pull_request:
+    paths:
+      - "scripts/check-physical-iphone-readiness.py"
+      - "tests/test_physical_iphone_readiness.py"
+      - ".github/workflows/physical-iphone-readiness-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  parser:
+    name: Identifier-free iPhone readiness fixture tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact commit without marketplace actions
+        shell: bash
+        run: |
+          set -euo pipefail
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          if git fetch --no-tags --depth=1 origin "${GITHUB_SHA}"; then
+            echo "Fetched exact head"
+          elif [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
+            git fetch --no-tags --depth=1 origin "pull/${{ github.event.pull_request.number }}/merge"
+          else
+            exit 1
+          fi
+          git checkout --force FETCH_HEAD
+          git clean -fdx
+
+      - name: Compile Python parser and run synthetic fixture tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile scripts/check-physical-iphone-readiness.py tests/test_physical_iphone_readiness.py
+          python3 -m unittest discover -s tests -p 'test_physical_iphone_readiness.py' -v
+
+      - name: Assert no-device preflight fails closed
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf 'Name    Hostname    Identifier    State    Model    Reality\n' > /tmp/igentic-empty-devices.txt
+          set +e
+          output="$(python3 scripts/check-physical-iphone-readiness.py --fixture /tmp/igentic-empty-devices.txt)"
+          code=$?
+          set -e
+          test "${code}" -eq 2
+          grep -qx 'PHYSICAL_IPHONE_READY=no' <<<"${output}"
