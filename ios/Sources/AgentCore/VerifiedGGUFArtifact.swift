@@ -54,7 +54,7 @@ public enum VerifiedGGUFArtifact {
             let object = try? JSONSerialization.jsonObject(with: manifestData) as? [String: Any],
             Set(object.keys) == Set(["model_id", "filename", "sha256", "size_bytes", "source_revision", "license_reviewed"]),
             let manifest = try? JSONDecoder().decode(Manifest.self, from: manifestData),
-            matches(manifest.modelID, "\\A[A-Za-z0-9][A-Za-z0-9._/-]{0,127}\\z"),
+            matches(manifest.modelID, "\\A[A-Za-z0-9][A-Za-z0-9._-]{0,63}/[A-Za-z0-9][A-Za-z0-9._-]{0,63}\\z"),
             matches(manifest.filename, "\\A[A-Za-z0-9][A-Za-z0-9._-]{0,255}\\z"),
             manifest.filename.hasSuffix(".gguf"),
             ![".", ".."].contains(manifest.filename),
