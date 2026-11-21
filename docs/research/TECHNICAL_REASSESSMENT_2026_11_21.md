@@ -111,3 +111,73 @@ A paired device-agent transport can grant much broader authority than the app's 
 This review **does not** claim Apple framework compilation, physical-device behavior, model benchmarking, protected-branch enforcement or a working iOS 27 app. The available Mac runner is not connected in this run. A source page saying "works on iPhone" is not enough; upgrade evidence only after an independently observed test.
 
 **Next decisive question:** can we get **one** safe, end-to-end, user-approved action working and measured on iPhone Air while maintaining the Swift policy, privacy and audit requirements? Answering this is more valuable than adding another list of 50 repos or another theoretical coordinator.
+
+## 7. Latest-OS and Xcode 27.2 execution plan (2026-11-21)
+
+**Changed planning assumption:** The owner reports the Mac and iPhone have their newest OS releases and Xcode is now installed. This is **user-reported setup, not a remotely verified OS/Xcode build**. The connected Mac endpoint was offline during this research. Do not infer that Xcode 27.2, iOS 27.2, an installed simulator, Apple Intelligence model assets, Developer Mode or a paired target were actually observed. For this work, **prefer iOS 27/Xcode 27 capabilities**, while retaining the existing iOS 17 package floor until a deliberate compatibility decision.
+
+**Verified official release:** [Xcode 27.2](https://developer.apple.com/documentation/xcode-release-notes/xcode-27_2-release-notes) shipped on 2026-10-30, with Swift 6.4, iOS 27.2 SDK and macOS Tahoe 26.6+ requirement. Xcode 27.3 beta is a separate non-default option. Xcode 27.2 also adds a JSON-based `.xcproj` format: **do not automatically convert** the existing working diagnostics project.
+
+### A. First-party Mac and connected-device baseline — execute locally only
+
+Run these non-mutating checks first on the owner-authorized Mac. Keep real device UDIDs, screenshots and signing/account data **off GitHub**:
+
+```bash
+sw_vers -productVersion
+xcode-select -p
+xcodebuild -version
+xcrun swift --version
+xcrun simctl list devices available
+xcrun devicectl list devices
+```
+
+**Prefer Apple's Xcode MCP bridge before adding another host-side controller.** Apple documents the following opt-in Codex setup in [Giving external agents access to Xcode](https://developer.apple.com/documentation/xcode/giving-external-agents-access-to-xcode):
+
+1. Open **Xcode → Settings → Intelligence → Model Context Protocol** and set **Allow External Agents to Use Xcode Tools → While Xcode is Open** (not unrestricted always-on access).
+2. Open the reviewed iGentic Xcode project. With the owner's consent, on that Mac run `codex mcp add xcode -- xcrun mcpbridge`, then `codex mcp list`. This changes local Codex MCP configuration and must **not** be assumed performed by the research PR.
+3. In **Xcode → Open Developer Tool → Device Hub**, prepare a disposable iOS 27 simulator. Apple's [Device Hub guide](https://developer.apple.com/documentation/xcode/managing-your-simulated-and-physical-devices-in-device-hub) also documents **Pair Nearby Device** for physical devices on iOS 27+, using owner-confirmed pairing/Developer Mode. Keep a physical personal phone out of the first cross-app automation pass.
+4. Use only owner-approved build, test, diagnostics and read-only device enumeration initially. Record the exact simulator runtime and build ID. Xcode MCP/Device Hub are developer tools; they **do not grant the iGentic app general iOS sandbox privileges**.
+5. **Never** turn on a global unsafe 'allow all agents' mode just to bypass Xcode prompts; keep consent scoped to the active development session.
+
+**ARTEMIS [Draft #378](https://github.com/pokekarten/igentic-iphone/pull/378)** stays a test adapter for comparison, but no longer needs to be the mandatory starting point for Xcode build/test/device observation. Its upstream Python, WDA and model-provider surfaces still require their own review.
+
+### B. First useful phone capability, not another research framework
+
+The exact current `main` file tree contains **no AppIntent implementation**. `AppleFoundationModelsRuntime.swift` checks model **availability**, not an end-to-end agent inference/action session. `AppActionCoordinator.swift` and the reminder UI are intentionally side-effect-free; the production reminder save remains gated.
+
+**Smallest product sequence (one implementation PR at a time; respect #286 → #287 and already-open #378):**
+
+1. **Read-only App Intent first:** a user-invoked iGentic Diagnostics/Task Status intent returning only synthetic or redacted data. No contacts, account identifiers, reminders save or global app control. Test with [AppIntentsTesting](https://developer.apple.com/documentation/AppIntentsTesting), which exercises actual system intent dispatch, plus unit tests and Siri/Shortcuts smoke tests as supported.
+2. **Model proposal proof:** an iOS-27 availability-gated `LanguageModelSession` using the Apple on-device model only; model proposes a typed intent and **cannot directly execute** its `Tool` side effects. Existing `PolicyEngine`, `ApprovalManager`, fingerprint/one-shot receipts and audit remain sole authority. Evaluate German requests and injection attempts from untrusted screenshots/web text.
+3. **Controlled first write:** only **after** repository enforcement (#286) and content admission (#287), add one real user-approved reminder save with destination recheck, explicit user confirmation and `committed/notCommitted/unknown` evidence. No automatic retry after an unknown external write.
+4. **Apple's own evaluation:** add [Evaluations tool-call scoring](https://developer.apple.com/documentation/evaluations/evaluating-tool-calling-behavior) and [AppIntentsTesting](https://developer.apple.com/documentation/AppIntentsTesting) as **additional** validation, preserving frozen iGentic benchmark cases and refusal metrics. A green simulator test is not physical device acceptance.
+
+Apple's [iOS 27 App Intents update](https://developer.apple.com/ios/whats-new/) adds **App Schemas**, **View Annotations** and **AppIntentsTesting**. These are valuable public integration points for Siri AI, but **do not authorize arbitrary third-party-app UI control**.
+
+### C. iOS 27 local model bake-off
+
+**Run on an actual iPhone Air, not inferred from Mac performance.** The phone is listed in [Apple's Apple Intelligence eligibility guidance](https://support.apple.com/de-de/121115), but must report model availability and the required assets at runtime.
+
+| Candidate | Implementation | Test evidence needed |
+| --- | --- | --- |
+| Apple on-device Foundation Models | First-party `SystemLanguageModel`, version/capability checked | 30+ synthetic German intents, typed JSON/tool correctness, refusal/error behavior, actual context budget, cold/warm times, privacy |
+| Frozen `Qwen/Qwen3-0.6B` baseline | Exact revision and tokenizer; [Apple Core AI Qwen3 exporter](https://github.com/apple/coreai-models/blob/main/models/qwen3/README.md) for an **iOS 27** experiment | First compare `--dry-run`; check license, SHA and memory without new entitlement; then explicit on-device model export/load + repeated trials |
+| Alternative small local model | One evidence-selected MLX/Core AI/GGUF candidate, not an unlimited model zoo | Add only if a meaningful failure occurs; compare latency, process memory/jetsam, battery/thermal, German tool calls and offline behavior |
+
+Use [edge-llm-bench](https://github.com/john-rocky/edge-llm-bench) methodology and raw trial logs for cold/warm, throttling and memory, **not** its other devices' published speed as an iPhone Air result. A `LanguageModel` conformance is **not** evidence that its provider is local.
+
+### D. Choose only one experimental cross-app track
+
+**For iOS 27, re-rank [cell-use](https://github.com/Raynan00/cell-use) to P0 for phone-resident UI control.** Its upstream README explicitly states the phone-control runtime needs iOS 27, separate from the lower target of its Swift API/tunnel. Compare [Eiscue](https://github.com/LLLLLayer/Eiscue) (`frameId` one-action lease, no blind replay), [iCTRL](https://github.com/OpenMinis/iCTRL) (paired-key authenticated phone-local test runner) and [iphone-use-app](https://github.com/EliotAndres/iphone-use-app) (VPN/cellular limitations).
+
+Use [iphone-cli](https://github.com/HyunSeob/iphone-cli) as a **Mac/Windows-hosted independent iOS 27 test backend** with a native accessibility tree, not as evidence of a standalone phone app. Its README reports tests on very few phone/OS configurations. Study `done/not_sent/unknown` action outcomes as a host reference.
+
+Keep two product profiles: **A. public-API/possible App Store distribution**; **B. explicitly owner-consented developer-mode/sideloaded cross-app research**. Review license at a pinned SHA (cell-use Apache-2.0, iphone-cli MIT; Eiscue multi-license including GPL/custom; iphone-use-app AGPL). Do not run arbitrary UI drivers or transmit screenshots from the user's personal phone during initial comparisons.
+
+**Mandatory synthetic failure cases:** wrong active app, stale/replayed screenshot, user denial, device locks, model asks for secret/external URL, foreground-to-background, force-quit, cellular-only VPN, no model endpoint, unknown outcome after a UI tap. A robust iGentic lab bridge must fail closed and never treat agent prompts as execution permissions.
+
+### E. Execution and acceptance definition
+
+The **next meaningful green result** is *one buildable iGentic app with a read-only App Intent callable from system pathways, whose proposed action passes through the unchanged Swift authorization chain, verified in Xcode 27.2 simulator*. Then collect explicit, privacy-preserving evidence on the iPhone Air. Do not promote unverified hardware claims, enable a real reminder save, or merge the Draft PRs around #286/#287.
+
+**Reason to change priority:** Apple's Xcode MCP / Device Hub and iOS-27 App Intents/Models are now foundational first-party capabilities; host ARTEMIS and general external agent frameworks are **optional comparisons**. The true blocker is an end-to-end authorized product action, not a lack of more agent repositories.
