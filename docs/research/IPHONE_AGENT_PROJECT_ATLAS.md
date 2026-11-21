@@ -142,6 +142,30 @@ The discoverable prior iGentic discussions cluster into **four workstreams**, no
 This revision used (a) thematically relevant earlier iGentic chats for **discovery/coordination only**, (b) Exa multi-angle search for candidate discovery and (c) **direct primary GitHub README and repository existence checks** for the new projects. Descriptions above are `source_claim` unless explicitly marked otherwise. No code, device pairing, local-model runtime, or cloud account was used to verify operational claims. Search is broad, not exhaustive. Consult each upstream repository's current issues/releases and `LICENSE` before treating README prose as a stable contract.
 
 
+## G. November 2026 gaps: durable execution, native workspaces, reproducible agent quality
+
+These projects were found and their **primary GitHub READMEs were checked on 2026-11-21**. They remain source claims, not verified iGentic runtime or physical-device results. Adding them does not approve code vendoring, installation, tool access, cloud traffic or a production release.
+
+| Project | Upstream / source license | What the upstream describes | iGentic question and boundary | Triage |
+| --- | --- | --- | --- | --- |
+| **PiDurableKit** | [finnvoor/PiDurableKit](https://github.com/finnvoor/PiDurableKit) · CC0-1.0 (repository LICENSE; transitive packages need review) | Swift API to a JavaScriptCore agent harness; SQLite or JSONL persistence, durable tasks/subagents, tool events and restart recovery; iOS 17+ claimed | Can we persist synthetic proposals and state without replacing `PolicyEngine` or repeating already authorized external effects? No promise of execution while iOS has suspended the app. | **P0 research** |
+| **DurableAgents** | [Think-Define-Create/DurableAgents](https://github.com/Think-Define-Create/DurableAgents) · MIT | Swift event journal, typed effect classification (`pure`, `idempotent`, `transactional`, `external`), approval-resume tokens, optional encryption | Compare crash/reconciliation semantics against iGentic's intentionally process-local one-shot execution capabilities. Any third-party resume token must **not** authorize a new effect without an iGentic-approved capability. | **P0 research** |
+| **AgentKit** | [AkinoKaede/AgentKit](https://github.com/AkinoKaede/AgentKit) · MIT | Swift model/tool loop with explicit permissions and persistent conversation state | Compare bounded proposal-tool orchestration; external permission model is advisory relative to iGentic Swift authority. | P1 |
+| **Floe Agent** | [JiangNanGenius/floe-agent](https://github.com/JiangNanGenius/floe-agent) · MPL-2.0 | iOS 26+ on-device workspace with files and a Linux environment, plus cross-device workflows | Product/UX comparison, not proof of free cross-app UI access or permanent background rights. | P1 |
+| **Thumbly** | [timurcatakli/thumbly](https://github.com/timurcatakli/thumbly) · mixed Apache-2.0/GPL-3.0 labeling; inspect per component | macOS CoreDevice iPhone controller with explicit client approval, activity history, stop control and MCP/remote integration | Strong host-controlled UX/security comparison; **Mac must run** and phone pairing is required. Verify exact component licenses before any reuse. | P1 |
+| **iOSWorld** | [ljang0/iOSWorld](https://github.com/ljang0/iOSWorld) · inspect exact revision/license | iOS simulator benchmark with 26 synthetic SwiftUI apps, one fictional profile and 133 tasks across app/multi-app settings | Measure independent action success and cross-app reliability. Simulator measurements are **not** real iPhone Air results. | **P0 benchmark** |
+| **AppControlBench** | [software-mansion/app-control-bench](https://github.com/software-mansion/app-control-bench) · inspect exact revision/license | Reproducible model-versus-tool comparisons for real iOS apps **in simulator**; its November 2026 README explicitly states the new edition is **not run yet** | Use published configurations/results only for the editions actually executed; no unmeasured November pass rates. | **P0 benchmark** |
+
+### Proposed synthetic durability and approval test matrix
+
+1. Assign a stable task ID, immutable payload fingerprint, data class, risk, desired target, and an initial approval status. Test with **synthetic data only**.
+2. Interrupt the process **before** a read-only step, **during** a model/tool step, and **after** a simulated external side effect whose completion is unknown.
+3. On recovery, ensure completed internal pure work is not lost, but an uncertain external side effect goes to `unknownOutcome` / human reconciliation instead of automatic replay. An expired or payload-mismatched approval must **not** revive execution authority.
+4. Simulate the Mac offline: queue only scoped, non-private test metadata. Reconnect and verify one job ID is delivered exactly once **logically**, with idempotent acknowledgement; do not claim exactly-once network delivery.
+5. Compare recovery time, data exposure, transaction integrity, cancellation and failure semantics separately on Linux/host, iOS simulator and physical iPhone. iOS process restoration does **not** grant an unrestricted background execution entitlement.
+
+**Implementation order:** use the existing iGentic `ToolRegistry`, `PolicyEngine`, `ApprovalManager`, `SafeActionExecutionCapabilityLedger` and `AuditLog` as the fixed authority. First model a **read-only, no-side-effect** diagnostic App Intent and a journalled synthetic operation; only after security admission #286/#287 and exact simulator/device evidence consider a typed host/iCTRL adapter. Keep [PR #378](https://github.com/pokekarten/igentic-iphone/pull/378) as the sole device implementation candidate, with no new competing wide device-control PR.
+
 ## Decision matrix: what should iGentic actually try?
 
 | Question / use case | Compare first | Why | Acceptance signal |
