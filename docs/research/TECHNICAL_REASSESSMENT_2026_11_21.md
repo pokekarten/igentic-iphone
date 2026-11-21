@@ -143,7 +143,7 @@ xcrun devicectl list devices
 
 ### B. First useful phone capability, not another research framework
 
-The exact current `main` file tree contains **no AppIntent implementation**. `AppleFoundationModelsRuntime.swift` checks model **availability**, not an end-to-end agent inference/action session. `AppActionCoordinator.swift` and the reminder UI are intentionally side-effect-free; the production reminder save remains gated.
+The exact current `main` file tree contains **no AppIntent implementation**. `ios/Sources/AgentCore/AppleFoundationModelsRuntime.swift` checks model **availability**, not an end-to-end agent inference/action session. `ios/Sources/AgentCore/AppActionCoordinator.swift` and the reminder UI are intentionally side-effect-free; the production reminder save remains gated.
 
 **Smallest product sequence (one implementation PR at a time; respect #286 → #287 and already-open #378):**
 
