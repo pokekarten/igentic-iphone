@@ -255,6 +255,21 @@ User / Siri / Shortcut / iGentic UI
 - Keep authorization **outside model prompts**: deterministic action types, app/device allowlists, one-shot receipts, rollback/timeout, redacted logs.
 - iOS App Store distribution, device-management APIs, XCTest/Developer Mode and any private API must be assessed separately for permitted deployment. This atlas is not a promise of an App Store-compatible system-wide agent.
 
+## 2026-11-21 Exa follow-up: distinct new repository candidates
+
+**Source class:** upstream GitHub README inspected through Exa Search/Fetch on 2026-11-21. These are **source claims only**, not build, trust, license-admission or iPhone Air execution evidence. Compared with the previously listed `HyunSeob/iphone-cli` and `Derrors/iphone-control`, the following four repository identities were missing; do not count their overlap or forks as independent proof.
+
+| Newly identified repository | Primary source and claimed role | iGentic research decision / important caveat |
+| --- | --- | --- |
+| **iospilot** | [WaziXuan/iospilot](https://github.com/WaziXuan/iospilot) — Python MCP host for iOS 27+ CoreDevice accessibility tree, touch/HID and screen-settling detection; USB, DDI/Developer Mode | **P1 host-test candidate.** Compare read-only element observation with existing iPhone CLI and ARTEMIS on a disposable or synthetic device. Requires a live **host**, not phone-only autonomy. Verify license, revision and device support before running. |
+| **devicehub_rs** | [jkcoxson/devicehub_rs](https://github.com/jkcoxson/devicehub_rs) — Rust CoreDevice display/HID hub with MCP, GUI and VNC | **P1 transport/security comparison.** Examine screenshot-to-coordinate normalization, local-only MCP and cancellation. Its VNC description says it accepts any password, and MCP is unauthenticated: do not expose beyond loopback or install on a personal device without review. Requires a host. |
+| **Roubao 2.0 iOS** | [Turbo1123/roubao](https://github.com/Turbo1123/roubao) — Swift/Rust iPhone-resident agent based on `iphone-use-app`; developer pairing, local loopback VPN, resumable tasks and manual consent | **P1 on-phone lifecycle comparison, not an independent transport design.** Investigate resumability, unknown-outcome/repeated-write handling, cellular/VPN coexistence and consent UI. Its **iOS-specific licensing is declared AGPL-3.0** despite the repository's mixed platform/license metadata; no code copying without separate license review. Cloud model API remains distinct from offline local inference. |
+| **poki-for-linux** | [carrotciallo/poki-for-linux](https://github.com/carrotciallo/poki-for-linux) — unofficial AGPL Poki Linux-host adaptation using Rust/idevice and Node MCP | **Reference only / lower priority.** Useful for understanding USB/RemoteXPC portability, but it is an upstream-derived host integration, not an independent Mac-free native iPhone agent. Its network/Tailscale claims require separate validation. |
+
+**Most important research result:** treat **host-driven CoreDevice iOS 27** and **phone-resident loopback-tunnel automation** as separate capability lines. Neither gives an App Store app blanket cross-app permission. For iGentic, keep Swift policy, approval receipts, explicit app-scoped action allowlists and synthetic tasks outside third-party model prompts. A claimed `unknown` external write must be reconciled before retry; no unattended production message/payment/delete experiments.
+
+**Proposed bounded experiments:** (1) implement/verify an iGentic XCTest UI-navigation smoke test inside our own app; (2) on a disposable or simulated environment evaluate host accessibility observation from one pinned tool (without installing every candidate); (3) on an authorized disposable physical iPhone test the phone-native path with Mac detached, flight/cellular transitions, locked/background interruption and explicit output audit. Keep a source-and-license manifest and update this entry when exact SHAs are tested.
+
 ## Maintenance
 
 - Review on **iOS major releases**, agent-control API changes, new device test evidence, upstream license/security advisories, or every 90 days.
