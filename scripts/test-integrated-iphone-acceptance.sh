@@ -36,7 +36,7 @@ fi
 echo 'INTEGRATED_SWIFT_TESTS=passed'
 grep -E 'Executed [0-9]+ tests, with 0 failures' "$work/swift-tests.log" | tail -n 1 || true
 
-swift run --jobs 2 --scratch-path "$work/scratch" AppleOnDeviceProposalProbe >"$work/optout.log" 2>&1
+IGENTIC_RUN_LOCAL_MODEL_PROBE=0 swift run --jobs 2 --scratch-path "$work/scratch" AppleOnDeviceProposalProbe >"$work/optout.log" 2>&1
 grep -q '^LOCAL_MODEL_PROBE=skipped (explicit opt-in required)$' "$work/optout.log"
 echo 'INTEGRATED_DEFAULT_MODEL_INFERENCE=skipped'
 
