@@ -145,7 +145,7 @@ xcrun devicectl list devices
 
 The exact current `main` file tree contains **no AppIntent implementation**. `ios/Sources/AgentCore/AppleFoundationModelsRuntime.swift` checks model **availability**, not an end-to-end agent inference/action session. `ios/Sources/AgentCore/AppActionCoordinator.swift` and the reminder UI are intentionally side-effect-free; the production reminder save remains gated.
 
-**Smallest product sequence (one implementation PR at a time; respect #286 → #287 and already-open #378):**
+**Smallest product sequence (avoid overlapping implementation work; respect #286 → #287, ARTEMIS #378 and the now-open independent read-only App Intent #380):**
 
 1. **Read-only App Intent first:** a user-invoked iGentic Diagnostics/Task Status intent returning only synthetic or redacted data. No contacts, account identifiers, reminders save or global app control. Test with [AppIntentsTesting](https://developer.apple.com/documentation/AppIntentsTesting), which exercises actual system intent dispatch, plus unit tests and Siri/Shortcuts smoke tests as supported.
 2. **Model proposal proof:** an iOS-27 availability-gated `LanguageModelSession` using the Apple on-device model only; model proposes a typed intent and **cannot directly execute** its `Tool` side effects. Existing `PolicyEngine`, `ApprovalManager`, fingerprint/one-shot receipts and audit remain sole authority. Evaluate German requests and injection attempts from untrusted screenshots/web text.
@@ -200,3 +200,14 @@ The Xcode build printed `Metadata extraction skipped, no AppIntents.framework de
 
 **Next measured product step:** add one read-only, synthetic App Intent to iGentic through the existing Swift authority (after the required repository admission/security review); compile and test it through Xcode + AppIntentsTesting, then validate on the physical phone separately. **Owner branch protection #286/#287 remains unresolved**; no merge or live write is authorized by these test results.
 
+
+
+### G. Live follow-up: App Intent implementation branch #380 (2026-11-21)
+
+After the initial main-baseline test above, [Draft PR #380](https://github.com/pokekarten/igentic-iphone/pull/380) was opened, **separately from this research PR and ARTEMIS #378**. At its initial head `6e98d436529c9251d8d54384ea048306d1270dd7`, the actual source diff adds `AppIntents`, a fixed-string `iGenticReadOnlyDiagnosticsIntent`, and two `AppShortcutsProvider` phrases in `app/iGenticDiagnostics/iGenticDiagnostics/iGenticDiagnosticsApp.swift`. It performs **no personal-data read or device-health query**. This is a minimal public-API implementation step, **not** yet a policy-gated real reminder, cross-app automation, or physical device success.
+
+The PR description reports `swift test` **288/288**, Xcode 27.2 build, generated `Metadata.appintents`/shortcut resources, and `simctl` installation/launch on an **iOS 27.2 iPhone Air simulator**. The GitHub check suite on that SHA also reports successful required build/validation jobs, subject to exact current head and check reruns. Distinguish the **author's PR/CI evidence** from *independent physical phone observation*. These do **not** yet prove Siri/Shortcuts invoked the intent through the system at runtime, nor that the returned value was checked.
+
+A connected Mac working tree on `feat/read-only-diagnostics-app-intent-20261121` was independently inspected **without modifying it**: it had uncommitted Xcode test-target and scheme changes, and an `AppIntentsTesting` test file defining `IntentDefinitions(bundleIdentifier: "org.example.iGenticDiagnostics")`, resolving `iGenticReadOnlyDiagnosticsIntent`, and calling `makeIntent().run()`. As observed, that test **did not assert the returned string**; the test additions were not yet pushed to #380. Avoid concurrent edits or running conflicting builds in that worktree while another agent owns the change. Require the final PR to provide exact-head Xcode test outcome and a deterministic assertion of the expected fixed response (or a documented API limitation), not just a successful no-assertion invocation.
+
+**Updated next-step order:** finish and verify #380's **system-dispatched, read-only App Intent** test with no raw data, user-approved deployment or side effects; review independently; separately keep #378 as Mac-host diagnostic adapter. Then demonstrate a typed draft/approval flow through the **existing** Swift authority, with a request-bound receipt, no external model credentials, and a verified result. The original main-baseline table above remains a historical measurement and should **not** be reinterpreted as reflecting PR #380 source.
