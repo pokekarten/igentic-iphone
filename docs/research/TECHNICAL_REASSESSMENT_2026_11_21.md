@@ -37,6 +37,22 @@
 
 The iPhone Air appears in Apple's [Apple Intelligence eligibility guidance](https://support.apple.com/de-de/121115), but a given phone's enabled features, locale, OS, model readiness, storage and restrictions must still be checked **on that device**. `PrivateCloudComputeLanguageModel` and cloud-based custom providers are **non-local delegation** in iGentic, regardless of privacy properties claimed by the vendor. Do not enable them by default.
 
+### Concrete Qwen3-0.6B Core AI path, without premature fine-tuning
+
+The current model manifest already lists `Qwen/Qwen3-0.6B` as the untouched Apache-2.0 multilingual baseline, with an immutable revision in the existing Qwen adapter contract. **Apple now ships a directly relevant official export recipe** in [apple/coreai-models/models/qwen3/README.md](https://github.com/apple/coreai-models/blob/main/models/qwen3/README.md), including an iOS 27 export for the same *model family*:
+
+```bash
+# Examples to review on an eligible Xcode 27 Mac; NOT executed in this reassessment.
+uv run coreai.llm.export Qwen/Qwen3-0.6B --dry-run
+uv run coreai.llm.export Qwen/Qwen3-0.6B --platform iOS
+```
+
+These commands alone are **not** a pinned benchmark or proof that our frozen `Qwen3-0.6B` revision, tokenizer, chat template, tool encoding, quantization and output profile exactly match the upstream export default. Do not execute `--platform iOS` automatically: first inspect and SHA-pin Apple's exporter, third-party dependencies, model snapshot and generated artifact. The source also warns that exported model memory may exceed an iOS app's memory allowance; an optional increased-memory entitlement must **never** be silently enabled. Evaluate default entitlement/no entitlement first, with a small known fixture, then measure an explicitly authorized alternative.
+
+**New memory methodology references:** [Pocket AI Lab](https://github.com/ananasDDA/pocket-ai-lab) distinguishes an app's *actual per-process jetsam allowance* from device advertised RAM and Metal working-set budgets. [edge-llm-bench](https://github.com/john-rocky/edge-llm-bench) publishes reproducible iPhone/Mac/Android runs for Core AI, MLX, llama.cpp, LiteRT-LM and other engines, preserves raw trial data and failure outcomes, and explicitly avoids cross-session headline rankings. These are **upstream methodologies and other people's device results**, not an iGentic iPhone Air benchmark.
+
+The revised minimal model decision tree is: (a) deterministic fixture and Apple on-device system model when available; (b) untouched, revision-pinned Qwen3-0.6B using *one* eligible iOS runtime (Core AI 27 or a separately pinned older-OS MLX/GGUF path); (c) another model only if the exact benchmark reveals an unacceptable functional deficit. Record tool-call correctness, German intents, privacy, per-process memory limit, model/encoder compatibility, first-token latency, steady-state tokens/s, warm/cold conditions, cancellation, thermal and energy over repeated sessions. New Qwen3.5 small models are exploratory candidates, not substitutes for frozen untouched baselines.
+
 ## 3. Compare small harnesses before adopting one
 
 | Candidate | What we should learn | Decision |
