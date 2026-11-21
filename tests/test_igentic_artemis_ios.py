@@ -90,6 +90,34 @@ class ArtemisIosIntegrationTests(unittest.TestCase):
                 call(12345, MODULE.signal.SIGKILL),
             ])
 
+    def test_bounded_runner_interrupt_stops_group_and_reraises(self):
+        for interrupted in (KeyboardInterrupt(), SystemExit(130), RuntimeError("host failure")):
+            with self.subTest(reason=type(interrupted).__name__), \
+                 patch.object(MODULE.subprocess, "Popen") as popen, \
+                 patch.object(MODULE.os, "killpg") as kill_group:
+                popen.return_value.pid = 12345
+                popen.return_value.wait.side_effect = [interrupted, 0]
+                with self.assertRaises(type(interrupted)):
+                    MODULE.run_bounded(["uv", "run"], Path("/tmp"))
+                kill_group.assert_called_once_with(12345, MODULE.signal.SIGTERM)
+                self.assertEqual(popen.return_value.wait.call_args_list, [
+                    call(timeout=MODULE.MAX_RUN_SECONDS),
+                    call(timeout=MODULE.STOP_GRACE_SECONDS),
+                ])
+
+    def test_bounded_runner_interrupt_escalates_if_agent_ignores_termination(self):
+        timed_out = subprocess.TimeoutExpired("artemis", MODULE.STOP_GRACE_SECONDS)
+        with patch.object(MODULE.subprocess, "Popen") as popen, \
+             patch.object(MODULE.os, "killpg") as kill_group:
+            popen.return_value.pid = 12345
+            popen.return_value.wait.side_effect = [KeyboardInterrupt(), timed_out, 0]
+            with self.assertRaises(KeyboardInterrupt):
+                MODULE.run_bounded(["uv", "run"], Path("/tmp"))
+            self.assertEqual(kill_group.call_args_list, [
+                call(12345, MODULE.signal.SIGTERM),
+                call(12345, MODULE.signal.SIGKILL),
+            ])
+
     def test_diagnostic_app_bundle_accepts_exact_identifier(self):
         with tempfile.TemporaryDirectory() as temp:
             bundle = Path(temp) / "iGenticDiagnostics.app"
