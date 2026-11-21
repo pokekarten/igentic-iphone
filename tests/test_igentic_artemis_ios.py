@@ -256,6 +256,95 @@ class ArtemisIosIntegrationTests(unittest.TestCase):
         self.assertNotIn(MODULE.DIAGNOSTIC_APP, command[7])
         self.assertNotIn("--expected-bundle-id", command)
 
+    def test_physical_plan_redacts_device_bundle_and_local_paths(self):
+        secrets = (
+            "SYNTHETIC-PRIVATE-DEVICE-123",
+            "com.synthetic.private.diagnostics",
+            "/Users/synthetic/private/Diagnostics.app",
+            "/Users/synthetic/private/artemis-checkout",
+        )
+        with patch.object(MODULE.subprocess, "run") as run, \
+             redirect_stdout(io.StringIO()) as stdout:
+            result = MODULE.main([
+                "--checkout", secrets[3], "plan",
+                "--physical", "--device", secrets[0],
+                "--app-path", secrets[2],
+                "--expected-bundle-id", secrets[1],
+            ])
+        self.assertEqual(result, 0)
+        plan = json.loads(stdout.getvalue())
+        self.assertEqual(plan["cwd"], "<local-artemis-checkout>")
+        self.assertEqual(
+            plan["argv"][plan["argv"].index("--device-serial") + 1],
+            "<redacted-device-id>",
+        )
+        self.assertEqual(
+            plan["argv"][plan["argv"].index("--app-path") + 1],
+            "<redacted-app-path>",
+        )
+        self.assertIn("<redacted-bundle-id>", plan["argv"][7])
+        for secret in secrets:
+            self.assertNotIn(secret, stdout.getvalue())
+        run.assert_not_called()
+
+    def test_unapproved_physical_run_does_not_log_sensitive_values(self):
+        with redirect_stdout(io.StringIO()) as stdout, \
+             redirect_stderr(io.StringIO()) as stderr, \
+             patch.object(MODULE, "run_bounded") as run:
+            code = MODULE.main([
+                "run", "--physical", "--device", "SYNTHETIC-PRIVATE-DEVICE-123",
+                "--app-path", "/Users/synthetic/private/Diagnostics.app",
+                "--expected-bundle-id", "com.synthetic.private.diagnostics",
+            ])
+        self.assertEqual(code, 2)
+        self.assertIn("requires --execute", stderr.getvalue())
+        for secret in (
+            "SYNTHETIC-PRIVATE-DEVICE-123",
+            "/Users/synthetic/private",
+            "com.synthetic.private.diagnostics",
+        ):
+            self.assertNotIn(secret, stdout.getvalue())
+        run.assert_not_called()
+
+    def test_redacted_run_preview_does_not_change_executed_argv(self):
+        with tempfile.TemporaryDirectory() as temp:
+            bundle = Path(temp) / "Diagnostics.app"
+            bundle.mkdir()
+            with (bundle / "Info.plist").open("wb") as output:
+                plistlib.dump(
+                    {"CFBundleIdentifier": "com.synthetic.private.diagnostics"}, output
+                )
+            checks = {
+                "xcode_27_or_newer": True, "uv_available": True,
+                "ios_project_exists": True,
+            }
+            with patch.object(MODULE, "require_pinned"), \
+                 patch.object(MODULE, "doctor", return_value=checks), \
+                 patch.object(MODULE, "run_bounded", return_value=0) as run, \
+                 redirect_stdout(io.StringIO()) as stdout:
+                code = MODULE.main([
+                    "run", "--execute", "--acknowledge-model-io",
+                    "--physical", "--device", "SYNTHETIC-DEVICE-ONLY",
+                    "--app-path", str(bundle),
+                    "--expected-bundle-id", "com.synthetic.private.diagnostics",
+                ])
+            self.assertEqual(code, 0)
+            command = run.call_args.args[0]
+            self.assertEqual(
+                command[command.index("--device-serial") + 1],
+                "SYNTHETIC-DEVICE-ONLY",
+            )
+            self.assertEqual(
+                command[command.index("--app-path") + 1], str(bundle.resolve())
+            )
+            self.assertIn("com.synthetic.private.diagnostics", command[7])
+            for secret in (
+                "SYNTHETIC-DEVICE-ONLY",
+                "com.synthetic.private.diagnostics",
+                str(bundle.resolve()),
+            ):
+                self.assertNotIn(secret, stdout.getvalue())
+
     def test_no_execution_in_plan_mode(self):
         with patch.object(MODULE.subprocess, "run") as run:
             with redirect_stdout(io.StringIO()) as out:
