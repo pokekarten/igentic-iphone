@@ -28,6 +28,8 @@ python3 scripts/verify_open_weight_artifact.py \
 python3 -m unittest discover -s scripts -p 'test_verify_open_weight_artifact.py'
 ```
 
+A model ID must use a canonical `publisher/model-name` identity (two nonempty segments, no `.`/`..`, extra slashes or path traversal). This is a source identity, never an arbitrary filesystem path.
+
 The JSON parser **rejects duplicate object keys** even when repeated values match. A manifest with duplicate member names is not an unambiguous six-field contract; do not rely on parser-specific first-value/last-value behavior.
 
 Refuse invalid identity, unpinned revision, missing license review, nonregular
