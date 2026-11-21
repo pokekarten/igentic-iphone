@@ -11,10 +11,12 @@ let package = Package(
     products: [
         .library(name: "AgentCore", targets: ["AgentCore"]),
         .library(name: "iGenticApp", targets: ["iGenticApp"]),
-        .executable(name: "AppleFoundationBaselineHost", targets: ["AppleFoundationBaselineHost"])
+        .executable(name: "AppleFoundationBaselineHost", targets: ["AppleFoundationBaselineHost"]),
+        .executable(name: "AppleOnDeviceProposalProbe", targets: ["AppleOnDeviceProposalProbe"])
     ],
     targets: [
         .target(name: "AgentCore"),
+        .executableTarget(name: "AppleOnDeviceProposalProbe", dependencies: ["AgentCore"]),
         .target(
             name: "iGenticApp",
             dependencies: ["AgentCore"],
