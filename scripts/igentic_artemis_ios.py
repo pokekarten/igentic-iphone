@@ -185,7 +185,7 @@ def build_command(args: argparse.Namespace) -> list[str]:
         raise ValueError("--expected-bundle-id is only valid with --physical.")
     if expected_bundle_id is not None and (
         len(expected_bundle_id) > 255
-        or re.fullmatch(r"[A-Za-z0-9-]+(?:\\.[A-Za-z0-9-]+)+", expected_bundle_id) is None
+        or re.fullmatch(r"[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+", expected_bundle_id) is None
     ):
         raise ValueError("--expected-bundle-id must be a safe reverse-DNS identifier.")
     diagnostic_task = SAFE_TASK.replace(
