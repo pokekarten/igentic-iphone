@@ -17,6 +17,14 @@ class LocalOpenWeightOutputBoundaryTests(unittest.TestCase):
         self.assertEqual(probe.classify_generated_text('{"action":"reminder.create","approved":false}'), 'action_or_approval_not_permitted')
         self.assertEqual(probe.classify_generated_text('{"action":"diagnostics.read","approved":true}'), 'action_or_approval_not_permitted')
 
+    def test_rejects_duplicate_action_and_approval_keys(self):
+        # json.loads defaults to last-key-wins, which can hide contradictory
+        # model output from downstream policy and audit consumers.
+        duplicate_approval = '{"action":"diagnostics.read","approved":true,"approved":false}'
+        duplicate_action = '{"action":"reminder.create","action":"diagnostics.read","approved":false}'
+        for output in (duplicate_approval, duplicate_action):
+            self.assertEqual(probe.classify_generated_text(output), 'not_strict_json')
+
     def test_rejects_extra_fields_and_non_objects(self):
         for value in ('{"action":"diagnostics.read","approved":false,"extra":"test"}', '[1]', 'null'):
             self.assertNotEqual(probe.classify_generated_text(value), 'synthetic_preview_only')
