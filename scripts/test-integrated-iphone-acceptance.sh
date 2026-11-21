@@ -5,7 +5,7 @@ set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 remote="$(git -C "$root" remote get-url origin)"
-work="$(mktemp -d "${TMPDIR:-/tmp}/igentic-integration.XXXXXXXX")"
+work="$(mktemp -d /tmp/igentic-integration.XXXXXXXX)"
 cleanup() {
   if [[ -n "$work" && -d "$work" && "$work" == *igentic-integration.* ]]; then
     rm -rf -- "$work"
@@ -57,6 +57,7 @@ if [[ "${IGENTIC_RUN_SIGNED_SIMULATOR_TEST:-0}" == "1" ]]; then
     -scheme iGenticDiagnostics -configuration Debug \
     -destination "${IGENTIC_SIMULATOR_DESTINATION:-platform=iOS Simulator,name=iPhone Air,OS=27.2}" \
     -derivedDataPath "$work/derived" \
+    -parallel-testing-enabled NO -maximum-concurrent-test-simulator-destinations 1 \
     -only-testing:iGenticDiagnosticsUITests/iGenticAppIntentsTests \
     test >"$work/ios-system-test.log" 2>&1; then
     echo 'INTEGRATED_SIGNED_APPINTENTS_TEST=failed'
