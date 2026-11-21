@@ -15,7 +15,7 @@ This directory contains the smallest installable iOS application wrapper for the
 
 - No networking or external providers.
 - No persistence or private user data.
-- No App Intents or real tool execution.
+- One **read-only, fixed-output App Intent** and discoverable App Shortcuts are included; no live diagnostic data, user data, model-driven calls, or privileged tool execution.
 - No model calls or model weights.
 - No Apple account, team identifier, certificate, provisioning profile or device identifier is stored in the repository.
 - No physical-device validation is claimed.
@@ -63,3 +63,38 @@ A successful simulator smoke test proves that the built app can be installed, la
 ## Follow-up
 
 After repository validation succeeds, the remaining steps are local owner actions: choose the production bundle identifier, select the Apple Developer Team, configure signing and execute the committed physical-device checklist.
+
+## iOS 27 system App Intent integration test
+
+The separate `iGenticDiagnosticsUITests` target uses Apple's `AppIntentsTesting`
+from an **out-of-process UI test**. It runs
+`iGenticReadOnlyDiagnosticsIntent` through the same App Intents system path
+used by Shortcuts/Siri and asserts that the exact privacy-safe static response
+is returned. This is stronger than inspecting `Metadata.appintents` or launching
+the app, but it does **not** demonstrate a spoken Siri trigger or physical-device
+behavior.
+
+**Important:** Unlike the unsigned build/launch smoke test above, this
+system-level test **requires code signing to be enabled** for both the app and
+the UI test runner. Do not copy `CODE_SIGNING_ALLOWED=NO` into its command:
+doing so yielded `AppIntentsServicesSecurityErrorDomain Code=803` ("Unable
+to run internal tests on a Customer build") on the iOS 27.2 simulator.
+With default local signing, the same test passes. Per Apple's App Intents
+Testing documentation, the app and runner must have the same signing team
+when team signing applies.
+
+```bash
+xcodebuild \
+  -project app/iGenticDiagnostics/iGenticDiagnostics.xcodeproj \
+  -scheme iGenticDiagnostics \
+  -configuration Debug \
+  -destination 'platform=iOS Simulator,name=iPhone Air,OS=27.2' \
+  -derivedDataPath /tmp/igentic-appintents-testing \
+  -only-testing:iGenticDiagnosticsUITests/iGenticAppIntentsTests \
+  test
+```
+
+The production iGentic app retains its existing iOS 17 deployment target.
+The separate `AppIntentsTesting` test bundle requires iOS 27+. Use an
+installed matching simulator runtime; do not enable actual reminder writes.
+Official guide: <https://developer.apple.com/documentation/appintentstesting/testing-your-app-intents-code>.
