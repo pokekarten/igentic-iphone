@@ -251,7 +251,7 @@ class ArtemisIosIntegrationTests(unittest.TestCase):
                                expected_bundle_id="com.example.owned.igentic")
         command = MODULE.build_command(args)
         self.assertEqual(command[command.index("--profile") + 1], "pro")
-        self.assertEqual(command[command.index("--app-path") + 1], "/tmp/demo.app")
+        self.assertEqual(command[command.index("--app-path") + 1], str(Path("/tmp/demo.app").resolve()))
         self.assertIn("com.example.owned.igentic", command[7])
         self.assertNotIn(MODULE.DIAGNOSTIC_APP, command[7])
         self.assertNotIn("--expected-bundle-id", command)
