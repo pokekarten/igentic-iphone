@@ -1,4 +1,5 @@
 import SwiftUI
+import AppIntents
 import AgentCore
 import iGenticApp
 
@@ -36,5 +37,36 @@ struct iGenticDiagnosticsApp: App {
                 requiresInitialSetupConfirmation: requiresInitialSetupConfirmation
             )
         }
+    }
+}
+
+
+// System-facing, read-only demonstration. No device status, user records, model
+// provider, persistence, external transport, or action authorization is exposed.
+@available(iOS 16.0, *)
+struct iGenticReadOnlyDiagnosticsIntent: AppIntent {
+    static let title: LocalizedStringResource = "Check iGentic Diagnostics"
+    static let description = IntentDescription(
+        "Returns a fixed, privacy-safe demonstration status without accessing personal data."
+    )
+    static let openAppWhenRun = false
+
+    func perform() async throws -> some IntentResult & ReturnsValue<String> {
+        .result(value: "iGentic diagnostics shortcut is available. This is a fixed demo response, not a device health check. No personal data was accessed.")
+    }
+}
+
+@available(iOS 16.0, *)
+struct iGenticDiagnosticsShortcuts: AppShortcutsProvider {
+    static var appShortcuts: [AppShortcut] {
+        AppShortcut(
+                intent: iGenticReadOnlyDiagnosticsIntent(),
+                phrases: [
+                    "Check diagnostics in \(.applicationName)",
+                    "Show diagnostics in \(.applicationName)"
+                ],
+                shortTitle: "Check Diagnostics",
+            systemImageName: "checkmark.shield"
+        )
     }
 }
