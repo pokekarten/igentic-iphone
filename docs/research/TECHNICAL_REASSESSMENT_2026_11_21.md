@@ -4,6 +4,8 @@
 
 **Repository baseline inspected:** `main` at `0bb24b750d90da9f810af9648aae5fc2058a7069` (2026-09-24). The file tree, Swift agent kernel, app shell, model strategy, tests and existing ARTEMIS host adapter PR were inspected through GitHub. Relevant outstanding issues include [owner-enforced commit-email privacy #286](https://github.com/pokekarten/igentic-iphone/issues/286) and the [dependent content admission #287](https://github.com/pokekarten/igentic-iphone/issues/287). No full repository checkout, iOS simulator, hardware test or third-party runtime execution was available in this research pass.
 
+**Verified owner blocker (2026-11-21):** GitHub API `GET /branches/main` returned `protected: false`, and `GET /rulesets` returned `[]`. An individual `commit-email-privacy` job can be green while **merging is not required to honor it**. The branch protection detail endpoint returned 403 to this integration. The owner must configure and verify the default-branch ruleset as already spelled out in [#286](https://github.com/pokekarten/igentic-iphone/issues/286); this is a real trust boundary, not a reason to write more checker code.
+
 ## 1. What earlier decisions still make sense?
 
 | Earlier assumption / implementation | Reassessment | Evidence and next action |
