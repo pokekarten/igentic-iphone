@@ -166,6 +166,22 @@ These projects were found and their **primary GitHub READMEs were checked on 202
 
 **Implementation order:** use the existing iGentic `ToolRegistry`, `PolicyEngine`, `ApprovalManager`, `SafeActionExecutionCapabilityLedger` and `AuditLog` as the fixed authority. First model a **read-only, no-side-effect** diagnostic App Intent and a journalled synthetic operation; only after security admission #286/#287 and exact simulator/device evidence consider a typed host/iCTRL adapter. Keep [PR #378](https://github.com/pokekarten/igentic-iphone/pull/378) as the sole device implementation candidate, with no new competing wide device-control PR.
 
+## G. iOS 27 native agent architecture (new platform options)
+
+The 2026 Apple platform release changes model-provider and eval architecture enough to deserve a **first-party-first** comparison. This is more directly reusable in an iGentic iPhone Swift app than another Mac-only WDA host.
+
+| Project / official technology | Primary source | New value | Requirement / boundary | Triage |
+| --- | --- | --- | --- | --- |
+| **Apple Foundation Models utilities** | [apple/foundation-models-utilities](https://github.com/apple/foundation-models-utilities) | Official Swift skills, context transformations, rolling history and Chat Completions-based provider adapters | Check exact beta/API revision, iOS 27 tooling, provider/cloud privacy, and our existing `PolicyEngine` before adoption | **P0** |
+| **Core AI models** | [apple/coreai-models](https://github.com/apple/coreai-models) | Official Python export recipes and Swift on-device runtime utilities | Explicit **macOS/iOS 27+** platform, exact model build/quantization required; not proof of physical iPhone Air success | **P0 research** |
+| **FoundationModelsAgent** | [rudrankriyam/FoundationModelsAgent](https://github.com/rudrankriyam/FoundationModelsAgent) | Native Swift `LanguageModel` harness with action policy, receipts, budgets, checkpoints and memory options | **High overlap with existing iGentic authority**: compare internals before considering any dependency; iOS 27+ and Swift 6.4 claimed | P1 |
+| **Swarm** | [christopherkarani/Swarm](https://github.com/christopherkarani/Swarm) | Swift 6.2 agent runtime, typed tools, streaming, memory and backend adapters, including Linux test fixtures | Another agent runtime is not automatically needed; select zero/one harness on measurable gap | P1 |
+| **Claude for Foundation Models** | [anthropics/ClaudeForFoundationModels](https://github.com/anthropics/ClaudeForFoundationModels) | Official Anthropic Swift adapter to Apple's `LanguageModel` protocol | Server-backed, **not offline**; repo says beta for OS 27 APIs, credentials and paid provider remain a delegation boundary | P1 |
+| **open-apple-models** | [SpaceCorps/open-apple-models](https://github.com/SpaceCorps/open-apple-models) | Swift tool-loop and structured tool policies around Apple Foundation Models | iOS 27/Xcode 27; source claims do not imply device compatibility or authority parity | Watch |
+| **Apple Evaluations framework** | [Apple docs](https://developer.apple.com/documentation/evaluations) | Native evaluation of generated outputs, tool calls, argument values and ordering | Available with OS/Xcode 27; compare to immutable iGentic V0 benchmark without replacing it | **P0** |
+
+[Architecture reassessment and prioritized experiments](TECHNICAL_REASSESSMENT_2026_11_21.md) distinguish product APIs, developer-mode cross-app research and Mac-hosted testing. The Apple on-device system model documents a [4,096-token shared context](https://developer.apple.com/documentation/technotes/tn3193-managing-the-on-device-foundation-model-s-context-window); custom/remote `LanguageModel` providers may have different limits. The common provider API does **not** imply that any model is local or authorized to execute side effects.
+
 ## Decision matrix: what should iGentic actually try?
 
 | Question / use case | Compare first | Why | Acceptance signal |
