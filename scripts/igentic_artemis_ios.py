@@ -204,31 +204,42 @@ def build_command(args: argparse.Namespace) -> list[str]:
     return command
 
 
-def run_bounded(command: list[str], cwd: Path) -> int:
-    """Bound developer-side device automation and terminate its process group.
+def stop_process_group(process: subprocess.Popen) -> None:
+    """Stop the agent's own session on timeout, interruption, or host failure."""
+    try:
+        os.killpg(process.pid, signal.SIGTERM)
+    except ProcessLookupError:
+        pass
+    try:
+        process.wait(timeout=STOP_GRACE_SECONDS)
+    except subprocess.TimeoutExpired:
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        process.wait()
 
-    The upstream ARTEMIS flash profile permits unbounded turns by default.
-    This cap limits this opt-in subprocess, not the behavior of all host apps.
+
+def run_bounded(command: list[str], cwd: Path) -> int:
+    """Bound developer-side iOS automation, including interrupted host runs.
+
+    The child starts a new session, so interrupting this Python wrapper does
+    not reliably interrupt the agent. Always stop its process group on failure.
+    This does not sandbox downstream tools or remote model-provider activity.
     """
     process = subprocess.Popen(command, cwd=cwd, start_new_session=True)
     try:
         return process.wait(timeout=MAX_RUN_SECONDS)
     except subprocess.TimeoutExpired as error:
-        try:
-            os.killpg(process.pid, signal.SIGTERM)
-        except ProcessLookupError:
-            pass
-        try:
-            process.wait(timeout=STOP_GRACE_SECONDS)
-        except subprocess.TimeoutExpired:
-            try:
-                os.killpg(process.pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
-            process.wait()
+        stop_process_group(process)
         raise ValueError(
             f"ARTEMIS host run exceeded {MAX_RUN_SECONDS} seconds; terminated the process group."
         ) from error
+    except BaseException:
+        # KeyboardInterrupt / SystemExit do not necessarily reach a child
+        # started with start_new_session=True. Avoid orphaned iOS input agents.
+        stop_process_group(process)
+        raise
 
 
 def mcp_config(path: Path) -> str:
