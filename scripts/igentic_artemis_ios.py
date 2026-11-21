@@ -204,6 +204,34 @@ def build_command(args: argparse.Namespace) -> list[str]:
     return command
 
 
+def redacted_command_preview(command: list[str]) -> dict[str, object]:
+    """Show planned flags without exposing device IDs, bundle IDs or local paths.
+
+    The real command remains unchanged for the bounded host subprocess. This
+    only protects the wrapper's own console output; ARTEMIS may produce other
+    logs and screenshots that must remain private.
+    """
+    preview = list(command)
+    for option, placeholder in (
+        ("--device-serial", "<redacted-device-id>"),
+        ("--app-path", "<redacted-app-path>"),
+        ("--ios-workspace", "<local-xcode-project>"),
+    ):
+        if option in preview:
+            value_index = preview.index(option) + 1
+            if option != "--device-serial" or preview[value_index] != "booted":
+                preview[value_index] = placeholder
+
+    # A signed physical test app's custom bundle ID also appears inside
+    # the agent instruction, not just in ordinary CLI option values.
+    task_index = preview.index("artemis") + 2
+    if preview[task_index] != SAFE_TASK:
+        preview[task_index] = SAFE_TASK.replace(
+            DIAGNOSTIC_APP, "<redacted-bundle-id>"
+        )
+    return {"cwd": "<local-artemis-checkout>", "argv": preview}
+
+
 def stop_process_group(process: subprocess.Popen) -> None:
     """Stop the agent's own session on timeout, interruption, or host failure."""
     try:
@@ -287,7 +315,7 @@ def main(argv: list[str] | None = None) -> int:
             print(mcp_config(path), end="")
         elif args.action in ("plan", "run"):
             command = build_command(args)
-            print(json.dumps({"cwd": str(path), "argv": command}, indent=2))
+            print(json.dumps(redacted_command_preview(command), indent=2))
             if args.action == "run":
                 if not args.execute or not args.acknowledge_model_io:
                     raise ValueError("Run requires --execute and --acknowledge-model-io.")
