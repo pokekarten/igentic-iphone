@@ -41,6 +41,10 @@ struct iGenticDiagnosticsApp: App {
 }
 
 
+private enum iGenticDiagnosticsIntentError: Error {
+    case policyDenied
+}
+
 // System-facing, read-only demonstration. No device status, user records, model
 // provider, persistence, external transport, or action authorization is exposed.
 @available(iOS 16.0, *)
@@ -52,7 +56,21 @@ struct iGenticReadOnlyDiagnosticsIntent: AppIntent {
     static let openAppWhenRun = false
 
     func perform() async throws -> some IntentResult & ReturnsValue<String> {
-        .result(value: "iGentic diagnostics shortcut is available. This is a fixed demo response, not a device health check. No personal data was accessed.")
+        // A Shortcut is a task entry point, not a bypass for the AgentCore
+        // authorization boundary. This fixed response is read-only/local;
+        // fail closed if the central policy ever changes its decision.
+        let decision = PolicyEngine().decide(
+            PolicyRequest(
+                privacyMode: .localOnly,
+                dataClassification: .publicDefault,
+                actionRisk: .read,
+                requestedDelegationTarget: .localDevice
+            )
+        )
+        guard decision.isAllowed, !decision.requiresApproval else {
+            throw iGenticDiagnosticsIntentError.policyDenied
+        }
+        return .result(value: "iGentic diagnostics shortcut is available. This is a fixed demo response, not a device health check. No personal data was accessed.")
     }
 }
 

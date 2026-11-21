@@ -94,6 +94,15 @@ xcodebuild \
   test
 ```
 
+The Intent itself now checks the shared `AgentCore.PolicyEngine` with a
+fixed `localOnly` / `publicDefault` / `read` / `localDevice`
+policy request. It fails closed if policy denies the request or asks for
+approval; it does not create a second, Shortcut-specific authorization
+path. `ShortcutPolicyBoundaryTests` verifies read-only allow, external
+provider denial, and mandatory approval for local writes. The signed
+out-of-process system test checks three identical responses after
+this guard, rather than bypassing the guard in a direct function call.
+
 The production iGentic app retains its existing iOS 17 deployment target.
 The separate `AppIntentsTesting` test bundle requires iOS 27+. Use an
 installed matching simulator runtime; do not enable actual reminder writes.
