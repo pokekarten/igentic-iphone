@@ -6,9 +6,9 @@ import CryptoKit
 #endif
 
 final class VerifiedGGUFArtifactTests: XCTestCase {
-    private func makeManifest(filename: String = "fixture.gguf", sha: String, size: Int, license: Bool = true, revision: String = String(repeating: "a", count: 40)) -> Data {
+    private func makeManifest(modelID: String = "fixture/qwen-class", filename: String = "fixture.gguf", sha: String, size: Int, license: Bool = true, revision: String = String(repeating: "a", count: 40)) -> Data {
         let payload: [String: Any] = [
-            "model_id": "fixture/qwen-class",
+            "model_id": modelID,
             "filename": filename,
             "sha256": sha,
             "size_bytes": size,
@@ -16,6 +16,28 @@ final class VerifiedGGUFArtifactTests: XCTestCase {
             "license_reviewed": license
         ]
         return try! JSONSerialization.data(withJSONObject: payload, options: [.sortedKeys])
+    }
+
+    func testRejectsNoncanonicalModelIdentity() {
+        let sha = String(repeating: "0", count: 64)
+        let invalidIDs = [
+            "publisher/../private",
+            "publisher//model",
+            "publisher/model/extra",
+            "publisher/.",
+            "/model",
+            "model-without-publisher"
+        ]
+        for modelID in invalidIDs {
+            XCTAssertEqual(
+                VerifiedGGUFArtifact.verify(
+                    manifestData: makeManifest(modelID: modelID, sha: sha, size: 10),
+                    directoryURL: FileManager.default.temporaryDirectory
+                ),
+                .failure(.invalidManifest),
+                "Rejected model identity: \(modelID)"
+            )
+        }
     }
 
     func testRejectsUnpinnedRevisionAndLicense() throws {
