@@ -45,7 +45,13 @@ def verify(manifest_path: Path, model_directory: Path) -> dict:
     sha256 = manifest["sha256"]
     size_bytes = manifest["size_bytes"]
     revision = manifest["source_revision"]
-    if not isinstance(model_id, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._/-]{0,127}", model_id):
+    # Source identities follow publisher/model, never file-system paths.
+    # In particular refuse empty, dot and nested traversal segments.
+    if (not isinstance(model_id, str)
+            or len(model_id) > 128
+            or len(model_id.split("/")) != 2
+            or any(not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}", segment)
+                   for segment in model_id.split("/"))):
         raise ArtifactRejected("invalid model identity")
     if not isinstance(filename, str) or filename in (".", "..") or Path(filename).name != filename or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,255}", filename):
         raise ArtifactRejected("invalid artifact filename")
