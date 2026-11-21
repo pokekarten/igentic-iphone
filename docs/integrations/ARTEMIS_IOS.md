@@ -73,6 +73,13 @@ Build the unsigned `iGenticDiagnostics` app for a simulator following `app/iGent
 python3 scripts/igentic_artemis_ios.py plan
 ```
 
+The wrapper's JSON `plan` preview and pre-run console output **redact**
+physical device IDs, owner-defined bundle IDs, local checkout locations,
+`.app` paths and the absolute Xcode project path. The actual subprocess
+still receives the intended values. This does **not** redact upstream
+ARTEMIS output, screenshots or externally shared device logs; keep those
+private and review them before posting any test evidence.
+
 When macOS/Xcode permissions, model configuration, and ARTEMIS source have been reviewed, explicitly execute:
 
 ```bash
