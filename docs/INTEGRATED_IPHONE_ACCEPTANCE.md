@@ -41,3 +41,31 @@ establish a physical-device test.
 Every model input in these tests is committed synthetic public text.
 No model-output content, personal data, reminder write or cloud AI provider
 is needed. A result of `approvalRequired` is **not** a grant of approval.
+
+
+## iPhone Air simulator UI smoke (independent, no real actions)
+
+The Xcode project now includes `iGenticDiagnosticsUITests` and its test in
+`app/iGenticDiagnostics/iGenticDiagnosticsUITests/DiagnosticsUITests.swift`.
+The test launches the diagnostic app, handles optional first-run approval policy
+confirmation, opens **Explore**, returns to the diagnostic screen, opens the
+**synthetic** reminder review, presses **Cancel**, and verifies the sheet closes.
+It does **not** issue a real reminder write or authorize a remote agent.
+
+On an authorized Mac with Xcode 27.2 and an available iPhone Air iOS 27.2
+simulator, run the test independently of the external model and ARTEMIS:
+
+```sh
+xcodebuild -project app/iGenticDiagnostics/iGenticDiagnostics.xcodeproj \
+  -scheme iGenticDiagnostics -configuration Debug \
+  -destination 'platform=iOS Simulator,name=iPhone Air,OS=27.2' \
+  -derivedDataPath /tmp/igentic-ui-acceptance \
+  -parallel-testing-enabled NO CODE_SIGNING_ALLOWED=NO test
+```
+
+**2026-11-21 measured evidence:** `TEST SUCCEEDED`, 1/1 UI test, zero
+failures in 30.258 seconds on iPhone Air iOS 27.2 / Xcode 27.2 using
+a clean isolated checkout of PR #386. The first test attempt exposed
+SwiftUI accessibility text-combination differences; assertions now check
+stable navigation bars and buttons. This proves this limited UI flow,
+not physical iPhone readiness or agent execution.

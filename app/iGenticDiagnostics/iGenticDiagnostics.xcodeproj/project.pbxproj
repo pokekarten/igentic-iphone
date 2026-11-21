@@ -9,11 +9,14 @@
 /* Begin PBXBuildFile section */
 		A10000000000000000000001 /* iGenticDiagnosticsApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000002 /* iGenticDiagnosticsApp.swift */; };
 		A10000000000000000000003 /* iGenticApp in Frameworks */ = {isa = PBXBuildFile; productRef = A10000000000000000000004 /* iGenticApp */; };
+		A20000000000000000000001 /* DiagnosticsUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000002 /* DiagnosticsUITests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		A10000000000000000000002 /* iGenticDiagnosticsApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iGenticDiagnosticsApp.swift; sourceTree = "<group>"; };
 		A10000000000000000000005 /* iGenticDiagnostics.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iGenticDiagnostics.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A20000000000000000000002 /* DiagnosticsUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsUITests.swift; sourceTree = "<group>"; };
+		A20000000000000000000003 /* iGenticDiagnosticsUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = iGenticDiagnosticsUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -33,6 +36,7 @@
 			children = (
 				A10000000000000000000008 /* iGenticDiagnostics */,
 				A10000000000000000000009 /* Products */,
+				A20000000000000000000004 /* iGenticDiagnosticsUITests */,
 			);
 			sourceTree = "<group>";
 		};
@@ -48,10 +52,12 @@
 			isa = PBXGroup;
 			children = (
 				A10000000000000000000005 /* iGenticDiagnostics.app */,
+				A20000000000000000000003 /* iGenticDiagnosticsUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
+		A20000000000000000000004 /* iGenticDiagnosticsUITests */ = {isa = PBXGroup; children = (A20000000000000000000002 /* DiagnosticsUITests.swift */,); path = iGenticDiagnosticsUITests; sourceTree = "<group>"; };
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -75,6 +81,7 @@
 			productReference = A10000000000000000000005 /* iGenticDiagnostics.app */;
 			productType = "com.apple.product-type.application";
 		};
+		A20000000000000000000005 /* iGenticDiagnosticsUITests */ = {isa = PBXNativeTarget; buildConfigurationList = A20000000000000000000007 /* config list */; buildPhases = (A20000000000000000000006 /* Sources */,); buildRules = (); dependencies = (); name = iGenticDiagnosticsUITests; productName = iGenticDiagnosticsUITests; productReference = A20000000000000000000003 /* iGenticDiagnosticsUITests.xctest */; productType = "com.apple.product-type.bundle.ui-testing"; };
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -107,6 +114,7 @@
 			projectRoot = "";
 			targets = (
 				A1000000000000000000000A /* iGenticDiagnostics */,
+				A20000000000000000000005 /* iGenticDiagnosticsUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -130,6 +138,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A20000000000000000000006 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A20000000000000000000001 /* DiagnosticsUITests.swift in Sources */,); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
@@ -221,6 +230,8 @@
 			};
 			name = Release;
 		};
+		A20000000000000000000008 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; GENERATE_INFOPLIST_FILE = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; PRODUCT_BUNDLE_IDENTIFIER = org.example.iGenticDiagnosticsUITests; PRODUCT_NAME = "$(TARGET_NAME)"; SDKROOT = iphoneos; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SWIFT_VERSION = 6.0; TEST_TARGET_NAME = iGenticDiagnostics; }; name = Debug; };
+		A20000000000000000000009 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; GENERATE_INFOPLIST_FILE = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; PRODUCT_BUNDLE_IDENTIFIER = org.example.iGenticDiagnosticsUITests; PRODUCT_NAME = "$(TARGET_NAME)"; SDKROOT = iphoneos; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SWIFT_VERSION = 6.0; TEST_TARGET_NAME = iGenticDiagnostics; }; name = Release; };
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -242,6 +253,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		A20000000000000000000007 /* config list */ = {isa = XCConfigurationList; buildConfigurations = (A20000000000000000000008 /* Debug */,A20000000000000000000009 /* Release */,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
