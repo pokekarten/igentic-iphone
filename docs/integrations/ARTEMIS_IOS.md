@@ -81,15 +81,46 @@ python3 scripts/igentic_artemis_ios.py run \
   --app-path /absolute/path/iGenticDiagnostics.app
 ```
 
-`--app-path` is optional only if the diagnostic app is already installed. When supplied,
-the host wrapper validates the built `.app` has `Info.plist` bundle identifier
-`org.example.iGenticDiagnostics` before invoking ARTEMIS. An unrelated app or
-missing/malformed plist is rejected. This is an **identity preflight only**; it
-does not verify code signing, prevent later app switches, or make screenshots private.
+For simulator runs, `--app-path` is optional only when the diagnostic app is already
+installed. When supplied, the host wrapper validates the app's `Info.plist`
+bundle identifier `org.example.iGenticDiagnostics` before invoking ARTEMIS.
+For physical runs, both a signed diagnostic `.app` and its locally configured
+bundle identifier are mandatory. An unrelated app or mismatching identifier
+is rejected. This is an **identity preflight only**: it does not verify code
+signing, prove app ownership, prevent later app switches, or keep screenshots private.
 
 `--profile pro` selects ARTEMIS's more thorough agent workflow. To use an explicitly selected simulator, pass its UDID. ARTEMIS supports `--platform ios`; omitting it silently selects Android. The iGentic wrapper always passes it.
 
-For a physical iPhone, use an explicit UDID and `--physical`; ensure the device is yours and you have approved it. The upstream flow requires a signed iOS app, trust pairing, Developer Mode, Xcode consent, and a signed WebDriverAgent runner. Follow pinned [the pinned ARTEMIS iOS guide](https://github.com/banggaoo/artemis/blob/31df538d3e8a0ff11e735a4e2c04e6e0936fc68f/docs/ios.md) for setup and verify the WDA endpoint belongs to the intended device. Never use another person's phone without authorization.
+For a physical iPhone, use an explicit UDID and `--physical`; ensure the device
+is yours and you have approved it. The simulator app's committed bundle ID is a
+placeholder, but the [Diagnostics wrapper](../../app/iGenticDiagnostics/README.md)
+requires changing that identifier locally before physical-device signing.
+The adapter supports this owner-controlled identifier without storing it in Git:
+
+```bash
+# Set these three values locally; never commit or publish your device ID.
+export IGENTIC_TEST_DEVICE="<authorized-physical-device-udid>"
+export IGENTIC_TEST_APP="<absolute-path-to-signed-iGenticDiagnostics.app>"
+export IGENTIC_TEST_BUNDLE="<owner-configured-signed-bundle-identifier>"
+
+python3 scripts/igentic_artemis_ios.py plan \
+  --physical --device "$IGENTIC_TEST_DEVICE" \
+  --app-path "$IGENTIC_TEST_APP" --expected-bundle-id "$IGENTIC_TEST_BUNDLE"
+
+# Only after explicit permission and on a disposable/synthetic test device:
+python3 scripts/igentic_artemis_ios.py run \
+  --execute --acknowledge-model-io --physical \
+  --device "$IGENTIC_TEST_DEVICE" \
+  --app-path "$IGENTIC_TEST_APP" --expected-bundle-id "$IGENTIC_TEST_BUNDLE"
+```
+
+The physical runner rejects missing `--app-path` and the public simulator
+placeholder as `--expected-bundle-id`. It only checks the matching `Info.plist`
+identifier, **not** Apple signing, ownership, or runtime app confinement.
+The upstream flow additionally requires trust pairing, Developer Mode, Xcode
+consent, and a signed WebDriverAgent runner. Follow
+[the pinned ARTEMIS iOS guide](https://github.com/banggaoo/artemis/blob/31df538d3e8a0ff11e735a4e2c04e6e0936fc68f/docs/ios.md)
+for setup; verify the WDA endpoint belongs to the intended device.
 
 This is **test automation**, not a way around the iOS sandbox or permission prompts. The prompt is advisory; ARTEMIS's UI tool may be capable of opening other apps. Use a dedicated simulator with synthetic data only. Do not use a production iPhone containing private content until we have reviewed and implemented a stricter host-to-iGentic action-policy binding.
 
