@@ -20,6 +20,19 @@ This is a curated, **non-exhaustive** discovery map for building **iGentic iPhon
 | **PhoneAgent** | [rounak/PhoneAgent](https://github.com/rounak/PhoneAgent) | Experimental SwiftUI in-app agent, XCTest-hosted action path, and Codex/OpenClaw RPC bridge for iOS/Android | Compare its iPhone agent loop, explicit bridge and Keychain design. External OpenAI Responses API is **not local-only**; a running XCTest runner/host may be needed for cross-app action paths. | **P0** |
 | **AirMCP** | [heznpc/AirMCP](https://github.com/heznpc/AirMCP) | Governed Mac-app MCP tools, with an **iOS runtime described as preview** and App Intents bridging | Study allowlist, approvals and audit design. **Do not call the iPhone path released or proven** based on the macOS runtime. | P1 |
 
+### Additional on-phone projects found in the 2026-11-21 cross-chat + search reconciliation
+
+These are **new to the original atlas**. In particular, do not conflate **phone-hosted agent reasoning** with **phone-hosted system-wide UI control**: some offer only App Intents, sandboxed tools, or an optional developer-mode control bridge.
+
+| Project | Upstream | Primary-source findings (not tested by iGentic) | Fit / caveat | Triage |
+| --- | --- | --- | --- | --- |
+| **iphone-use-app** | [EliotAndres/iphone-use-app](https://github.com/EliotAndres/iphone-use-app) | Swift/Rust on-iPhone screenshot → vision-model → actions via CoreDevice and a loopback VPN; claims **iOS 26+** and **no Mac during operation** after pairing | **Most direct iOS-26 comparison.** First setup needs Mac/pairing, Developer Mode, VPN, signing; free-account signatures expire, model endpoint may be cloud, and VPN may conflict with existing VPN. **AGPL-3.0**; no reuse without license review. | **P0** |
+| **Pinky** | [DIYgod/pinky](https://github.com/DIYgod/pinky) | Desktop MCP/agent plus an **on-phone app**; project says iOS 17.4+ with helper/runner on older OS, iOS 27 has another route. Gateway implements permission prompts, blocked apps and human takeover. | **Pre-alpha;** study **gateway-enforced** approvals and role scopes. Do not present broad platform claims as independently reproduced. Apache-2.0 claimed by repo. | **P0** |
+| **OpenMinis** | [OpenMinis/OpenMinis](https://github.com/OpenMinis/OpenMinis) | Native iOS agent shell with **on-device Alpine/iSH Linux sandbox**, skills, persistent memory and optional external providers | High-value phone-local **agent harness**; not itself proof of cross-app UI permissions. **GPL-3.0** with GPL-linked components; code reuse requires licensing review. | **P0** |
+| **Fish Pocket** | [imsai-sh/fish-pocket](https://github.com/imsai-sh/fish-pocket) | Native SwiftUI phone agent app with tasks, local calendar/reminders/etc. and optional **iCTRL** bridge for other-app UI | Runtime on phone; iCTRL adds developer-mode/sideload setup. Its repo describes an **MIT-based LICENSE with extra restrictions** and noncommercial art: **do not assume standard MIT reuse**. | P1 |
+| **Resident** | [Jflick58/resident](https://github.com/Jflick58/resident) | SwiftUI **locally running MLX model agent**, tools, skills, memory, MCP/OAuth connectors; lazy tool/schema loading | Excellent iPhone Air small-model/harness reference; local inference needs **real iPhone** benchmarking, simulator can use a Mac model server. License claimed Apache-2.0. | **P0** |
+| **loopl** | [cagataycali/loopl](https://github.com/cagataycali/loopl) | Native Swift agent loop; MLX, llama.cpp, Apple Foundation Models; device tools and human approval | Strong reference for a small **offline model → tools → model** kernel with structured events. App-scoped tools are **not arbitrary app UI control**. | **P0** |
+| **Anu-iOS** | [sandeepvijayarao09/Anu-iOS](https://github.com/sandeepvijayarao09/Anu-iOS) | Experimental voice-first local iPhone assistant, Gemma/LiteRT, on-device intent/model routing and optional cloud fallback | Compare task classification and privacy gates. README identifies a prototype and **iOS simulator build without model weights**; no device readiness inferred. MIT claimed. | P1 |
 ## B. Physical-device control and MCP adapters
 
 | Project | Upstream | Source-described platform / technique | Specific evaluation question | Triage |
@@ -36,6 +49,18 @@ This is a curated, **non-exhaustive** discovery map for building **iGentic iPhon
 | **go-ios** | [danielpaulus/go-ios](https://github.com/danielpaulus/go-ios) | Apple-device connectivity, automation/tunneling utilities | Infrastructure only; useful for device doctor, WDA transport and pairing investigations. | Reference |
 | **WebDriverAgent** | [appium/WebDriverAgent](https://github.com/appium/WebDriverAgent) | XCTest/WDA HTTP device automation server | Understand signing, runner security and system permission boundaries. **WDA endpoints must never be exposed unprotected.** | Reference |
 
+### Additional physical-device implementations from cross-chat research
+
+| Project | Upstream | Platform architecture / source claim | Constraint / engineering lesson | Triage |
+| --- | --- | --- | --- | --- |
+| **cell-use** | [Raynan00/cell-use](https://github.com/Raynan00/cell-use) | Swift API for phone-on-phone screenshots/taps/swipes with embedded tunnel and phone-control runtime | **Runtime needs iOS 27** per project FAQ, even though its library/packet-tunnel targets iOS 17. **Do not offer as iOS-26 control solution.** Apache-2.0 reported. | **P0 conditional on iOS 27** |
+| **iCTRL** | [OpenMinis/iCTRL](https://github.com/OpenMinis/iCTRL) | Phone-hosted XCTest service with **encrypted X25519/HMAC pairing**, JSON-RPC and discovery; README describes on-phone Developer Disk Image mounting and optional Mac-free operation | **High-priority iOS-26 alternative.** Requires Developer Mode, compatible iOS/DDI/side-loading and a persistent XCTest runner; all paired clients have deep UI capabilities. Separate paired-key authorization from **action-level iGentic ApprovalReceipts**. Apache-2.0 claimed. | **P0** |
+| **iphone-use** | [leeguooooo/iphone-use](https://github.com/leeguooooo/iphone-use) | Mac daemon + iPhone XCTest runner; iOS 15+ claimed, settled UI observations, single-device leases and replayable flows | Good UI-reference/verification design, **Mac still required during execution**. Source license badge **PolyForm Shield 1.0.0**: **not automatically reusable as open-source code**. | P1 |
+| **open-iphone-use** | [semsturgut/open-iphone-use](https://github.com/semsturgut/open-iphone-use) | Mac MCP using CoreDevice real-iPhone capture/input. Current default requires **Xcode/iOS 27**; README documents old `v0.0.3` Bluetooth/older-iOS fallback | Investigate precise OS compatibility, host requirement and screenshot handling; do not run upstream install shell scripts without review. | P1 |
+| **iphone-control** | [Derrors/iphone-control](https://github.com/Derrors/iphone-control) | Rust binary on **Linux or Mac**, native iOS-27 services or WDA route for iOS 17–26 | Useful host-side non-Mac/Linux experiments; **needs an external host** regardless. Source says predecessor `iphone-control-toolkit` is superseded/archived. | P1 |
+| **ghosthand** | [ghosthand-dev/ghosthand](https://github.com/ghosthand-dev/ghosthand) | Mac-based USB capture + Bluetooth HID/AssistiveTouch, OCR and device leases | Good **multi-agent leasing** pattern. Still needs Mac; project describes account and pricing dependency for some remote functions and private Bluetooth APIs. | P1 |
+| **open-phone** | [Array-Ventures/open-phone](https://github.com/Array-Ventures/open-phone) | Mac USB capture, Bluetooth HID, local MCP/API | Alternate host driver; no phone-native runtime, verify Bluetooth and pairing behavior. | P1 |
+| **Mobium** | [mobiumdev/mobium](https://github.com/mobiumdev/mobium) | Go CLI/MCP for Android/iOS simulators and physical iPhones, structured UI refs, diagnostics and test recording | Strong test instrumentation / independent verifier; physical iPhone uses **Xcode + signing + WDA**, not an on-phone agent. | P1 |
 ## C. Shortcuts / App Intents / safe action surfaces
 
 | Project / platform source | Upstream | Actual role | Boundary | Triage |
@@ -70,6 +95,12 @@ This is a curated, **non-exhaustive** discovery map for building **iGentic iPhon
 | **Swift Transformers** | [huggingface/swift-transformers](https://github.com/huggingface/swift-transformers) | Tokenization and model utilities in Swift | Component-level use; check exact package APIs and architecture. | P1 |
 | **ExecuTorch** | [pytorch/executorch](https://github.com/pytorch/executorch) | Edge model inference runtime | Candidate for small-model deployment with explicit iOS backend proof. | P1 |
 
+### Further on-device speech and an optional hardware counterexample
+
+| Project | Upstream | Why interesting | Important boundary | Triage |
+| --- | --- | --- | --- | --- |
+| **Speech Swift** | [soniqo/speech-swift](https://github.com/soniqo/speech-swift) | MLX/Core ML on-device speech recognition, synthesis and related audio models | Verify exact **iPhone Air + German** model performance, model licensing, streaming latency, battery and privacy; broad README benchmarks are not our measurements. | **P0** |
+| **Phone Agent (ESP32)** | [Kastarter/phone-agent](https://github.com/Kastarter/phone-agent) | On-phone planner + **ESP32-S3 Bluetooth HID dongle** for UI input, source claims iOS 27 end-to-end | **Reference only:** conflicts with iGentic's **no additional hardware** preference; useful as alternate technique, not the target product path. | Watch |
 ## F. Research-grade phone GUI agents and planning
 
 | Project | Upstream | What to learn | Evidence limitation | Triage |
@@ -86,6 +117,30 @@ This is a curated, **non-exhaustive** discovery map for building **iGentic iPhon
 - An MCP server, HID adapter or accessibility tree does not bypass Apple permissions, iOS sandbox restrictions, lock state, user consent or data protection.
 - Third-party screen contents are **untrusted instructions**. Never let text in a notification or app page issue tool directives.
 - "Local inference" requires measuring **exact iPhone execution**, not merely linking MLX/llama.cpp or citing Mac benchmarks.
+
+## Cross-chat consolidation: where work already overlaps
+
+The discoverable prior iGentic discussions cluster into **four workstreams**, not separate products: (1) **phone-native agent** without a continuously running Mac, (2) **Mac-host device control and acceptance tests**, (3) **local AI/voice runtimes**, and (4) **policy / approval / App Intents**. Earlier project discussions also identified `iphone-use-app`, `cell-use`, OpenMinis/`iCTRL`, Fish Pocket and Pinky, which were **missing from the original 33-project catalog**. This update reconciles them; do not open new implementation PRs merely to rediscover the same projects.
+
+- **Canonical product:** `pokekarten/igentic-iphone` Swift `AgentKernel`, `PolicyEngine`, `ApprovalManager`; product goal is **Mac-free after development/install**, even if some *test tools* stay Mac-bound.
+- **Existing integration lane:** [iGentic ARTEMIS Draft PR #378](https://github.com/pokekarten/igentic-iphone/pull/378), an opt-in Mac/Xcode/WDA **test path**, not the standalone iPhone runtime or a live PolicyEngine capability bridge.
+- **Existing research lane:** this atlas in Draft PR #379. Expand it rather than spawning another link-only or overlapping integration PR.
+- **Model-research lane:** follow `MODEL_STRATEGY.md` and the frozen runtime/physical-device evidence contracts before changing models; `Resident`, `loopl`, `AnyLanguageModel` and `Speech Swift` are comparisons, not automatic dependencies.
+- **Hard constraint:** do not swap product goals for a Bluetooth dongle, remote/cloud iPhone farm, persistent Mac worker or unaudited privileged UI automation. Those may inform a *development experiment* but not iGentic's shipped phone-alone requirement.
+
+### Deep-research insights worth testing before integration
+
+1. **No Mac is not no dependencies:** phone-only models may still need initial signing, pairing, LocalDevVPN / packet tunnel, on-phone Developer Mode and provider network calls. Record **after-install Mac independence** separately from **offline intelligence** and **system-wide UI access**.
+2. **The effective iOS version is a decisive filter.** For iOS 26 shortlist `iphone-use-app`, `Poki`, `iCTRL` (subject to setup/security verification); do **not** mistake `cell-use` native phone-control or `iphone-cli` for established iOS-26 paths. Some projects claim wide OS support but document physical-device testing on newer OS only.
+3. **Separate three authorities:** (a) what the model proposes, (b) what a low-level device driver can technically do and (c) what iGentic **authorizes**. Agent prompts, a paired device certificate or a UI "Are you sure?" button alone cannot replace typed Swift authorization.
+4. **Useful borrowed architecture patterns:** `iCTRL` authenticated pairing and offline clients; `iphone-use` action outcomes / replay and leases; `Pinky` gateway-side approval; `Resident` lazy tool disclosure/context budgets; `loopl` streaming tool events; `phone-use` bounded host adapters; all require source/security review.
+5. **Compatibility/licensing warnings:** AGPL (`Poki`, `iphone-use-app`), GPL (`OpenMinis`), PolyForm Shield (`iphone-use`) and Fish Pocket's altered MIT claims are **different** from iGentic Apache-2.0. **Do not copy code** without checking the exact committed license and notices.
+6. **Personal phone is not a test sandbox.** Developer-service agents can observe other apps, personal notifications and authentication surfaces. Start with a dedicated/synthetic simulator, then use a consented physical device only after minimum-authority tests.
+
+### Research provenance
+
+This revision used (a) thematically relevant earlier iGentic chats for **discovery/coordination only**, (b) Exa multi-angle search for candidate discovery and (c) **direct primary GitHub README and repository existence checks** for the new projects. Descriptions above are `source_claim` unless explicitly marked otherwise. No code, device pairing, local-model runtime, or cloud account was used to verify operational claims. Search is broad, not exhaustive. Consult each upstream repository's current issues/releases and `LICENSE` before treating README prose as a stable contract.
+
 
 ## Decision matrix: what should iGentic actually try?
 
