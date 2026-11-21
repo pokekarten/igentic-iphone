@@ -16,7 +16,7 @@ final class AppleOnDeviceProposalPreviewTests: XCTestCase {
     func testRejectsEmptyAndOversizedInputBeforeModel() async {
         for prompt in ["", "  ", String(repeating: "x", count: 257)] {
             XCTAssertFalse(preview.allowsPrompt(prompt, trustedDataClassification: .publicDefault))
-            let result = await preview.generateReview(for: prompt)
+            let result = await preview.generateReview(for: prompt, trustedDataClassification: .publicDefault)
             XCTAssertEqual(result, .inputRejected)
         }
     }
@@ -27,7 +27,7 @@ final class AppleOnDeviceProposalPreviewTests: XCTestCase {
             "Check IBAN DE89370400440532013000"
         ] {
             XCTAssertFalse(preview.allowsPrompt(prompt, trustedDataClassification: .publicDefault))
-            let result = await preview.generateReview(for: prompt)
+            let result = await preview.generateReview(for: prompt, trustedDataClassification: .publicDefault)
             XCTAssertEqual(result, .inputRejected)
         }
     }
