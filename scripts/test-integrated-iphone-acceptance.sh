@@ -89,7 +89,8 @@ if [[ "${IGENTIC_RUN_SIGNED_SIMULATOR_TEST:-0}" == "1" ]]; then
     grep -E 'error:|Testing failed:|Test crashed|\*\* TEST' "$work/ios-system-test.log" | tail -n 12 || true
     exit 1
   fi
-  if ! grep -q '\*\* TEST SUCCEEDED \*\*' "$work/ios-system-test.log"; then
+  if ! grep -Eq '\*\* TEST( EXECUTE)? SUCCEEDED \*\*' "$work/ios-system-test.log" || \
+     ! grep -q 'testReadOnlyDiagnosticsIntentRunsThroughSystem.*passed' "$work/ios-system-test.log"; then
     echo 'INTEGRATED_SIGNED_APPINTENTS_TEST=no-success-marker'
     tail -n 28 "$work/ios-system-test.log"
     exit 1
