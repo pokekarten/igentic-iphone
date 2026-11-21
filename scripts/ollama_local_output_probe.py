@@ -16,6 +16,16 @@ ALLOWED_MODELS = ('qwen3:4b', 'qwen3.5:4b')
 PROMPT = 'Return exactly the JSON object {"action":"diagnostics.read","approved":false} and nothing else.'
 
 
+def _unique_json_object(pairs: list[tuple[str, object]]) -> dict:
+    """Reject ambiguous duplicate keys instead of Python's last-key-wins behavior."""
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate JSON key")
+        result[key] = value
+    return result
+
+
 def classify_generated_text(raw: object) -> str:
     """Fail closed: *one* JSON object, two exact keys, no approvals.
 
@@ -24,7 +34,7 @@ def classify_generated_text(raw: object) -> str:
     if not isinstance(raw, str) or len(raw.encode('utf-8')) > 2048:
         return 'invalid_output'
     try:
-        parsed = json.loads(raw)
+        parsed = json.loads(raw, object_pairs_hook=_unique_json_object)
     except (ValueError, TypeError):
         return 'not_strict_json'
     if not isinstance(parsed, dict) or set(parsed) != {'action', 'approved'}:
