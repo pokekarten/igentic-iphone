@@ -46,7 +46,7 @@ These visibility labels were verified from current GitHub repository metadata on
 | Durable execution protocol | `docs/CHATGPT_NEXT_TASK.md` | Stable lane rules, not the live target |
 | Live iGentic target and lane stage | current GitHub issue or pull request, with authorized private Brain routing where applicable | Mutable routing state only; never copy private identifiers into public docs |
 | Model research index | `docs/model-research/README.md` | Entry point for candidates, benchmarks and future evidence |
-| External iPhone/agent project research | `docs/research/README.md` | Source-claimed upstream tool atlas, limits, and candidate experiments; not device evidence |
+| External iPhone/agent research and technical reassessment | `docs/research/README.md` | Dated upstream atlas and architecture reassessment; proposals are not hardware evidence or implementation authority |
 
 When two durable files disagree, open one narrow reconciliation issue. Do not silently choose the more convenient statement.
 
