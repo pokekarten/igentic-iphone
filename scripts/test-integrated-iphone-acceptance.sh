@@ -53,15 +53,32 @@ fi
 
 if [[ "${IGENTIC_RUN_SIGNED_SIMULATOR_TEST:-0}" == "1" ]]; then
   command -v xcodebuild >/dev/null
-  if ! xcodebuild -project ../app/iGenticDiagnostics/iGenticDiagnostics.xcodeproj \
-    -scheme iGenticDiagnostics -configuration Debug \
-    -destination "${IGENTIC_SIMULATOR_DESTINATION:-platform=iOS Simulator,name=iPhone Air,OS=27.2}" \
-    -derivedDataPath "$work/derived" \
-    -parallel-testing-enabled NO -maximum-concurrent-test-simulator-destinations 1 \
-    -only-testing:iGenticDiagnosticsUITests/iGenticAppIntentsTests \
-    test >"$work/ios-system-test.log" 2>&1; then
+  command -v xcrun >/dev/null
+  # On a fresh install, AppIntents metadata may not yet be registered.
+  # Build/sign first, install and launch the actual app once, then dispatch
+  # the system test. Do not turn off code signing for AppIntentsTesting.
+  xcode_args=(
+    -project ../app/iGenticDiagnostics/iGenticDiagnostics.xcodeproj
+    -scheme iGenticDiagnostics -configuration Debug
+    -destination "${IGENTIC_SIMULATOR_DESTINATION:-platform=iOS Simulator,name=iPhone Air,OS=27.2}"
+    -derivedDataPath "$work/derived"
+    -parallel-testing-enabled NO -maximum-concurrent-test-simulator-destinations 1
+    -only-testing:iGenticDiagnosticsUITests/iGenticAppIntentsTests
+  )
+  if ! xcodebuild "${xcode_args[@]}" build-for-testing >"$work/ios-build-for-testing.log" 2>&1; then
+    echo 'INTEGRATED_SIGNED_APPINTENTS_BUILD=failed'
+    tail -n 25 "$work/ios-build-for-testing.log"
+    exit 1
+  fi
+  app_path="$work/derived/Build/Products/Debug-iphonesimulator/iGenticDiagnostics.app"
+  xcrun simctl install booted "$app_path"
+  xcrun simctl launch booted org.example.iGenticDiagnostics
+  xcrun simctl terminate booted org.example.iGenticDiagnostics >/dev/null 2>&1 || true
+  # Give App Intents' asynchronous metadata registration a short window.
+  sleep 2
+  if ! xcodebuild "${xcode_args[@]}" test-without-building >"$work/ios-system-test.log" 2>&1; then
     echo 'INTEGRATED_SIGNED_APPINTENTS_TEST=failed'
-    tail -n 30 "$work/ios-system-test.log"
+    grep -E 'error:|Testing failed:|Test crashed|\*\* TEST' "$work/ios-system-test.log" | tail -n 12 || true
     exit 1
   fi
   grep -q '\*\* TEST SUCCEEDED \*\*' "$work/ios-system-test.log"
