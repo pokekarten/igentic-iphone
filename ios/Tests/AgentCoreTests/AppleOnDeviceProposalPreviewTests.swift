@@ -27,7 +27,8 @@ final class AppleOnDeviceProposalPreviewTests: XCTestCase {
             "Check IBAN DE89370400440532013000"
         ] {
             XCTAssertFalse(preview.allowsPrompt(prompt, trustedDataClassification: .publicDefault))
-            XCTAssertEqual(await preview.generateReview(for: prompt), .inputRejected)
+            let result = await preview.generateReview(for: prompt)
+            XCTAssertEqual(result, .inputRejected)
         }
     }
 
@@ -40,9 +41,10 @@ final class AppleOnDeviceProposalPreviewTests: XCTestCase {
         XCTAssertFalse(
             preview.allowsPrompt(prompt, trustedDataClassification: classification)
         )
-        XCTAssertEqual(
-            await preview.generateReview(for: prompt, trustedDataClassification: classification),
-            .inputRejected
+        let result = await preview.generateReview(
+            for: prompt,
+            trustedDataClassification: classification
         )
+        XCTAssertEqual(result, .inputRejected)
     }
 }
