@@ -49,10 +49,84 @@ public enum VerifiedGGUFArtifact {
         input.range(of: expression, options: .regularExpression) != nil
     }
 
+    /// Reject ambiguous JSON *before* Foundation decoders discard duplicate
+    /// object members. The manifest is deliberately a flat, six-scalar object.
+    /// Keys are decoded as JSON strings so escaped aliases also collide.
+    private static func hasUniqueManifestKeys(_ data: Data) -> Bool {
+        let bytes = Array(data)
+        guard !bytes.isEmpty, bytes.count <= 16_384 else { return false }
+        var offset = 0
+
+        func skipWhitespace() {
+            while offset < bytes.count && [9, 10, 13, 32].contains(bytes[offset]) {
+                offset += 1
+            }
+        }
+
+        func take(_ byte: UInt8) -> Bool {
+            skipWhitespace()
+            guard offset < bytes.count, bytes[offset] == byte else { return false }
+            offset += 1
+            return true
+        }
+
+        func readString() -> String? {
+            guard offset < bytes.count, bytes[offset] == 34 else { return nil }
+            let start = offset
+            offset += 1
+            while offset < bytes.count {
+                let value = bytes[offset]
+                offset += 1
+                if value == 34 {
+                    return try? JSONDecoder().decode(String.self, from: Data(bytes[start..<offset]))
+                }
+                if value == 92 {
+                    // Leave escaped quotes/backslashes/uXXXX decoding to JSONDecoder.
+                    guard offset < bytes.count else { return nil }
+                    offset += 1
+                }
+            }
+            return nil
+        }
+
+        func readScalar() -> Bool {
+            skipWhitespace()
+            guard offset < bytes.count else { return false }
+            if bytes[offset] == 34 { return readString() != nil }
+            // Nested objects/arrays cannot occur in this six-scalar schema.
+            guard bytes[offset] != 123, bytes[offset] != 91 else { return false }
+            let start = offset
+            while offset < bytes.count,
+                  ![UInt8(9), 10, 13, 32, 44, 125].contains(bytes[offset]) {
+                offset += 1
+            }
+            return offset > start
+        }
+
+        guard take(123) else { return false } // {
+        var keys = Set<String>()
+        let required: Set<String> = [
+            "model_id", "filename", "sha256", "size_bytes",
+            "source_revision", "license_reviewed"
+        ]
+        for position in 0..<required.count {
+            skipWhitespace()
+            guard let key = readString(), required.contains(key),
+                  keys.insert(key).inserted, take(58), readScalar()
+            else { return false }
+            skipWhitespace()
+            if position < required.count - 1 {
+                guard take(44) else { return false } // ,
+            }
+        }
+        guard take(125) else { return false } // }
+        skipWhitespace()
+        return offset == bytes.count && keys == required
+    }
+
     public static func verify(manifestData: Data, directoryURL: URL) -> Result<Receipt, Rejection> {
         guard
-            let object = try? JSONSerialization.jsonObject(with: manifestData) as? [String: Any],
-            Set(object.keys) == Set(["model_id", "filename", "sha256", "size_bytes", "source_revision", "license_reviewed"]),
+            hasUniqueManifestKeys(manifestData),
             let manifest = try? JSONDecoder().decode(Manifest.self, from: manifestData),
             matches(manifest.modelID, "\\A[A-Za-z0-9][A-Za-z0-9._-]{0,63}/[A-Za-z0-9][A-Za-z0-9._-]{0,63}\\z"),
             matches(manifest.filename, "\\A[A-Za-z0-9][A-Za-z0-9._-]{0,255}\\z"),
