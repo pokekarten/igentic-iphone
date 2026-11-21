@@ -270,6 +270,19 @@ User / Siri / Shortcut / iGentic UI
 
 **Proposed bounded experiments:** (1) implement/verify an iGentic XCTest UI-navigation smoke test inside our own app; (2) on a disposable or simulated environment evaluate host accessibility observation from one pinned tool (without installing every candidate); (3) on an authorized disposable physical iPhone test the phone-native path with Mac detached, flight/cellular transitions, locked/background interruption and explicit output audit. Keep a source-and-license manifest and update this entry when exact SHAs are tested.
 
+## 2026-11-21 evaluation and safety research follow-up
+
+**Research-only references** (not iGentic test outcomes; benchmarks on Android or synthetic iOS do not prove physical iPhone Air autonomy):
+
+| Research / code | What is reproducible or measured | Application to iGentic |
+| --- | --- | --- |
+| [iOSWorld](https://github.com/ljang0/iOSWorld) / [paper](https://arxiv.org/abs/2606.09764) | 26 synthetic interconnected SwiftUI apps, 133 tasks, per-task rubrics; separates vision-only from privileged XML+vision observation; reported best overall 51.9%, multi-app 36.7% | **P0 benchmark design reference**; borrow rubric patterns and synthetic state checks, not benchmark success claims. Exists elsewhere in this atlas; this is a measurement update, not a newly discovered unique agent |
+| [MobileWorld](https://github.com/Tongyi-MAI/MobileWorld) / [ACL 2026](https://aclanthology.org/2026.acl-long.278/) | Containerized Android tasks with deterministic back-end state verification and MCP + human-interaction flows; 201 tasks over 20 apps | **P1 evaluation methodology**; adapt outcome checks, snapshots, human handoff and state reset to iGentic's typed Safe Action and XCUITest smoke gates |
+| [MobileWorldSafety](https://arxiv.org/abs/2608.17659) | 142 Android mobile-agent environmental-injection risk tasks; published attack-success range 40.4%–66.9% across six tested agents | **P0 red-team methodology**; add synthetic on-screen adversarial instructions, require deterministic refusal/no unauthorized side effect and independent post-action state verification; Android numbers must not be quoted as iOS/iGentic rates |
+| [MAI-UI / Qwen-UI-Agent](https://github.com/Tongyi-MAI/MAI-UI) | Mobile GUI model and evaluation research, with reported hybrid GUI/CLI and device benchmarks | **Watch** for model behavior and task-generation techniques; larger model and reported aggregate performance do not establish local iPhone Air feasibility |
+
+**Suggested acceptance fixture** for the next iGentic UI test: a synthetic task with a unique state marker; start from a clean simulator state; verify visible UI by accessibility identifier; inject a misleading instruction in an untrusted UI label; ensure policy and approval are unchanged; simulate cancellation or uncertain completion; validate final state in a separate, deterministic verifier. Preserve an explicit distinction between **action requested**, **action dispatched**, **side effect observed**, **side effect unknown**, and **side effect not sent**. Treat source content as data, not authorization.
+
 ## Maintenance
 
 - Review on **iOS major releases**, agent-control API changes, new device test evidence, upstream license/security advisories, or every 90 days.
