@@ -71,8 +71,16 @@ if [[ "${IGENTIC_RUN_SIGNED_SIMULATOR_TEST:-0}" == "1" ]]; then
     exit 1
   fi
   app_path="$work/derived/Build/Products/Debug-iphonesimulator/iGenticDiagnostics.app"
-  xcrun simctl install booted "$app_path"
-  xcrun simctl launch booted org.example.iGenticDiagnostics
+  if ! xcrun simctl install booted "$app_path"; then
+    echo 'INTEGRATED_APP_INSTALL=failed'
+    exit 1
+  fi
+  echo 'INTEGRATED_APP_INSTALL=passed'
+  if ! xcrun simctl launch booted org.example.iGenticDiagnostics; then
+    echo 'INTEGRATED_APP_LAUNCH=failed'
+    exit 1
+  fi
+  echo 'INTEGRATED_APP_LAUNCH=passed'
   xcrun simctl terminate booted org.example.iGenticDiagnostics >/dev/null 2>&1 || true
   # Give App Intents' asynchronous metadata registration a short window.
   sleep 2
@@ -81,7 +89,11 @@ if [[ "${IGENTIC_RUN_SIGNED_SIMULATOR_TEST:-0}" == "1" ]]; then
     grep -E 'error:|Testing failed:|Test crashed|\*\* TEST' "$work/ios-system-test.log" | tail -n 12 || true
     exit 1
   fi
-  grep -q '\*\* TEST SUCCEEDED \*\*' "$work/ios-system-test.log"
+  if ! grep -q '\*\* TEST SUCCEEDED \*\*' "$work/ios-system-test.log"; then
+    echo 'INTEGRATED_SIGNED_APPINTENTS_TEST=no-success-marker'
+    tail -n 28 "$work/ios-system-test.log"
+    exit 1
+  fi
   echo 'INTEGRATED_SIGNED_APPINTENTS_TEST=passed'
 fi
 echo 'INTEGRATED_ACCEPTANCE=passed'
