@@ -176,6 +176,18 @@ Five completed console observations on the physical phone:
 
 The German rejection's exact cause remains unknown because the deliberately minimal status combines validation failures and raw model output was not retained. Do not infer which generated field failed. These are five exploratory observations, not a frozen held-out benchmark, success rate, complete evaluation or network-isolation measurement. The unsuccessful WDA observation attempts may have launched additional inference; they have no usable result and are excluded from the table.
 
-Runtime provenance: the isolated local integration checkout corresponds to the previously documented local integration base plus the 18-file feature delta. Sixteen changed files matched PR #390's prior head by Git blob hash; the project file retained the local integration's existing UI-test target formatting/structure, while the app source additionally contained the now-published debug console line. Local signing overrides were used. The installed signed executable's SHA-256 was `8df7b1665d916265eef9f5e69467d87ff573c4bb58674d01a6a070b00bbfef53`; this is a local integrated-device result, not a claim that CI-produced bytes were installed. A further signed build after adding the console output succeeded and was installed before the five observations.
+Runtime provenance: the isolated local integration checkout corresponds to the previously documented local integration base plus the 18-file feature delta. Sixteen changed files matched PR #390's prior head by Git blob hash; the project file retained the local integration's existing UI-test target formatting/structure, while the app source additionally retained the existing local integration's fixed read-only App Intent/Shortcuts declaration, a comment, and the now-published debug console line. These extra App Intent declarations are not exercised by the model probe. Local signing overrides were used. The installed signed executable's SHA-256 was `8df7b1665d916265eef9f5e69467d87ff573c4bb58674d01a6a070b00bbfef53`; this is a local integrated-device result, not a claim that CI-produced bytes were installed. A further signed build after adding the console output succeeded and was installed before the five observations.
 
 Final state: app relaunched normally without probe arguments; no additional reminder was created, and no existing reminders were enumerated. The earlier approved reminder/full-access grant were preserved. PhoneUse lease released, loopback API and WDA launcher stopped. New profile/account state, paid inference and external model-provider calls were not introduced. The remaining product blocker demonstrated here is German reminder-draft reliability; signing/install and one English physical-model fixture are now established.
+
+
+To reproduce the recovered signing path without committing personal signing settings, use a local build override with the already authorized installed app identity and the team from its existing valid profile:
+
+```sh
+xcodebuild -project app/iGenticDiagnostics/iGenticDiagnostics.xcodeproj \
+  -scheme iGenticDiagnostics -destination 'generic/platform=iOS' \
+  PRODUCT_BUNDLE_IDENTIFIER='<already-approved-app-id>' \
+  DEVELOPMENT_TEAM='<team-from-existing-profile>' CODE_SIGN_STYLE=Automatic build
+```
+
+Do not pass a global provisioning-profile specifier to package resource targets. An existing valid identity/profile is a precondition; this command is not a guarantee that expired or missing profiles can be recovered without account access.
