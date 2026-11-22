@@ -1,5 +1,7 @@
 # iGentic external-project research
 
+**Updated platform decision — 2026-11-22:** the product owner now requires **iOS 27.0+ only**, not legacy iOS 17–26 support. See the separate [iOS 27 migration PR #389](https://github.com/pokekarten/igentic-iphone/pull/389). Earlier proposals in these dated research documents to preserve an iOS-17 deployment target are superseded; their source observations remain historical evidence. No physical-device result is implied.
+
 This folder holds **curated external projects**, rather than product code, dependency commitments, or device-readiness claims.
 
 - [Technical reassessment and modernization priorities — 2026-11-21](TECHNICAL_REASSESSMENT_2026_11_21.md) — challenges earlier architecture assumptions, documents iOS 27 changes and gives a product-first test plan.
