@@ -34,6 +34,19 @@ public struct DiagnosticView: View {
     public var body: some View {
         NavigationStack {
             List {
+                // Keep the fixed, read-only discovery entry visible for both
+                // the first-screen UI test and the bounded iPhone Connect adapter.
+                // The adapter intentionally cannot scroll arbitrary UI content.
+                Section("Explore") {
+                    NavigationLink("Open local discovery") {
+                        ExploreView()
+                    }
+
+                    Text("Bundled sample content only. No network or model execution.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+
                 #if canImport(EventKit)
                 Section("Aufgaben") {
                     NavigationLink("Erinnerung erstellen") {
@@ -43,22 +56,13 @@ public struct DiagnosticView: View {
                         .font(.footnote)
                 }
                 #endif
+
                 Section("Safety") {
                     LabeledContent("Operating mode", value: state.operatingMode)
                     LabeledContent("Runtime status", value: state.runtimeStatus)
                     LabeledContent("Audit", value: state.auditStatus)
                     LabeledContent("Validation", value: state.validationStatus)
                     LabeledContent("Privacy", value: state.privacyNotice)
-                }
-
-                Section("Explore") {
-                    NavigationLink("Open local discovery") {
-                        ExploreView()
-                    }
-
-                    Text("Bundled sample content only. No network or model execution.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
                 }
 
                 Section("Safe Action approval (synthetic, no execution)") {
