@@ -8,8 +8,8 @@ final class DiagnosticsUITests: XCTestCase {
         let confirm = app.buttons["Confirm and continue"]
         if confirm.waitForExistence(timeout: 10) { confirm.tap() }
         XCTAssertTrue(app.staticTexts["iGentic Diagnostics"].waitForExistence(timeout: 15))
-        // SwiftUI List materializes off-screen rows lazily. On smaller or
-        // dual-display devices the Explore section starts below the fold.
+        // SwiftUI List rows can be virtualized on different device sizes;
+        // this bounded accessibility lookup also works for link-type rows.
         guard let explore = scrollToControl("igentic-open-local-discovery", in: app) else { return }
         explore.tap()
         XCTAssertTrue(app.navigationBars["Explore"].waitForExistence(timeout: 10))
