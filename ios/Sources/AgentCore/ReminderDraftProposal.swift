@@ -76,6 +76,21 @@ public enum ReminderDraftProposalOutcome: Equatable, Sendable {
     case invalidProposal
 }
 
+/// Content-free diagnostics; never contains model output or user input.
+public enum ReminderDraftRejectionReason: String, Equatable, Sendable {
+    case abstained, titleRejected, invalidLocalDate, dateNotFuture
+}
+
+public struct ReminderDraftProposalAssessment: Equatable, Sendable {
+    public let outcome: ReminderDraftProposalOutcome
+    public let rejectionReason: ReminderDraftRejectionReason?
+
+    fileprivate init(_ outcome: ReminderDraftProposalOutcome, reason: ReminderDraftRejectionReason? = nil) {
+        self.outcome = outcome
+        self.rejectionReason = reason
+    }
+}
+
 /// Local-only model intake. A successful result is merely editable text and a
 /// date; it cannot authorize or invoke the EventKit reminder writer.
 public struct ReminderDraftProposalService: Sendable {
@@ -99,6 +114,20 @@ public struct ReminderDraftProposalService: Sendable {
         now: Date = Date(),
         timeZoneIdentifier: String = TimeZone.current.identifier
     ) async -> ReminderDraftProposalOutcome {
+        await assess(
+            instruction: instruction,
+            trustedDataClassification: trustedDataClassification,
+            now: now,
+            timeZoneIdentifier: timeZoneIdentifier
+        ).outcome
+    }
+
+    public func assess(
+        instruction: String,
+        trustedDataClassification: DataClassification,
+        now: Date = Date(),
+        timeZoneIdentifier: String = TimeZone.current.identifier
+    ) async -> ReminderDraftProposalAssessment {
         let trimmed = instruction.trimmingCharacters(in: .whitespacesAndNewlines)
         let detection = SensitiveDataDetector().detect(in: instruction)
         guard !trimmed.isEmpty,
@@ -106,7 +135,7 @@ public struct ReminderDraftProposalService: Sendable {
               trustedDataClassification.level <= .contextualPrivateData,
               !detection.hasFindings,
               TimeZone(identifier: timeZoneIdentifier) != nil else {
-            return .inputRejected
+            return .init(.inputRejected)
         }
 
         let classification = DataClassification.effectiveClassification(
@@ -118,7 +147,7 @@ public struct ReminderDraftProposalService: Sendable {
             dataSensitivity: classification.level,
             allowedExecutionKinds: [.system]
         )
-        guard runtime.assess(request).isAccepted else { return .modelUnavailable }
+        guard runtime.assess(request).isAccepted else { return .init(.modelUnavailable) }
 
         let context = ReminderProposalTemporalContext(
             now: now,
@@ -132,11 +161,12 @@ public struct ReminderDraftProposalService: Sendable {
             )
         } catch {
             // Do not surface framework errors; they may include user content.
-            return .generationFailed
+            return .init(.generationFailed)
         }
 
         guard candidate.actionName == "reminder.create" else {
-            return candidate.actionName.isEmpty ? .invalidProposal : .unsupportedAction
+            return candidate.actionName.isEmpty
+                ? .init(.invalidProposal, reason: .abstained) : .init(.unsupportedAction)
         }
 
         let review = gate.review(
@@ -144,22 +174,28 @@ public struct ReminderDraftProposalService: Sendable {
             privacyMode: .localOnly,
             trustedDataClassification: classification
         )
-        guard review.disposition == .approvalRequired else { return .invalidProposal }
+        guard review.disposition == .approvalRequired else {
+            return .init(.invalidProposal, reason: .titleRejected)
+        }
         guard candidate.title.utf8.count <= 512,
-              let title = try? CanonicalReminderTitle(candidate.title),
-              let due = try? ReminderDueDate.resolve(
+              let title = try? CanonicalReminderTitle(candidate.title) else {
+            return .init(.invalidProposal, reason: .titleRejected)
+        }
+        guard let due = try? ReminderDueDate.resolve(
                 year: candidate.year,
                 month: candidate.month,
                 day: candidate.day,
                 hour: candidate.hour,
                 minute: candidate.minute,
                 timeZoneIdentifier: timeZoneIdentifier
-              ),
-              TimeInterval(due.resolvedUnixSeconds) > now.timeIntervalSince1970 else {
-            return .invalidProposal
+              ) else {
+            return .init(.invalidProposal, reason: .invalidLocalDate)
+        }
+        guard TimeInterval(due.resolvedUnixSeconds) > now.timeIntervalSince1970 else {
+            return .init(.invalidProposal, reason: .dateNotFuture)
         }
 
-        return .proposed(ReminderDraftProposal(title: title, due: due))
+        return .init(.proposed(ReminderDraftProposal(title: title, due: due)))
     }
 }
 
