@@ -350,3 +350,156 @@ User / Siri / Shortcut / iGentic UI
 5. **Phone-native coding sandbox (optional):** benchmark the approval-before-disk-write and folder scoping patterns of Pocket Agent/Pokeet; consider virtual filesystem tools such as just-bash-swift **only after** license and hostile-input review. No arbitrary shell or app-wide filesystem authority.
 
 **Not performed:** no new implementation, model download, physical-device run, Swift build, signing, private-API execution, cloud account connection, permission grant or repository merge. These remain separately reviewed tasks.
+
+
+## 2026-11-22: Own ChatGPT iPhone plugin — feasibility and implementation decision
+
+**Decision status:** proposed architecture and source-backed feasibility assessment, not an implemented, installed, published or approved plugin. Requested by the owner to combine the strongest capabilities of the previously investigated projects. Target native product remains iOS 27+; older deployment advice above is historical. Use **iGentic** as the canonical project identity; “iGentic iPhone Connect” is a working product label only.
+
+### Scope, evidence and coverage
+
+This pass reconciles **107 distinct external GitHub repository identities** from the preexisting atlas and [iOS 27 runtime survey](IOS27_OPEN_WEIGHT_RUNTIME_SURVEY_2026_11_22.md). All 107 are assigned exactly once in the matrix below. This is a packaging/architecture classification of the existing research corpus, **not a fresh 107-repository code audit** or a claim to cover every repository/chat on the account. Apple framework pages, papers without repositories, transitive dependencies and unrelated user projects are outside that numerical count.
+
+Additionally consulted the existing [seven-source audit](SEVEN_UPLOADED_REPO_SOURCE_AUDIT_2026_11_22.md), [five-runtime audit](FIVE_UPLOADED_IOS27_RUNTIME_SOURCE_AUDIT_2026_11_22.md), [completion plan](../PROJECT_COMPLETION_PLAN.md) and [physical validation report](../reports/iphone-air-validation-2026-11-22.md). The archived source-audit findings refer to those snapshots, not necessarily today's upstream code. Mimi Remote is considered separately as an existing remote-supervision setup, not invented as another repository identity. The connected Remote Desktop Commander tool catalogue was inspected for its device/file/process/session interface; its implementation and publication arrangement were not audited.
+
+Eight current upstream READMEs and six top-level LICENSE files were fetched directly through GitHub on 2026-11-22. Blob identities below identify **documents**, not pinned complete releases or dependency audits:
+
+| Upstream | README Git blob | LICENSE Git blob |
+| --- | --- | --- |
+| [mobile-next/mobile-mcp](https://github.com/mobile-next/mobile-mcp) | `413ae0323df899a27136d5e085f5236cbbb9fbe3` | `261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64` |
+| [callstack/agent-device](https://github.com/callstack/agent-device) | `1d0312d84aa724e820a787401bfa63e31180ef8d` | `e339c7e96e4f372b7f80d7ed7a19570dfc4f336d` |
+| [OpenMinis/iCTRL](https://github.com/OpenMinis/iCTRL) | `80f7a6b86119a8261aa98e2a1402d10f3f192675` | `d645695673349e3947e8e5ae42332d0ac3164cd7` |
+| [ipbtools/ipb](https://github.com/ipbtools/ipb) | `5681de699b01a8561f1781be73cd280d8b2ea6b4` | `452a50fab1bc5387efb6672d80690ed97e2c1057` |
+| [DIYgod/pinky](https://github.com/DIYgod/pinky) | `5f02de36cc3790156afe90b174b5ad1afffc2023` | `57bc88a15a0ee8266c259b2667e64608d3f7e292` |
+| [phoneuse-official/phoneuse](https://github.com/phoneuse-official/phoneuse) | `3843a46fe55976b5fea6420bc2cdfdb749100dc2` | Not reread in this pass; retain earlier source-review limits |
+| [Jflick58/resident](https://github.com/Jflick58/resident) | `d2b017c4fe77e06ca92052a4505862021dc36de6` | Not reread in this pass; retain earlier source-review limits |
+| [Raynan00/cell-use](https://github.com/Raynan00/cell-use) | `b970db789cf92228089372b08a57556c705b2798` | `d645695673349e3947e8e5ae42332d0ac3164cd7` |
+
+Top-level LICENSE text currently identifies Apache-2.0 for Mobile MCP, iCTRL, Pinky and cell-use; MIT for agent-device and ipb. This makes them candidates for further review, not blanket clearance for bundled dependencies, Apple developer components, artwork, trademarks, model weights or redistribution. Existing AGPL/GPL, PolyForm, altered-MIT and source-available warnings elsewhere in the atlas remain relevant. A process boundary alone is not a license-compliance conclusion.
+
+### What OpenAI currently supports
+
+Official documentation fetched on 2026-11-22 establishes the following:
+
+- **Plugin package:** reusable skills plus optional MCP server(s); new packages use root `plugin.json`, `mcp.json`, `skills/`, and optional `extensions.com.openai` metadata. A skill describes a workflow; it does not supply iPhone permissions or connectivity. [Build plugins](https://developers.openai.com/plugins/build/plugins)
+- **Private connection:** ChatGPT can install a custom MCP server as a plugin, with read/write tools, via server URL or Secure MCP Tunnel. Workspace permissions still apply; account eligibility has not been checked here. [Custom MCP server](https://developers.openai.com/api/docs/guides/custom-mcp-server)
+- **Private transport option:** Secure MCP Tunnel forwards requests from OpenAI to a private server through an outbound-running client. It requires appropriate organization/workspace access and a runtime credential. It is a possible later integration, not configured here, not proof of offline privacy, and not a production directory endpoint. [Secure MCP Tunnel](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels)
+- **Public remote plugin:** stable public HTTPS MCP endpoint using Streamable HTTP, working authentication, verified publishing identity/domain, privacy information and OpenAI review. For private user actions, design OAuth 2.1 and authorization at every request. A temporary tunnel or an inaccessible laptop URL does not satisfy public submission. [Build MCP server](https://developers.openai.com/plugins/build/mcp-server), [review requirements](https://developers.openai.com/plugins/deploy/app-review)
+- **Local desktop plugin:** local stdio MCP can package a host-side server. Public local-MCP submissions are currently restricted to approved/allowlisted partners; desktop-only plugins are installable from the desktop app and usable in locally running threads. Private/manual authoring is a separate path from public directory admission. [Desktop-only submission](https://developers.openai.com/plugins/deploy/desktop-only)
+- **UI:** optional MCP Apps iframe with `_meta.ui.resourceUri` and the standard `ui/*` bridge; tools should work without the UI. Device selection, a task preview, current observation and stop button are appropriate. This does not itself provide native iPhone screen capture or low-latency video transport. [MCP Apps UI](https://developers.openai.com/plugins/build/chatgpt-ui)
+
+Hardware/application-access-centric submissions may require product-specific review; the official migration/submission guidance explicitly asks developers to contact their OpenAI partner for such cases. Do not promise that a broad remote-iPhone-control plugin will be accepted merely because its MCP tools work. [Submission guidance](https://developers.openai.com/plugins/guides/submit-claude-plugin#complete-the-submission-requirements)
+
+The current review page also excludes EU-data-residency projects from MCP submission and points to global projects. Record this as a publishing constraint to assess with the owner, **not permission to change residency or create an organization/project**. No organization, partner eligibility, billing, residency or distribution account was changed by this research.
+
+### One product core, three explicit operating modes
+
+| Mode | User-facing capability | Execution site and availability | Distribution assessment |
+| --- | --- | --- | --- |
+| **Native tasks** | Prepare and approve a reminder; later explicitly shared text/files and local voice | iGentic app and public Apple APIs. Foreground/user-triggered handoff first; Mac not required for the native task | Consumer iOS app candidate, subject to Apple review; ChatGPT connection is additional work |
+| **Connected iPhone lab** | Observe a consenting test phone, inspect UI, navigate and verify a synthetic app task | Running trusted Mac + one developer adapter; USB first | Best first remote-control proof; local/private plugin first, public desktop distribution requires OpenAI eligibility |
+| **Phone-resident experimental control** | Developer-service cross-app observation/input after setup | iCTRL or cell-use-style runtime on the phone, subject to lifecycle/signing/DDI/network constraints | Separate opt-in developer build. Not represented as normal App Store privileges or proven unattended phone autonomy |
+
+Apple's public App Intents expose declared app capabilities to supported system surfaces. They do not establish an arbitrary remote-invocation channel from ChatGPT to every installed iOS app. ReplayKit provides screen recording/broadcast primitives, not the missing input-control capability. App Review rules require public APIs, respect for app containers and intended background modes. Apple's remote-desktop-client category is not permission to make an ordinary iPhone app a system-wide input server. These are architecture constraints, not a prediction of a particular submission outcome. [App Intents](https://developer.apple.com/documentation/appintents), [ReplayKit](https://developer.apple.com/documentation/replaykit), [App Review 2.5 / 4.2.7](https://developer.apple.com/app-store/review/guidelines/)
+
+### Proposed architecture
+
+```text
+ChatGPT / Codex
+  Plugin: skills + typed MCP tools + optional device/task UI
+      |
+      +-- local stdio (private desktop MVP)
+      |       -> trusted Mac bridge -> one device-lab adapter -> iPhone test app
+      |
+      +-- authenticated HTTPS MCP (later private/web/public route)
+              -> account/device-bound task service
+              -> authenticated outbound companion connection
+                   -> Mac bridge OR foreground iGentic iPhone companion
+
+Every executor:
+  validate identity + task + scope + expiry + current state
+  -> existing iGentic policy and exact-action approval where required
+  -> bounded execution -> independent readback
+  -> verified / failed / cancelled / unavailable / unknownOutcome
+```
+
+The Mac lab lane extends the project without replacing the phone-alone product goal. iGentic's Swift authority must remain the canonical action path. A future Mac gateway must delegate to it or implement an explicitly reviewed compatible boundary; **there is no already-proven network bridge from the current Swift kernel to these MCP servers**. Wire that boundary before exposing mutations.
+
+The public route needs deliberate device pairing and a reachable service; a remote ChatGPT server cannot reach the phone's or Mac's loopback address directly. Use an outbound authenticated companion channel to avoid exposing developer endpoints. Phone sessions can report `needsForeground` and require the user to open the companion. A push/deep link is a handoff mechanism, not guaranteed background execution. Lock, suspension, network loss and expired signing must produce explicit unavailable/paused states.
+
+ChatGPT-assisted mode sends the selected inputs/tool results to OpenAI. A local driver, local model or encrypted transport does not make that conversation offline. Keep a separate native offline mode. Screen/AX data may contain private notifications; minimize scope before capture, prefer synthetic/app-scoped structured state, redact before egress, and disclose destination. No screenshot stream or arbitrary personal app observation is enabled by this design.
+
+### Reuse decision for the complete indexed corpus
+
+Each repository below appears in exactly one row; details and source caveats remain in its original atlas/survey entry. “Adapter” means a candidate for bounded integration, not approved code reuse or an executed test.
+
+| Family | Existing repository identities | Plugin decision |
+| --- | --- | --- |
+| Host device adapters | `mobile-next/mobile-mcp`, `mobile-next/mobilecli`, `callstack/agent-device`, `HyunSeob/iphone-cli`, `niklas-schmidt-dev/mobdev`, `blitzdotdev/iPhone-mcp`, `mharizanov/iphone-agent`, `phoneuse-official/phoneuse`, `appium/appium-mcp`, `leeguooooo/iphone-use`, `semsturgut/open-iphone-use`, `Derrors/iphone-control`, `ghosthand-dev/ghosthand`, `Array-Ventures/open-phone`, `mobiumdev/mobium`, `timurcatakli/thumbly`, `WaziXuan/iospilot`, `jkcoxson/devicehub_rs`, `carrotciallo/poki-for-linux`, `ipbtools/ipb`, `ChrisThoma/ios-device-mcp`, `UgeeCodes/iOS-agent-bridge`, `hughlee824/iphone-use` | Wrap a selected adapter behind narrow iGentic tools; host remains necessary. Existing MCP support helps packaging but does not confer ChatGPT publication eligibility. PolyForm/mixed/AGPL and private-API caveats remain as recorded above. |
+| Developer transport and QA infrastructure | `danielpaulus/go-ios`, `appium/WebDriverAgent`, `appium/appium`, `google/artemis` | Internal lab dependency or comparison; do not expose raw developer HTTP, shell or installation authority to ChatGPT. |
+| Phone-resident cross-app experiments | `JosssphZhou/poki`, `EliotAndres/iphone-use-app`, `Raynan00/cell-use`, `OpenMinis/iCTRL`, `LLLLLayer/Eiscue`, `Turbo1123/roubao` | Possible phone-side adapter, subject to actual detached-phone, background, signing and revocation tests. Developer services/private interfaces; no consumer App Store guarantee. Preserve individual license constraints. |
+| Hybrid phone/host agent products | `rounak/PhoneAgent`, `DIYgod/pinky`, `imsai-sh/fish-pocket` | Study session UX, gateway approval and handover; integrate the device boundary only. External model accounts and component licenses remain separate. |
+| Native agent/workspace products | `OpenMinis/OpenMinis`, `Jflick58/resident`, `cagataycali/loopl`, `sandeepvijayarao09/Anu-iOS`, `JiangNanGenius/floe-agent`, `meshoklv/pocket-agent`, `isaced/pokeet`, `dannote/pi-ios`, `off-grid-ai/OGAM`, `trufae/pmai`, `Maximoff19/makima`, `everettjf/dsh-ios` | Selected native capabilities can sit behind our tool contract. MCP clients inside these apps are not automatically MCP servers for ChatGPT. Reuse bounded context/diff/workspace patterns, not entire apps or direct model-to-write authority. |
+| Public action and shortcut bridges | `heznpc/AirMCP`, `truth0530/mcp-server-ios-shortcuts`, `VladUZH/intents-mcp`, `recursechat/mcp-server-apple-shortcuts` | Useful action-surface patterns; current Mac bridges do not magically run phone shortcuts remotely. Implement and verify our own native App Intent/foreground handoff. |
+| Simulator tooling | `mobile-dev-inc/Maestro`, `joshuayoes/ios-simulator-mcp`, `facebook/idb`, `minitap-ai/mobile-use` | Development/test plugin capabilities only, with simulator-labelled results. No physical-device promotion. |
+| Inference engines and provider adapters | `huggingface/AnyLanguageModel`, `ml-explore/mlx-swift`, `ml-explore/mlx-swift-lm`, `ml-explore/mlx-swift-examples`, `ggml-org/llama.cpp`, `mlc-ai/mlc-llm`, `huggingface/swift-transformers`, `pytorch/executorch`, `apple/coreai-models`, `anthropics/ClaudeForFoundationModels`, `no-problem-dev/swift-llm-local`, `pgorzelany/swift-llama-cpp`, `john-rocky/coreai-kit`, `simonmaddox/foundation-models-byo-model` | Optional native model component, not a remote-control plugin by itself. Start with existing Apple proposal path; add one measured provider only. Anthropic adapter is remote; model weights and transitive packages need separate admission. |
+| Speech and conversational audio | `ggml-org/whisper.cpp`, `soniqo/speech-swift`, `fikrikarim/volocal`, `FluidInference/FluidAudio`, `argmaxinc/argmax-oss-swift` | Optional local ASR/VAD/TTS inside companion app. FluidAudio ASR/VAD first candidate, Argmax comparison; microphone, German quality, interruption and model licensing must be tested. |
+| Harness, persistence and sandbox components | `finnvoor/PiDurableKit`, `Think-Define-Create/DurableAgents`, `AkinoKaede/AgentKit`, `apple/foundation-models-utilities`, `rudrankriyam/FoundationModelsAgent`, `christopherkarani/Swarm`, `SpaceCorps/open-apple-models`, `rryam/FoundationModelsKit`, `mzbac/SwiftAgent`, `sabby3861/Arbiter`, `dsaad68/deepagents-swift`, `Tom-Ryder/AgentRunKit`, `abra-code/mlx-agent`, `mweinbach/just-bash-swift` | Compare individual mechanisms: lazy discovery, context budgets, recovery, bounded virtual workspace. Retain iGentic policy and one-shot ledger; never import an alternative authority stack by default. |
+| Evaluation and GUI research | `zai-org/Open-AutoGLM`, `X-PLUG/MobileAgent`, `ljang0/iOSWorld`, `software-mansion/app-control-bench`, `ananasDDA/pocket-ai-lab`, `john-rocky/edge-llm-bench`, `Tongyi-MAI/MobileWorld`, `Tongyi-MAI/MAI-UI` | Test design and external baselines, not shipped tool authority; retain Android/simulator/physical and source-only distinctions. |
+| Model and local-app UX references | `john-rocky/coreai-model-zoo`, `a-ghorbani/pocketpal-ai`, `luckeyfaraday/local-models`, `JaviChulvi/hermit`, `Reezxy/Local-Ai-Vision-App`, `kilianbalaguer/Voltaire` | Study downloads, memory, RAG and multimodal UX. No need to ship these applications in our plugin; Voltaire restricted reuse remains excluded pending license clearance. |
+| Reverse-direction remote supervision | `pocketctl/pocketctl`, `K9i-0/ccpocket` | Phone controls a host agent. Useful pairing/progress/approval UX, but opposite direction from ChatGPT operating an iPhone. |
+| Out-of-target architecture references | `Kastarter/phone-agent`, `FluidInference/FluidUse` | ESP32 extra hardware and macOS Accessibility respectively; do not include as iPhone production backends. |
+
+Existing owner projects remain knowledge inputs rather than new runtime dependencies: the completion plan already assigns provenance/context to private-brain, execution practice to dev-playbook, fixed evaluation to slm-lab and evidence boundaries to regulation-lab. Mimi/CC Pocket/PocketCtl supervise a host from the phone; that reverse-direction workflow can inform pairing and approvals but does not supply ChatGPT-to-iPhone input.
+
+### What to combine first
+
+1. **iGentic** supplies the product authority, task receipts, native reminder path and verified outcomes.
+2. **Existing PhoneUse/WDA/ARTEMIS lane** supplies the cheapest initial lab adapter because setup and some historic device observations exist. Current WDA readiness is not assumed: the latest report records XCTest initialization failure. Recover once under a bounded diagnostic, then select a measured alternative if needed.
+3. **agent-device** is the preferred first alternative for a typed host adapter (current README documents CLI, stdio MCP and typed Node API). **Mobile MCP** is the comparison baseline for tool coverage and mirroring. Expose a small reviewed subset rather than their entire install/delete/clipboard/log catalogue. Do not run three drivers against one phone.
+4. **iCTRL** is the first phone-resident research candidate because source and limited authenticated device-info evidence already exist. **cell-use** is a separate iOS-27 transport alternative. Authenticated pairing is not per-action approval.
+5. **Pinky** contributes gateway enforcement and human takeover patterns; **ipb/Eiscue** contribute freshness and uncertain-result handling. Private-ABI, pre-alpha and license limits remain.
+6. **Resident + Pocket Agent** contribute selective context and immutable preview-before-write patterns. **FluidAudio** is the first later speech component, with Argmax as comparator; **Volocal** informs interruption UX after the documented concurrency/readiness defects are addressed.
+7. Keep Apple's current local proposal path for the native product. MLX/GGUF/Core AI is optional measured work; ChatGPT already supplies a planner for the plugin, so a second local planner is not a prerequisite.
+
+No third-party app is copied wholesale; there is one active backend per session and no silent driver/provider fallback. Unsupported capability returns a typed reason.
+
+### Proposed first tool surface and behavior
+
+These are design names, **not installed tools**:
+
+| Tool | Intended effect | Contract |
+| --- | --- | --- |
+| `iphone_list_devices` | Return only paired, account-authorized device aliases and availability | No raw UDID/serial, installed-app inventory or personal names by default |
+| `iphone_get_capabilities` | Describe actual backend/mode, observed readiness and restrictions | Separate supported, configured and verified; never infer readiness from installation |
+| `iphone_start_session` | Acquire a short scoped session/lease | State-changing; bind account, device, allowed app, scope, expiry and explicit capture consent |
+| `iphone_observe` | Obtain permitted structured app state; screenshot only when in scope | Bound freshness, orientation/app/session; content remains untrusted and minimized |
+| `iphone_prepare_action` | Create immutable typed action preview | No device mutation; persisted task/approval state is still state-changing metadata |
+| `iphone_execute_action` | Execute the exact approved proposal once | Resolve receipt on trusted executor; caller cannot supply `approved=true`; bind target/payload/expiry |
+| `iphone_get_action_result` | Read receipt and independently checked outcome | Dispatch accepted is not success; no broad personal-data enumeration |
+| `iphone_stop_session` | Cancel pending work and invalidate lease | Idempotent stop; cannot undo an already dispatched effect; reconcile unknown outcomes |
+
+First action: open/navigate within our signed synthetic Diagnostics app and verify a unique nonpersonal marker. Avoid arbitrary coordinate tap/type, shell, free-form RPC, unrestricted URLs, app uninstall, pairing export and permission changes in the initial catalogue. Add typed UI actions only with observation freshness, target checking and a policy that acknowledges ambiguous semantic effects; a “Send” label detector is not an authorization system.
+
+Later native reminder handoff: ChatGPT prepares the structured draft; the phone displays exact title/time/list, the person approves on the phone, and the existing EventKit workflow writes/readbacks. This requires a new transport integration. The prior approval for **one** test reminder is not permission to generate another reminder during plugin development.
+
+MCP annotations must reflect actual behavior: starting a session, creating a persisted proposal or launching an app changes state. Reading screen data can still be privacy-sensitive. Annotations guide the client but never enforce server authorization. Task/receipt references returned to the model must be minimal, account-scoped and non-secret; approval secrets and pairing keys never appear in tool outputs or UI metadata.
+
+### Concrete implementation order and acceptance
+
+| Slice | Deliverable | Acceptance before promotion |
+| --- | --- | --- |
+| 1. Private desktop contract | Plugin package + MCP server with fake device backend; existing policy adapter boundary | MCP initialize/list/call; strict schemas; unknown tools denied; wrong identity/scope, replay, expiry, cancellation and unknown-outcome tests; no device access by default |
+| 2. First real device path | Exactly one existing/pinned host backend, initially read-only and own-app scoped | Real ChatGPT/Codex invocation to physical phone; observed marker and independent result; unplug/lock/driver failure returns unavailable; stop releases lease/processes |
+| 3. Native useful task | Foreground companion handoff to existing reminder proposal/approval/writer | Draft received unchanged; denial/changed/expired receipt causes zero writes; separately approved single synthetic write/readback; process death never replays a possible write |
+| 4. Private remote access | OAuth/device-bound service or eligible Secure MCP Tunnel; no raw WDA/iCTRL exposure | Real end-to-end remote call; cross-account/device isolation, token revocation, disconnect, duplicate delivery, app suspension, egress and retention checks |
+| 5. Product UI and distribution | MCP Apps device/task card, pairing/stop/recovery UX; consumer companion and developer lab clearly separated | Clean installation, accessibility/localization, publishing eligibility, dependency/license review, privacy policy and reproducible reviewer demo on supported surfaces |
+| 6. Optional capabilities | Voice, selected workspace tools, stronger local runtime, detached-phone experiment | Per-capability physical evidence, resource budget and adversarial cases; no automatic authority expansion |
+
+The first prototype can use stdio/local test tooling without an extra model API call. Public operation may require hosting, maintenance, a developer distribution account and current platform entitlements. Do not advertise permanent zero cost: exact provider costs/quotas are unverified. No paid service, cloud inference fallback, additional local model or billing activation is part of this decision.
+
+**Required fault cases:** stale observation after rotation/app switch; indirect prompt injection in UI text; changed payload after approval; double submission; receipt expiry; concurrent clients; signing expiry; connection loss before versus after dispatch; offline/suspended companion; stop during inference/action; wrong tenant/device; revoked credentials; permission denied; unavailable model; incomplete capture/redaction. Unknown effect must be reconciled, never automatically retried through another backend. Readiness is per capability and mode, not a single global “connected” flag.
+
+**Current evidence limits:** the latest physical report contains successful signed native app/model probes and one earlier manual approved reminder write/readback; German model results varied and no overall reliability score is established. iCTRL device-info/config checks are not general touch-control evidence; WDA has both historical navigation evidence and a newer initialization failure. No ChatGPT-to-iPhone plugin call, network approval bridge, remote companion, public submission, sustained screen stream, Mac-detached control or full lifecycle acceptance was executed in this assessment.
+
+**Next causal implementation:** build slice 1 and then prove one harmless physical task through the intended plugin path. Keep existing feature PR #390 and research PR #379 unmerged; this source assessment adds no device permissions or execution authority.
