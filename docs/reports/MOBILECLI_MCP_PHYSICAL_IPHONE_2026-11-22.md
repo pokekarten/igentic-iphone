@@ -71,3 +71,46 @@ For read-only UI validation, launch a known synthetic lab app first and capture 
 5. If MobileCLI is removed later, restore and test WebDriverAgent from the local recovery archive, **after** making space under the free developer-app limit.
 
 Upstream: [MobileCLI](https://github.com/mobile-next/mobilecli), [Mobile-MCP](https://github.com/mobile-next/mobile-mcp), [iCTRL](https://github.com/OpenMinis/iCTRL), [WebDriverAgent](https://github.com/appium/WebDriverAgent).
+
+## 2026-11-22 follow-up: privacy-safe network discovery gate
+
+The Mac was online for this separate live check, but CoreDevice reported the
+registered physical iPhone as paired and **unavailable**; MobileCLI returned an
+empty device list. The current cable state could not be independently confirmed,
+so these observations are **not** a verified unplugged WLAN test, and they do
+not prove or disprove successful later wireless operation.
+
+The repository now has a read-only, identifier-free probe:
+
+    python3 scripts/iphone_wireless_readiness.py
+
+For a fail-closed operator gate:
+
+    python3 scripts/iphone_wireless_readiness.py --require-wireless-candidate
+
+The second command returns exit code 2 unless Xcode sees a real iOS device on
+localNetwork with an available tunnel **and** MobileCLI discovers a real iOS
+device. Even when it succeeds, this is merely a *discovery candidate*; it is
+not a screen-control or same-device identity proof. The command performs no
+installs, pairing, relaunch, screenshot, touch, profile edits or network writes.
+It uses a preinstalled MobileCLI or a local/offline npm cache, with no package
+download. Neither output nor unit fixtures contain real device identifiers.
+
+Validation on MacBook Neo: five deterministic Python unit tests passed;
+python3 scripts/validate_repo_structure.py passed. Live probe:
+physical_registered=true, physical_paired=true,
+physical_network_transport=false, physical_tunnel_available=false,
+mobilecli_real_discovered=false, wireless_discovery_candidate=false;
+the strict gate returned 2 as designed.
+
+**Next manual device step:** ensure Mac and iPhone can reach each other on a
+compatible local network. Use Xcode 27 Device Hub's wireless pairing capability
+for iOS 27, unlock the phone, explicitly remove USB-C, and rerun the strict
+discovery gate. Then separately authorize a bounded local-only synthetic-app
+accessibility/UI test without the cable, including independent post-action
+verification. Only after that can we claim WLAN screen control.
+
+Sources:
+- Apple Device Hub: https://developer.apple.com/documentation/xcode/managing-your-simulated-and-physical-devices-in-device-hub
+- Mobile MCP WLAN transport caveat: https://github.com/mobile-next/mobile-mcp/issues/483
+- MobileCLI device-agent WLAN tunnel caveat: https://github.com/mobile-next/mobilecli/issues/487
