@@ -114,3 +114,18 @@ Sources:
 - Apple Device Hub: https://developer.apple.com/documentation/xcode/managing-your-simulated-and-physical-devices-in-device-hub
 - Mobile MCP WLAN transport caveat: https://github.com/mobile-next/mobile-mcp/issues/483
 - MobileCLI device-agent WLAN tunnel caveat: https://github.com/mobile-next/mobilecli/issues/487
+
+## ChatGPT -> Remote Desktop Commander -> Mobile MCP transport smoke
+
+A separate ChatGPT-invoked Mac process started the locally cached Mobile MCP
+v1.0.18 server using JSON-RPC over stdio with telemetry disabled. The MCP
+initialize handshake succeeded; tools/list exposed 35 tools, including
+mobile_list_available_devices; a call to that device-discovery tool returned
+successfully at the protocol level. The physical iPhone was **not** connected
+at the time. This establishes MCP transport from the ChatGPT-driven Mac
+session, **not** control of the device itself. Nothing was installed, tapped,
+read from personal apps, or exposed as a public network server.
+
+Next gate remains real physical iPhone discovery over WLAN followed by
+permissioned synthetic-app interaction. No local MCP command should be
+mistaken for a ChatGPT-hosted iPhone connector or a Mac-free solution.
