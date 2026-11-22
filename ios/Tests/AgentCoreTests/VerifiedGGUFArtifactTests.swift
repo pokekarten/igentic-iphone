@@ -43,13 +43,15 @@ final class VerifiedGGUFArtifactTests: XCTestCase {
 
     func testRejectsNestedAndOversizedManifest() {
         let sha = String(repeating: "0", count: 64)
-        let valid = String(data: makeManifest(sha: sha, size: 10), encoding: .utf8)!
-        let nested = valid.replacingOccurrences(
-            of: "\"model_id\":\"fixture/qwen-class\"",
-            with: "\"model_id\":{\"value\":\"fixture/qwen-class\"}"
-        )
+        // Construct an actually nested object instead of relying on
+        // JSONSerialization's platform-dependent colon whitespace.
+        var nestedPayload = try! JSONSerialization.jsonObject(
+            with: makeManifest(sha: sha, size: 10)
+        ) as! [String: Any]
+        nestedPayload["model_id"] = ["value": "fixture/qwen-class"]
+        let nested = try! JSONSerialization.data(withJSONObject: nestedPayload, options: [.sortedKeys])
         XCTAssertEqual(
-            VerifiedGGUFArtifact.verify(manifestData: Data(nested.utf8), directoryURL: FileManager.default.temporaryDirectory),
+            VerifiedGGUFArtifact.verify(manifestData: nested, directoryURL: FileManager.default.temporaryDirectory),
             .failure(.invalidManifest)
         )
         XCTAssertEqual(
