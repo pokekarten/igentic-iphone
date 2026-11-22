@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, writeFile, rm, chmod } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { loadConfig, MobileBackend, hasUsablePhysicalTunnel, physicalConnectionState } from '../src/backend.mjs';
+import { loadConfig, MobileBackend, hasUsablePhysicalTunnel, physicalConnectionState, discoveryControlRef } from '../src/backend.mjs';
 import { run } from '../src/process.mjs';
 
 test('unconfigured physical mode never silently falls back to fixture', async () => {
@@ -92,5 +92,35 @@ test('connection diagnostics emit fixed codes and never device metadata', () => 
     assert.match(code, /^[a-z-]+$/);
     assert.ok(!code.includes('DO-NOT-REVEAL'));
     assert.ok(!code.includes('secret-transport'));
+  }
+});
+
+test('bounded discovery selector accepts an exact SwiftUI Link or Button only', () => {
+  const labelLink = { type: 'Link', label: 'Open local discovery', ref: '@e12', enabled: true };
+  const nativeLink = { type: 'XCUIElementTypeLink',
+    identifier: 'igentic-open-local-discovery', label: 'Localized discovery', ref: 'e9' };
+  const button = { type: 'button', label: 'Open local discovery', ref: 'e8' };
+  assert.equal(discoveryControlRef([{ children: [labelLink] }]), '@e12');
+  assert.equal(discoveryControlRef([nativeLink]), 'e9');
+  assert.equal(discoveryControlRef([button]), 'e8');
+});
+
+test('discovery selector fails closed on wrong, disabled, duplicate or oversized elements', () => {
+  const valid = { type: 'Link', identifier: 'igentic-open-local-discovery',
+    label: 'Open local discovery', ref: '@e11' };
+  const rejected = [
+    [],
+    null,
+    [{ ...valid, enabled: false }],
+    [{ ...valid, type: 'StaticText' }],
+    [{ ...valid, label: 'Other app', identifier: 'unknown' }],
+    [{ ...valid, ref: '0; send message' }],
+    [valid, { ...valid, ref: 'e13' }],
+    [{ children: 'unexpected-private-payload' }],
+    [{ ...valid, children: [valid] }],
+    [{ children: Array.from({ length: 3001 }, () => ({ type: 'StaticText' })) }],
+  ];
+  for (const tree of rejected) {
+    assert.throws(() => discoveryControlRef(tree), /navigationTargetUnavailable/);
   }
 });
