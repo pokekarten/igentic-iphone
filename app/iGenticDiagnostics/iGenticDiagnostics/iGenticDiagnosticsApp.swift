@@ -58,14 +58,14 @@ struct iGenticDiagnosticsApp: App {
                     return
                 }
                 physicalProbeStatus = "PHYSICAL_MODEL_PROBE=running"
-                let result = await ReminderDraftProposalService().propose(
+                let assessment = await ReminderDraftProposalService().assess(
                     instruction: prompt,
                     trustedDataClassification: DataClassification(
                         level: .contextualPrivateData,
                         reason: "Fixed synthetic physical-device model fixture."
                     )
                 )
-                switch result {
+                switch assessment.outcome {
                 case .proposed(let proposal):
                     let zone = TimeZone.current.identifier
                     var calendar = Calendar(identifier: .gregorian)
@@ -88,6 +88,9 @@ struct iGenticDiagnosticsApp: App {
                 case .generationFailed: physicalProbeStatus = "PHYSICAL_MODEL_PROBE=generationFailed; writeAttempted=false"
                 case .unsupportedAction: physicalProbeStatus = "PHYSICAL_MODEL_PROBE=unsupportedAction; writeAttempted=false"
                 case .invalidProposal: physicalProbeStatus = "PHYSICAL_MODEL_PROBE=invalidProposal; writeAttempted=false"
+                }
+                if let reason = assessment.rejectionReason {
+                    physicalProbeStatus += "; rejectionReason=\(reason.rawValue)"
                 }
                 #if DEBUG
                 // Explicit fixed-fixture probe only: no prompt, generated text,
