@@ -88,9 +88,14 @@ def preflight() -> tuple[list[Check], dict[str, str]]:
     try:
         memory = int(run_capture(["sysctl", "-n", "hw.memsize"]))
         info["ram_gib"] = f"{memory / GIB:.1f}"
-        checks.append(Check("RAM >= 8 GiB", memory >= 8 * GIB, info["ram_gib"] + " GiB"))
+        # The unsigned compile smoke does not load model weights. Hosted
+        # Xcode 27 runners may expose 7 GiB; reserve stricter RAM assessment
+        # for a separate, opt-in local model inference acceptance run.
+        checks.append(Check("Build host RAM >= 7 GiB", memory >= 7 * GIB, info["ram_gib"] + " GiB"))
+        if memory < 8 * GIB:
+            print("NOTE: below 8 GiB RAM; local model inference readiness NOT assessed")
     except (ValueError, RuntimeError) as error:
-        checks.append(Check("RAM >= 8 GiB", False, type(error).__name__))
+        checks.append(Check("Build host RAM >= 7 GiB", False, type(error).__name__))
 
     free = shutil.disk_usage(ROOT).free
     info["free_disk_gib"] = f"{free / GIB:.1f}"

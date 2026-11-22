@@ -65,6 +65,27 @@ class MacOpenWeightsTest(unittest.TestCase):
         self.assertEqual(len(checks), 2)
         self.assertFalse(all(x.ok for x in checks))
 
+    def test_hosted_7_gib_build_host_is_not_inference_proof(self) -> None:
+        from types import SimpleNamespace
+        outputs = {
+            "xcodebuild": "Xcode 27.1\\nBuild version C",
+            "swift": "Apple Swift version 6.4.2",
+            "xcrun": "27.1",
+            "sysctl": str(7 * mod.GIB),
+        }
+        def fake_capture(argv: list[str]) -> str:
+            return outputs[argv[0]].replace("\\n", "\n")
+
+        with patch.object(mod.platform, "system", return_value="Darwin"), \
+             patch.object(mod.platform, "machine", return_value="arm64"), \
+             patch.object(mod.platform, "mac_ver", return_value=("27.0.1", ("", "", ""), "")), \
+             patch.object(mod, "run_capture", side_effect=fake_capture), \
+             patch.object(mod.shutil, "disk_usage", return_value=SimpleNamespace(free=6 * mod.GIB)):
+            checks, info = mod.preflight()
+        self.assertTrue(all(c.ok for c in checks), checks)
+        self.assertEqual(info["ram_gib"], "7.0")
+        self.assertIn("Build host RAM >= 7 GiB", [c.label for c in checks])
+
     def test_no_model_execution_is_in_plan(self) -> None:
         for phase in ("preflight", "build", "simulator"):
             commands = [a for argv, _ in mod.command_plan(phase, Path("/tmp/probe"))

@@ -4,7 +4,7 @@
 
 ## Start on the owner Mac
 
-**Prerequisites:** Mac reachable, terminal with cloned iGentic checkout, Xcode **27** active, Swift compiler **6.4 or newer** (required by iOS27 SwiftLlama bridge), iOS 27 SDK, Apple Silicon, at least 8 GiB RAM and 5 GiB disk free. Do **not** replace the owner's existing checkout, reset working changes, or install dependencies automatically.
+**Prerequisites:** Mac reachable, terminal with cloned iGentic checkout, Xcode **27** active, Swift compiler **6.4 or newer** (required by iOS27 SwiftLlama bridge), iOS 27 SDK, Apple Silicon, at least 7 GiB RAM for this **unsigned compile-only smoke**, and 5 GiB disk free. Below 8 GiB the preflight prints a warning; no model-inference readiness is inferred. Do **not** replace the owner's existing checkout, reset working changes, or install dependencies automatically.
 
 From the repository root, with the exact iOS27 test branch checked out:
 
@@ -37,7 +37,7 @@ This builds again, installs the already unsigned `iGenticDiagnostics` target, la
 
 | Gate | Evidence expected | Stop condition |
 | --- | --- | --- |
-| Mac hardware | Apple silicon arm64, >=8 GiB RAM, >=5 GiB free disk | Any missing resource |
+| Mac build host | Apple silicon arm64, >=7 GiB RAM, >=5 GiB free disk; below 8 GiB warns that model inference is not assessed | Any missing build resource |
 | SDK/compiler | Xcode 27+, iOS27 SDK, Swift 6.4+ | Anything earlier (Xcode26/Swift6.2 not enough for SwiftLlama's native 27 bridge) |
 | Existing policy regressions | `validate_repo_structure`, `validate_ios27_baseline`, unit tests | Any failure |
 | iGentic package | `swift build`, `swift test` in ios/ | Any compile/test failure |
@@ -45,7 +45,7 @@ This builds again, installs the already unsigned `iGenticDiagnostics` target, la
 | Simulator (explicit) | iOS27 device install, screenshot and relaunch | Missing simulator or any smoke failure |
 | Open-weight inference | **NOT COVERED YET** | No weights/adapters integrated in this test |
 | Physical iPhone inference | **NOT COVERED YET** | Must test signed application on device |
-| Security | Draft [iOS27 PR #389](https://github.com/pokekarten/igentic-iphone/pull/389) has a failed CodeQL check | Do not merge until investigated |
+| Security | Review the exact-head CodeQL and GitHub admission checks on [iOS27 PR #389](https://github.com/pokekarten/igentic-iphone/pull/389); historical failed checks do not override newer runs | Do not merge until required current checks and security review pass |
 
 This script makes **no** external model or package downloads itself. The checked iGentic `ios/Package.swift` has only internal library targets; Swift/Xcode's normal package resolution is outside the script's explicit control, so do not interpret a generic SwiftPM network promise as a verified firewall-level guarantee.
 
