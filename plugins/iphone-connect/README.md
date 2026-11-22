@@ -22,6 +22,22 @@ roadmap in the [research atlas on Draft PR #379](https://github.com/pokekarten/i
   1.0.24. The MobileCLI binary and developer runner are not bundled. Inspect its
   FSL-1.1-ALv2 terms before redistributing or commercializing a dependent product.
 
+### Cellular and VPN are not device-control transports
+
+Tailscale can create a private IP path between enrolled devices over mobile data,
+but installing it does **not** make an iPhone reachable through Xcode CoreDevice,
+MobileCLI or this local MCP plugin. The existing physical backend requires a
+currently usable, paired **physical** CoreDevice tunnel on the Mac. Its read-only
+discovery rejects simulators, remembered-only pairings and stale USB transport
+metadata whenever the reported tunnel is unavailable or disconnected.
+
+Do not claim a 5G remote-control test from Tailscale login, an IP address or VPN
+connectivity alone. A future cellular-native companion must expose only explicitly
+approved app-owned actions, use authenticated outbound communication with bounded
+lifetimes and demonstrate its actual foreground/background lifecycle on the
+physical phone. No public listener, generic iOS shell, cross-app automation or
+unattended system-setting control is provided by this release.
+
 From this directory:
 
 ```sh

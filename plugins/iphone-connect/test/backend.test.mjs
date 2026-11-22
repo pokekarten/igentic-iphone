@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, writeFile, rm, chmod } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { loadConfig, MobileBackend } from '../src/backend.mjs';
+import { loadConfig, MobileBackend, hasUsablePhysicalTunnel } from '../src/backend.mjs';
 import { run } from '../src/process.mjs';
 
 test('unconfigured physical mode never silently falls back to fixture', async () => {
@@ -39,4 +39,21 @@ test('actual Swift policy helper allows only fixed public read/prepare operation
   }
   const denied = JSON.parse(await run(path, ['send-message']));
   assert.equal(denied.allowed, false);
+});
+
+test('only an actively paired physical Xcode tunnel is considered available', () => {
+  const fixture = (reality, tunnelState, pairingState = 'paired', transportType = 'wired') => ({
+    hardwareProperties: { reality },
+    connectionProperties: { tunnelState, pairingState, transportType }
+  });
+  for (const state of ['connected', 'available']) {
+    assert.equal(hasUsablePhysicalTunnel(fixture('physical', state)), true);
+    assert.equal(hasUsablePhysicalTunnel(fixture('simulated', state)), false);
+  }
+  for (const state of ['unavailable', 'disconnected', 'connecting', undefined]) {
+    assert.equal(hasUsablePhysicalTunnel(fixture('physical', state)), false,
+      `stale wired transport with ${state} tunnel must be rejected`);
+  }
+  assert.equal(hasUsablePhysicalTunnel(fixture('physical', 'connected', 'unpaired')), false);
+  assert.equal(hasUsablePhysicalTunnel(null), false);
 });
