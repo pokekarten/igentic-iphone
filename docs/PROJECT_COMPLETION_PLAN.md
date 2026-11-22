@@ -1,746 +1,191 @@
 # iGentic Project Completion Plan
 
-Status: canonical completion plan
-Date: 2026-08-17
-Scope: `pokekarten/igentic-iphone`
+Status: canonical product and implementation plan; proposed capabilities are not completion claims.
+Updated: 2026-11-22.
+Scope: `pokekarten/igentic-iphone`, physical iPhone Air and optional trusted Mac.
 
-## 1. Purpose
+This refresh replaces the 2026-08-17 execution sequence using current source inspection and physical-device evidence. The older plan remains in Git history. Existing safety and immutable benchmark contracts still apply; this document grants no additional permissions. Current `AGENTS.md` governs engineering workflow.
 
-This document turns the existing roadmap, safety contracts, implementation state, research tracks and open issue backlog into one executable path from the current early-stage diagnostic shell to a finished, publishable research prototype.
+## 1. Product decision
 
-The plan is intentionally designed so that AI agents can execute the engineering cycle through GitHub, CI and repository tooling wherever repository evidence is sufficient. Human/Ben involvement is reserved for late-boundary owner actions the repository cannot manufacture on its own: physical iPhone access, Apple signing/provisioning, legal/licence acceptance, or an explicitly owner-bound product decision.
+Build a task assistant whose authority stays on the iPhone. The useful unit is a completed, independently checked task, not a chat answer or an installed model. “Agentic First” means the user can express an outcome, inspect the proposed change, grant any required approval, and receive an honest result with a way to recover from interruption.
 
-This is a completion plan, not permission to bypass existing issue scope. Every implementation slice still requires a source-backed GitHub issue, an allowlist, tests, review and current-head CI evidence.
+The first product should be a native iPhone app that works for a small set of useful tasks without a Mac. A trusted Mac is optional capacity. Developer automation is a separate testing facility. Extra runtimes, cloud providers and broader device control are later options justified by measured shortcomings.
 
-## 2. Source of truth and current baseline
+A target interaction is: “Remind me tomorrow at 18:00 to water the plant.” iGentic resolves the local date/time and ambiguity, shows the exact title/time/list, obtains required approval, writes once, reads the created record back and shows the verified result. Until the writer and readback exist, the interface must call this a **preview**, never a completed reminder.
 
-The execution order remains:
+## 2. What we actually have
 
-1. current GitHub repository/issue/PR/check state;
-2. durable contracts in this repository;
-3. private operating routing when an authorized automation lane uses it;
-4. prior memory;
-5. assumptions.
+See the [physical validation report](reports/iphone-air-validation-2026-11-22.md) for exact revisions, devices, tests, limitations and follow-up results. See the [technical reassessment](research/TECHNICAL_REASSESSMENT_2026_11_21.md) for the broader source review and the [project atlas](research/IPHONE_AGENT_PROJECT_ATLAS.md) for alternatives.
 
-Never revive a closed issue or infer completion from stale documentation.
+At the start of this refresh:
 
-The 2026-08-17 audit refresh establishes:
+- The canonical checkout was PR #379 head `c2f97cde`; fetched `origin/main` was `0bb24b75`. Open PRs #378–#388 were inventoried. An open PR is not shipped functionality.
+- An isolated local integration of #384 and #380 includes the proposal gate, Apple preview adapter, host probe and read-only App Intent. It is a different source input from `main` and the documentation checkout.
+- Baseline host evidence: 100 Python script tests and 288 Swift tests passed. The integrated input passed 305 Swift tests and six Python tests.
+- The signed diagnostic app installed and ran on the physical iPhone. Synthetic approval/rejection/cancellation, Explore search, scrolling and relaunch were exercised. Approval did not execute an action.
+- A fixed Apple-model reminder probe passed on the Mac but returned `blocked/unknownAction` on all three initial iPhone attempts. This is a functional failure and a successful rejection boundary. The follow-up report records the constrained-generation experiment separately.
+- Follow-up: schema-constrained action names produced the expected gate category in eight supported DE/EN attempts, but one unsupported wallpaper request was incorrectly mapped to diagnostics. No action executed; raw title correctness remains unmeasured. Intent selection and abstention are still open.
+- The manual EventKit reminder flow has a separate signed physical happy-path result: exactly one user-approved synthetic item was written once and read back by its returned identifier. It did not require or test model inference.
+- A reminder-specific Apple system-model path now exists locally in the isolated integration checkout: short user-entered text is sent only to the on-device system model with no tools, then an allowlisted action/title and strict Gregorian local date are validated into an editable draft. The model cannot write or approve. Host tests and the iOS SDK build pass; a synthetic Mac inference reached a component-matched draft on the final measured attempt, while one ambiguous and one unsupported prompt abstained in separate probes.
+- The current iPhone is paired and available, but this Mac's Xcode build cannot sign the updated app at present: the selected development team has no Xcode account session and no matching local provisioning profile. The already-installed iGentic app was left untouched; this model path has not yet been installed or exercised on the phone.
+- The integrated simulator build passed, but simulator runtime attempts failed. Siri/Shortcuts invocation, private-content processing, real reminder writing, background recovery, voice accessibility, energy and sustained inference have not passed device acceptance.
+- PhoneUse/WDA provided deterministic test navigation. Minis reached provider onboarding; Mimi reached pairing. Neither is evidence of a functioning iGentic runtime or an authenticated end-to-end assistant session.
 
-- `main` is public and the repository is still an experimental/research prototype.
-- The architecture already contains `AgentKernel`, `PolicyEngine`, `ApprovalManager`, `ApprovalReceipt`, `TaskRouter`, `AuditLog`, `SensitiveDataDetector`, `DelegationBroker`, `ToolRegistry`, `MemoryStore`, `RuntimeBudget`, `RuntimeBudgetAssessor`, `LocalModelRuntime`, `ModelSelectionEngine`, synthetic scenarios and a diagnostic SwiftUI shell.
-- The current validated repository baseline passes `python3 scripts/validate_repo_structure.py`, `cd ios && swift test` with 226 tests and 0 failures, and `cd ios && swift build` on the available Linux host. This is host evidence, not physical-iPhone evidence.
-- Current GitHub `main` has no open implementation PR. The autonomy protocol is therefore a control mechanism, not evidence that an autonomous cycle is currently active.
-- The diagnostic path is intentionally synthetic/read-only; there is no real App Intents execution, provider execution or committed model weights.
-- `ApprovalReceipt` is already a live `AgentKernel` response contract.
-- Effective data classification is shared across kernel, diagnostic snapshot and app-action coordination.
-- `AppActionCoordinator` preserves `PolicyEngine.requiresApproval` as a non-lowerable safety floor: local AppAction configuration may add approval but cannot waive core policy approval (#291, merged via #294).
-- `RuntimeBudgetAssessor` exists as a deterministic producer and is still not authoritative over routing.
-- `MemoryStore` remains a deliberate pre-integration stub.
-- `ToolRegistry` now has the bounded Phase 1 read-only `AgentKernel` integration: optional dependency plus count-only audit snapshot; no selection or execution path.
-- Model selection is deterministic and diagnostic-only, with the smaller request shape documented in the current spec.
+The product remains an experimental diagnostic prototype. There is enough evidence to choose and implement the next product slice; there is not enough to call it production-ready.
 
-## 3. Definition of project completion
-
-The project is considered complete when all of the following are true:
-
-### Safety
-
-- Deterministic policy remains authoritative over every model proposal.
-- Approval is explicit, exact-draft-bound and invalidated by target/payload/risk changes.
-- Restricted sensitive data cannot be automatically delegated externally.
-- No model can authorize itself, execute a tool by implication, or bypass the kernel.
-- Audit output is metadata-minimized and does not expose raw private task content.
-- Failure, cancellation, stale approval and missing approval produce no external side effect.
-
-### Product/runtime
-
-- The kernel has clear, tested boundaries for tools, memory, runtime budgets and model selection.
-- The first runtime adapter is behind a stable protocol and can be removed without changing policy code.
-- At least one local model/runtime path is evaluated with immutable benchmark evidence.
-- App-action flow is draft-first and safe; any real side-effecting capability remains separately scoped and explicitly approved.
-- Controlled delegation, if included, is minimized, policy-gated, approval-gated where required, auditable and result-verified.
-
-### Evidence
-
-- Host/simulator, runtime and physical-device evidence are kept distinct.
-- A physical-device report exists for every claim made about iPhone Air execution or performance.
-- Model claims cite exact model revisions, runtime revisions, templates and licences.
-- Benchmark data is immutable and isolated from training data.
-
-### Release
-
-- CI is green on the release commit.
-- Security/privacy checks pass.
-- Documentation matches implementation.
-- No secrets, signing files, private identifiers, model weights or unreviewed experiment dumps are committed.
-- A reproducible tagged release can be built and its limitations are clearly stated.
-
-## 4. Critical path
-
-The shortest safe path is:
+## 3. Architecture and authority
 
 ```text
-Baseline reconciliation
-  -> architecture gates closed
-  -> kernel boundary hardening
-  -> diagnostic shell truthfulness/completeness
-  -> runtime benchmark + adapter
-  -> safe action demo
-  -> controlled delegation (only if justified)
-  -> physical-device evidence
-  -> release hardening
-  -> tagged research release
+User / explicit share / App Intent / Shortcut / Widget
+                         |
+            Task record + trusted input classification
+                         |
+       Deterministic parsing or local model proposal
+                         |
+          Typed capability + argument validation
+                         |
+   AgentKernel / PolicyEngine / exact-draft approval
+                         |
+     Local executor OR approved bounded Mac request
+                         |
+        Independent result readback / verification
+                         |
+     Verified result OR explicit uncertain/failed state
+
+Metadata audit accompanies transitions. It is not an execution permission.
 ```
 
-The following tracks may run in parallel when they do not create a second active implementation PR:
+Models propose values; Swift code decides whether they may become an action. A generated action name must be constrained by schema and independently checked by the gate. A constrained schema improves format reliability; it does not establish correct intent, valid authorization or successful execution.
 
-- model research/evaluation;
-- Explore/discovery content;
-- community/brand documentation;
-- CoreML feasibility research;
-- release-documentation preparation.
+Reuse `AgentKernel`, `PolicyEngine`, `ApprovalManager`, `ApprovalReceipt`, `AuditLog`, `TaskRouter` and the existing app-action contracts. Extend them for one real capability before adding general orchestration layers. `ToolRegistry` metadata, model-selection diagnostics and budget estimates do not gain execution authority by appearing in the UI.
 
-They must never outrank a blocking safety/architecture gate on the critical path.
+Every executable capability needs: typed input, declared data access, risk, supported platform, preconditions, required permission, approval binding, timeout/cancellation rules, idempotency strategy and a verifiable result. Read-only diagnostics is a suitable integration test; it is not a substitute for a useful task.
 
-## 5. Phase 0 — Reconcile the control plane
+## 4. First three user workflows
 
-**Goal:** remove stale status and establish one machine-readable completion target.
-
-### AI-owned work
-
-1. Verify `main`, open issues, closed issues, recent merges and required workflows.
-2. Reconcile `docs/reports/issue-status-matrix.md` with current GitHub state.
-3. Reconcile stale issue text, especially #185, with current `AppActionCoordinator` behavior.
-4. Keep `PROJECT_STATE.md` durable rather than turning it into mutable task routing.
-5. Maintain this completion plan as the canonical end-to-end direction.
-6. For each next slice, create or update one narrowly scoped issue with explicit allowed files, acceptance criteria, validation and stop rules.
-
-### Exit gate
-
-- Exactly one active implementation target exists.
-- No stale closed target is selected.
-- The next issue is source-backed and small enough for one PR.
-
-### Human needed?
-
-No.
-
-## 6. Phase 1 — Close architecture decision gates
-
-**Goal:** eliminate ambiguous pre-integration stubs before adding real runtime capability.
-
-### 1A. MemoryStore decision and implementation
-
-Issues: #120 / #142.
-
-First produce the final classification/retention decision. It must answer:
-
-- classification at write time;
-- whether `MemoryEntry` stores sensitivity metadata;
-- storage rejection threshold;
-- session/task isolation;
-- retention/deletion behavior;
-- audit expectations;
-- tests for every threshold and scope boundary.
-
-Then implement the smallest safe memory slice. Do not add broad persistence. Keep values scoped, deletable and non-authoritative. Sensitive memory must never silently become a delegation permission.
-
-**AI:** design, code, tests, review, CI, docs.
-
-**Ben:** not required unless a product policy question remains unresolved after the design evidence is assembled.
-
-### 1B. ToolRegistry integration boundary
-
-Issues: #137 and #121 — **completed**.
-
-The boundary is now implemented as a read-only diagnostic dependency:
-
-- `AgentKernel` accepts optional `toolRegistry: ToolRegistry?`;
-- `handle()` emits one count-only registry snapshot when present;
-- routing and approval behavior remain unchanged;
-- no tool selection, invocation, App Intents or dynamic authorization was added;
-- `AgentKernelToolRegistryWiringTests` pins present/absent registry behavior and metadata minimization.
-
-Any future tool-selection or execution capability requires a separate design issue.
-
-**AI:** all repository work.
-
-**Ben:** no.
-
-### 1C. RuntimeBudget boundary
-
-Issue #181 — **completed**.
-
-`RuntimeBudgetAssessor` is deterministic and non-authoritative. Keep budget estimation non-blocking until a dedicated policy decision exists.
-
-**AI:** all repository work.
-
-**Ben:** no.
-
-### 1D. Model-selection decision trace
-
-Issues #144–#149 — **completed**.
-
-The completed diagnostic-only lane now includes:
-
-- a documented trace schema and vocabulary;
-- deterministic trace value types and generator;
-- surviving and rejected candidates with hard-constraint reasons;
-- weighted score components, tie-break reason and fallback reason;
-- a compact synthetic/read-only diagnostics panel;
-- regression coverage for generated and rendered trace labels.
-
-Keep the trace diagnostic-only. It must never become policy authority or evidence of live model execution.
-
-**AI:** all repository work.
-
-**Ben:** no.
-
-### Phase 1 exit gate
-
-- Memory classification/retention is decided and tested.
-- ToolRegistry boundary is decided and metadata integration is tested.
-- RuntimeBudget estimation is deterministic and tested.
-- Model-selection trace is deterministic, rendered, tested and diagnostic-only.
-- The full Swift suite remains green after each slice; the 2026-08-17 baseline is 226 tests with 0 failures.
-
-## 7. Phase 2 — Make the kernel production-shaped without making it autonomous
-
-**Goal:** turn the current safety components into one coherent, testable control plane while still keeping real side effects disabled.
-
-### Required work
-
-1. Define one canonical task lifecycle:
-
-```text
-input
--> sensitive-data detection
--> effective classification
--> policy decision
--> approval decision/receipt
--> runtime budget
--> model selection proposal
--> tool metadata resolution
--> route
--> audit
-```
-
-2. Ensure every stage is observable through metadata, not raw private content.
-3. Ensure model selection and runtime budgeting are advisory only.
-4. Ensure ToolRegistry metadata cannot create permission.
-5. Ensure MemoryStore data cannot create permission.
-6. Ensure approval receipts are exact-draft-bound where an action draft exists.
-7. Add a comprehensive synthetic scenario matrix covering:
-   - local-only allow;
-   - local-only non-local block;
-   - highly private approval;
-   - restricted external block;
-   - risky action approval;
-   - stale approval;
-   - changed payload;
-   - changed target;
-   - changed risk/classification;
-   - runtime unavailable;
-   - tool missing/invalid;
-   - safe model fallback;
-   - cancellation/no-side-effect outcome.
-
-### Exit gate
-
-A single synthetic scenario can demonstrate the complete control-plane chain and prove that no model/tool/runtime shortcut can bypass policy or approval.
-
-**Owner:** AI agents.
-
-**Ben:** not required.
-
-## 8. Phase 3 — Finish the diagnostic shell
-
-**Goal:** make the app a truthful inspection tool rather than a static showcase.
-
-### Required work
-
-- Keep the default snapshot generated from synthetic scenario execution.
-- Remove wording that can be interpreted as live device evidence when it is synthetic.
-- Preserve the existing model-selection decision-trace renderer as a synthetic, read-only surface.
-- Add a compact policy/approval explanation that makes `blocked` versus `approval required` unambiguous.
-- Surface runtime-budget metadata as planning information only.
-- Surface ToolRegistry and MemoryStore state only as metadata and only after their contracts are closed.
-- Keep user text out of diagnostics.
-- Add accessibility identifiers/labels where practical.
-- Ensure empty/error states are understandable.
-
-### Setup/admin approval policy
-
-Issue #185 is **completed**. The local configuration lane now provides:
-
-- conservative setup defaults with durable first-run confirmation;
-- explicit approval requirements by action kind/family;
-- later review and editing in settings/admin;
-- runtime consumption of the persisted policy rather than hidden policy;
-- hard blocking regardless of configuration when deterministic policy denies an action;
-- a non-lowerable core approval floor: configuration can add approval but cannot turn off `PolicyEngine.requiresApproval`;
-- effective-policy diagnostics without private task content.
-
-This lane remains local-only. Any real App Intents or AppAction execution capability requires a new source-backed issue and must not reopen or silently widen #185.
-
-### Exit gate
-
-The diagnostic shell tells the truth about every displayed state, is entirely synthetic/local, and is covered by deterministic tests.
-
-**Owner:** AI agents.
-
-**Ben:** optional product review only.
-
-## 9. Phase 4 — Establish the model/runtime evidence chain
-
-**Goal:** choose a runtime based on evidence, not enthusiasm.
-
-Use the existing research order and preserve the distinction between candidate research, backend support, runtime execution and device evidence.
-
-### Sequence
-
-1. Freeze an exact candidate revision and licence record.
-2. Run untouched baseline on the immutable synthetic German/English action-routing benchmark.
-3. Compare at least the first-wave candidates according to the current research plan, beginning with the smallest specialized router where evidence supports it.
-4. Measure:
-   - valid action/schema rate;
-   - policy-preserving behavior;
-   - malformed argument rate;
-   - German/English behavior;
-   - latency;
-   - memory footprint;
-   - cancellation;
-   - timeout behavior;
-   - output-token limits;
-   - refusal/fallback behavior.
-5. Only then consider one specialization/fine-tuning run.
-6. Keep model output as a proposal object; convert to a deterministic schema before any kernel consideration.
-7. Add a `LocalModelRuntime` adapter for the selected backend only after baseline evidence exists.
-
-### Runtime candidates
-
-The research track currently considers Apple-native Foundation Models/Core AI surfaces, Core ML as a supporting path, MLX Swift, MLC-LLM and llama.cpp-derived paths. The exact first runtime is an evidence decision, not a predetermined architecture commitment.
-
-### CoreML rule
-
-Issue #111 is bounded to compile-only feasibility. It may produce a success/failure/blocked report for the named candidate artifact, but it does not authorize runtime integration.
-
-### Exit gate
-
-One runtime/backend/artifact combination has reproducible host evidence and a documented rollback path. No model weights are committed to this repository.
-
-**AI:** research, benchmark, evaluation, adapter code and documentation.
-
-**Ben:** only if a licence, account, proprietary SDK or other owner boundary cannot be resolved from public evidence.
-
-## 10. Phase 5 — Safe action execution boundary
-
-**Goal:** prove the transition from proposal to action without introducing unsafe autonomy.
-
-Start with one non-destructive synthetic action.
-
-### Required pipeline
-
-```text
-request
--> classify
--> policy
--> draft
--> exact preview
--> approval policy
--> fresh approval receipt if required
--> revalidate draft fingerprint
--> synthetic/local executor
--> metadata audit
-```
-
-### Mandatory tests
-
-- missing approval blocks;
-- rejected approval blocks;
-- stale receipt blocks;
-- changed payload blocks;
-- changed target blocks;
-- changed risk/classification blocks;
-- cancellation produces no side effect;
-- policy-disabled action remains blocked;
-- configured no-approval action does not unnecessarily call approval;
-- successful synthetic action records outcome without raw private content.
-
-### App Intents
-
-Only after the internal action boundary is correct, add one synthetic/non-destructive App Intent. The App Intent is an outer interface, not an authority layer.
-
-Do not add real messaging, deletion, payments, health, credential access or destructive automation as part of the first release.
-
-### Exit gate
-
-A real App Intent is not required for the research release. A synthetic App Intent may be included only if it can be proven to preserve the same draft/policy/approval/audit contract.
-
-**AI:** all code and test work.
-
-**Ben:** Apple signing/provisioning/device execution if the environment requires it.
-
-## 11. Phase 6 — Controlled delegation
-
-**Goal:** prove that delegation is a controlled capability, not an implicit escape hatch.
-
-Implement adapters in this order:
-
-1. trusted Mac/local worker, if justified;
-2. home-server/trusted-device path, if justified;
-3. private cloud path, only if policy and privacy evidence justify it;
-4. external AI provider last.
-
-For every target require:
-
-- explicit target identity;
-- minimum necessary data;
-- classification check;
-- redaction/minimization;
-- approval where required;
-- timeout/cancellation;
-- audit metadata;
-- result schema validation;
-- result verification before downstream use;
-- safe refusal on unsupported capability;
-- rollback/fallback to local behavior.
-
-Level 4 data remains blocked from automatic external delegation.
-
-No provider integration is required for the project to be considered complete if local execution and the safe control-plane demo are sufficient evidence. Delegation is a separate capability, not a release prerequisite.
-
-**AI:** adapters, tests, documentation and synthetic validation.
-
-**Ben:** only provider/account credentials or owner-bound contracts, if any, and never by committing secrets.
-
-## 12. Phase 7 — Physical iPhone Air evidence
-
-**Goal:** convert the software prototype into an evidence-backed device research result.
-
-This is the first phase where Ben may be genuinely necessary because an AI agent cannot truthfully claim access to a physical device it cannot access.
-
-### AI prepares everything before device access
-
-- deterministic test bundle;
-- device-test checklist;
-- exact build/revision manifest;
-- runtime/model artifact hashes;
-- test scenarios;
-- expected results;
-- evidence template;
-- performance capture script/instructions;
-- rollback instructions.
-
-### Device evidence to collect
-
-At minimum:
-
-- exact iPhone model identifier;
-- iOS version;
-- app/build revision;
-- artifact/runtime revisions and hashes;
-- cold/warm load time;
-- time to first result/token where applicable;
-- throughput where meaningful;
-- peak/observed memory;
-- battery start/end and elapsed time;
-- thermal behavior;
-- cancellation and timeout behavior;
-- offline behavior;
-- permissions and failure states;
-- policy/approval boundary tests;
-- no-network/no-external-data verification where applicable.
-
-Never convert simulator, Mac or source-code support into device evidence.
-
-### Human boundary
-
-Ben is optional if a trusted automated device lab with auditable evidence is available. Otherwise Ben performs the physical test session and returns only synthetic/metadata-only evidence. The AI then validates, normalizes and commits the report.
-
-## 13. Phase 8 — Security, privacy and reliability hardening
-
-Run a dedicated final audit across every path.
-
-### Security
-
-- no secrets or credentials;
-- no unsafe URL/network fallback;
-- no hidden external delegation;
-- no arbitrary tool execution;
-- no bypass from App Intent/SwiftUI/model path into side effects;
-- no stale approval reuse;
-- no target/payload mismatch acceptance;
-- no Level 4 automatic external delegation.
-
-### Privacy
-
-- raw user text absent from audit output;
-- diagnostic UI contains metadata only;
-- sensitive detector findings contain categories/reasons, not raw values;
-- memory classification is explicit;
-- external delegation is minimized and gated;
-- public repository contains no private Brain state or device identifiers.
-
-### Reliability
-
-- deterministic tests;
-- concurrency tests for shared state;
-- cancellation/timeout tests;
-- empty/invalid input tests;
-- unavailable runtime tests;
-- malformed model output tests;
-- missing tool and duplicate tool tests;
-- reproducible benchmark results;
-- reproducible build/test commands.
-
-### AI execution
-
-Use static search plus tests to audit every public entry point and every path capable of producing an action, delegation or model call. Do not rely on documentation alone.
-
-## 14. Phase 9 — Release hardening
-
-**Goal:** produce a clean, reproducible research release.
-
-### Repository checks
-
-At minimum, for the release candidate:
-
-- `python3 scripts/validate_repo_structure.py`;
-- `python3 scripts/validation_summary.py`;
-- `cd ios && swift build`;
-- `cd ios && swift test`;
-- all required GitHub Actions checks;
-- docs consistency;
-- workflow lint when workflows changed;
-- security/repo audit;
-- exact-head PR review.
-
-Do not report a check as passed without actual local or GitHub evidence.
-
-### Documentation
-
-Update only canonical documents:
-
-- `PROJECT_STATE.md` for durable baseline facts;
-- `ROADMAP.md` for phase-level direction;
-- `docs/PROJECT_COMPLETION_PLAN.md` for this end-to-end plan;
-- `docs/reports/issue-status-matrix.md` for the short live audit companion;
-- model/runtime evidence docs for exact experiment evidence;
-- device evidence report for physical claims;
-- README for concise public orientation.
-
-Do not duplicate full technical contracts into README or status files.
-
-### Release package
-
-Prepare:
-
-- tagged release;
-- release notes;
-- architecture diagram;
-- safety/limitations summary;
-- benchmark/evidence summary;
-- device evidence report if device work was performed;
-- contributor guidance;
-- good-first issues that are genuinely still open.
-
-## 15. Phase 10 — Final closure
-
-The project is not closed merely because CI is green. The final closure transaction is:
-
-1. Freeze the release candidate commit.
-2. Run all required CI and repository audits.
-3. Run the complete synthetic safety matrix.
-4. Re-run the exact device evidence set for the release build if a physical claim is made.
-5. Review model/runtime licences and exact revisions.
-6. Confirm no open high-risk architecture gate remains.
-7. Confirm all release claims have matching evidence classes.
-8. Confirm no unresolved security/privacy finding remains.
-9. Create the release tag and notes.
-10. Mark the implementation issues completed only after their acceptance criteria are actually met.
-11. Record the terminal evidence in the canonical docs.
-12. Stop automatic feature expansion and move the repository into maintenance/research mode.
-
-### Final state
-
-```text
-SAFE KERNEL
-  + deterministic policy
-  + exact approval
-  + metadata-minimized audit
-  + classified memory
-  + bounded tools
-  + advisory runtime/model selection
-  + synthetic action proof
-  + evidence-backed runtime
-  + optional controlled delegation
-  + physical-device evidence where claimed
-  + reproducible release
-```
-
-The final product remains a **privacy-first research prototype**, not an unrestricted autonomous agent.
-
-## 16. Issue/backlog execution map
-
-| Track | Current items | Order | Critical? |
+| Priority | User outcome | Smallest useful implementation | Acceptance evidence |
 | --- | --- | --- | --- |
-| Memory | #120, #142 | decision -> implementation -> tests -> kernel boundary | Yes |
-| Tools | #137 -> #121 | spec -> metadata integration -> later execution issue | Yes |
-| Runtime budget | #181 | estimator -> tests -> diagnostic visibility decision | Yes |
-| Model trace | #144–#149 — completed | schema -> generator -> diagnostics rendering -> regression coverage | Completed |
-| App-action policy | #185 — completed; #291 — completed | keep the configuration lane closed; preserve the non-lowerable `PolicyEngine` approval floor; scope future execution separately | Completed |
-| Commit metadata privacy | #286 — platform enforcement open | require PRs for `main` and the exact trusted `commit-email-privacy` check through branch protection/ruleset | Blocking security gate |
-| Public content leak admission | #287 — blocked by #286 | implement only after the commit-metadata privacy admission boundary is hard-enforced | Blocked |
-| TaskRouter bypass | #101 | already resolved; keep regression coverage | Guard |
-| Model selection | #103 | expand only after evidence-backed need | Yes before runtime selection |
-| Runtime research | #74, #82, #83, #111 | benchmark -> governance -> runtime evidence -> bounded feasibility | Yes for model/runtime claims |
-| Explore | #150 -> #151 -> #152 | validator -> index -> SwiftUI shell | No; parallel |
-| Community | #114, #117, #136 | docs/UX polish | No; parallel |
+| 1 | Create one reminder reliably | Explicit title/time/list draft, clarification, approval, a narrow reminders adapter and readback; manual form available when inference is unavailable | One approved synthetic reminder in a clearly designated test destination, verified identifier/fields; no write on cancel, deny, changed draft or stale approval |
+| 2 | Turn explicitly shared text into a useful local draft | Share input, previewed scope, local summary or extracted task; user edits before any subsequent action | Fixed DE/EN fixtures, injection/ambiguity cases, private-content policy and retention tests, physical offline behavior measured |
+| 3 | Send a bounded job to the trusted Mac | User-selected project and predefined operation, scoped task envelope, authenticated pairing and result receipt | Small real task through the intended route; wrong identity, missing Mac, cancelled request and unverified output never count as success |
 
-Closed/resolved work must stay closed. The map is a planning view, not permission to reopen old issues.
+The general Apple proposal preview remains public-data-only. The separate reminder-specific path may receive a short user-typed instruction classified no higher than contextual private data, but only through Apple's `.system` runtime; it rejects detected sensitive patterns and highly private/restricted classifications. It creates an editable proposal only. Shared files, messages, contacts, calendar content and persistent prompt history are not read or modeled by this slice. Private shared-content extraction remains a future capability requiring explicit scope, classification, retention and permission design.
 
-## 17. AI-agent operating model
+Build the first workflow before starting the third. Do not add inbox ingestion, autonomous messaging, payments, health integration or unrestricted file access as incidental scope.
 
-The repository can be driven almost completely by agents if the following roles are kept separate.
+## 5. Everyday interface
 
-### Director agent
+The primary screen should show tasks and their next useful step: **Needs information**, **Needs approval**, **Running**, **Verified**, **Could not verify**, or **Failed**. A text field and an explicit structured form are sufficient for the first usable version. Voice and system entry points use the same task path.
 
-- reconciles current GitHub state;
-- chooses one smallest safe target;
-- checks dependency gates;
-- never writes product code for its own target;
-- never self-approves.
+An approval sheet should answer: what will change, which app/list/device is affected, which data is used, and whether anything leaves the iPhone. Bind approval to the exact normalized action and expiry. Editing the draft invalidates approval. Routine reads already allowed by policy should not acquire ceremonial confirmation screens.
 
-### Producer agent
+Show preview/demo status prominently in the diagnostic app, including on the approval sheet itself. The current combination of a persistent-write warning and “Approved (no execution)” needs correction before using it as a real-action interface.
 
-- implements only the allowlisted slice;
-- creates one draft PR;
-- runs/records validation;
-- re-reads the exact changed files;
-- never reviews or merges its own work.
+A verified result should include a destination or record link where available. An interrupted operation with a possible side effect should say **Could not verify** and offer a check; it must not invite a blind repeat.
 
-### Review/validation agent
+Accessibility acceptance includes German and English text, VoiceOver focus/labels, large Dynamic Type, keyboard handling and explicit cancel/back controls. These are planned checks, not results from the present device run.
 
-- checks current head, complete diff and issue scope;
-- runs or verifies required CI;
-- checks semantic safety invariants;
-- rejects stale or over-broad changes;
-- never implements or merges.
+## 6. Models, context and memory
 
-### Closer agent
+1. Use deterministic code for dates, identifiers, permission checks, validation and simple form completion where it is sufficient.
+2. Use Apple's local system model for bounded language interpretation when availability is actually established. Keep a deterministic/manual fallback. A refusal or unavailable model is a supported product state.
+3. Keep sessions short and task-scoped. Treat shared documents, retrieved text, web content and tool output as untrusted data. They cannot change the action allowlist or grant approval.
+4. Evaluate any extra local model only after a named missing capability or repeatable quality problem justifies its storage, memory and maintenance cost. Follow `MODEL_STRATEGY.md` and the existing immutable benchmark contracts. Do not install weights merely to increase the model count.
+5. Cloud inference is an explicit future opt-in with destination, data scope and cost visibility. No paid or cloud fallback is enabled by this plan.
 
-- acts only after exact-head review and required checks are green;
-- rechecks mergeability and head SHA;
-- merges one PR with expected-head protection;
-- verifies terminal state and updates durable docs if required.
+Persist minimal task state first: task ID, normalized draft, classification, decision, approval binding, execution attempt, verified result reference and uncertainty. Keep content out of general logs. Store credentials in Keychain, and protect any task content with appropriate device data protection and tested retention/deletion behavior. A future memory store should contain user-approved preferences or scoped facts with provenance and expiry; do not turn all conversation history into permanent memory.
 
-### Sequencer agent
+Official Apple utilities provide patterns for bounded history and just-in-time skills. Review individual mechanisms when needed; adopting their OpenAI-compatible adapter or networking is not required. [Apple foundation-models-utilities](https://github.com/apple/foundation-models-utilities)
 
-- reconciles completed work;
-- detects duplicate targets and stale instructions;
-- selects the next legal target only after the previous cycle is terminal;
-- never implements/reviews/merges.
+## 7. Lifecycle, interruption and background work
 
-### Specialist agents
-
-Research, security, documentation, model-evaluation and device-evidence agents may advise or prepare artifacts, but they do not bypass the core Director -> Producer -> Review -> Closer sequence.
-
-## 18. What Ben should and should not have to do
-
-### Prefer AI-only
-
-- repository inspection;
-- issue/PR creation and updates;
-- Swift/Python/docs implementation;
-- tests and static analysis;
-- benchmark harnesses;
-- model-selection research;
-- licence/source verification from public sources;
-- CI reconciliation;
-- semantic review;
-- release documentation;
-- synthetic action tests;
-- preparation of device-test procedures.
-
-### Ben only when genuinely unavoidable
-
-- physical iPhone access when no automated device lab exists;
-- Apple developer account/signing/provisioning actions unavailable to the agent environment;
-- accepting a licence/legal term that requires the owner;
-- choosing between materially different product policies when existing written requirements do not decide the question;
-- final public release approval if the owner wants that as a governance boundary.
-
-Every Ben boundary must be explicit, minimal and documented. It must never become a reason for an agent to stop work that can be completed safely without him.
-
-## 19. Per-task execution template
-
-Every implementation issue should follow this exact loop:
+Proposed durable state sequence:
 
 ```text
-1. Verify issue and current GitHub state.
-2. Verify predecessor gates are terminal.
-3. Define allowlisted files and stop rules.
-4. Implement the smallest independent slice.
-5. Add/retain regression tests.
-6. Run exact validation commands.
-7. Open one draft PR with Summary / Scope / Validation / Safety / Follow-up.
-8. Review the exact current head independently.
-9. Fix only concrete findings.
-10. Re-run required checks.
-11. Merge with expected-head protection.
-12. Verify main.
-13. Close the implementation issue if and only if acceptance criteria are met.
-14. Update the short issue-status matrix.
-15. Select the next smallest legal target.
+captured -> needsInformation OR draft
+ draft -> policyBlocked OR needsApproval OR ready
+ needsApproval -> cancelled OR expired OR ready
+ ready -> executing -> verified OR failed OR uncertain
 ```
 
-## 20. Stop rules for the entire completion program
+Keep the existing policy approval floor. A recorded approval, an executor response and a verified result are distinct facts. After a crash, timeout or lost connection, read back the target before deciding whether to retry a possible write. Test duplicate taps and changed drafts. Do not claim exactly-once effects from a locally stored idempotency key alone.
 
-Stop and create a narrower decision issue instead of guessing when:
+Start with foreground execution and honest pause/resume. On relaunch, recover task status without replaying a write. Lock/background transitions should cancel or suspend inference according to the supported API and preserve a resumable state. Background work must be bounded and compatible with OS scheduling; the product must not depend on an always-running process.
 
-- a safety invariant is ambiguous;
-- two canonical documents disagree;
-- an issue's allowed files do not cover the needed change;
-- a model/runtime claim lacks exact evidence;
-- a physical-device claim lacks physical-device evidence;
-- a licence is unclear;
-- a tool could execute outside the policy/approval boundary;
-- approval could be reused after the draft changes;
-- a proposed change needs networking, signing, entitlements or real user data without explicit scope;
-- CI failure is not attributable to the current head;
-- a second implementation PR would be required.
+Apple documents continued processing for eligible work begun in the foreground. This is a possible later integration, not evidence that iGentic already runs continuously in the background. [Apple background-task session](https://developer.apple.com/videos/play/wwdc2025/227/)
 
-Never solve uncertainty by silently widening scope.
+## 8. What belongs on the phone, Mac and in the lab
 
-## 21. Completion scorecard
+| Surface | Intended responsibility | Boundary |
+| --- | --- | --- |
+| iGentic iPhone | Identity, input scope, classification, approvals, task state, local capabilities and verified results | Core useful task works without the Mac; personal context stays scoped |
+| Trusted Mac | Optional larger computation or explicitly scoped project work | Authenticated job, least data, cancellation, deadline and receipt; cannot approve its own actions |
+| App Intents / Shortcuts / widgets | Declared task entry points and supported app capabilities | Same policy and approval path; an exposed shortcut is not arbitrary cross-app access |
+| PhoneUse / WDA / iCTRL / ARTEMIS | Controlled engineering and physical-device evaluation | Separate lab setup, developer tooling and evidence; not a prerequisite for the consumer app |
+| Minis / Mimi | Alternative interfaces or comparison experiments | Only claim readiness after pairing/provider setup and a real authorized task through that route |
 
-The Director should track these gates as binary evidence, not subjective percentages:
+App Intents exposes capabilities an app declares to system surfaces such as Siri and Shortcuts. Use public APIs and actual supported integrations rather than assuming every installed app can be controlled. [Apple App Intents](https://developer.apple.com/documentation/appintents)
 
-- [ ] baseline reconciled;
-- [ ] MemoryStore classification/retention decision closed;
-- [ ] MemoryStore implementation/tests closed;
-- [ ] ToolRegistry integration spec closed;
-- [ ] ToolRegistry metadata integration/tests closed;
-- [ ] RuntimeBudget estimator/tests closed;
-- [x] model-selection decision trace closed;
-- [x] setup/admin approval policy closed;
-- [x] non-lowerable `PolicyEngine` approval floor closed;
-- [ ] default-branch commit-email privacy admission hard-enforced;
-- [ ] complete synthetic kernel matrix green;
-- [ ] diagnostic shell truthful and complete;
-- [ ] immutable benchmark green;
-- [ ] selected runtime has reproducible host evidence;
-- [ ] model/runtime evidence contract complete;
-- [ ] safe synthetic action boundary proven;
-- [ ] App Intent, if included, preserves the same boundary;
-- [ ] delegation, if included, is minimized/approved/audited/verified;
-- [ ] physical-device report exists for every device claim;
-- [ ] final security/privacy audit green;
-- [ ] release CI green;
-- [ ] release documentation complete;
-- [ ] tagged release published;
-- [ ] all high-risk architecture gates terminal;
-- [ ] project moved to maintenance/research mode.
+On the 8-GB Mac, run one heavy build/model/agent task at a time. Reuse existing tools; keep development servers local and stop test services after use. A paired Mac protocol must be designed independently from a permissive developer-control API.
 
-This scorecard is complete only when every checked item has source-backed evidence in GitHub or an explicitly identified owner boundary.
+## 9. Lessons from the other repositories
+
+These are source/design lessons, not claims that all repositories were executed in this run. Ownership was established from current READMEs and the atlas.
+
+| Source | Reuse in iGentic | Avoid importing |
+| --- | --- | --- |
+| `agentic-private-brain` | Compact durable context, routing to the right project/source | A second task scheduler or indiscriminate personal-data store |
+| `agentic-dev-playbook` | Small causal slices, measured task completion and concise handoff | Process artifacts that delay a useful tested change |
+| `agentic-slm-lab` | Synthetic DE/EN evaluations, held-out cases and evidence before model changes | Fine-tuning or weight deployment as a prerequisite for the first task |
+| `igentic-regulation-lab` | Explicit uncertainty, evidence classes and documentation boundaries | Implicit medical/health functionality |
+| Mac/Neo operations | Resource budget, serial execution and zero-cost default | Always-on duplicate agents and paid fallbacks |
+| TCGP2P work | Provenance and separation of observation from derived claims | Treating an absent result as proof of success or of no side effect |
+| Apple foundation-models-utilities | Bounded history and selective context loading | Unneeded dependencies or a network bridge by default |
+| FoundationModelsKit | Inspect runtime capabilities, coordinate sessions, distinguish safe retry from possible side effects | Treating third-party helpers as the authorization authority |
+
+The FoundationModelsKit review was of its current README, not a dependency audit or device runtime test. [Source](https://github.com/rryam/FoundationModelsKit)
+
+## 10. Ordered implementation slices
+
+Each slice ends with observable evidence and a reviewable diff. Refresh relevant GitHub heads before integration; do not merge all experimental PRs together just because they compile.
+
+| Order | Work | Exit condition |
+| --- | --- | --- |
+| A — tested locally | Constrain Apple action generation; run fixed physical fixtures and existing safety tests | 305 Swift tests passed; eight supported physical attempts reached the expected gate category; unsupported request failed to abstain. Evidence is recorded; semantic reliability remains open |
+| B — implemented locally, host-tested | Add an optional on-device structured proposal to the manual reminder form | System model only, no tools, bounded input, exact action allowlist, Gregorian/zone/DST validation, editable title/date, and a manual fallback; model unavailable or invalid output makes no proposal |
+| C — manual path verified | Add the narrow reminder executor and fresh-store readback | One approved synthetic write verifies once by returned identifier; denied/stale/changed/cancelled drafts cause zero writes; uncertain writes are terminal and never blindly retried |
+| D | Persist task transitions and handle lifecycle failure | Relaunch, lock/background, duplicate taps, timeout and lost connection have tested outcomes; raw content is absent from diagnostic logs |
+| E | Connect supported system entry points and accessibility | Physical Shortcuts/App Intent invocation reaches the same boundary; VoiceOver/Dynamic Type pass; manual path works without the model |
+| F | Add explicitly shared local content | Private classification and retention implemented; selected content scope is clear; offline behavior and injection boundary measured |
+| G | Add optional trusted Mac job | Pairing, scope, authorization, cancellation and a real verified result; phone remains useful when Mac is unavailable |
+| H | Release hardening and distribution decision | Exact release revision passes device matrix, current CI and privacy checks; signing/expiry/update path documented; publishing or paid enrollment separately authorized |
+
+B and C now have a local implementation and the manual path has one successful physical happy path. The user-typed model route is tested with injected candidates on the host and has one final component-matched synthetic Apple-model run on the Mac; the physical iPhone route is not yet installed because Xcode signing is blocked by the missing account/profile. Automated tests cover model preflight, unavailable/failing runtime, abstention/unknown action, unsafe title, invalid/past/DST-ambiguous date, and the boundary that no store write occurs without an exact human-bound receipt. The separate physical manual write was verified by reopening only the new item through its returned EventKit identifier. Still open: repeated semantic accuracy across held-out DE/EN prompts, phone inference, physical permission denial/recovery, accessibility and lifecycle behavior. Continue with D while keeping the earlier unsupported-action abstention failure from slice A visible. Extra models, long-term memory, general cross-app controllers and cloud integrations remain conditional tracks.
+
+## 11. Evaluation and acceptance
+
+Use the same versioned synthetic cases on Mac and iPhone, with separate results. Include correct tasks in German and English, missing/ambiguous parameters, unsupported actions, prompt injection, sensitive input, model unavailability, stale approvals, cancellation and possible duplicate execution. Freeze held-out cases before tuning; never use exploratory prompt fixes as benchmark evidence.
+
+Record at least: source/runtime/OS versions, fixture identity, expected action, observed disposition, accepted semantic correctness, abstention, malformed output, permission state and whether any side effect occurred. Preserve the original failures. Never collect private prompt/generated text merely to make debugging easier.
+
+Proposed acceptance for the first useful pilot:
+
+- All deterministic authorization, binding, cancellation and duplicate-write tests pass; every test requiring zero side effects observes zero.
+- On a frozen 40-case DE/EN task set, at least 95% of supported unambiguous cases produce the correct draft across the declared repeated-run schedule. Unsupported/ambiguous cases must not be silently represented as successful actions. This is a proposed pilot target, not a measured score or a universal safety guarantee.
+- One physical synthetic reminder was approved, written and read back through a fresh EventKit store. The manual route works without inference; offline behavior remains unmeasured.
+- Record median and p95 end-to-end latency, task completion, peak memory and thermal/battery behavior on a defined session. Choose performance budgets from those measurements rather than inventing current numbers.
+- Exercise launch, relaunch, lock, background, permission denial, missing model assets and airplane-mode/offline behavior. A “local” label is not network evidence.
+- Test latest available supported OS plus the declared minimum where practical. Record coverage gaps instead of marking untested versions supported.
+
+The small 2026-11-22 exploratory probes do not meet this pilot evaluation bar. They select the next implementation step.
+
+## 12. Completion and handoff
+
+A useful first milestone is **one real reminder workflow with verified completion**, manual fallback and honest recovery. A publishable prototype additionally needs the evaluation above, an accurate privacy/permission explanation, accessible UI, reproducible builds and an explicit distribution path. Free development installation is a test channel, not a demonstrated distribution strategy; observe provisioning expiry rather than assuming permanent installation.
+
+Keep model research in `MODEL_STRATEGY.md`, alternatives in the atlas, test observations in the device report and product sequencing here. Do not create another competing master plan.
+
+No existing user data is deleted by this plan. No external provider, private-content transfer, paid service, unrestricted controller, new signing change or publication is authorized by a roadmap entry. Already approved scoped device setup and engineering work can proceed without asking for the same permission again.
+
+Source note for slice A: Apple's `GenerationGuide.anyOf` constrains a generated string to enumerated values; the independent gate remains mandatory. [Apple anyOf reference](https://developer.apple.com/documentation/foundationmodels/generationguide/anyof(_:))
