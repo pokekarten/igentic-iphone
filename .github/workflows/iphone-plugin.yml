@@ -26,6 +26,9 @@ jobs:
       - name: Install locked development dependencies without lifecycle scripts
         working-directory: plugins/iphone-connect
         run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Reject high-severity vulnerable npm dependencies
+        working-directory: plugins/iphone-connect
+        run: npm audit --audit-level=high
       - name: Rebuild UI and test protocol, faults and browser interactions
         working-directory: plugins/iphone-connect
         run: |
