@@ -11,6 +11,8 @@ export const MARKERS = Object.freeze(['iGentic Diagnostics', 'Open local discove
 // In particular, a simulator must never satisfy the physical-device contract.
 export function hasUsablePhysicalTunnel(device) {
   return device?.hardwareProperties?.reality === 'physical'
+    && device?.hardwareProperties?.platform === 'iOS'
+    && device?.hardwareProperties?.deviceType === 'iPhone'
     && device?.connectionProperties?.pairingState === 'paired'
     && ['connected', 'available'].includes(device?.connectionProperties?.tunnelState);
 }

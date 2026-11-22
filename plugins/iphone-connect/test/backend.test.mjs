@@ -43,7 +43,7 @@ test('actual Swift policy helper allows only fixed public read/prepare operation
 
 test('only an actively paired physical Xcode tunnel is considered available', () => {
   const fixture = (reality, tunnelState, pairingState = 'paired', transportType = 'wired') => ({
-    hardwareProperties: { reality },
+    hardwareProperties: { reality, platform: 'iOS', deviceType: 'iPhone' },
     connectionProperties: { tunnelState, pairingState, transportType }
   });
   for (const state of ['connected', 'available']) {
@@ -55,5 +55,10 @@ test('only an actively paired physical Xcode tunnel is considered available', ()
       `stale wired transport with ${state} tunnel must be rejected`);
   }
   assert.equal(hasUsablePhysicalTunnel(fixture('physical', 'connected', 'unpaired')), false);
+  for (const [key, value] of [['deviceType', 'iPad'], ['platform', 'macOS']]) {
+    const wrongDevice = fixture('physical', 'connected');
+    wrongDevice.hardwareProperties[key] = value;
+    assert.equal(hasUsablePhysicalTunnel(wrongDevice), false, `${key} must identify a real iPhone`);
+  }
   assert.equal(hasUsablePhysicalTunnel(null), false);
 });
