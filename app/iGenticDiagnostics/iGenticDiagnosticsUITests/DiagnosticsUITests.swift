@@ -13,7 +13,13 @@ final class DiagnosticsUITests: XCTestCase {
         guard let explore = scrollToControl("igentic-open-local-discovery", in: app) else { return }
         explore.tap()
         XCTAssertTrue(app.navigationBars["Explore"].waitForExistence(timeout: 10))
-        app.navigationBars.buttons.firstMatch.tap()
+        // iOS 27.1 can expose the native NavigationStack back item as
+        // .other instead of .button. Use the native edge-back gesture rather
+        // than depending on the framework's accessibility element type.
+        let backGestureStart = app.coordinate(withNormalizedOffset: CGVector(dx: 0.02, dy: 0.45))
+        let backGestureEnd = app.coordinate(withNormalizedOffset: CGVector(dx: 0.85, dy: 0.45))
+        backGestureStart.press(forDuration: 0.1, thenDragTo: backGestureEnd)
+        XCTAssertTrue(app.navigationBars["iGentic Diagnostics"].waitForExistence(timeout: 10))
         guard let reminder = scrollToControl("igentic-review-synthetic-reminder", in: app) else { return }
         reminder.tap()
         XCTAssertTrue(app.navigationBars["Review reminder"].waitForExistence(timeout: 10))
