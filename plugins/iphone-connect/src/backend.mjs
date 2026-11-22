@@ -7,6 +7,16 @@ const BUNDLES = new Set(['de.bos.neoagent.igenticdiagnostics', 'org.example.iGen
 export const MARKERS = Object.freeze(['iGentic Diagnostics', 'Open local discovery', 'Explore',
   'Featured', 'Topics', 'Collections', 'Sample / preview snapshot']);
 
+// A remembered pairing or a stale wired transport is not proof of a usable tunnel.
+// In particular, a simulator must never satisfy the physical-device contract.
+export function hasUsablePhysicalTunnel(device) {
+  return device?.hardwareProperties?.reality === 'physical'
+    && device?.hardwareProperties?.platform === 'iOS'
+    && device?.hardwareProperties?.deviceType === 'iPhone'
+    && device?.connectionProperties?.pairingState === 'paired'
+    && ['connected', 'available'].includes(device?.connectionProperties?.tunnelState);
+}
+
 export function sanitizeTree(value) {
   const found = new Set(); let count = 0;
   function visit(node, depth = 0) {
@@ -55,11 +65,10 @@ export class MobileBackend {
       await run('/usr/bin/xcrun', ['devicectl', 'list', 'devices', '--json-output', path], { signal });
       const json = decode(await readFile(path, 'utf8'));
       const devices = json.result?.devices ?? [];
-      const d = devices.find(d => d.hardwareProperties?.udid === this.config.deviceId || d.identifier === this.config.deviceId);
+      const d = devices.find(d => d.hardwareProperties?.reality === 'physical'
+        && (d.hardwareProperties?.udid === this.config.deviceId || d.identifier === this.config.deviceId));
       if (!d) return [];
-      const connected = ['connected', 'available'].includes(d.connectionProperties?.tunnelState)
-        || d.connectionProperties?.transportType === 'wired';
-      return [{ id: 'iphone-1', kind: this.kind, available: connected }];
+      return [{ id: 'iphone-1', kind: this.kind, available: hasUsablePhysicalTunnel(d) }];
     } finally { await rm(directory, { recursive: true, force: true }); }
   }
   async mobile(args, signal) {
