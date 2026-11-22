@@ -49,6 +49,11 @@ jobs:
       - name: Validate required files and forbidden artifacts
         run: python3 scripts/validate_repo_structure.py
 
+      - name: Enforce iOS 27-only deployment, build and simulator baseline
+        run: |
+          python3 scripts/validate_ios27_baseline.py
+          python3 -m unittest discover -s scripts -p 'test_ios27_*.py'
+
   swift-package:
     name: Swift package build and test
     runs-on: xcode-27
