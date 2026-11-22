@@ -1,0 +1,28 @@
+{
+  "name": "@igentic/iphone-connect",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Local iPhone diagnostics plugin for ChatGPT and MCP clients",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node src/server.mjs",
+    "test": "node --test test/*.test.mjs",
+    "doctor": "node scripts/doctor.mjs",
+    "build:ui": "node scripts/build-ui.mjs",
+    "smoke": "node scripts/smoke.mjs",
+    "package": "node scripts/package.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/ext-apps": "2.0.4",
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "zod": "4.3.6"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "playwright": "1.65.1"
+  }
+}
