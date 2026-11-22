@@ -18,7 +18,7 @@ const hints = readOnly => ({ readOnlyHint: readOnly, destructiveHint: false, ope
 
 export function createServer(service) {
   const server = new McpServer({ name: 'igentic-iphone-connect', version: '0.1.0' }, {
-    instructions: 'Use fixed diagnostics tools only. List devices, start a short session, open Diagnostics, observe, prepare a supported navigation, execute once, read result and stop. Fixture results are not physical-device evidence. Never replay unknownOutcome. No personal data, screenshots, reminder writes or arbitrary app control are available.'
+    instructions: 'Compose tools to match the experiment. Availability and capabilities can be queried independently. In a session you can inspect, refresh, prepare without executing, or navigate from the latest observation. Stop when finished. Report the backend and verified outcome. After unknownOutcome inspect without replaying the action.'
   });
   const add = (name, title, description, shape, readOnly, fn, ui = false) => {
     server.registerTool(name, { title, description, inputSchema: z.object(shape).strict(),
