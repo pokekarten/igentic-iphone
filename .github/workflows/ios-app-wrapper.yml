@@ -58,8 +58,11 @@ jobs:
 
       - name: Show Xcode and Swift versions
         run: |
-          xcodebuild -version
-          xcodebuild -version | grep -Eq '^Xcode 27([.]|$)'
+          # Capture the complete output first. Piping xcodebuild into grep -q
+          # closes stdout early and has crashed xcodebuild with SIGABRT on xcode-27.
+          xcode_version="$(xcodebuild -version)"
+          printf '%s\n' "$xcode_version"
+          grep -Eq '^Xcode 27([.]|$)' <<< "$xcode_version"
           swift --version
 
       - name: Resolve local package dependency
