@@ -130,3 +130,42 @@ read from personal apps, or exposed as a public network server.
 Next gate remains real physical iPhone discovery over WLAN followed by
 permissioned synthetic-app interaction. No local MCP command should be
 mistaken for a ChatGPT-hosted iPhone connector or a Mac-free solution.
+
+
+## 2026-11-22 follow-up: no-WLAN USB-C readiness gate
+
+The owner confirmed that the physical iPhone is **not on Wi-Fi**. This does not
+prevent a local, directly cabled USB-C session. It does rule out describing
+previous wireless checks as active connectivity, and a cloud/VPN link is not
+automatically equivalent to MobileCLI's Xcode/CoreDevice USB device tunnel.
+
+A new read-only preflight complements the separate *wireless* candidate check:
+
+    python3 scripts/iphone_usb_readiness.py
+
+For a strict exit status suitable for an operator's next test:
+
+    python3 scripts/iphone_usb_readiness.py --require-usb-candidate
+
+Exit 2 means **not ready**. All of the following must independently pass:
+(i) USB enumeration sees an iPhone or Apple Mobile Device,
+(ii) Xcode/CoreDevice sees a **single paired, physical iOS iPhone** on a
+wired/USB transport with a live device tunnel, and
+(iii) MobileCLI discovers a real iOS device. No identifiers, serials,
+private UI, screenshots or signing profiles are printed or committed.
+Even when these discovery conditions are met, the script does **not**
+claim same-device identity, a functioning screen agent, ChatGPT control,
+persistent authorization or permission to perform any UI action.
+
+**Observed disconnected state on the authorized Mac:** USB present=false,
+physical iPhone registered=true, paired=true, wired tunnel available=false,
+MobileCLI real discovery=false, USB read-only candidate=false. The strict gate
+exited 2, as expected. Seven deterministic USB preflight tests and seven
+wireless readiness tests passed on the Mac, without a device or network write.
+
+**Physical next step without WLAN:** connect the iPhone with a known
+data-capable USB-C cable, unlock it, confirm “Trust This Computer” if
+requested, and rerun the strict USB preflight. A read-only status first,
+then a separately authorized synthetic-app observation and independent
+verification. The script never retries device actions or performs pairing,
+installation, tunnel creation, taps, app changes, or background monitoring.
