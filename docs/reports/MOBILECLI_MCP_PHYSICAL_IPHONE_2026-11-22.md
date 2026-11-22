@@ -88,15 +88,16 @@ For a fail-closed operator gate:
 
     python3 scripts/iphone_wireless_readiness.py --require-wireless-candidate
 
-The second command returns exit code 2 unless Xcode sees a real iOS device on
-localNetwork with an available tunnel **and** MobileCLI discovers a real iOS
-device. Even when it succeeds, this is merely a *discovery candidate*; it is
+The second command returns exit code 2 unless Xcode sees **one paired physical
+iOS device** on localNetwork with an available tunnel **and** MobileCLI discovers
+a real iOS device. Independent flags from different phones cannot be combined
+into a false positive. Even when it succeeds, this is merely a *discovery candidate*; it is
 not a screen-control or same-device identity proof. The command performs no
 installs, pairing, relaunch, screenshot, touch, profile edits or network writes.
 It uses a preinstalled MobileCLI or a local/offline npm cache, with no package
 download. Neither output nor unit fixtures contain real device identifiers.
 
-Validation on MacBook Neo: five deterministic Python unit tests passed;
+Validation on MacBook Neo: seven deterministic Python unit tests passed (including mixed-device and unpaired-device false-positive guards);
 python3 scripts/validate_repo_structure.py passed. Live probe:
 physical_registered=true, physical_paired=true,
 physical_network_transport=false, physical_tunnel_available=false,

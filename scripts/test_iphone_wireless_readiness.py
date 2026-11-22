@@ -24,6 +24,7 @@ class WirelessReadinessTests(unittest.TestCase):
             example_device(), example_device(reality="simulated", tunnel="connected")
         ]}})
         self.assertEqual(result, {
+            "physical_wireless_tunnel_paired": False,
             "physical_registered": True,
             "physical_paired": True,
             "physical_network_transport": False,
@@ -43,6 +44,30 @@ class WirelessReadinessTests(unittest.TestCase):
         self.assertTrue(result["wireless_discovery_candidate"])
         self.assertFalse(result["wireless_screen_control_verified"])
         self.assertNotIn("PRIVATE", str(result))
+
+    def test_multiple_devices_cannot_combine_separate_transport_and_tunnel(self):
+        result = readiness(
+            coredevice_summary({"result": {"devices": [
+                example_device(transport="localNetwork", tunnel="unavailable"),
+                example_device(transport="usb", tunnel="connected"),
+            ]}}),
+            {"mobilecli_real_discovered": True},
+        )
+        self.assertTrue(result["coredevice"]["physical_network_transport"])
+        self.assertTrue(result["coredevice"]["physical_tunnel_available"])
+        self.assertFalse(result["coredevice"]["physical_wireless_tunnel_paired"])
+        self.assertFalse(result["wireless_discovery_candidate"])
+
+    def test_unpaired_wireless_device_fails_closed(self):
+        result = readiness(
+            coredevice_summary({"result": {"devices": [
+                example_device(
+                    transport="localNetwork", tunnel="connected", paired=False
+                ),
+            ]}}),
+            {"mobilecli_real_discovered": True},
+        )
+        self.assertFalse(result["wireless_discovery_candidate"])
 
     def test_usb_only_is_not_wireless_candidate(self):
         result = readiness(

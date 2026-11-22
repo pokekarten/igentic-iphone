@@ -23,7 +23,16 @@ def coredevice_summary(payload: dict) -> dict:
         and device.get("hardwareProperties", {}).get("reality") == "physical"
     ]
     connections = [device.get("connectionProperties", {}) for device in physical]
+    # A candidate must satisfy every requirement on one physical device.
+    # Combining properties from separate devices would be a false positive.
+    wireless_paired_tunnel = any(
+        c.get("pairingState") == "paired"
+        and c.get("transportType") == "localNetwork"
+        and c.get("tunnelState") in ("connected", "available", "active")
+        for c in connections
+    )
     return {
+        "physical_wireless_tunnel_paired": wireless_paired_tunnel,
         "physical_registered": bool(physical),
         "physical_paired": any(c.get("pairingState") == "paired" for c in connections),
         "physical_network_transport": any(
@@ -93,8 +102,7 @@ def mobilecli_probe() -> dict:
 
 def readiness(coredevice: dict, mobilecli: dict) -> dict:
     discoverable = (
-        coredevice.get("physical_network_transport") is True
-        and coredevice.get("physical_tunnel_available") is True
+        coredevice.get("physical_wireless_tunnel_paired") is True
         and mobilecli.get("mobilecli_real_discovered") is True
     )
     return {
