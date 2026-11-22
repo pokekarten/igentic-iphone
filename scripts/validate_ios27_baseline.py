@@ -34,6 +34,7 @@ def validate_ios27_baseline(root: Path = ROOT) -> list[str]:
         ".github/workflows/ci-phase-0-validation.yml",
         ".github/workflows/ios-app-wrapper.yml",
         ".github/workflows/swift.yml",
+        ".github/workflows/codeql-advanced.yml",
     ]
     for path in workflows:
         content = read(path)
