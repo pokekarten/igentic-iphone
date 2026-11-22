@@ -34,6 +34,15 @@ public struct DiagnosticView: View {
     public var body: some View {
         NavigationStack {
             List {
+                #if canImport(EventKit)
+                Section("Aufgaben") {
+                    NavigationLink("Erinnerung erstellen") {
+                        CreateReminderTaskView()
+                    }
+                    Text("Entwurf prüfen, freigeben und den neuen Eintrag kontrollieren.")
+                        .font(.footnote)
+                }
+                #endif
                 Section("Safety") {
                     LabeledContent("Operating mode", value: state.operatingMode)
                     LabeledContent("Runtime status", value: state.runtimeStatus)
@@ -134,7 +143,8 @@ public struct DiagnosticView: View {
         }
         .sheet(isPresented: $isReminderApprovalPresented) {
             CreateReminderApprovalView(
-                subject: CreateReminderApprovalSubject.syntheticDiagnosticPreview()
+                subject: CreateReminderApprovalSubject.syntheticDiagnosticPreview(),
+                mode: .preview
             ) { decision in
                 switch decision {
                 case .approved:
