@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, writeFile, rm, chmod } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { loadConfig, MobileBackend, hasUsablePhysicalTunnel } from '../src/backend.mjs';
+import { loadConfig, MobileBackend, hasUsablePhysicalTunnel, physicalConnectionState } from '../src/backend.mjs';
 import { run } from '../src/process.mjs';
 
 test('unconfigured physical mode never silently falls back to fixture', async () => {
@@ -61,4 +61,36 @@ test('only an actively paired physical Xcode tunnel is considered available', ()
     assert.equal(hasUsablePhysicalTunnel(wrongDevice), false, `${key} must identify a real iPhone`);
   }
   assert.equal(hasUsablePhysicalTunnel(null), false);
+});
+
+test('connection diagnostics emit fixed codes and never device metadata', () => {
+  const fixture = (pairingState, tunnelState, reality = 'physical') => ({
+    hardwareProperties: {
+      reality, platform: 'iOS', deviceType: 'iPhone',
+      udid: 'DO-NOT-REVEAL-IDENTIFIER'
+    },
+    connectionProperties: {
+      pairingState, tunnelState, transportType: 'secret-transport-metadata'
+    },
+    privateNote: 'DO-NOT-REVEAL-PRIVATE-NOTE'
+  });
+  const samples = [
+    [fixture('paired', 'connected'), 'xcode-tunnel-available', true],
+    [fixture('paired', 'available'), 'xcode-tunnel-available', true],
+    [fixture('paired', 'unavailable'), 'no-active-tunnel', false],
+    [fixture('paired', 'connecting'), 'no-active-tunnel', false],
+    [fixture('paired', undefined), 'no-active-tunnel', false],
+    [fixture('unpaired', 'connected'), 'pairing-required', false],
+    [fixture(undefined, 'connected'), 'pairing-required', false],
+    [fixture('paired', 'connected', 'simulated'), 'unsupported-device', false],
+    [null, 'unsupported-device', false]
+  ];
+  for (const [device, expectedCode, shouldBeAvailable] of samples) {
+    const code = physicalConnectionState(device);
+    assert.equal(code, expectedCode);
+    assert.equal(hasUsablePhysicalTunnel(device), shouldBeAvailable);
+    assert.match(code, /^[a-z-]+$/);
+    assert.ok(!code.includes('DO-NOT-REVEAL'));
+    assert.ok(!code.includes('secret-transport'));
+  }
 });

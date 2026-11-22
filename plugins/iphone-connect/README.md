@@ -56,8 +56,16 @@ The current fixed app identity is `de.bos.neoagent.igenticdiagnostics`; a second
 supported development identity is `org.example.iGenticDiagnostics`. Changing
 the identity in private config does not sign/install the app.
 
-If the physical phone is unavailable, the server returns that state. It never
-substitutes the synthetic backend. Fixture mode is explicit:
+If the physical phone is unavailable, the server returns that state. When a
+configured physical device is found, `iphone_list_devices` also reports one of
+four **fixed, privacy-safe CoreDevice status codes**:
+`xcode-tunnel-available`, `no-active-tunnel`, `pairing-required` or
+`unsupported-device`. A missing device has no observed entry. An active Xcode
+tunnel is **not** proof that MobileCLI or our app has been verified. No device
+names, UDIDs, transport metadata or private screen content enter tool results.
+For `no-active-tunnel`, reconnect USB-C, unlock the phone, confirm Trust and
+check Xcode's Devices window; a VPN alone does not create the required tunnel.
+The backend never substitutes the synthetic backend. Fixture mode is explicit:
 
 ```sh
 IGENTIC_IPHONE_BACKEND=fixture npm run smoke

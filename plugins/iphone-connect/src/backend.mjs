@@ -9,12 +9,21 @@ export const MARKERS = Object.freeze(['iGentic Diagnostics', 'Open local discove
 
 // A remembered pairing or a stale wired transport is not proof of a usable tunnel.
 // In particular, a simulator must never satisfy the physical-device contract.
+// Deliberately expose only one of four fixed readiness codes. Never echo
+// CoreDevice identifiers, transport metadata or arbitrary device labels.
+// A usable CoreDevice tunnel is not proof that MobileCLI or our app is ready.
+export function physicalConnectionState(device) {
+  if (device?.hardwareProperties?.reality !== 'physical'
+      || device?.hardwareProperties?.platform !== 'iOS'
+      || device?.hardwareProperties?.deviceType !== 'iPhone') return 'unsupported-device';
+  if (device?.connectionProperties?.pairingState !== 'paired') return 'pairing-required';
+  if (!['connected', 'available'].includes(device?.connectionProperties?.tunnelState))
+    return 'no-active-tunnel';
+  return 'xcode-tunnel-available';
+}
+
 export function hasUsablePhysicalTunnel(device) {
-  return device?.hardwareProperties?.reality === 'physical'
-    && device?.hardwareProperties?.platform === 'iOS'
-    && device?.hardwareProperties?.deviceType === 'iPhone'
-    && device?.connectionProperties?.pairingState === 'paired'
-    && ['connected', 'available'].includes(device?.connectionProperties?.tunnelState);
+  return physicalConnectionState(device) === 'xcode-tunnel-available';
 }
 
 export function sanitizeTree(value) {
@@ -68,7 +77,9 @@ export class MobileBackend {
       const d = devices.find(d => d.hardwareProperties?.reality === 'physical'
         && (d.hardwareProperties?.udid === this.config.deviceId || d.identifier === this.config.deviceId));
       if (!d) return [];
-      return [{ id: 'iphone-1', kind: this.kind, available: hasUsablePhysicalTunnel(d) }];
+      const connectionState = physicalConnectionState(d);
+      return [{ id: 'iphone-1', kind: this.kind,
+        available: connectionState === 'xcode-tunnel-available', connectionState }];
     } finally { await rm(directory, { recursive: true, force: true }); }
   }
   async mobile(args, signal) {
