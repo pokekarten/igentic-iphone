@@ -1,5 +1,7 @@
 # iGentic Diagnostics App Wrapper
 
+**Target device:** iOS **27.0+** only. Build and unsigned simulator tests require **Xcode 27**; the simulator smoke script refuses iOS 26 and older runtimes. A source/Snapshot test on Linux is not evidence of a signed installation on physical iPhone hardware.
+
 This directory contains the smallest installable iOS application wrapper for the existing `iGenticApp` Swift package product.
 
 ## What it does
