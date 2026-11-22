@@ -18,8 +18,12 @@ jobs:
           git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
           git fetch --no-tags --depth=1 origin "${GITHUB_SHA}"
           git checkout --detach FETCH_HEAD
-      - name: Check the standalone plugin
-        working-directory: products/fieldglass/plugin
+      - name: Install and test the standalone source archive
+        working-directory: products/fieldglass
         run: |
+          archive=$(scripts/package-source.sh)
+          shasum -a 256 -c "$archive.sha256"
+          unzip -q "$archive" -d "$RUNNER_TEMP"
+          cd "$RUNNER_TEMP/Fieldglass/plugin"
           npm ci --ignore-scripts --no-audit --no-fund
           npm test

@@ -30,6 +30,8 @@ open Fieldglass.xcodeproj
 
 In Xcode das Scheme Fieldglass auswählen und auf einem Simulator starten. Die Hardware-Installation braucht eine eigene gültige Signierung für den Bundle Identifier. Der Code lässt sich mit `products/fieldglass` als eigenständigem Projektstamm verwenden. Zur direkten Anbindung an andere lokale MCP-Clients genügt `node /absoluter/pfad/plugin/src/server.mjs`. Für ChatGPT Web ist zusätzlich eine vom Konto autorisierte Verbindung zum Server erforderlich.
 
+Für die Weitergabe aus einem Git-Checkout erzeugt `scripts/package-source.sh` ein ZIP der eingecheckten Produktquellen und eine SHA-256-Prüfsumme unter `dist/`. Das entpackte Verzeichnis enthält App, Plugin, Tests und Marketplace-Manifest. Dort gelten die gleichen Installationsschritte.
+
 ## Kanäle und Werkzeuge
 
 | Kanal | Einrichtung | Werkzeuge |
