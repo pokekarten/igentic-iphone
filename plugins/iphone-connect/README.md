@@ -115,6 +115,13 @@ Run only the B2B catalog with **no phone pairing/configuration needed**:
 IGENTIC_IPHONE_BACKEND=catalog npm run start
 ```
 
+Verify the standalone catalog and denied device session with an official MCP
+client, including from an extracted distribution archive:
+
+```sh
+npm run smoke:catalog
+```
+
 In this explicit catalog-only mode, the existing phone tools are listed for
 protocol compatibility, but no device is available and starting any device
 session fails closed. The regular physical mode still requires its private

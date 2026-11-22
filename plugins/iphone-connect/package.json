@@ -14,6 +14,7 @@
     "doctor": "node scripts/doctor.mjs",
     "build:ui": "node scripts/build-ui.mjs",
     "smoke": "node scripts/smoke.mjs",
+    "smoke:catalog": "node scripts/smoke-catalog.mjs",
     "package": "node scripts/package.mjs"
   },
   "dependencies": {
