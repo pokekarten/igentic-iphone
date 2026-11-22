@@ -16,8 +16,12 @@ package final class EventKitReminderStore: ReminderStoreBackend {
         if authorization == .fullAccess { return true }
         guard authorization == .setupRequired else { return false }
         // No fetch/create operation precedes this explicit user-triggered request.
-        do { return try await store.requestFullAccessToReminders() }
-        catch { return false } // Raw platform errors may contain private data.
+        return await withCheckedContinuation { continuation in
+            store.requestFullAccessToReminders { granted, _ in
+                // The callback does not inspect or retain EventKit objects.
+                continuation.resume(returning: granted)
+            }
+        }
     }
 
     package func resolveTarget() -> ReminderTargetResolutionResult {
