@@ -11,7 +11,11 @@ if [[ ! -d "${APP_PATH}" ]]; then
   exit 1
 fi
 
-SIMULATOR_UDID="$(xcrun simctl list devices available -j | python3 "$(dirname "${BASH_SOURCE[0]}")/select_ios27_simulator.py")"
+selector_args=()
+if [[ -n "${IOS27_MATCHED_RUNTIME:-}" ]]; then
+  selector_args+=(--match-runtime "${IOS27_MATCHED_RUNTIME}")
+fi
+SIMULATOR_UDID="$(xcrun simctl list devices available -j | python3 "$(dirname "${BASH_SOURCE[0]}")/select_ios27_simulator.py" "${selector_args[@]}")"
 
 cleanup() {
   xcrun simctl terminate "${SIMULATOR_UDID}" "${BUNDLE_IDENTIFIER}" >/dev/null 2>&1 || true

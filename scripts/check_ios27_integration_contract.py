@@ -112,6 +112,10 @@ def check_integration(root: Path = ROOT) -> list[str]:
         "-only-testing:iGenticDiagnosticsUITests/iGenticAppIntentsTests",
         "CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=-",
         "-parallel-testing-enabled NO",
+        "Select Xcode 27 paired with an available matching iOS runtime",
+        "IOS27_MATCHED_RUNTIME",
+        "--match-runtime",
+        "DEVELOPER_DIR=",
     )
     for requirement in acceptance_requirements:
         if requirement not in workflow:
