@@ -54,7 +54,9 @@ if [[ ! "${first_pid}" =~ ^[0-9]+$ ]]; then
 fi
 
 sleep 3
-xcrun simctl io "${SIMULATOR_UDID}" screenshot "${SCREENSHOT_PATH}"
+# iPhone Duo (iOS 27) exposes two displays. Screen ID 1 is the primary
+# LCD; never let simctl guess when multiple displays are connected.
+xcrun simctl io "${SIMULATOR_UDID}" screenshot --display=1 "${SCREENSHOT_PATH}"
 if [[ ! -s "${SCREENSHOT_PATH}" ]]; then
   echo "Simulator screenshot was not created" >&2
   exit 1
