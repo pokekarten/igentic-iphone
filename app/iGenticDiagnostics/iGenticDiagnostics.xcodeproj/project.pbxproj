@@ -10,12 +10,14 @@
 		A10000000000000000000001 /* iGenticDiagnosticsApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000002 /* iGenticDiagnosticsApp.swift */; };
 		A10000000000000000000003 /* iGenticApp in Frameworks */ = {isa = PBXBuildFile; productRef = A10000000000000000000004 /* iGenticApp */; };
 		B20000000000000000000001 /* iGenticAppIntentsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000002 /* iGenticAppIntentsTests.swift */; };
+		B30000000000000000000001 /* DiagnosticsUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30000000000000000000002 /* DiagnosticsUITests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		A10000000000000000000002 /* iGenticDiagnosticsApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iGenticDiagnosticsApp.swift; sourceTree = "<group>"; };
 		A10000000000000000000005 /* iGenticDiagnostics.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iGenticDiagnostics.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B20000000000000000000002 /* iGenticAppIntentsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iGenticAppIntentsTests.swift; sourceTree = "<group>"; };
+		B30000000000000000000002 /* DiagnosticsUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsUITests.swift; sourceTree = "<group>"; };
 		B20000000000000000000003 /* iGenticDiagnosticsUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = iGenticDiagnosticsUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -68,6 +70,7 @@
 			isa = PBXGroup;
 			children = (
 				B20000000000000000000002 /* iGenticAppIntentsTests.swift */,
+				B30000000000000000000002 /* DiagnosticsUITests.swift */,
 			);
 			path = iGenticDiagnosticsUITests;
 			sourceTree = "<group>";
@@ -176,6 +179,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B20000000000000000000001 /* iGenticAppIntentsTests.swift in Sources */,
+				B30000000000000000000001 /* DiagnosticsUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
