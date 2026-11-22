@@ -142,3 +142,20 @@ Abgleich der GitHub-Links aus docs/research, docs/model-research und docs/provid
 3. **Offline-Modellvergleich hinter demselben Werkzeugvertrag.** CoreML-LLM als Vergleichskandidaten mit demselben kleinen deutschen Testsatz wie das vorhandene Systemmodell messen. Auf dem physischen Zielgerät Trefferquote, Spitzen-RAM, Zeit bis zum fertigen Entwurf und Abbruch erfassen. Erst nach messbarem Vorteil und Prüfung der Modellrechte einen Download anbieten.
 
 Priorität erhält die OCR als zweiter Beobachtungskanal für eigene Testoberflächen. Der aktuelle Adapter liefert Marker und keine Bilder. Ein expliziter Bildeingang gehört deshalb zur Umsetzung. Die Mac-Accessibility-Probe erfasst Mac-Oberflächen und liefert keine zusätzliche iPhone-Eingabefähigkeit.
+
+## MCP-Abgleich vor der Integration
+
+Inventar aus dem aktuellen Codex-Werkzeugkatalog. Ein angebotener Werkzeugname belegt seine Registrierung. Die Geräteabnahme bleibt pro Funktion und Plattform erforderlich.
+
+**iGentic (10)**: `iphone_execute_action`, `iphone_get_action_result`, `iphone_get_capabilities`, `iphone_list_devices`, `iphone_observe`, `iphone_open_diagnostics`, `iphone_prepare_action`, `iphone_show_dashboard`, `iphone_start_session`, `iphone_stop_session`.
+
+**Mobile MCP (36 einschließlich Werkzeugentdeckung)**: `get_more_tools`, `mobile_allocate_remote_device`, `mobile_batch_commands`, `mobile_clear_app_data`, `mobile_click_on_screen_at_coordinates`, `mobile_clipboard`, `mobile_double_tap_on_screen`, `mobile_drag_on_screen`, `mobile_fold_device`, `mobile_get_crash`, `mobile_get_device_logs`, `mobile_get_foreground_app`, `mobile_get_orientation`, `mobile_get_screen_size`, `mobile_install_app`, `mobile_launch_app`, `mobile_list_apps`, `mobile_list_available_devices`, `mobile_list_crashes`, `mobile_list_elements_on_screen`, `mobile_list_remote_devices`, `mobile_login_to_cloud_provider`, `mobile_long_press_on_screen_at_coordinates`, `mobile_open_url`, `mobile_press_button`, `mobile_release_remote_device`, `mobile_save_screenshot`, `mobile_set_location`, `mobile_set_orientation`, `mobile_start_screen_recording`, `mobile_stop_screen_recording`, `mobile_swipe_on_screen`, `mobile_take_screenshot`, `mobile_terminate_app`, `mobile_type_keys`, `mobile_uninstall_app`.
+
+| Upstream | Ergänzung für iGentic | Auswahl |
+| --- | --- | --- |
+| [Mobile MCP](https://github.com/mobile-next/mobile-mcp) | UI-Baum, Screenshot, Vordergrund-App, Eingabe und Aufzeichnung | Bereits verfügbar. Zuerst die Vordergrund-App und öffentliche Marker vergleichen. Für OCR anschließend einen lokal gespeicherten Bildausschnitt als Eingabe prüfen. |
+| [agent-device](https://github.com/callstack/agent-device) | Sitzungen, aktuelle Elementreferenzen, Änderungen nach einer Aktion, Diagnoseartefakte | Kandidat für beobachtbare Bildschirmänderungen. Am selben Testbildschirm prüfen, ob alte Referenzen nach Navigation zuverlässig ungültig werden. |
+| [Appium MCP](https://github.com/appium/appium-mcp) | Elementauflösung, Kontext, Zeitpunkt und normalisierte Fehler als optionaler Aktionsnachweis | Als unabhängigen Labortest einsetzen. Nur benötigte Statusfelder in den Produktbericht übernehmen. |
+| [iPhone-mcp](https://github.com/blitzdotdev/iPhone-mcp) | Alternativer Mac-Wrapper mit Screenshot-Dateipfad und Navigation | Vergleich für lokale Bildübergabe. Separater Runner-Aufwand lohnt erst bei nachgewiesenem Vorteil. |
+
+Erster Vergleich: gleiche Diagnostics-Seite öffnen, öffentlichen Marker lesen, einmal navigieren, geänderten Marker mit Zeit erfassen. Auf dem physischen iPhone Anzahl korrekter Ergebnisse, Antwortzeit und Verhalten bei Verbindungsabbruch messen. Bis dahin bleiben Screenshot/OCR, Eingabe und Aufzeichnung Fähigkeiten der Kandidaten. Cloud-Geräte, App-Verwaltung und Standortsimulation sind optionale Laborfunktionen.
