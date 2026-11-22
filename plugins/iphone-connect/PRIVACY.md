@@ -11,6 +11,14 @@ adapter boundary; they are not written to project logs or returned as tool
 content. Foreground identity is checked before and after observation. This does
 not guarantee notification-free screen capture; screen capture is not exposed.
 
+Subprocesses (`xcrun`, MobileCLI and the Swift policy helper) receive an explicit
+allowlist of basic macOS environment variables rather than the complete MCP
+host environment. Provider tokens, GitHub credentials, SSH agent sockets and
+unrelated configuration variables are not forwarded; MobileMCP telemetry is
+forced off. The required Home, PATH, locale and selected Xcode developer path
+remain available. This reduces accidental credential exposure but does not
+make a third-party binary inherently trustworthy.
+
 Session/proposal/result state is process-local. An exclusive lease containing
 local process and session identifiers is held in a 0700 application-support
 directory; its file is 0600. Device ID, app identity and executable paths remain

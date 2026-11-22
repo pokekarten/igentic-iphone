@@ -62,3 +62,30 @@ test('only an actively paired physical Xcode tunnel is considered available', ()
   }
   assert.equal(hasUsablePhysicalTunnel(null), false);
 });
+
+test('child tools never inherit MCP-host tokens or injected runtime variables', async () => {
+  const key = 'IGENTIC_SYNTHETIC_TEST_PROVIDER_TOKEN';
+  const old = process.env[key];
+  const telemetry = process.env.MOBILEMCP_DISABLE_TELEMETRY;
+  try {
+    process.env[key] = 'synthetic-not-a-secret';
+    process.env.MOBILEMCP_DISABLE_TELEMETRY = '0';
+    const script = `process.stdout.write(JSON.stringify({
+      injected: process.env.${key} ?? null,
+      telemetry: process.env.MOBILEMCP_DISABLE_TELEMETRY ?? null,
+      hasHome: typeof process.env.HOME === 'string',
+      leakedProviderNames: Object.keys(process.env).some(k =>
+        /^(OPENAI_API_KEY|GH_TOKEN|GITHUB_TOKEN|HF_TOKEN|AWS_SECRET_ACCESS_KEY|SSH_AUTH_SOCK)$/.test(k))
+    }))`;
+    const observed = JSON.parse(await run(process.execPath, ['-e', script]));
+    assert.equal(observed.injected, null);
+    assert.equal(observed.telemetry, '1');
+    assert.equal(observed.hasHome, true);
+    assert.equal(observed.leakedProviderNames, false);
+  } finally {
+    if (old === undefined) delete process.env[key];
+    else process.env[key] = old;
+    if (telemetry === undefined) delete process.env.MOBILEMCP_DISABLE_TELEMETRY;
+    else process.env.MOBILEMCP_DISABLE_TELEMETRY = telemetry;
+  }
+});
