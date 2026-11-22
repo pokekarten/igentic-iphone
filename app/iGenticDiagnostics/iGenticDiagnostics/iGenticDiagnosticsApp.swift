@@ -137,6 +137,37 @@ struct iGenticReadOnlyDiagnosticsIntent: AppIntent {
     }
 }
 
+// Runs entirely in the owning iPhone app through Shortcuts or Siri.
+// It checks the system model's availability only: no generated text, model
+// download, prompts, personal records, networking or persistent mutation.
+@available(iOS 26.0, *)
+struct iGenticLocalModelReadinessIntent: AppIntent {
+    static let title: LocalizedStringResource = "Check iGentic Local AI"
+    static let description = IntentDescription(
+        "Checks whether Apple's on-device language model is currently ready for this device and preferred language."
+    )
+    static let openAppWhenRun = false
+
+    func perform() async throws -> some IntentResult & ReturnsValue<String> {
+        // System intents are not elevated authorities: use the same local-only
+        // read permission gate as the fixed diagnostics Shortcut.
+        let decision = PolicyEngine().decide(
+            PolicyRequest(
+                privacyMode: .localOnly,
+                dataClassification: .publicDefault,
+                actionRisk: .read,
+                requestedDelegationTarget: .localDevice
+            )
+        )
+        guard decision.isAllowed, !decision.requiresApproval else {
+            throw iGenticDiagnosticsIntentError.policyDenied
+        }
+        return .result(value: OnDeviceModelReadiness.summary(
+            for: AppleFoundationModelsRuntime().availability
+        ))
+    }
+}
+
 @available(iOS 16.0, *)
 struct iGenticDiagnosticsShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
@@ -148,6 +179,15 @@ struct iGenticDiagnosticsShortcuts: AppShortcutsProvider {
                 ],
                 shortTitle: "Check Diagnostics",
             systemImageName: "checkmark.shield"
+        )
+        AppShortcut(
+            intent: iGenticLocalModelReadinessIntent(),
+            phrases: [
+                "Check local AI in \(.applicationName)",
+                "Check iGentic AI in \(.applicationName)"
+            ],
+            shortTitle: "Check Local AI",
+            systemImageName: "cpu"
         )
     }
 }
