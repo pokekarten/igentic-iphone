@@ -1,5 +1,7 @@
 # Seven uploaded upstream ZIP repositories: iGentic source audit (2026-11-22)
 
+**Product direction update (2026-11-22):** iGentic now targets **iOS 27.0+ exclusively** via [migration PR #389](https://github.com/pokekarten/igentic-iphone/pull/389). Any older recommendations below to keep iOS 17 support or isolate iOS 27 as optional are **superseded**, while the underlying upstream-source and security findings remain valid. Model hardware/locale eligibility still requires device checks.
+
 **Evidence class:** user-supplied source ZIPs inspected locally. This upgrades the existing [source atlas](IPHONE_AGENT_PROJECT_ATLAS.md) and the earlier [four-upstream review](UPLOADED_UPSTREAM_SOURCE_REVIEW_2026_11_22.md); it is not seven new project discoveries. No external code is vendored, installed or executed. No iPhone/Mac build, simulator run, model inference, Apple entitlement or physical device has been verified in this pass.
 
 ## Corpus and per-file verification
