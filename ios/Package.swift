@@ -1,11 +1,11 @@
-// swift-tools-version: 6.0
+// swift-tools-version: 6.2
 
 import PackageDescription
 
 let package = Package(
     name: "iGenticIPhone",
     platforms: [
-        .iOS(.v17),
+        .iOS("27.0"),
         .macOS(.v14)
     ],
     products: [
