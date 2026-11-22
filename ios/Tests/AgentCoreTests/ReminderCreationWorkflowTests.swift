@@ -100,7 +100,7 @@ final class ReminderCreationWorkflowTests: XCTestCase {
     }
 
     @MainActor
-    func testPermissionMissingDoesNotResolveTargetOrPromptAutomatically() throws {
+    func testPermissionMissingDoesNotResolveTargetOrPromptAutomatically() async throws {
         for state in [ReminderTargetAuthorizationState.setupRequired, .denied, .restricted, .unsupported] {
             let store = FakeReminderStore()
             store.authorization = state
@@ -115,7 +115,7 @@ final class ReminderCreationWorkflowTests: XCTestCase {
     }
 
     @MainActor
-    func testInvalidTitleCannotReachTargetOrApproval() throws {
+    func testInvalidTitleCannotReachTargetOrApproval() async throws {
         for title in ["  ", "bad\nline", "bad\u{202E}title", String(repeating: "ä", count: 257)] {
             let store = FakeReminderStore()
             let flow = ReminderCreationWorkflow(backend: store)
@@ -142,7 +142,7 @@ final class ReminderCreationWorkflowTests: XCTestCase {
     }
 
     @MainActor
-    func testSensitiveTitleCannotOverrideSyncedDestinationBlock() throws {
+    func testSensitiveTitleCannotOverrideSyncedDestinationBlock() async throws {
         let store = FakeReminderStore()
         store.source = .calDAV
         let flow = ReminderCreationWorkflow(backend: store)
@@ -157,7 +157,7 @@ final class ReminderCreationWorkflowTests: XCTestCase {
     }
 
     @MainActor
-    func testUnsupportedDestinationCannotReachApproval() throws {
+    func testUnsupportedDestinationCannotReachApproval() async throws {
         let store = FakeReminderStore()
         store.source = .unsupported
         let flow = ReminderCreationWorkflow(backend: store)
