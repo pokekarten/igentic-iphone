@@ -7,7 +7,10 @@ import FoundationModels
 @available(iOS 26.0, macOS 26.0, *)
 @Generable
 struct iGenticGeneratedActionCandidate {
-    @Guide(description: "An action name. Use only diagnostics.read or reminder.create, or an empty string when unsure.")
+    @Guide(
+        description: "An action name. Use only diagnostics.read or reminder.create, or an empty string when unsure.",
+        .anyOf(["diagnostics.read", "reminder.create", ""])
+    )
     var actionName: String
 
     @Guide(description: "For diagnostics.read return empty text. For reminder.create return a short synthetic reminder title without private details.")
