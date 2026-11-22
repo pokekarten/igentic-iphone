@@ -51,3 +51,26 @@ The MacBook Neo with macOS 27.0.1/Xcode 27.2 reported
 2026-11-21. A live, synthetic probe returned `approvalRequired`
 with `policyRequiresApproval` (no reminder was created). Device acceptance
 on the owner's physical iPhone remains separate.
+
+
+## iOS 27 locale eligibility check (2026-11-22)
+
+The on-device system model's presence is **not** proof of its availability
+for the user's preferred language. `AppleFoundationModelsRuntime` now checks
+`SystemLanguageModel.default.supportsLocale` against the first preferred
+language after the model reports available. An unsupported locale fails closed
+with `unsupportedLocale`, rather than sending the request to a cloud endpoint
+or silently choosing a different model. Existing authorization and data
+classification boundaries are unchanged. A separately configured, user-approved
+local open-weight model may be evaluated later; there is **no automatic
+delegation**.
+
+Apple documentation:
+https://developer.apple.com/documentation/foundationmodels/systemlanguagemodel/supportslocale(_:)
+https://developer.apple.com/documentation/updates/foundationmodels
+
+This mapping has a deterministic Swift unit test, but **has not been measured
+on the physical iPhone on iOS 27**. A signed physical-device trial must record
+preferred locale, OS version, model availability, `supportsLocale` result and
+a synthetic German-language structured preview. Do not publish private device
+identifiers, prompts or raw generated text.

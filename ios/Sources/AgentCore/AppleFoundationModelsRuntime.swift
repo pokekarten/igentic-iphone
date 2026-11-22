@@ -1,3 +1,4 @@
+import Foundation
 #if canImport(FoundationModels)
 import FoundationModels
 #endif
@@ -7,6 +8,7 @@ enum AppleFoundationModelsAvailabilitySnapshot: Equatable, Sendable {
     case deviceNotEligible
     case appleIntelligenceNotEnabled
     case modelNotReady
+    case unsupportedLocale
     case unsupportedPlatform
     case unknownSystemCondition
 }
@@ -55,6 +57,8 @@ public struct AppleFoundationModelsRuntime: LocalModelRuntime {
             return .unavailable(.appleIntelligenceNotEnabled)
         case .modelNotReady:
             return .unavailable(.modelNotReady)
+        case .unsupportedLocale:
+            return .unavailable(.unsupportedLocale)
         case .unsupportedPlatform:
             return .unavailable(.unsupportedPlatform)
         case .unknownSystemCondition:
@@ -65,9 +69,20 @@ public struct AppleFoundationModelsRuntime: LocalModelRuntime {
     private static func currentAvailabilitySnapshot() -> AppleFoundationModelsAvailabilitySnapshot {
         #if canImport(FoundationModels)
         if #available(iOS 26.0, macOS 26.0, *) {
-            return foundationModelsAvailabilitySnapshot(
-                SystemLanguageModel.default.availability
-            )
+            let systemModel = SystemLanguageModel.default
+            let snapshot = foundationModelsAvailabilitySnapshot(systemModel.availability)
+            guard snapshot == .available else {
+                return snapshot
+            }
+            // OS availability alone does not imply that the user's preferred
+            // language is supported by the installed on-device model.
+            // Keep this local: do not silently fall back to a hosted provider.
+            let preferredLocale = Locale.preferredLanguages.first.map {
+                Locale(identifier: $0)
+            } ?? Locale.current
+            return systemModel.supportsLocale(preferredLocale)
+                ? .available
+                : .unsupportedLocale
         }
         #endif
 
