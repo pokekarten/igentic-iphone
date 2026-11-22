@@ -40,13 +40,17 @@ Do not confuse **"runs on iOS 27"** with **"uses iOS 27's new LanguageModel prot
 **MLX provider** from the first-party MLX documentation:
 
 ```swift
+import Foundation
 import FoundationModels
+import HuggingFace
 import MLXFoundationModels
+import MLXHuggingFace
 import MLXLLM
 import MLXLMCommon
+import Tokenizers
 
-// Xcode 27 / iOS 27; download and fingerprint the model before allowing
-// it into the trusted local inventory.
+// Xcode 27 / iOS 27. Illustration ONLY: the macro may download weights.
+// It does NOT enforce iGentic's pinned-commit/verified-asset admission.
 let model = #huggingFaceLanguageModel(
     configuration: LLMRegistry.qwen3_0_6b_4bit,
     capabilities: [.reasoning]
@@ -70,7 +74,7 @@ let response = try await session.respond(to: "Erkläre diesen öffentlichen Begr
 await model.unload()
 ```
 
-The two examples are **not pasted application-ready code**: each requires SwiftPM products, a physical device build, a model asset, license clearance, actor isolation/cancellation and platform capability checks. Tool-call safety belongs **above** both model implementations.
+**Important: the MLX `#huggingFaceLanguageModel` macro synthesizes its own downloader/tokenizer loading and does not itself enforce iGentic's immutable model-admission policy. Production integration MUST instead use `MLXLanguageModel`'s direct `weightsLocation:` / `load:` initializer with only previously verified on-disk assets, no network fallback.** See [upstream direct initializer and default trait details](https://github.com/ml-explore/mlx-swift-lm/blob/main/Libraries/MLXFoundationModels/README.md).\n\nThe two examples are **not pasted application-ready code**: each requires SwiftPM products, a physical device build, a model asset, license clearance, actor isolation/cancellation and platform capability checks. Tool-call safety belongs **above** both model implementations.
 
 ## Recommended initial model matrix (candidates, not iGentic benchmarks)
 
