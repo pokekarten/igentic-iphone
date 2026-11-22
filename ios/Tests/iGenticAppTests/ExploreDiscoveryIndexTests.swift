@@ -7,12 +7,36 @@ final class ExploreDiscoveryIndexTests: XCTestCase {
         let index = try ExploreDiscoveryIndexLoader.loadBundled()
 
         XCTAssertEqual(index.schemaVersion, 2)
-        XCTAssertEqual(index.topics.map(\.slug), ["approvals", "local-ai", "privacy"])
-        XCTAssertEqual(index.collections.map(\.slug), ["architecture", "getting-started", "security"])
+        XCTAssertEqual(index.topics.map(\.slug), [
+            "approvals", "device-fleet", "enterprise-agent-trust",
+            "field-evidence", "insurance-risk", "local-ai",
+            "privacy", "private-model-evaluation", "retail-inventory"
+        ])
+        XCTAssertEqual(index.collections.map(\.slug), [
+            "architecture", "business-solutions", "getting-started", "security"
+        ])
         XCTAssertEqual(
             index.resolvedFeaturedItems.map(\.title),
-            ["Privacy First", "Approvals", "Local AI", "Getting Started"]
+            ["Privacy First", "Approvals", "Local AI", "Getting Started", "Business Solutions"]
         )
+    }
+
+    func testBusinessSolutionDiscoveryIsBundledWithExplicitNonProductionLimits() throws {
+        let index = try ExploreDiscoveryIndexLoader.loadBundled()
+        let collection = try XCTUnwrap(index.collection(slug: "business-solutions"))
+        let slugs = [
+            "enterprise-agent-trust", "field-evidence", "insurance-risk",
+            "device-fleet", "private-model-evaluation", "retail-inventory"
+        ]
+
+        XCTAssertEqual(index.topics(in: collection).map(\.slug), slugs)
+        XCTAssertTrue(collection.bodyMarkdown.contains("read-only product discovery"))
+        for topic in index.topics(in: collection) {
+            XCTAssertTrue(topic.bodyMarkdown.contains("**Today:**"), topic.slug)
+            XCTAssertTrue(topic.bodyMarkdown.contains("**Missing before a pilot:**") ||
+                          topic.bodyMarkdown.contains("**Missing before a customer pilot:**"), topic.slug)
+        }
+        XCTAssertTrue(index.search("business solutions").collections.contains { $0.slug == collection.slug })
     }
 
     func testBundledMarkdownBodiesAreNormalizedAndNonEmpty() throws {
@@ -91,11 +115,14 @@ final class ExploreDiscoveryIndexTests: XCTestCase {
         let index = try ExploreDiscoveryIndexLoader.loadBundled()
 
         let policyResults = index.search("policy")
-        XCTAssertEqual(policyResults.topics.map(\.slug), ["approvals", "privacy"])
+        XCTAssertEqual(policyResults.topics.map(\.slug), [
+            "approvals", "device-fleet", "enterprise-agent-trust",
+            "insurance-risk", "privacy", "private-model-evaluation"
+        ])
         XCTAssertEqual(policyResults.collections.map(\.slug), ["security"])
 
         let privacyResults = index.search("privacy")
-        XCTAssertEqual(privacyResults.topics.map(\.slug), ["privacy"])
+        XCTAssertEqual(privacyResults.topics.map(\.slug), ["insurance-risk", "privacy"])
         XCTAssertEqual(privacyResults.collections.map(\.slug), ["getting-started", "security"])
 
         let topicBodyResults = index.search("  ReDaCtIoN  ")

@@ -13,6 +13,22 @@
       ]
     },
     {
+      "bodyMarkdown": "Explore enterprise mobile-agent controls, field evidence, insurance, device operations, model evaluation and inventory assistance. Each topic distinguishes what is implemented, what is demonstrated in a simulator and what is only a proposed integration. This collection is **local, read-only product discovery**: it installs no enterprise backend, grants no device access and does not enable remote control.\n\nThe first candidate is an approval-gated trust layer plus a synthetic Fieldglass field-workbench flow. Insurance, fleet, model management and commerce require separate permissioned pilots and domain-level authorization.",
+      "description": "Six evidence-labeled B2B opportunities built around the local iGentic trust boundary.",
+      "featured": true,
+      "path": "docs/explore/collections/business-solutions/index.md",
+      "slug": "business-solutions",
+      "title": "Business Solutions",
+      "topics": [
+        "enterprise-agent-trust",
+        "field-evidence",
+        "insurance-risk",
+        "device-fleet",
+        "private-model-evaluation",
+        "retail-inventory"
+      ]
+    },
+    {
       "bodyMarkdown": "A small curated path for new contributors and readers who want the core control-plane concepts first.",
       "description": "The shortest path into the core iGentic concepts.",
       "featured": true,
@@ -54,6 +70,10 @@
     {
       "kind": "collection",
       "slug": "getting-started"
+    },
+    {
+      "kind": "collection",
+      "slug": "business-solutions"
     }
   ],
   "schemaVersion": 2,
@@ -72,6 +92,66 @@
         "safety"
       ],
       "title": "Approvals"
+    },
+    {
+      "bodyMarkdown": "**Today:** iPhone Connect supports typed local MCP diagnostics, fixture-backed approval policy tests and fixed-owned-app navigation proposals. A successful fixture or simulator test does not prove physical iPhone connectivity.\n\n**B2B use case:** a support operator requests a coarse diagnostic state from an explicitly enrolled and authorized company app, reviews a bounded action and checks a receipt.\n\n**Missing before a pilot:** company enrollment and identity, device/session ownership, managed app distribution, documented wired/network channels, admin logging and independent physical-device acceptance. Do not confuse Apple Business/MDM configuration with arbitrary taps across apps or remote cellular access.",
+      "difficulty": "intermediate",
+      "featured": false,
+      "icon": "smartphone",
+      "path": "docs/explore/topics/device-fleet/index.md",
+      "slug": "device-fleet",
+      "summary": "Bounded fixed-app diagnostics for enterprise iPhone support, not unrestricted remote control.",
+      "tags": [
+        "business",
+        "fleet",
+        "diagnostics"
+      ],
+      "title": "Managed Device Diagnostics"
+    },
+    {
+      "bodyMarkdown": "**Today:** the research kernel includes Swift policy decisions, approval boundaries and bounded audit concepts; system App Intents and integration tests remain in review. This is not an enterprise SDK or a production deployment.\n\n**B2B use case:** a staff member reviews a synthetic task proposed by local AI; Swift code decides which capabilities can be exercised and a human explicitly approves a bounded write. A model suggestion never grants permissions.\n\n**Missing before a customer pilot:** independently verified tenant and role enforcement, organization identity, managed app configuration, server-side authorization, data-processing terms, audit export and security testing. No generic control of other iPhone apps is promised.\n\nSee the repository's B2B solution portfolio for proof gates and ownership boundaries.",
+      "difficulty": "advanced",
+      "featured": false,
+      "icon": "shield-check",
+      "path": "docs/explore/topics/enterprise-agent-trust/index.md",
+      "slug": "enterprise-agent-trust",
+      "summary": "A permissioned enterprise mobile-agent control layer with deterministic policy and human review.",
+      "tags": [
+        "business",
+        "security",
+        "approvals"
+      ],
+      "title": "Enterprise Agent Trust"
+    },
+    {
+      "bodyMarkdown": "**Today:** the separate Fieldglass prototype provides native Vision/OCR experiments, draft editing, fixed-app MCP tools and synthetic receipt verification in the simulator. Physical iPhone/ChatGPT acceptance is not established.\n\n**B2B use case:** an inspector reviews a fictional asset observation, corrects a draft and decides whether to retain or cancel it. The original source, user action and verified outcome must remain distinguishable.\n\n**Missing before a pilot:** consent, image and location minimization, retention, provenance hashing, offline failure handling, device installation and verified role-bound backend authorization. No real customer images or claims are bundled.",
+      "difficulty": "intermediate",
+      "featured": false,
+      "icon": "scan-eye",
+      "path": "docs/explore/topics/field-evidence/index.md",
+      "slug": "field-evidence",
+      "summary": "Reviewable on-device field findings for inspectors and loss-adjustment teams.",
+      "tags": [
+        "business",
+        "field",
+        "evidence"
+      ],
+      "title": "Field Evidence Workbench"
+    },
+    {
+      "bodyMarkdown": "**Today:** iGentic has policy/draft primitives, and separate catastrophe-data and stochastic-insurance research exists. **There is no working iPhone-to-insurance-engine integration or approved risk model here.**\n\n**B2B use case:** a fictional survey of an insured building produces a structured proposal. After human review, a future independently authorized domain adapter could request a **synthetic** risk-review result with explicit provenance and assumptions.\n\n**Missing before a pilot:** permitted source data and licenses, independent model validation, tenant isolation, geolocation/privacy controls, actual backend authorization, failure receipts and human-underwriter review. Never display prototype output as a premium, coverage decision, Solvency II value or production catastrophe loss.",
+      "difficulty": "advanced",
+      "featured": false,
+      "icon": "building-2",
+      "path": "docs/explore/topics/insurance-risk/index.md",
+      "slug": "insurance-risk",
+      "summary": "Proposed bridge from approved mobile property surveys to bounded insurance risk-review drafts.",
+      "tags": [
+        "business",
+        "insurance",
+        "risk"
+      ],
+      "title": "Insurance Risk Assistant"
     },
     {
       "bodyMarkdown": "This topic covers the local runtime path: interpretation, routing, execution budgets, and when a task should stay on device.\n\n## Related ideas\n\n- AgentKernel\n- TaskRouter\n- runtime budget checks\n- offline-capable workflows",
@@ -102,6 +182,36 @@
         "local-first"
       ],
       "title": "Privacy First"
+    },
+    {
+      "bodyMarkdown": "**Today:** the iOS 27 research stack contains Apple Foundation Models proposal experiments and open-weight artifact admission tests. A research test is not a deployed managed model fleet.\n\n**B2B use case:** a company compares synthetic task proposals by language, model and device class, while identical deterministic Swift policy gates reject unsupported and unsafe actions.\n\n**Missing before a pilot:** explicit hardware/locale checks, license clearance, versioned signed model provenance, isolated evaluation data, accuracy and failure budgets, and a rollback contract. iOS 27 alone does not guarantee model availability.",
+      "difficulty": "advanced",
+      "featured": false,
+      "icon": "cpu",
+      "path": "docs/explore/topics/private-model-evaluation/index.md",
+      "slug": "private-model-evaluation",
+      "summary": "Evaluate on-device model proposals while keeping policy, scopes and approvals deterministic.",
+      "tags": [
+        "business",
+        "models",
+        "evaluation"
+      ],
+      "title": "Private Model Evaluation"
+    },
+    {
+      "bodyMarkdown": "**Today:** iGentic can locally display bundled discovery content, but no commerce adapter, stock database, customer catalog, live scanner or point-of-sale system is connected.\n\n**B2B use case:** store staff review a synthetic product identity and source evidence before suggesting a catalog correction. A future adapter must verify rights, ownership and actor role before any change.\n\n**Missing before a pilot:** rights-cleared catalog data, identity and variant validation, tenant-level stock permissions, scanner quality benchmarks, API contracts, idempotency and approval for inventory writes. No payments or automated listings are authorized.",
+      "difficulty": "intermediate",
+      "featured": false,
+      "icon": "boxes",
+      "path": "docs/explore/topics/retail-inventory/index.md",
+      "slug": "retail-inventory",
+      "summary": "A proposed provenance-aware lookup workflow for catalog and inventory teams.",
+      "tags": [
+        "business",
+        "retail",
+        "catalog"
+      ],
+      "title": "Retail Inventory Assistant"
     }
   ]
 }

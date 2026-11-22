@@ -35,6 +35,10 @@ It should:
 - delegate larger jobs to trusted devices or external AI only after policy checks,
 - write audit logs for meaningful decisions.
 
+## Business solution research
+
+Beyond individual use, iGentic is exploring a permissioned mobile-agent trust layer and six **B2B hypotheses**: enterprise approval controls, Fieldglass field evidence, insurance risk drafts, managed fixed-app diagnostics, private model evaluation and retail inventory review. The [B2B solution portfolio](docs/b2b/B2B_SOLUTION_PORTFOLIO.md) separates tested building blocks from research and unimplemented adapters. These concepts are not marketed as production-ready enterprise services. The read-only [Business Solutions](docs/explore/collections/business-solutions/index.md) collection is included in the bundled local Explore index, without additional privileges or network calls.
+
 ## Core thesis
 
 The iPhone is not the strongest computer in the personal AI setup. It is the most trusted one. It holds identity, permissions, context and private data. Compute can be delegated, but control should remain local.

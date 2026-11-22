@@ -69,8 +69,8 @@ final class ExploreSearchResultSummaryTests: XCTestCase {
             )
         )
 
-        XCTAssertEqual(results.topics.map(\.slug), ["privacy"])
+        XCTAssertEqual(results.topics.map(\.slug), ["insurance-risk", "privacy"])
         XCTAssertEqual(results.collections.map(\.slug), ["getting-started", "security"])
-        XCTAssertEqual(summary.text, "3 results · 1 topic · 2 collections")
+        XCTAssertEqual(summary.text, "4 results · 2 topics · 2 collections")
     }
 }
