@@ -10,7 +10,7 @@ The goal is not to build another chatbot app. The goal is to explore the iPhone,
 
 > Status: Experimental / Research Prototype
 
-This repository is intentionally small and controller-friendly. It is designed for a workflow where ChatGPT acts as the project controller through the GitHub Connector, Codex creates narrow Draft PRs, and real iPhone testing decides what is actually usable.
+This repository uses current GitHub state, narrow verified changes and real iPhone tests to determine what is actually usable. `AGENTS.md` defines the execution-first working model; Mac/Xcode work is used where the result requires the Apple platform.
 
 ## Mission
 
@@ -45,25 +45,31 @@ Intent Understanding
         ↓
 Local Context Engine
         ↓
-Task Router
+Typed Proposal / Argument Validation
         ↓
-Local Execution or Delegation
+AgentKernel / Policy / Required Approval
         ↓
-Action Layer via App Intents / Shortcuts
+Task Router / Local Execution or Approved Delegation
         ↓
-Audit Log / Approval / Result Verification
+Independent Result Verification
+        ↓
+Verified Result or Explicit Uncertainty
+
+Metadata audit records the meaningful transitions.
 ```
 
-The controller is the decision point between intent and action: it combines local context with policy before choosing local execution or delegation. The audit and approval layer closes the loop by recording meaningful decisions, requiring confirmation for sensitive actions and checking that the result matches the original intent.
+The controller combines trusted input classification with deterministic policy and any required approval before execution. Models produce untrusted proposals. An executor response becomes a completed task only after independent result verification; uncertain outcomes stay explicit.
+
+The [current completion plan](docs/PROJECT_COMPLETION_PLAN.md) prioritizes one useful reminder workflow, then explicitly shared local content and optional bounded Mac tasks. The [physical iPhone report](docs/reports/iphone-air-validation-2026-11-22.md) separates tested prototype behavior from those planned capabilities.
 
 ## Repo operating model
 
 This repo follows the lessons learned from the Pokekartenkiste project:
 
 1. GitHub is the source of truth.
-2. ChatGPT controls the project state and reviews PRs.
-3. Codex is used sparingly for small Draft PR slices.
-4. Every task needs an allowlist of files and clear stop rules.
+2. Refresh relevant source and PR state before choosing a change.
+3. Implement the smallest useful slice and verify its observable result.
+4. Use scoped review and coordination proportional to the change's risk.
 5. Privacy, policy and auditability come before autonomy.
 6. Real device tests are required for iPhone-specific claims.
 
