@@ -40,6 +40,34 @@ export function sanitizeTree(value) {
   return { elementCount: count, markers: [...found].sort() };
 }
 
+// Select only the one known, actionable control in our foreground diagnostics
+// app. SwiftUI NavigationLink can appear as a Link instead of a Button on
+// different runtimes. Never generalize this to arbitrary taps or UI text.
+export function discoveryControlRef(elements) {
+  if (!Array.isArray(elements)) throw new PluginError('navigationTargetUnavailable');
+  let found = null; let visited = 0;
+  const visit = (node, depth = 0) => {
+    if (!node || typeof node !== 'object') return;
+    if (depth > 50 || ++visited > 3000) throw new PluginError('navigationTargetUnavailable');
+    const role = node.type;
+    const actionable = typeof role === 'string'
+      && /^(?:XCUIElementType)?(?:button|link)$/i.test(role);
+    const expected = node.label === 'Open local discovery'
+      || node.identifier === 'igentic-open-local-discovery';
+    if (actionable && expected && node.enabled !== false
+        && typeof node.ref === 'string' && /^@?e\d+$/.test(node.ref)) {
+      if (found !== null) throw new PluginError('navigationTargetUnavailable');
+      found = node.ref;
+    }
+    if (node.children !== undefined && !Array.isArray(node.children))
+      throw new PluginError('navigationTargetUnavailable');
+    for (const child of node.children ?? []) visit(child, depth + 1);
+  };
+  for (const node of elements) visit(node);
+  if (found === null) throw new PluginError('navigationTargetUnavailable');
+  return found;
+}
+
 export async function loadConfig(path) {
   if (!path) return null;
   if (!isAbsolute(path)) throw new PluginError('configPathMustBeAbsolute');
@@ -113,17 +141,10 @@ export class MobileBackend {
   }
   async discovery(signal) {
     await this.policy('open-discovery', signal);
-    const tree = await this.tree(signal); const matches = [];
-    const visit = (n, depth = 0) => {
-      if (!n || depth > 50) return;
-      if (n.label === 'Open local discovery' && /button/i.test(n.type ?? '') && n.enabled !== false
-          && /^@?e\d+$/.test(n.ref ?? '')) matches.push(n.ref);
-      for (const c of n.children ?? []) visit(c, depth + 1);
-    };
-    for (const n of tree) visit(n);
-    if (matches.length !== 1) throw new PluginError('navigationTargetUnavailable');
+    const tree = await this.tree(signal);
+    const targetRef = discoveryControlRef(tree);
     await this.assertApp(signal);
-    await this.mobile(['io', 'tap', matches[0]], signal);
+    await this.mobile(['io', 'tap', targetRef], signal);
     return this.observe(signal);
   }
 }
