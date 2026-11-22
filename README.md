@@ -17,6 +17,8 @@ for the exact tested scope and outstanding physical-device/web-connection gates.
 
 This repository is intentionally small and controller-friendly. It is designed for a workflow where ChatGPT acts as the project controller through the GitHub Connector, Codex creates narrow Draft PRs, and real iPhone testing decides what is actually usable.
 
+The standalone [Fieldglass app and MCP plugin](products/fieldglass/README.md) provides local visual experiments, native workspace tools and a simulator lab.
+
 ## Mission
 
 The iPhone becomes the private brain and control point of a personal AI setup.

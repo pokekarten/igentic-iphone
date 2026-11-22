@@ -1,0 +1,6 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "fieldglass", "version": "0.1.0", "description": "Prepare native iPhone tasks, compare local OCR results, and operate an opt-in iOS simulator lab.",
+  "license": "Apache-2.0",
+  "extensions": {"com.openai": {"requires_local_executor": true, "interface": {"displayName": "Fieldglass", "shortDescription": "Visuelle Experimente auf deinem iPhone", "category": "Developer Tools", "capabilities": ["Read","Write"]}}}
+}

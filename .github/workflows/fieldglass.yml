@@ -1,0 +1,25 @@
+name: Fieldglass MCP
+on:
+  pull_request:
+    paths:
+      - 'products/fieldglass/**'
+      - '.github/workflows/fieldglass.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  protocol:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Fetch the current revision
+        run: |
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git fetch --no-tags --depth=1 origin "${GITHUB_SHA}"
+          git checkout --detach FETCH_HEAD
+      - name: Check the standalone plugin
+        working-directory: products/fieldglass/plugin
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm test
