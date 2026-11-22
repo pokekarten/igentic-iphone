@@ -49,6 +49,11 @@ final class SensitiveDataDetectorTests: XCTestCase {
         XCTAssertFalse(result.hasFindings)
     }
 
+    func testGermanReminderTimeDoesNotLookLikeAnIBAN() {
+        let result = detector.detect(in: "Erinnere mich morgen um 18 Uhr an die Demo-Pflanze.")
+        XCTAssertFalse(result.findings.contains { $0.category == .iban })
+    }
+
     func testDetectsCompatibilityEquivalentFullWidthIBAN() {
         let syntheticIBAN = ["DE", "89", "3704", "0044", "0532", "0130", "00"].joined()
         let result = detector.detect(in: compatibilityFullWidth(syntheticIBAN))
