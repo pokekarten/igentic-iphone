@@ -40,6 +40,8 @@ remain CoreDevice-available; that does not establish whether it is USB or Wi-Fi.
 | On-device | Native App Intents and Shortcuts, outside this Mac plugin | iPhone-local execution and owner permission |
 | Simulator | Explicit fixture/native simulator tests, **not physical-device evidence** | Simulator-specific acceptance only |
 
+Xcode 27 may report Wi-Fi as `localNetwork`; it maps to the fixed `network-coredevice` code **only while the paired physical tunnel is active**. A transient tunnel or Bonjour discovery alone is not evidence that MobileCLI can see the device.
+
 No route silently falls back to another. Disconnection cannot turn a remembered
 USB, Wi-Fi, VPN or simulator path into an available physical iPhone.
 

@@ -36,7 +36,7 @@ export function physicalConnectionPath(device) {
     return 'coredevice-transport-unclassified';
   const transport = raw.toLowerCase();
   if (['wired', 'usb', 'usbmux'].includes(transport)) return 'usb-coredevice';
-  if (['wireless', 'wifi', 'wi-fi', 'network'].includes(transport))
+  if (['wireless', 'wifi', 'wi-fi', 'network', 'localnetwork'].includes(transport))
     return 'network-coredevice';
   return 'coredevice-transport-unclassified';
 }
