@@ -213,6 +213,36 @@ final class ReminderDraftProposalTests: XCTestCase {
         XCTAssertEqual(snapshot.callCount, 1)
     }
 
+    func testContentFreeDiagnosticsDistinguishRejectionStages() async {
+        let cases: [(ReminderIntentCandidate, ReminderDraftRejectionReason)] = [
+            (candidate(action: "", title: ""), .abstained),
+            (candidate(title: "bad\nPrivateSyntheticMarker"), .titleRejected),
+            (candidate(month: 2, day: 30), .invalidLocalDate),
+            (candidate(year: 2026, month: 11, day: 22, hour: 10), .dateNotFuture)
+        ]
+        for (value, reason) in cases {
+            let generator = StubReminderIntentGenerator(candidate: value)
+            let assessment = await service(generator).assess(
+                instruction: "Erinnere mich morgen um 18 Uhr.",
+                trustedDataClassification: privateClassification,
+                now: now,
+                timeZoneIdentifier: zone
+            )
+            XCTAssertEqual(assessment.outcome, .invalidProposal)
+            XCTAssertEqual(assessment.rejectionReason, reason)
+            XCTAssertFalse(String(describing: assessment).contains("PrivateSyntheticMarker"))
+        }
+        let generator = StubReminderIntentGenerator(candidate: candidate())
+        let accepted = await service(generator).assess(
+            instruction: "Erinnere mich morgen um 18 Uhr.",
+            trustedDataClassification: privateClassification,
+            now: now,
+            timeZoneIdentifier: zone
+        )
+        guard case .proposed = accepted.outcome else { return XCTFail("Expected valid proposal") }
+        XCTAssertNil(accepted.rejectionReason)
+    }
+
     func testInvalidDatesDstGapsRepeatsAndPastDatesAreRejected() async {
         let cases: [(ReminderIntentCandidate, String)] = [
             (candidate(month: 2, day: 30), zone),
