@@ -95,3 +95,21 @@ jobs:
       - name: Install, launch, screenshot, and relaunch app
         run: |
           bash scripts/smoke-ios-simulator.sh
+
+      - name: Execute both iOS 27 system-level UI acceptance tests
+        run: |
+          set -euo pipefail
+          simulator_udid="$(xcrun simctl list devices available -j | python3 scripts/select_ios27_simulator.py)"
+          # Run the two fixed, synthetic-only paths, never a physical device.
+          # Use a separate derived-data directory from the unsigned build.
+          # The Xcode test runner requires simulator ad-hoc code signing.
+          xcodebuild \
+            -project app/iGenticDiagnostics/iGenticDiagnostics.xcodeproj \
+            -scheme iGenticDiagnostics \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,id=${simulator_udid}" \
+            -derivedDataPath "${RUNNER_TEMP}/iGenticSystemTestDerivedData" \
+            -parallel-testing-enabled NO \
+            -only-testing:iGenticDiagnosticsUITests/DiagnosticsUITests \
+            -only-testing:iGenticDiagnosticsUITests/iGenticAppIntentsTests \
+            CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- -jobs 2 test

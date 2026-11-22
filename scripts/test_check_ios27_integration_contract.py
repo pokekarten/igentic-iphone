@@ -17,7 +17,8 @@ class CombinedIOS27ContractTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory(prefix="igentic-contract-")
         self.addCleanup(self.tmp.cleanup)
         self.root = Path(self.tmp.name)
-        names = [PBX, SCHEME, "ios/Package.swift", "ios/Sources/iGenticPluginPolicy/main.swift"]
+        names = [PBX, SCHEME, "ios/Package.swift", "ios/Sources/iGenticPluginPolicy/main.swift",
+                 ".github/workflows/ios-app-wrapper.yml"]
         names += [f"{UI_DIR}/{n}" for n in EXPECTED_TESTS]
         for plugin in ("igentic-iphone-lab", "iphone-connect"):
             names += [f"plugins/{plugin}/plugin.json", f"plugins/{plugin}/mcp.json"]
@@ -71,6 +72,24 @@ class CombinedIOS27ContractTests(unittest.TestCase):
                     '.executableTarget(name: "iGenticPluginPolicy", dependencies: ["AgentCore"])',
                     '.executableTarget(name: "iGenticPluginPolicy", dependencies: [])')
         self.assertTrue(any("AgentCore" in x for x in check_integration(self.root)))
+
+    def test_workflow_must_execute_both_system_test_classes(self):
+        path = ".github/workflows/ios-app-wrapper.yml"
+        self.change(path,
+                    "-only-testing:iGenticDiagnosticsUITests/iGenticAppIntentsTests",
+                    "-only-testing:iGenticDiagnosticsUITests/UnknownTest")
+        self.assertTrue(any("simulator system tests" in x for x in check_integration(self.root)))
+
+    def test_workflow_must_not_target_physical_device(self):
+        path = ".github/workflows/ios-app-wrapper.yml"
+        self.change(path, "platform=iOS Simulator,id=", "platform=iOS,id=")
+        self.assertTrue(any("not a physical phone" in x for x in check_integration(self.root)))
+
+    def test_workflow_must_sign_test_runner(self):
+        path = ".github/workflows/ios-app-wrapper.yml"
+        self.change(path, "CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=-",
+                    "CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY=-")
+        self.assertTrue(any("CODE_SIGNING_ALLOWED=YES" in x for x in check_integration(self.root)))
 
     def test_plugins_must_have_unique_identity(self):
         p = self.root / "plugins/iphone-connect/plugin.json"

@@ -104,6 +104,20 @@ def check_integration(root: Path = ROOT) -> list[str]:
         errors.append("Swift policy bridge executable missing from package")
     if '.executableTarget(name: "iGenticPluginPolicy", dependencies: ["AgentCore"])' not in manifest:
         errors.append("Swift policy bridge must depend on AgentCore")
+    workflow = read(".github/workflows/ios-app-wrapper.yml")
+    acceptance_requirements = (
+        "Execute both iOS 27 system-level UI acceptance tests",
+        "select_ios27_simulator.py",
+        "-only-testing:iGenticDiagnosticsUITests/DiagnosticsUITests",
+        "-only-testing:iGenticDiagnosticsUITests/iGenticAppIntentsTests",
+        "CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=-",
+        "-parallel-testing-enabled NO",
+    )
+    for requirement in acceptance_requirements:
+        if requirement not in workflow:
+            errors.append(f"iOS App Wrapper must execute both simulator system tests: {requirement}")
+    if "platform=iOS Simulator,id=" not in workflow:
+        errors.append("system tests must target a selected iOS simulator, not a physical phone")
     policy = read("ios/Sources/iGenticPluginPolicy/main.swift")
     if "PolicyEngine().decide(" not in policy or "requestedDelegationTarget: .localDevice" not in policy:
         errors.append("Swift policy bridge must invoke AgentCore local-device policy")
