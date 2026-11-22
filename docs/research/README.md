@@ -1,5 +1,7 @@
 # iGentic external-project research
 
+- [Five uploaded iOS 27 runtime repositories — 4,897-file source audit](FIVE_UPLOADED_IOS27_RUNTIME_SOURCE_AUDIT_2026_11_22.md) — Core AI Models/Kit/Zoo, MLX Swift LM and SwiftLlama, concrete code blockers, model authenticity and tool authorization.
+
 - [iOS 27 open-weight runtimes: MLX, llama.cpp/GGUF and Core AI](IOS27_OPEN_WEIGHT_RUNTIME_SURVEY_2026_11_22.md) — Exa+Apple+upstream code review, real iPhone apps, adapter usage, model triage and iGentic integration plan; not device-verified.
 
 **Updated platform decision — 2026-11-22:** the product owner now requires **iOS 27.0+ only**, not legacy iOS 17–26 support. See the separate [iOS 27 migration PR #389](https://github.com/pokekarten/igentic-iphone/pull/389). Earlier proposals in these dated research documents to preserve an iOS-17 deployment target are superseded; their source observations remain historical evidence. No physical-device result is implied.
