@@ -16,9 +16,21 @@ export class PhoneService {
       screenshots: false, personalAppControl: false, reminderWrites: false,
       connection: 'local-stdio', ready: 'notYetObserved' };
   }
+  // Keep recent stopped-session receipts readable, but bound retained history.
+  // The device lease (not this in-memory history) remains the exclusivity gate.
+  pruneClosedSessions() {
+    while (this.sessions.size >= 128) {
+      const oldest = [...this.sessions.values()].find(s => s.stopped && !s.busy);
+      if (!oldest) throw new PluginError('sessionLimitRestartClient');
+      this.sessions.delete(oldest.id);
+      for (const [proposalId, receipt] of this.results) {
+        if (receipt.sessionId === oldest.id) this.results.delete(proposalId);
+      }
+    }
+  }
   async start(device) {
-    if (this.sessions.size >= 128) throw new PluginError('sessionLimitRestartClient');
     if (device !== 'iphone-1') throw new PluginError('unknownDevice');
+    this.pruneClosedSessions();
     if (!(await this.backend.list()).some(d => d.id === device && d.available)) throw new PluginError('deviceUnavailable');
     await mkdir(this.stateDir, { recursive: true, mode: 0o700 });
     await chmod(this.stateDir, 0o700);
@@ -100,6 +112,11 @@ export class PhoneService {
       p.consumed = true;
       const record = { proposalId, status: 'unknownOutcome', backend: this.backend.kind };
       this.results.set(proposalId, { sessionId: id, record });
+      // Retain at most 128 receipts, including unknown outcomes. A result
+      // evicted from this local bounded cache can never reauthorize an action.
+      while (this.results.size > 128) {
+        this.results.delete(this.results.keys().next().value);
+      }
       // Persist the one-shot state in memory before dispatch. Across restart, no
       // executable proposals survive. A leftover lease requires local inspection.
       try {

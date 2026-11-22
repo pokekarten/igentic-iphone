@@ -121,3 +121,37 @@ test('other sessions cannot read action receipts', async t => {
   const second = await service.start('iphone-1');
   assert.throws(() => service.result(second.sessionId, p.proposalId), /unknownResult/);
 });
+
+
+test('sequential stopped sessions never exhaust the 128-session client budget', async t => {
+  const { service, stateDir } = await lab(t);
+  let latest;
+  let oldest;
+  for (let i = 0; i < 140; i++) {
+    latest = await service.start('iphone-1');
+    if (i === 0) oldest = latest.sessionId;
+    await service.stop(latest.sessionId);
+  }
+  assert.equal(service.sessions.size, 128);
+  assert.ok(!service.sessions.has(oldest), 'oldest closed session should be evicted');
+  assert.ok(service.sessions.has(latest.sessionId));
+  await assert.rejects(readFile(join(stateDir, 'device.lease')), e => e.code === 'ENOENT');
+  const fresh = await service.start('iphone-1');
+  await service.stop(fresh.sessionId);
+});
+
+test('receipts remain available after stop but are bounded under repeated safe actions', async t => {
+  const { service } = await lab(t);
+  const { sessionId: id } = await service.start('iphone-1');
+  const proposals = [];
+  for (let i = 0; i < 140; i++) {
+    const observation = await service.open(id);
+    const proposal = service.prepare(id, observation.observationId, 'open-discovery');
+    assert.equal((await service.execute(id, proposal.proposalId)).status, 'verified');
+    proposals.push(proposal.proposalId);
+  }
+  await service.stop(id);
+  assert.equal(service.results.size, 128);
+  assert.equal(service.result(id, proposals.at(-1)).status, 'verified');
+  assert.throws(() => service.result(id, proposals[0]), /unknownResult/);
+});

@@ -99,7 +99,12 @@ Readiness is reported separately from configuration. Device output and UI text
 never become instructions or permissions.
 
 An interrupted dispatched action is `unknownOutcome`; it cannot be reused or
-silently rerouted. Stop does not undo an effect already dispatched. A lease left
+silently rerouted. Stop does not undo an effect already dispatched.
+Stopped-session receipts remain temporarily readable, but the in-memory cache is
+bounded to 128 recent sessions and 128 action receipts; oldest closed-session
+history and older receipts are evicted. Expired or evicted receipts cannot
+reauthorize an action. The client can start new sessions after 128 stop cycles
+without restarting or clearing the cross-process lease. A lease left
 after a crash is not automatically stolen: run doctor, inspect the phone, stop
 any owning process, and only then remove that one stale `device.lease` file.
 
