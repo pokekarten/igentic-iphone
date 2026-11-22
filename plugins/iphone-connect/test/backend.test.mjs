@@ -23,6 +23,21 @@ test('config requires private permissions, fixed bundle and strict keys', async 
     policyPath: process.execPath, mobilecliPath: process.execPath, approved: true }));
   await assert.rejects(loadConfig(path), /invalidConfig/);
 });
+test('every physical MobileCLI invocation pins the configured iPhone, never a discovered first device', async t => {
+  const dir = await mkdtemp(join(tmpdir(), 'igentic-pinned-phone-'));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const command = join(dir, 'fake-mobilecli');
+  // Synthetic executable echoes only argument names; no phone or account is used.
+  await writeFile(command, `#!${process.execPath}\nprocess.stdout.write(JSON.stringify({ status: 'ok', data: { argv: process.argv.slice(2) } }));\n`, { mode: 0o700 });
+  await chmod(command, 0o700);
+  const pinnedId = 'a'.repeat(24);
+  const backend = new MobileBackend({ deviceId: pinnedId,
+    bundleId: 'org.example.iGenticDiagnostics', mobilecliPath: command, policyPath: command });
+  const output = await backend.mobile(['dump', 'ui']);
+  assert.deepEqual(output.argv, ['dump', 'ui', '--device', pinnedId]);
+  assert.equal(output.argv.filter(x => x === '--device').length, 1);
+});
+
 test('subprocess timeout, cancellation and output bounds return only coarse errors', async () => {
   await assert.rejects(run(process.execPath, ['-e', 'setTimeout(()=>{},10000)'], { timeout: 20 }), /backendTimeout/);
   await assert.rejects(run(process.execPath, ['-e', 'process.stdout.write("secret".repeat(10000))'], { maxBytes: 100 }), /backendOutputLimit/);

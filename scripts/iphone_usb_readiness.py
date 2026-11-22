@@ -20,17 +20,21 @@ from iphone_wireless_readiness import mobilecli_probe
 
 
 def coredevice_usb_summary(payload: dict) -> dict:
+    if not isinstance(payload, dict) or not isinstance(payload.get("result", {}), dict):
+        raise ValueError("Invalid CoreDevice response")
     rows = payload.get("result", {}).get("devices", [])
     if not isinstance(rows, list):
         raise ValueError("Invalid CoreDevice device list")
     registered = False
     paired = False
-    directly_ready = False
+    ready_wired_count = 0
     for row in rows:
         if not isinstance(row, dict):
-            continue
+            raise ValueError("Invalid CoreDevice device entry")
         hardware = row.get("hardwareProperties") or {}
         conn = row.get("connectionProperties") or {}
+        if not isinstance(hardware, dict) or not isinstance(conn, dict):
+            raise ValueError("Invalid CoreDevice nested device fields")
         if (hardware.get("reality") != "physical"
                 or hardware.get("platform") != "iOS"
                 or hardware.get("deviceType") != "iPhone"):
@@ -40,11 +44,12 @@ def coredevice_usb_summary(payload: dict) -> dict:
             paired = True
             if (str(conn.get("transportType") or "").lower() in ("wired", "usb")
                     and conn.get("tunnelState") in ("available", "connected", "active")):
-                directly_ready = True
+                ready_wired_count += 1
     return {
         "physical_iphone_registered": registered,
         "physical_iphone_paired": paired,
-        "physical_wired_tunnel_available": directly_ready,
+        "physical_wired_tunnel_available": ready_wired_count > 0,
+        "physical_wired_iphone_count": ready_wired_count,
     }
 
 
@@ -90,14 +95,43 @@ def coredevice_probe() -> dict:
 
 
 def summarize(usb: dict, core: dict, mobilecli: dict) -> dict:
-    ready = (usb.get("physical_iphone_usb_present") is True
-             and core.get("physical_wired_tunnel_available") is True
-             and mobilecli.get("mobilecli_real_discovered") is True)
+    # Distinct read-only probes must agree on a single candidate each.
+    # A positive flag from separate, ambiguous phones is not an authorization.
+    blockers: list[str] = []
+    if "error" in usb:
+        blockers.append("usb_enumeration_unavailable")
+    elif usb.get("physical_iphone_usb_present") is not True:
+        blockers.append("iphone_usb_not_detected")
+    if "error" in core:
+        blockers.append("coredevice_enumeration_unavailable")
+    else:
+        count = core.get("physical_wired_iphone_count")
+        if count is None:
+            blockers.append("coredevice_candidate_count_unknown")
+        elif type(count) is not int or count < 0:
+            blockers.append("coredevice_candidate_count_invalid")
+        elif count > 1:
+            blockers.append("multiple_wired_iphones_ambiguous")
+        elif count == 0 or core.get("physical_wired_tunnel_available") is not True:
+            blockers.append("wired_coredevice_tunnel_unavailable")
+    if "error" in mobilecli:
+        blockers.append("mobilecli_enumeration_unavailable")
+    else:
+        count = mobilecli.get("mobilecli_real_count")
+        if count is None:
+            blockers.append("mobilecli_candidate_count_unknown")
+        elif type(count) is not int or count < 0:
+            blockers.append("mobilecli_candidate_count_invalid")
+        elif count > 1:
+            blockers.append("multiple_mobilecli_devices_ambiguous")
+        elif count == 0 or mobilecli.get("mobilecli_real_discovered") is not True:
+            blockers.append("mobilecli_physical_iphone_not_discovered")
     return {
         "usb": usb,
         "coredevice": core,
         "mobilecli": mobilecli,
-        "usb_readonly_candidate": ready,
+        "usb_readonly_candidate": not blockers,
+        "blockers": blockers,
         "physical_ui_control_verified": False,
         "next_step": ("Confirm explicit user authorization before any "
                       "MobileCLI UI observation or tap; this is discovery only."),
