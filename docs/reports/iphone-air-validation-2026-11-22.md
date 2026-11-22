@@ -140,7 +140,7 @@ No additional reminder was created. The existing test reminder and full Reminder
 
 ## 2026-11-22 exact-head GitHub CI and final verification
 
-The corrected source is now recorded in Draft PR [#390](https://github.com/pokekarten/igentic-iphone/pull/390), head `5f7b4350556b1f4e6fb284b64e5a5e37f02fef51`, based on #386 at `91452b969ac015470ff3ec54f4b9a8020e641289`. The exact comparison is **20 commits ahead, 0 behind, 18 changed files**. The documentation update is recorded in Draft PR [#379](https://github.com/pokekarten/igentic-iphone/pull/379), head `373f96097e4ef50326ab6334713483bc5b49e06d`.
+The corrected source is now recorded in Draft PR [#390](https://github.com/pokekarten/igentic-iphone/pull/390), head `5f7b4350556b1f4e6fb284b64e5a5e37f02fef51`, based on #386 at `91452b969ac015470ff3ec54f4b9a8020e641289`. The exact comparison is **20 commits ahead, 0 behind, 18 changed files**. The documentation update is recorded in Draft PR [#379](https://github.com/pokekarten/igentic-iphone/pull/379); the first verification run used head `373f96097e4ef50326ab6334713483bc5b49e06d`, and this final CI addendum is on that same PR.
 
 On PR #390's exact code head, GitHub Actions completed successfully:
 
