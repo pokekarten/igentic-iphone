@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from pathlib import Path
+import os
+import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -138,11 +140,25 @@ def validate_required_files() -> list[str]:
 
 
 def validate_no_forbidden_files() -> list[Path]:
-    forbidden = []
-    for path in ROOT.rglob("*"):
-        if any(part in FORBIDDEN_PARTS for part in path.relative_to(ROOT).parts):
-            forbidden.append(path.relative_to(ROOT))
-    return forbidden
+    cache = Path("ios/.build")
+    exclude_cache = (ROOT / cache).is_dir() and (ROOT / ".git").exists()
+    forbidden = set()
+    if exclude_cache:
+        # The Git index also includes force-added and staged files.
+        entries = subprocess.check_output(
+            ["git", "ls-files", "-z", "--", str(cache)], cwd=ROOT
+        )
+        forbidden.update(Path(os.fsdecode(path)) for path in entries.split(b"\0") if path)
+
+    for directory, dirs, files in os.walk(ROOT):
+        relative = Path(directory).relative_to(ROOT)
+        if exclude_cache and relative == cache.parent:
+            dirs[:] = [name for name in dirs if name != cache.name]
+        for name in dirs + files:
+            if name in FORBIDDEN_PARTS:
+                forbidden.add(relative / name)
+    return sorted(forbidden)
+
 
 
 def validate_non_empty_required_files() -> list[str]:
