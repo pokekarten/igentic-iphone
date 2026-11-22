@@ -1,5 +1,7 @@
 # iGentic external-project research
 
+- [Own ChatGPT iPhone plugin: architecture and reuse decision](IPHONE_AGENT_PROJECT_ATLAS.md#2026-11-22-own-chatgpt-iphone-plugin--feasibility-and-implementation-decision) — all 107 indexed external repositories classified; current OpenAI plugin/MCP/MCP Apps paths, native versus developer-mode boundaries, staged implementation and acceptance. Architecture assessment only; no plugin/device integration executed.
+
 - [Five uploaded iOS 27 runtime repositories — 4,897-file source audit](FIVE_UPLOADED_IOS27_RUNTIME_SOURCE_AUDIT_2026_11_22.md) — Core AI Models/Kit/Zoo, MLX Swift LM and SwiftLlama, concrete code blockers, model authenticity and tool authorization.
 
 - [iOS 27 open-weight runtimes: MLX, llama.cpp/GGUF and Core AI](IOS27_OPEN_WEIGHT_RUNTIME_SURVEY_2026_11_22.md) — Exa+Apple+upstream code review, real iPhone apps, adapter usage, model triage and iGentic integration plan; not device-verified.
