@@ -10,6 +10,10 @@ The goal is not to build another chatbot app. The goal is to explore the iPhone,
 
 > Status: Experimental / Research Prototype
 
+**Platform baseline (iOS 27):** The active iPhone product target now requires **iOS 27.0 or newer**, with Swift tools 6.2 and the Xcode 27 SDK/runner. No iOS 17–26 support or successful older-simulator test is claimed by this development track. The macOS Swift package target remains for deterministic host tests and research. A device running iOS 27 is **not by itself** proof that Apple Intelligence is supported by that hardware; the on-device model's availability and supported locale are evaluated separately. The product's privacy, action policy and explicit approval rules remain mandatory.
+
+The migration lives in a separate, reviewable PR; until that PR is merged, `main` retains its old platform declarations. Real iPhone install/signing and performance acceptance have not yet been demonstrated for this migration.
+
 This repository is intentionally small and controller-friendly. It is designed for a workflow where ChatGPT acts as the project controller through the GitHub Connector, Codex creates narrow Draft PRs, and real iPhone testing decides what is actually usable.
 
 ## Mission
