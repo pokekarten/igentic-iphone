@@ -27,3 +27,5 @@ fixture, simulator, or physical device. Do not call a fixture an iPhone test.
 Setup and connection instructions are in [README](../../README.md). Private ChatGPT
 web access requires a configured HTTPS connection or Secure MCP Tunnel; installing
 this desktop package alone does not create that connection.
+
+The standalone portable MCP preview is an optional read-only interface for multiple compatible clients, not just ChatGPT. It does not access the physical device. Native iOS App Intents require a separate installed app. See [portable architecture](../../PORTABLE_MCP.md).

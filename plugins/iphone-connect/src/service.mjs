@@ -2,6 +2,7 @@ import { randomUUID, createHash } from 'node:crypto';
 import { mkdir, open, readFile, unlink, chmod } from 'node:fs/promises';
 import { join } from 'node:path';
 import { PluginError } from './process.mjs';
+import { makeConnectionReport } from './connection-report.mjs';
 
 const fingerprint = data => createHash('sha256').update(JSON.stringify(data)).digest('hex');
 export class PhoneService {
@@ -10,6 +11,9 @@ export class PhoneService {
     this.sessions = new Map(); this.results = new Map();
   }
   async list() { return { devices: await this.backend.list(), backend: this.backend.kind }; }
+  async connectionReport() {
+    return makeConnectionReport({ backend: this.backend.kind, devices: await this.backend.list() });
+  }
   capabilities() {
     return { backend: this.backend.kind, mode: 'diagnostics-only', requiresMac: true,
       actions: ['open-diagnostics', 'open-discovery'], observation: 'fixed-markers-only',

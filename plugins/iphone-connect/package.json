@@ -14,7 +14,8 @@
     "doctor": "node scripts/doctor.mjs",
     "build:ui": "node scripts/build-ui.mjs",
     "smoke": "node scripts/smoke.mjs",
-    "package": "node scripts/package.mjs"
+    "package": "node scripts/package.mjs",
+    "serve:portable": "node src/portable-gateway.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/ext-apps": "2.0.4",

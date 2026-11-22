@@ -1,7 +1,7 @@
 # iGentic iPhone Connect
 
 Version 0.1.0 is a **local desktop developer plugin** for ChatGPT/Codex-compatible
-MCP hosts. It includes ten typed tools, one skill, an MCP Apps dashboard, a
+MCP hosts. It includes eleven typed tools, one skill, an MCP Apps dashboard with live route checks, a
 physical-iPhone adapter, a separate fixture backend, and a Swift bridge to the
 existing iGentic `PolicyEngine` and `AuditLog`.
 
@@ -92,6 +92,10 @@ The backend never substitutes the synthetic backend. Fixture mode is explicit:
 IGENTIC_IPHONE_BACKEND=fixture npm run smoke
 ```
 
+## Portable iGentic plugin (ChatGPT is optional)
+
+The primary goal is an independent native iPhone agent, with App Intents, Shortcuts and a client-neutral MCP interface. An additional read-only Streamable HTTP protocol preview is available with npm run serve:portable. It binds to loopback only and **does not** connect to the iPhone. The physical desktop stdio backend remains separate. See [portable architecture](PORTABLE_MCP.md).
+
 ## Install the desktop plugin
 
 From the repository root, after dependency setup:
@@ -126,6 +130,7 @@ limited to approved partners; see [desktop-only plugins](https://developers.open
 | Tool | Behavior |
 | --- | --- |
 | `iphone_list_devices` | Return only configured alias, backend and observed connection availability |
+| `iphone_connection_report` | Read-only live physical-tunnel status and independent USB-C, Wi-Fi, cellular, on-device and test route states; never claims an unverified app action |
 | `iphone_get_capabilities` | Explain current capability boundary without claiming readiness |
 | `iphone_start_session` | Acquire a five-minute exclusive device lease |
 | `iphone_open_diagnostics` | Launch the fixed app, check foreground identity and return recognized markers |

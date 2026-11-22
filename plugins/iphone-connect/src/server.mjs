@@ -41,6 +41,9 @@ export function createServer(service) {
   add('iphone_list_devices', 'List authorized iPhones',
     'Use this to find the configured iPhone alias and connection availability. No personal device identifiers or installed app list.',
     {}, true, () => service.list());
+  add('iphone_connection_report', 'Check USB, Wi-Fi and other connection paths',
+    'Read-only live CoreDevice status and five separately scoped route states. No device identifiers, network scan or iPhone actions. A detected tunnel is not proof of MobileCLI or app readiness.',
+    {}, true, () => service.connectionReport());
   add('iphone_get_capabilities', 'Get iPhone capabilities',
     'Use this to check actual supported actions and limitations. Configuration is not observed device readiness.',
     {}, true, () => service.capabilities());
