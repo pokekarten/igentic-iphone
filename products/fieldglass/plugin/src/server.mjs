@@ -4,6 +4,7 @@ import { simulatorInfo, lifecycle, captureService } from './simulator.mjs';
 import { labRunner, commandSchema } from './lab.mjs';
 import { readPhysicalStatus } from './physical.mjs';
 import { localSettings } from './config.mjs';
+import { workbenchCard } from './card.mjs';
 import { randomUUID } from 'node:crypto';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
@@ -26,9 +27,11 @@ function reply(data) {
   return {structuredContent: data, content:[{type:'text', text:JSON.stringify(data)}]};
 }
 function fail(reason) { return {isError:true, content:[{type:'text', text:reason}]}; }
-function tool(name, description, inputSchema, callback, readOnly = true) {
+const cardUri = 'ui://fieldglass/workbench-v1.html';
+const cardMetadata = {ui:{resourceUri:cardUri}};
+function tool(name, description, inputSchema, callback, readOnly = true, metadata) {
   server.registerTool(name, {description, inputSchema:z.strictObject(inputSchema),
-    annotations:{readOnlyHint:readOnly, destructiveHint:false, openWorldHint:false}}, callback);
+    ...(metadata && {_meta:metadata}), annotations:{readOnlyHint:readOnly, destructiveHint:false, openWorldHint:false}}, callback);
 }
 tool('prepare_experiment','Prepare an editable search term and area for local OCR in Fieldglass. Return the link for opening or pasting on iPhone.', {term, region}, args => {
   const experimentId = randomUUID();
@@ -37,8 +40,13 @@ tool('prepare_experiment','Prepare an editable search term and area for local OC
 });
 const settings = await localSettings();
 const channel = settings.channel;
-tool('get_channels','Describe configured handoff and OCR capabilities.',{},() =>
-  reply({channel:channel.mode, operations:['local-text-search','status','draft','speak','reminder'], conditionalDraftTools:['local-de-transcription','local-summary'], regions:['all','top','bottom'], deviceAvailability:'unobserved'}));
+tool('get_channels','Open the Fieldglass workbench to prepare a visual experiment, inspect the delivery channel or compare two OCR receipts. Display the configured channel.',{},() =>
+  reply({channel:channel.mode, operations:['local-text-search','status','draft','speak','reminder'], conditionalDraftTools:['local-de-transcription','local-summary'], regions:['all','top','bottom'], deviceAvailability:'unobserved'}), true, cardMetadata);
+const cardMediaType = 'text/html;profile=mcp-app';
+server.registerResource('fieldglass-workbench',cardUri,{mimeType:cardMediaType},async () => ({
+  contents:[{uri:cardUri,mimeType:cardMediaType,text:await workbenchCard(),
+    _meta:{ui:{prefersBorder:true,csp:{connectDomains:[],resourceDomains:[]}}}}]
+}));
 if (['simulator','device'].includes(channel.mode)) {
   tool('deliver_experiment','Open a prepared experiment in Fieldglass on the locally configured target. Foregrounds the app; execution requires a separate action there.',
     {experimentId:uuid,term,region}, async args =>

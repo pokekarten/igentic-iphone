@@ -26,6 +26,7 @@ Das Produkt soll einer Person erlauben, eine Frage an ihr Gerät zu stellen, etw
 
 | Einstieg | Beobachtung |
 | --- | --- |
+| Interaktive Chat-Oberfläche | Ein lokaler Chromium-Host öffnete die vom MCP-Server gelieferte Karte. Über die offiziellen Bridge-Aufrufe erstellte sie einen Auftrag mit Sonderzeichen, übergab ihn an den Simulator und verglich zwei synthetische Berichte. Ein ungültiger Bericht lieferte eine sichtbare Fehlermeldung. |
 | MCP und native Oberfläche auf einem iPhone-Air-Simulator, iOS 27.2 | Der MCP-Client bereitete den ORBIT-Auftrag vor. Vision meldete für das erste Beispielbild einen Treffer, nach dem Bildwechsel keinen Treffer. Der MCP-Client las beide aus der App exportierten Berichte und bestätigte den Wechsel. |
 | Drei UI-Tests und drei native Modultests | Bereichswechsel, Gerätestatus, Textentwurf, Abbruch vor dem Speichern einer Erinnerung, ungültige Links und die dauerhafte Reservierung eines Erinnerungsauftrags bestanden. Die native Kurzbefehle-Aktion lieferte für das Beispielbild einen gültigen Bericht. Der Aufruf erfolgte im Testprozess. |
 | Eigener Labortreiber und Aufzeichnung | Der Treiber beobachtete die Oberfläche, betätigte „Jetzt prüfen“ und fand die Ergebnisanzeige in derselben Sitzung. Der Medienadapter speicherte ein Bildschirmfoto und einen zweisekündigen Clip lokal. |

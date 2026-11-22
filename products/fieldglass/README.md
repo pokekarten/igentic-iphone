@@ -15,6 +15,10 @@ Im Textentwurf lassen sich ausgewählte deutsche Audiodateien über Speech trans
 
 Die App bietet ab iOS 18 die Kurzbefehle-Aktion **Bild für Fieldglass prüfen**. Eingaben sind der Experiment-Link und ein Bild, Ausgabe ist derselbe Bericht. Für Erinnerungen zeigt die App vor dem Schreiben den Titel und verwendet die Standardliste. iOS kann für den Schreibzugriff die Berechtigung für Erinnerungen anfordern. Ein lokaler Marker pro Auftrag sperrt einen zweiten Speicherversuch mit derselben Kennung auch nach einem Neustart.
 
+## Im Chat bedienen
+
+In einem MCP-Apps-fähigen Chat öffnet `get_channels` die interaktive Fieldglass-Oberfläche. Dort einen Suchtext und Bildbereich wählen und **Auftrag erstellen** betätigen. Der Link lässt sich in der iPhone-App unter „Auftrag laden“ einfügen. Bei eingerichtetem Simulator- oder Gerätekanal ist auch „Auftrag übergeben“ verfügbar. Zwei aus der App geteilte JSON-Berichte lassen sich in derselben Oberfläche vergleichen. Die Oberfläche lädt ihre Schrift, Skripte und Styles lokal. Im Browser-Abnahmetest spricht sie über die offizielle MCP-Apps-Bridge mit dem echten Fieldglass-Server. [OpenAI-Dokumentation zur Chat-Oberfläche](https://developers.openai.com/plugins/build/chatgpt-ui#embed-the-component-in-the-server-response)
+
 ## Installation
 
 Vorausgesetzt werden Node 22+, Xcode mit passender iOS-Laufzeit und XcodeGen. Vom Verzeichnis dieser README aus:
@@ -36,7 +40,7 @@ Für die Weitergabe aus einem Git-Checkout erzeugt `scripts/package-source.sh` e
 
 | Kanal | Einrichtung | Werkzeuge |
 | --- | --- | --- |
-| Manuelle Übergabe | Standard, auch ohne Xcode am MCP-Host | get_channels, prepare_experiment, prepare_workspace, read_result, compare_results |
+| Manuelle Übergabe | Standard, auch ohne Xcode am MCP-Host | get_channels (interaktive Oberfläche), prepare_experiment, prepare_workspace, read_result, compare_results |
 | Mac → Simulator / iPhone | Im MCP-Serverprozess FIELDGLASS_CHANNEL auf simulator oder device setzen und FIELDGLASS_TARGET auf die lokale Geräte-ID. Die App muss installiert sein. | deliver_experiment und deliver_workspace laden einen Auftrag. submitted bedeutet, dass Apples Werkzeug den Auftrag angenommen hat. |
 | Physische Verbindung | Konfiguriertes iPhone am Mac. | device_status prüft, ob Apple das ausgewählte physische iPhone als verbunden meldet. |
 | Simulatorlabor | Simulatorziel wie oben. | simulator_status, simulator_app zum Starten und Beenden von Fieldglass |

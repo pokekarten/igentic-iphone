@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="de">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fieldglass</title>
+<style>
+  :root {color-scheme: light dark; font: 15px/1.5 Inter, system-ui, sans-serif; --accent: light-dark(#0a6663,#89d9ce)}
+  * {box-sizing:border-box}
+  body {margin:0; color:light-dark(#172626,#eef5f3); background:light-dark(#fff,#172222)}
+  main {max-width:660px; margin:auto; padding:20px}
+  header {display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap; margin-bottom:16px}
+  h1 {font-size:21px; margin:0}
+  #channel {color:var(--accent)}
+  form {display:grid; gap:12px} label {display:grid; gap:4px; font-weight:560}
+  .fields {display:grid; grid-template-columns:2fr 1fr; gap:12px}
+  input, textarea, select, button {font:inherit; max-width:100%; min-width:0; border-radius:8px; padding:7px 10px}
+  input, textarea, select {border:1px solid light-dark(#8b9e9d,#798e8c); background:transparent; color:inherit}
+  textarea {resize:vertical}
+  button {justify-self:start; cursor:pointer; background:var(--accent); color:light-dark(white,#102323); border:0; font-weight:600}
+  button:disabled {opacity:.55; cursor:default}
+  details {margin-top:18px; border-top:1px solid light-dark(#c9d6d4,#4b5b59); padding-top:12px}
+  summary {cursor:pointer; font-weight:600} details form {margin-top:12px}
+  #handoff {margin-top:12px} #handoff button {margin-top:8px}
+  [role=status] {margin:8px 0 0; overflow-wrap:anywhere}
+  :focus-visible {outline:2px solid var(--accent); outline-offset:2px}
+  @media (max-width:360px) {.fields {grid-template-columns:1fr} main {padding:14px}}
+</style>
+<main>
+  <header><h1>Fieldglass</h1><span id="channel" role="status">Verbinde …</span></header>
+  <form id="prepare">
+    <div class="fields">
+      <label>Suchtext<input name="term" value="ORBIT" required maxlength="160"></label>
+      <label>Bildbereich<select name="region"><option value="top">Oben</option><option value="all">Ganzes Bild</option><option value="bottom">Unten</option></select></label>
+    </div>
+    <button disabled>Auftrag erstellen</button>
+  </form>
+  <div id="handoff" hidden>
+    <label>In Fieldglass unter „Auftrag laden“ einfügen<input id="link" readonly></label>
+    <button type="button" id="deliver" hidden>Auftrag übergeben</button>
+  </div>
+  <p id="prepared" role="status"></p>
+  <details><summary>Zwei Ergebnisse vergleichen</summary>
+    <form id="compare">
+      <label>Erster JSON-Bericht<textarea name="before" required maxlength="1024" rows="2"></textarea></label>
+      <label>Zweiter JSON-Bericht<textarea name="after" required maxlength="1024" rows="2"></textarea></label>
+      <button disabled>Berichte vergleichen</button>
+      <p id="comparison" role="status"></p>
+    </form>
+  </details>
+</main>
+<!-- FIELDGLASS_SCRIPT -->
+</html>

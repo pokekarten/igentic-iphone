@@ -26,4 +26,4 @@ jobs:
           unzip -q "$archive" -d "$RUNNER_TEMP"
           cd "$RUNNER_TEMP/Fieldglass/plugin"
           npm ci --ignore-scripts --no-audit --no-fund
-          npm test
+          CHROME_BIN=/usr/bin/google-chrome npm test
