@@ -110,7 +110,7 @@ Follow-up final state: updated integrated app installed and relaunched without p
 
 This result advances slices B and C in the [completion plan](../PROJECT_COMPLETION_PLAN.md). The code under test was built from an isolated integration checkout based on local merge `69a331e` with uncommitted reminder-workflow changes. It was signed, installed and launched on the same physical iPhone Air. The app implementation remained in that isolated checkout; I recorded this result in the report and plan as local documentation changes. GitHub was not changed at that time.
 
-The full integrated Swift suite passed again: `swift test -j 1` reported 319 tests and zero failures. The build emitted one existing deprecation warning in `ModelResearchSupport/AppleFoundationBaseline.swift` for the `GenerationOptions` initializer. The device build had already succeeded for this exact integrated source state before installation.
+The full integrated Swift suite passed again: `swift test -j 1` reported 319 tests and zero failures. The build emitted one existing deprecation warning in `ios/Sources/ModelResearchSupport/AppleFoundationBaseline.swift` for the `GenerationOptions` initializer. The device build had already succeeded for this exact integrated source state before installation.
 
 With the user's explicit approval, iOS granted iGentic full Reminders access. The app displayed the exact synthetic title `iGentic Test – Pflanze gießen`, due 2026-11-23 18:00 Europe/Berlin, and classified the default destination as system-synced personal storage. The review warned that the item could sync through the configured account. One approval was submitted. The app then showed `Erinnerung erstellt und zurückgelesen` (`physical_device_result`).
 
