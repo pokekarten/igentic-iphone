@@ -39,6 +39,11 @@ jobs:
       - name: Validate repo structure
         run: python3 scripts/validate_repo_structure.py
 
+      - name: Validate combined iOS 27 test target, policy and plugin contracts
+        run: |
+          python3 scripts/check_ios27_integration_contract.py
+          python3 -m unittest discover -s scripts -p 'test_check_ios27_integration_contract.py' -v
+
       - name: Verify generated Explore indexes
         run: python3 scripts/build_explore_index.py --check
 
