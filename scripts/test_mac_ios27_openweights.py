@@ -38,7 +38,7 @@ class MacOpenWeightsTest(unittest.TestCase):
         steps = mod.command_plan("build", Path("/tmp/igentic-test"))
         self.assertEqual(len(steps), 7)
         commands = [argv for argv, _ in steps]
-        self.assertTrue(any("validate_ios27_baseline.py" in c for c in commands))
+        self.assertTrue(any("scripts/validate_ios27_baseline.py" in c for c in commands))
         self.assertTrue(any("swift" == c[0] and "build" == c[1] for c in commands))
         self.assertTrue(any("swift" == c[0] and "test" == c[1] for c in commands))
         self.assertTrue(any("xcodebuild" == c[0] for c in commands))
