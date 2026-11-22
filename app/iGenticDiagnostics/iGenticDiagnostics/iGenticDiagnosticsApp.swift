@@ -89,6 +89,11 @@ struct iGenticDiagnosticsApp: App {
                 case .unsupportedAction: physicalProbeStatus = "PHYSICAL_MODEL_PROBE=unsupportedAction; writeAttempted=false"
                 case .invalidProposal: physicalProbeStatus = "PHYSICAL_MODEL_PROBE=invalidProposal; writeAttempted=false"
                 }
+                #if DEBUG
+                // Explicit fixed-fixture probe only: no prompt, generated text,
+                // identifiers or user content. Observable via devicectl --console.
+                print(physicalProbeStatus)
+                #endif
             }
         }
     }
