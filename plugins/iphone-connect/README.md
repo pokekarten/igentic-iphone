@@ -46,6 +46,15 @@ node scripts/setup.mjs --mobilecli /absolute/path/to/mobilecli
 npm run doctor
 ```
 
+`doctor` reports a separate, read-only `networkPreflight` with the local
+Tailscale macOS extension registration state. `awaitingUserApproval` requires
+a macOS user action in Network Extensions; `extensionActivated` means the
+extension is registered, **not** that VPN traffic or an iPhone is reachable.
+VPN connectivity, cellular reachability and Xcode-over-cellular remain
+`notTested` / `notEstablished` until separate physical observations exist. The
+probe never logs network identities, device IDs or raw extension output and
+does not request a VPN permission or change system settings.
+
 Setup builds only the small Swift policy executable from this repository with
 one compiler job, or uses the prebuilt helper in an architecture-specific
 package. It discovers a single paired physical phone; if several exist, pass
