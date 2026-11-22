@@ -94,7 +94,7 @@ export class PhoneService {
       throw new PluginError('staleObservation');
     if (!o.markers.includes('Open local discovery')) throw new PluginError('navigationTargetUnavailable');
     const proposalId = randomUUID();
-    s.proposal = { proposalId, action, observationId, fingerprint: o.fingerprint, consumed: false };
+    s.proposal = { proposalId, action, observationId, fingerprint: o.fingerprint, expiresAt: o.at + this.observationMs, consumed: false };
     return { proposalId, action, persistentWrite: false, requiresApproval: false,
       summary: 'Open bundled discovery content in iGentic Diagnostics.' };
   }
@@ -103,11 +103,12 @@ export class PhoneService {
       const p = s.proposal;
       if (!p || p.proposalId !== proposalId || p.consumed) throw new PluginError('invalidProposal');
       if (s.uncertain) throw new PluginError('reconciliationRequired');
-      if (this.now() - s.observation.at > this.observationMs) throw new PluginError('staleObservation');
+      if (s.observation.observationId !== p.observationId || this.now() > p.expiresAt) throw new PluginError('staleObservation');
       const signal = s.controller.signal;
       const current = await this.backend.observe(signal);
       this.session(id);
       if (signal.aborted) throw new PluginError('cancelled');
+      if (this.now() > p.expiresAt) throw new PluginError('staleObservation');
       if (fingerprint(current) !== p.fingerprint) throw new PluginError('screenChanged');
       p.consumed = true;
       const record = { proposalId, status: 'unknownOutcome', backend: this.backend.kind };

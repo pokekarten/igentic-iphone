@@ -155,3 +155,26 @@ test('receipts remain available after stop but are bounded under repeated safe a
   assert.equal(service.result(id, proposals.at(-1)).status, 'verified');
   assert.throws(() => service.result(id, proposals[0]), /unknownResult/);
 });
+
+for (const scenario of ['identical refresh', 'deadline during verification']) {
+  test(`proposal cannot dispatch after ${scenario}`, async t => {
+    let now = 0;
+    const { service, backend } = await lab(t, new FixtureBackend(), { now: () => now, observationMs: 100 });
+    const { sessionId } = await service.start('iphone-1');
+    const observation = await service.open(sessionId);
+    const proposal = service.prepare(sessionId, observation.observationId, 'open-discovery');
+    if (scenario === 'identical refresh') {
+      await service.observe(sessionId);
+    } else {
+      const observe = backend.observe.bind(backend);
+      backend.observe = async signal => {
+        now += 101;
+        return observe(signal);
+      };
+    }
+    let dispatches = 0;
+    backend.discovery = async () => { dispatches++; };
+    await code(service.execute(sessionId, proposal.proposalId), 'staleObservation');
+    assert.equal(dispatches, 0);
+  });
+}
