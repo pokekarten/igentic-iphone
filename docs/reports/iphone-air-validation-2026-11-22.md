@@ -191,3 +191,26 @@ xcodebuild -project app/iGenticDiagnostics/iGenticDiagnostics.xcodeproj \
 ```
 
 Do not pass a global provisioning-profile specifier to package resource targets. An existing valid identity/profile is a precondition; this command is not a guarantee that expired or missing profiles can be recovered without account access.
+
+
+## Content-free rejection diagnostics and repeat physical observations — 2026-11-22
+
+Follow-up to the two clear German reminder rejections above: added `ReminderDraftProposalAssessment` and a fixed `ReminderDraftRejectionReason` enum (`abstained`, `titleRejected`, `invalidLocalDate`, `dateNotFuture`). The existing `propose` API delegates to the same assessment implementation and returns the same public outcome. Model instructions, fixtures, generation configuration and acceptance rules were **not changed**. The detailed API adds no writer or approval authority. Its optional reason contains no input, generated text, date, time zone, account or target identifier. The explicit synthetic device probe appends the reason to its existing enum/Boolean result. Normal app use does not print these reasons.
+
+Deterministic coverage verifies the four invalid-proposal stages, unchanged invalid outcomes, absence of a synthetic private marker in rejection assessments, and a valid result with no rejection reason. The complete local integrated suite passed **329 tests, zero failures**; `git diff --check` passed. Signed Xcode 27.2 build and installation using the recovered existing-profile path passed.
+
+Five completed physical iPhone console observations on this updated local integration:
+
+| Fixture | Observed result |
+| --- | --- |
+| `reminder-de`, attempt 1 | `proposalCreated; titleTermsMatch=true; dueMatch=true; writeAttempted=false` |
+| `reminder-de`, attempt 2 | `proposalCreated; titleTermsMatch=true; dueMatch=true; writeAttempted=false` |
+| `reminder-en` | `proposalCreated; titleTermsMatch=true; dueMatch=true; writeAttempted=false` |
+| `ambiguous-de` | `invalidProposal; writeAttempted=false; rejectionReason=dateNotFuture` |
+| `unsupported-en` | `invalidProposal; writeAttempted=false; rejectionReason=abstained` |
+
+The prior two German failures remain valid observations. The new successes do **not** establish a fix: the diagnostic refactor did not alter generation instructions or acceptance policy, and system-model behavior varies. The original failed outputs were never retained, so their exact failed fields cannot be reconstructed. On this run, ambiguous timing did not yield explicit model abstention; instead, deterministic validation rejected its nonfuture date. Preserve that distinction rather than counting every invalid result as correct semantic abstention. These exploratory fixtures are not a held-out evaluation or reliability score.
+
+Code is recorded in Draft PR #390 at `7279c798f65eb3768b865fbde7755c4dd4609294`. Runtime source is the same isolated integrated checkout described above, with its existing read-only App Intent declarations and local project target structure retained. Signed executable SHA-256: `f1ae1ccb391c25ed0ca7ea71072393e9f54ff5a25eececd2a983185d7760b024`. This is physical local-integration evidence, not installation of a CI artifact. No raw model output was collected or uploaded.
+
+Final state: app relaunched normally without probe arguments, no new reminder or permission prompt, no WDA/PhoneUse service required for these tests. Existing device data, profile and permissions preserved. No external inference, paid fallback or billing activation. New GitHub workflows are evaluated separately from the successful local/device results; both PRs remain Draft and unmerged.
