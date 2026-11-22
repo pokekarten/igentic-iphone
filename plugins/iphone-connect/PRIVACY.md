@@ -1,6 +1,11 @@
 # Privacy in the local developer package
 
-The current tools return a fixed device alias, availability, fixed capability
+Two additional read-only B2B catalog tools serve only checked-in, public,
+synthetic research descriptions from a bundled projection. They do not access
+enterprise accounts, private repositories, customer records or remote APIs.
+An unknown catalog slug is rejected; the model cannot use a slug as a file path.
+
+The current phone tools return a fixed device alias, availability, fixed capability
 names, counts, recognized public demo labels and bounded session/proposal
 references. They do not return screenshots, arbitrary accessibility text, raw
 subprocess errors, installed app inventories, device identifiers or credentials.

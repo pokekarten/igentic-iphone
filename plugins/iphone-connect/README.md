@@ -1,7 +1,8 @@
 # iGentic iPhone Connect
 
-Version 0.1.0 is a **local desktop developer plugin** for ChatGPT/Codex-compatible
-MCP hosts. It includes ten typed tools, one skill, an MCP Apps dashboard, a
+Version 0.2.0 is a **local desktop developer plugin** for ChatGPT/Codex-compatible
+MCP hosts. It includes twelve typed tools (ten fixed-phone tools and two
+read-only public B2B catalog tools), one skill, an MCP Apps dashboard, a
 physical-iPhone adapter, a separate fixture backend, and a Swift bridge to the
 existing iGentic `PolicyEngine` and `AuditLog`.
 
@@ -92,10 +93,44 @@ does not create a tunnel, collect an API key, configure OAuth, publish a service
 or register itself in a ChatGPT account. Public local-MCP submission is currently
 limited to approved partners; see [desktop-only plugins](https://developers.openai.com/plugins/deploy/desktop-only).
 
+## Read-only B2B catalog (no phone required)
+
+The two `igentic_*` catalog tools expose six research-stage business concepts:
+Enterprise Agent Trust, Field Evidence, Insurance Risk, Managed Device Diagnostics,
+Private Model Evaluation and Retail Inventory. They read a bundled projection of
+public `docs/explore/index.json`; they do **not** connect to enterprise databases,
+private repositories or customer systems. The checked-in catalog is deterministic,
+versioned and included in the distribution package.
+
+To refresh the projection from the canonical repository content, run:
+
+```sh
+node scripts/build-b2b-catalog.mjs
+node scripts/build-b2b-catalog.mjs --check
+```
+
+Run only the B2B catalog with **no phone pairing/configuration needed**:
+
+```sh
+IGENTIC_IPHONE_BACKEND=catalog npm run start
+```
+
+In this explicit catalog-only mode, the existing phone tools are listed for
+protocol compatibility, but no device is available and starting any device
+session fails closed. The regular physical mode still requires its private
+configuration and never silently falls back to a fixture or catalog backend.
+
+All catalog entries explicitly mark execution disabled, and unknown slugs or
+extra tool parameters are rejected. Future business workflows must add separate
+server-side authentication, tenant/role boundaries and independent approval
+checks rather than implicitly inheriting this read-only catalog's trust.
+
 ## Tools
 
 | Tool | Behavior |
 | --- | --- |
+| `igentic_list_business_solutions` | List six bundled, research-stage B2B concepts without a device connection |
+| `igentic_get_business_solution` | Return the fixed concept and validation gaps for a known slug, without execution |
 | `iphone_list_devices` | Return only configured alias, backend and observed connection availability |
 | `iphone_get_capabilities` | Explain current capability boundary without claiming readiness |
 | `iphone_start_session` | Acquire a five-minute exclusive device lease |
@@ -133,6 +168,7 @@ UI actions need stronger native/driver atomicity and action-level approval.
 ## Validate and package
 
 ```sh
+node scripts/build-b2b-catalog.mjs --check
 npm run build:ui
 npm test
 IGENTIC_IPHONE_BACKEND=fixture npm run smoke

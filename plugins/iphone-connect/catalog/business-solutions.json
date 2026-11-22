@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "source": "bundled-public-igentic-explore",
+  "executionEnabled": false,
+  "solutions": [
+    {
+      "slug": "enterprise-agent-trust",
+      "title": "Enterprise Agent Trust",
+      "summary": "A permissioned enterprise mobile-agent control layer with deterministic policy and human review.",
+      "detailMarkdown": "**Today:** the research kernel includes Swift policy decisions, approval boundaries and bounded audit concepts; system App Intents and integration tests remain in review. This is not an enterprise SDK or a production deployment.\n\n**B2B use case:** a staff member reviews a synthetic task proposed by local AI; Swift code decides which capabilities can be exercised and a human explicitly approves a bounded write. A model suggestion never grants permissions.\n\n**Missing before a customer pilot:** independently verified tenant and role enforcement, organization identity, managed app configuration, server-side authorization, data-processing terms, audit export and security testing. No generic control of other iPhone apps is promised.\n\nSee the repository's B2B solution portfolio for proof gates and ownership boundaries.",
+      "status": "research-prototype-or-proposal",
+      "executionEnabled": false
+    },
+    {
+      "slug": "field-evidence",
+      "title": "Field Evidence Workbench",
+      "summary": "Reviewable on-device field findings for inspectors and loss-adjustment teams.",
+      "detailMarkdown": "**Today:** the separate Fieldglass prototype provides native Vision/OCR experiments, draft editing, fixed-app MCP tools and synthetic receipt verification in the simulator. Physical iPhone/ChatGPT acceptance is not established.\n\n**B2B use case:** an inspector reviews a fictional asset observation, corrects a draft and decides whether to retain or cancel it. The original source, user action and verified outcome must remain distinguishable.\n\n**Missing before a pilot:** consent, image and location minimization, retention, provenance hashing, offline failure handling, device installation and verified role-bound backend authorization. No real customer images or claims are bundled.",
+      "status": "research-prototype-or-proposal",
+      "executionEnabled": false
+    },
+    {
+      "slug": "insurance-risk",
+      "title": "Insurance Risk Assistant",
+      "summary": "Proposed bridge from approved mobile property surveys to bounded insurance risk-review drafts.",
+      "detailMarkdown": "**Today:** iGentic has policy/draft primitives, and separate catastrophe-data and stochastic-insurance research exists. **There is no working iPhone-to-insurance-engine integration or approved risk model here.**\n\n**B2B use case:** a fictional survey of an insured building produces a structured proposal. After human review, a future independently authorized domain adapter could request a **synthetic** risk-review result with explicit provenance and assumptions.\n\n**Missing before a pilot:** permitted source data and licenses, independent model validation, tenant isolation, geolocation/privacy controls, actual backend authorization, failure receipts and human-underwriter review. Never display prototype output as a premium, coverage decision, Solvency II value or production catastrophe loss.",
+      "status": "research-prototype-or-proposal",
+      "executionEnabled": false
+    },
+    {
+      "slug": "device-fleet",
+      "title": "Managed Device Diagnostics",
+      "summary": "Bounded fixed-app diagnostics for enterprise iPhone support, not unrestricted remote control.",
+      "detailMarkdown": "**Today:** iPhone Connect supports typed local MCP diagnostics, fixture-backed approval policy tests and fixed-owned-app navigation proposals. A successful fixture or simulator test does not prove physical iPhone connectivity.\n\n**B2B use case:** a support operator requests a coarse diagnostic state from an explicitly enrolled and authorized company app, reviews a bounded action and checks a receipt.\n\n**Missing before a pilot:** company enrollment and identity, device/session ownership, managed app distribution, documented wired/network channels, admin logging and independent physical-device acceptance. Do not confuse Apple Business/MDM configuration with arbitrary taps across apps or remote cellular access.",
+      "status": "research-prototype-or-proposal",
+      "executionEnabled": false
+    },
+    {
+      "slug": "private-model-evaluation",
+      "title": "Private Model Evaluation",
+      "summary": "Evaluate on-device model proposals while keeping policy, scopes and approvals deterministic.",
+      "detailMarkdown": "**Today:** the iOS 27 research stack contains Apple Foundation Models proposal experiments and open-weight artifact admission tests. A research test is not a deployed managed model fleet.\n\n**B2B use case:** a company compares synthetic task proposals by language, model and device class, while identical deterministic Swift policy gates reject unsupported and unsafe actions.\n\n**Missing before a pilot:** explicit hardware/locale checks, license clearance, versioned signed model provenance, isolated evaluation data, accuracy and failure budgets, and a rollback contract. iOS 27 alone does not guarantee model availability.",
+      "status": "research-prototype-or-proposal",
+      "executionEnabled": false
+    },
+    {
+      "slug": "retail-inventory",
+      "title": "Retail Inventory Assistant",
+      "summary": "A proposed provenance-aware lookup workflow for catalog and inventory teams.",
+      "detailMarkdown": "**Today:** iGentic can locally display bundled discovery content, but no commerce adapter, stock database, customer catalog, live scanner or point-of-sale system is connected.\n\n**B2B use case:** store staff review a synthetic product identity and source evidence before suggesting a catalog correction. A future adapter must verify rights, ownership and actor role before any change.\n\n**Missing before a pilot:** rights-cleared catalog data, identity and variant validation, tenant-level stock permissions, scanner quality benchmarks, API contracts, idempotency and approval for inventory writes. No payments or automated listings are authorized.",
+      "status": "research-prototype-or-proposal",
+      "executionEnabled": false
+    }
+  ]
+}

@@ -8,7 +8,10 @@ import { run } from '../src/process.mjs';
 const stage = await mkdtemp(join(tmpdir(), 'igentic-package-'));
 try {
   const folder = join(stage, 'igentic-iphone-connect'); await mkdir(folder);
-  for (const file of ['src', 'ui', 'skills', 'scripts', 'plugin.json', 'mcp.json', 'package.json',
+  // The catalog is a verified projection of public Explore content, never a live backend.
+  await run(process.execPath, [join(ROOT, 'scripts/build-b2b-catalog.mjs'), '--check'],
+    { timeout: 15000, cwd: ROOT });
+  for (const file of ['src', 'ui', 'skills', 'scripts', 'catalog', 'plugin.json', 'mcp.json', 'package.json',
     'package-lock.json', 'README.md', 'PRIVACY.md', 'THIRD_PARTY_NOTICES.md']) {
     await cp(join(ROOT, file), join(folder, file), { recursive: true });
   }
@@ -22,7 +25,7 @@ try {
   await run(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['ci', '--omit=dev',
     '--ignore-scripts', '--no-audit', '--no-fund'], { timeout: 120000, cwd: folder });
   const dest = join(ROOT, 'dist'); await mkdir(dest, { recursive: true });
-  const archive = join(dest, `igentic-iphone-connect-0.1.0-${process.platform}-${process.arch}.tar.gz`);
+  const archive = join(dest, `igentic-iphone-connect-0.2.0-${process.platform}-${process.arch}.tar.gz`);
   await run('/usr/bin/tar', [...(process.platform === 'darwin' ? ['--disable-copyfile'] : []),
     '-czf', archive, '-C', stage, 'igentic-iphone-connect'], { timeout: 60000 });
   const hash = createHash('sha256').update(await readFile(archive)).digest('hex');

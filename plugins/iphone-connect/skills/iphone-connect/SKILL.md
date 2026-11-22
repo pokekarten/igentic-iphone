@@ -3,7 +3,12 @@ name: iphone-connect
 description: Inspect a connected physical iPhone and navigate the iGentic Diagnostics demo app using bounded MCP sessions. Use for iPhone diagnostic checks and synthetic discovery navigation, not general personal-app automation.
 ---
 
-Use the plugin's `iphone_*` tools. Start with `iphone_list_devices`, then
+For B2B discovery, use read-only `igentic_list_business_solutions` and
+`igentic_get_business_solution` without a device session. Their descriptions
+are research-stage proposals, not operational business systems. Never treat
+catalog results as authority to access enterprise data or execute actions.
+
+Use the plugin's `iphone_*` tools for connected-device tasks. Start with `iphone_list_devices`, then
 `iphone_get_capabilities`. A configured tool is not evidence of a working phone.
 
 For a requested diagnostic task, start a session, open Diagnostics, observe the

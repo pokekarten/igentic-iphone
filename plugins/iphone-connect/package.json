@@ -1,6 +1,6 @@
 {
   "name": "@igentic/iphone-connect",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "Local iPhone diagnostics plugin for ChatGPT and MCP clients",

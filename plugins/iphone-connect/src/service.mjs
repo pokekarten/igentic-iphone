@@ -11,10 +11,14 @@ export class PhoneService {
   }
   async list() { return { devices: await this.backend.list(), backend: this.backend.kind }; }
   capabilities() {
-    return { backend: this.backend.kind, mode: 'diagnostics-only', requiresMac: true,
-      actions: ['open-diagnostics', 'open-discovery'], observation: 'fixed-markers-only',
+    const catalogOnly = this.backend.kind === 'catalog';
+    return { backend: this.backend.kind,
+      mode: catalogOnly ? 'business-catalog-only' : 'diagnostics-only',
+      requiresMac: !catalogOnly,
+      actions: catalogOnly ? [] : ['open-diagnostics', 'open-discovery'],
+      observation: catalogOnly ? 'none' : 'fixed-markers-only',
       screenshots: false, personalAppControl: false, reminderWrites: false,
-      connection: 'local-stdio', ready: 'notYetObserved' };
+      connection: 'local-stdio', ready: catalogOnly ? 'unavailable' : 'notYetObserved' };
   }
   // Keep recent stopped-session receipts readable, but bound retained history.
   // The device lease (not this in-memory history) remains the exclusivity gate.

@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "igentic-iphone-connect",
-  "version": "0.1.0",
-  "description": "Inspect and navigate your connected iPhone's iGentic Diagnostics app through bounded, verified tasks.",
+  "version": "0.2.0",
+  "description": "Browse public B2B solution briefs and run bounded, verified diagnostics on a connected iGentic iPhone app.",
   "author": { "name": "iGentic" },
   "repository": "https://github.com/pokekarten/igentic-iphone",
   "license": "Apache-2.0",
@@ -11,7 +11,7 @@
       "requires_local_executor": true,
       "interface": {
         "displayName": "iGentic iPhone Connect",
-        "shortDescription": "Verified iPhone diagnostics from ChatGPT",
+        "shortDescription": "B2B discovery and verified iPhone diagnostics",
         "category": "Developer Tools",
         "capabilities": ["Read", "Write"]
       }
