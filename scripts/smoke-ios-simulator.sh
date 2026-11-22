@@ -11,29 +11,7 @@ if [[ ! -d "${APP_PATH}" ]]; then
   exit 1
 fi
 
-SIMULATOR_UDID="$({ xcrun simctl list devices available -j; } | python3 -c '
-import json
-import re
-import sys
-
-payload = json.load(sys.stdin)
-candidates = []
-for runtime, devices in payload.get("devices", {}).items():
-    match = re.search(r"\\.iOS-(\\d+)(?:-|$)", runtime)
-    if not match or int(match.group(1)) < 27:
-        continue
-    for device in devices:
-        if device.get("isAvailable") and device.get("name", "").startswith("iPhone"):
-            candidates.append((runtime, device["name"], device["udid"]))
-
-if not candidates:
-    raise SystemExit("No iOS 27+ iPhone simulator found")
-
-candidates.sort(reverse=True)
-runtime, name, udid = candidates[0]
-print(udid)
-print(f"Selected simulator: {name} ({runtime})", file=sys.stderr)
-')"
+SIMULATOR_UDID="$(xcrun simctl list devices available -j | python3 "$(dirname "${BASH_SOURCE[0]}")/select_ios27_simulator.py")"
 
 cleanup() {
   xcrun simctl terminate "${SIMULATOR_UDID}" "${BUNDLE_IDENTIFIER}" >/dev/null 2>&1 || true
