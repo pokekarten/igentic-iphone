@@ -76,3 +76,23 @@ The packaged version declares **swift-tools 6.2**, **iOS/macOS/watchOS/visionOS 
 **Hard stops:** silent network or microphone access; allowing a connected tool to bypass iGentic's approval; direct command reruns after unknown side effects; package/model weights without verified identity/license; source-level claims rebranded as physical iPhone acceptance.
 
 **Methodology limitation:** Each of 2,546 files received an automated per-file inventory and triage; **not every line received manual semantic review**. Human attention was directed to implementation entry points and high-risk paths. Swift frontend parsing does not prove import availability, typecheck, iOS SDK linking, signing, entitlements, platform memory/thermal behavior, device compatibility, actual tests passing or absence of vulnerabilities. This is source evidence; the exact uploaded ZIP archive is the reference, not the mutable GitHub `main` link.
+
+
+## iOS 27 hardware and modern Apple API acceptance (official sources, 2026-11-22)
+
+Apple now documents **LanguageModelSession.DynamicProfile**, the provider-neutral **LanguageModel protocol**, **App Intents Testing**, and an **Evaluations** framework in its iOS 27 developer guides:
+- https://developer.apple.com/ios/whats-new
+- https://developer.apple.com/documentation/updates/foundationmodels
+- https://developer.apple.com/foundation-models-framework/
+
+**Critical distinction:** **having iOS 27 does not establish Apple Intelligence eligibility**. Apple's iOS 27 hardware requirements include iPhone 15 Pro/Pro Max, iPhone 16 and later, and iPhone Air, but **do not include iPhone 13 Pro**. If a test device is a 13 Pro, the OS can be current while the default Apple on-device model correctly returns deviceNotEligible. The user phrase about exact hardware has not been verified against live device metadata and should not be converted into an assumed model identity. Source: https://support.apple.com/de-de/121115.
+
+**Test matrix:**
+1. Obtain **non-sensitive** actual device model family + OS version, available memory and installed Xcode SDK on the authorized Mac. Do not commit UDID, serial number, tokens or screenshots of private apps.
+2. Query `SystemLanguageModel.default.availability` and `supportsLocale` separately; `unavailable` or unsupported preferred language must disable the system model, *not* call a remote endpoint. The dedicated local-model probe PR #384 now maps unsupported locale to a fail-closed unavailability case.
+3. For eligible hardware, execute a fixed public German prompt through iOS 27's **system on-device** provider and assert a typed **proposal-only** result. The approval ledger must still be used for real side effects.
+4. For unsupported hardware, evaluate an **explicitly installed, SHA-256-verified local open-weight** runtime (existing model-admission PR #383/#385; never assert adequate speed without device benchmarks). Keep the base App Intent and deterministic policy path working even with no language model.
+5. Trial an **optional iOS 27-only** `DynamicProfile`/skills context adapter, *not* a core-deployment upgrade. Profiles may alter prompts/tools/model preferences but may never alter `PolicyEngine` or user approvals. Locality is per model/endpoint; the optional chat completions utility can use a remote server and must be opt-in.
+6. Prefer **App Intents Testing** to UI automation for the declared, owned app-scoped action surface; reserve iCTRL for an explicitly approved developer-mode physical-device experiment and ipb for a Mac-side laboratory comparison. Do not mistake either experimental driver for App Store-supported cross-app authority.
+
+**Acceptance criteria:** physical iPhone evidence and exact model revision + hardware and language eligibility for the selected model; German synthetic intent success, no silent upload or microphone access, no generated authorization, denied action = no side effect, uncertain result = no replay. The present report is **research**, not such acceptance.
