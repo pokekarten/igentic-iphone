@@ -1,0 +1,143 @@
+# iGentic iPhone Connect
+
+Version 0.1.0 is a **local desktop developer plugin** for ChatGPT/Codex-compatible
+MCP hosts. It includes ten typed tools, one skill, an MCP Apps dashboard, a
+physical-iPhone adapter, a separate fixture backend, and a Swift bridge to the
+existing iGentic `PolicyEngine` and `AuditLog`.
+
+The implemented workflow is: discover the configured device, acquire a short
+exclusive session, open our Diagnostics app, observe fixed public markers,
+prepare and perform one safe discovery-navigation action, independently check
+the result, and stop. Arbitrary cross-app control, screenshots, personal data,
+reminder writes, general tap/type commands and public hosting are not exposed.
+This is an executable initial capability boundary, not the entire product
+roadmap in the [research atlas on Draft PR #379](https://github.com/pokekarten/igentic-iphone/blob/docs/iphone-agent-ecosystem-2026-11-21/docs/research/IPHONE_AGENT_PROJECT_ATLAS.md).
+
+## Requirements and setup
+
+- macOS with Node.js 22+, Xcode and an already paired, unlocked physical iPhone.
+- The already signed iGentic Diagnostics app installed on that phone. This setup
+  does not install, remove, sign or grant permissions to any iPhone application.
+- A **separately installed MobileCLI**. The local adapter was developed against
+  1.0.24. The MobileCLI binary and developer runner are not bundled. Inspect its
+  FSL-1.1-ALv2 terms before redistributing or commercializing a dependent product.
+
+From this directory:
+
+```sh
+npm ci --ignore-scripts
+node scripts/setup.mjs --mobilecli /absolute/path/to/mobilecli
+npm run doctor
+```
+
+Setup builds only the small Swift policy executable from this repository with
+one compiler job, or uses the prebuilt helper in an architecture-specific
+package. It discovers a single paired physical phone; if several exist, pass
+`--device` in the **local** terminal. It writes private device configuration
+under `~/Library/Application Support/iGentic/iphone-connect/config.json` with
+0600 permissions. There are no provider credentials or model downloads.
+The current fixed app identity is `de.bos.neoagent.igenticdiagnostics`; a second
+supported development identity is `org.example.iGenticDiagnostics`. Changing
+the identity in private config does not sign/install the app.
+
+If the physical phone is unavailable, the server returns that state. It never
+substitutes the synthetic backend. Fixture mode is explicit:
+
+```sh
+IGENTIC_IPHONE_BACKEND=fixture npm run smoke
+```
+
+## Install the desktop plugin
+
+From the repository root, after dependency setup:
+
+```sh
+codex plugin marketplace add .
+codex plugin add igentic-iphone-connect@igentic-local
+```
+
+The repository marketplace is `.agents/plugins/marketplace.json`. The CLI copies
+the plugin into its local cache; refresh/reinstall after changing source. Open a
+new local chat with the plugin enabled. The portable `mcp.json` starts the local
+server with Node; it opens no TCP listener. The same server can be configured
+directly in another MCP client with an absolute path to `src/server.mjs`.
+
+Example request:
+
+> Use iGentic iPhone Connect to open our Diagnostics app, open its bundled
+> discovery page, verify the result and stop the session.
+
+Installation in a local Codex cache is not proof of registration or a successful
+tool invocation in ChatGPT web. The latter needs an account-authorized custom
+MCP connection. Official [connection instructions](https://developers.openai.com/plugins/deploy/connect-chatgpt)
+support an HTTPS endpoint or [Secure MCP Tunnel](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels).
+The stdio server can be placed behind an eligible private tunnel. This package
+does not create a tunnel, collect an API key, configure OAuth, publish a service
+or register itself in a ChatGPT account. Public local-MCP submission is currently
+limited to approved partners; see [desktop-only plugins](https://developers.openai.com/plugins/deploy/desktop-only).
+
+## Tools
+
+| Tool | Behavior |
+| --- | --- |
+| `iphone_list_devices` | Return only configured alias, backend and observed connection availability |
+| `iphone_get_capabilities` | Explain current capability boundary without claiming readiness |
+| `iphone_start_session` | Acquire a five-minute exclusive device lease |
+| `iphone_open_diagnostics` | Launch the fixed app, check foreground identity and return recognized markers |
+| `iphone_observe` | Refresh fixed marker/count observation; suppress raw content |
+| `iphone_prepare_action` | Bind `open-discovery` to the current observation |
+| `iphone_execute_action` | Reobserve, consume proposal once, dispatch and independently verify |
+| `iphone_get_action_result` | Read this session's action receipt |
+| `iphone_stop_session` | Abort pending work and release lease after in-flight work stops |
+| `iphone_show_dashboard` | Render the MCP Apps card with refresh and stop controls |
+
+Strict schemas reject extra fields, including caller-supplied `approved`.
+Commands use `spawn` without a shell, bounded output and deadlines. Only
+fixed read/prepare operations can pass the Swift policy bridge. This bridge
+does not fabricate `ApprovalReceipt`s; persistent mutations remain unavailable.
+Readiness is reported separately from configuration. Device output and UI text
+never become instructions or permissions.
+
+An interrupted dispatched action is `unknownOutcome`; it cannot be reused or
+silently rerouted. Stop does not undo an effect already dispatched. A lease left
+after a crash is not automatically stolen: run doctor, inspect the phone, stop
+any owning process, and only then remove that one stale `device.lease` file.
+
+The private state directory is single-user local authority. Do not expose this
+stdio process as an unauthenticated network service or reuse it as a multi-user
+gateway. The driver has a residual observation-to-input race; v0.1 only permits
+opening bundled content, where that limited authority is acceptable. Broader
+UI actions need stronger native/driver atomicity and action-level approval.
+
+## Validate and package
+
+```sh
+npm run build:ui
+npm test
+IGENTIC_IPHONE_BACKEND=fixture npm run smoke
+npm run smoke
+```
+
+`npm test` runs service, input, privacy, cross-process lease, replay, interruption,
+MCP protocol and browser UI checks. The browser test uses an existing Chrome
+installation (`CHROME_BIN` overrides discovery); when absent it is explicitly
+skipped. Set `IGENTIC_POLICY_TEST_PATH` to a built helper to exercise the actual
+Swift bridge in the Node suite; otherwise that test is explicitly skipped.
+`npm run smoke` without fixture mode uses the actual configured phone and
+requires independent observation of the discovery page to pass.
+
+To build a platform-specific archive with runtime dependencies and the compiled
+helper (but no MobileCLI, personal configuration, screenshots or credentials):
+
+```sh
+IGENTIC_POLICY_TEST_PATH=/absolute/path/to/iGenticPluginPolicy npm run package
+```
+
+The archive and SHA-256 are written to ignored `dist/`. A source checkout can
+compile the helper; an extracted archive must include the helper for its target
+architecture or receive one through setup's `--policy` option. The generated
+HTML is self-contained and uses the official MCP Apps bridge. No external
+resource or connection domains are allowed by the resource CSP.
+
+See [privacy](PRIVACY.md), [third-party notices](THIRD_PARTY_NOTICES.md) and the
+[implementation evidence](../../docs/reports/chatgpt-iphone-plugin-2026-11-22.md).

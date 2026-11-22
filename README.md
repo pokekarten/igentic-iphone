@@ -10,6 +10,11 @@ The goal is not to build another chatbot app. The goal is to explore the iPhone,
 
 > Status: Experimental / Research Prototype
 
+The [iGentic iPhone Connect developer plugin](plugins/iphone-connect/README.md)
+provides a local MCP server, typed diagnostics tools and an MCP Apps dashboard
+for ChatGPT/Codex-compatible hosts. See its [implementation and acceptance evidence](docs/reports/chatgpt-iphone-plugin-2026-11-22.md)
+for the exact tested scope and outstanding physical-device/web-connection gates.
+
 This repository is intentionally small and controller-friendly. It is designed for a workflow where ChatGPT acts as the project controller through the GitHub Connector, Codex creates narrow Draft PRs, and real iPhone testing decides what is actually usable.
 
 ## Mission

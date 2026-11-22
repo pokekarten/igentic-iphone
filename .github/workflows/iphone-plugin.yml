@@ -1,0 +1,36 @@
+name: iPhone Plugin
+on:
+  pull_request:
+    paths:
+      - 'plugins/iphone-connect/**'
+      - 'ios/Sources/iGenticPluginPolicy/**'
+      - 'ios/Package.swift'
+      - '.github/workflows/iphone-plugin.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  plugin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout source without marketplace actions
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git fetch --no-tags --depth=1 origin "${GITHUB_SHA}"
+          git checkout --detach FETCH_HEAD
+      - name: Install locked development dependencies without lifecycle scripts
+        working-directory: plugins/iphone-connect
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Rebuild UI and test protocol, faults and browser interactions
+        working-directory: plugins/iphone-connect
+        run: |
+          set -euo pipefail
+          npm run build:ui
+          git diff --exit-code -- ui/dashboard.html
+          npm test
+          IGENTIC_IPHONE_BACKEND=fixture npm run smoke
