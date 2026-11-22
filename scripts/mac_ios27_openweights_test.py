@@ -155,6 +155,9 @@ def main() -> int:
         help="Optional JSON report path (never contains account or device identifiers)",
     )
     args = parser.parse_args()
+    if args.report and args.report.exists():
+        print("Report path already exists; refusing to overwrite", file=sys.stderr)
+        return 2
 
     checks, info = preflight()
     for item in checks:
@@ -174,9 +177,6 @@ def main() -> int:
                   "preflight": [x._asdict() for x in checks], "environment": info,
                   "steps": results, "model_inference_performed": False,
                   "physical_iphone_test_performed": False}
-        if args.report.exists():
-            print("Report path already exists; refusing to overwrite", file=sys.stderr)
-            return 2
         try:
             args.report.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
         except OSError as error:
