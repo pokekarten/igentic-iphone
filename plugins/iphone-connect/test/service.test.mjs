@@ -155,3 +155,18 @@ test('receipts remain available after stop but are bounded under repeated safe a
   assert.equal(service.result(id, proposals.at(-1)).status, 'verified');
   assert.throws(() => service.result(id, proposals[0]), /unknownResult/);
 });
+
+
+test('capabilities retain every future route without inventing phone readiness', async t => {
+  const { service } = await lab(t);
+  const snapshot = service.capabilities();
+  assert.equal(snapshot.ready, 'notYetObserved');
+  assert.deepEqual(snapshot.connectionPaths.map(x => x.id),
+    ['usb-c', 'wifi', 'cellular', 'on-device', 'simulator']);
+  for (const route of snapshot.connectionPaths) {
+    assert.match(route.status, /^[a-z-]+$/);
+    assert.equal(typeof route.macRequired, 'boolean');
+  }
+  assert.equal(snapshot.connectionPaths.find(x => x.id === 'cellular').status, 'companion-not-implemented');
+  assert.equal(snapshot.connectionPaths.find(x => x.id === 'simulator').status, 'test-only-not-physical-evidence');
+});

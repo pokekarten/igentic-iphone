@@ -26,6 +26,21 @@ export function hasUsablePhysicalTunnel(device) {
   return physicalConnectionState(device) === 'xcode-tunnel-available';
 }
 
+// Describe an *observed, currently usable* CoreDevice transport, never the
+// user's preferred route or a remembered transport. No arbitrary CoreDevice
+// metadata or identifying string crosses the MCP boundary.
+export function physicalConnectionPath(device) {
+  if (!hasUsablePhysicalTunnel(device)) return 'none';
+  const raw = device?.connectionProperties?.transportType;
+  if (typeof raw !== 'string' || raw.length > 24)
+    return 'coredevice-transport-unclassified';
+  const transport = raw.toLowerCase();
+  if (['wired', 'usb', 'usbmux'].includes(transport)) return 'usb-coredevice';
+  if (['wireless', 'wifi', 'wi-fi', 'network'].includes(transport))
+    return 'network-coredevice';
+  return 'coredevice-transport-unclassified';
+}
+
 export function sanitizeTree(value) {
   const found = new Set(); let count = 0;
   function visit(node, depth = 0) {
@@ -107,7 +122,8 @@ export class MobileBackend {
       if (!d) return [];
       const connectionState = physicalConnectionState(d);
       return [{ id: 'iphone-1', kind: this.kind,
-        available: connectionState === 'xcode-tunnel-available', connectionState }];
+        available: connectionState === 'xcode-tunnel-available', connectionState,
+        connectionPath: physicalConnectionPath(d) }];
     } finally { await rm(directory, { recursive: true, force: true }); }
   }
   async mobile(args, signal) {

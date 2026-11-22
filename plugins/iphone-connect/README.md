@@ -22,6 +22,27 @@ roadmap in the [research atlas on Draft PR #379](https://github.com/pokekarten/i
   1.0.24. The MobileCLI binary and developer runner are not bundled. Inspect its
   FSL-1.1-ALv2 terms before redistributing or commercializing a dependent product.
 
+### Connection paths: all retained, readiness never transferred
+
+USB-C and Wi-Fi remain long-term supported development routes through the **same**
+physical CoreDevice adapter, but an active paired physical Xcode tunnel is a
+required gate. `iphone_list_devices` reports only a coarse, fixed
+`connectionPath` (`usb-coredevice`, `network-coredevice`,
+`coredevice-transport-unclassified` or `none`) and never exposes
+the device's raw transport metadata. An unclassified but active tunnel can
+remain CoreDevice-available; that does not establish whether it is USB or Wi-Fi.
+
+| Path | Current boundary | Independent proof required |
+| --- | --- | --- |
+| USB-C | Existing physical CoreDevice adapter | Fresh tunnel and fixed-app action receipt |
+| Wi-Fi | Existing physical CoreDevice adapter; no cable-free acceptance | Fresh tunnel after cable removal and fixed-app action receipt |
+| Cellular | Separate authenticated outbound companion **not yet implemented** | Real 4G/5G iPhone app lifecycle and approved app-owned action receipt |
+| On-device | Native App Intents and Shortcuts, outside this Mac plugin | iPhone-local execution and owner permission |
+| Simulator | Explicit fixture/native simulator tests, **not physical-device evidence** | Simulator-specific acceptance only |
+
+No route silently falls back to another. Disconnection cannot turn a remembered
+USB, Wi-Fi, VPN or simulator path into an available physical iPhone.
+
 ### Cellular and VPN are not device-control transports
 
 Tailscale can create a private IP path between enrolled devices over mobile data,

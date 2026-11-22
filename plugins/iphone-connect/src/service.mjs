@@ -14,7 +14,16 @@ export class PhoneService {
     return { backend: this.backend.kind, mode: 'diagnostics-only', requiresMac: true,
       actions: ['open-diagnostics', 'open-discovery'], observation: 'fixed-markers-only',
       screenshots: false, personalAppControl: false, reminderWrites: false,
-      connection: 'local-stdio', ready: 'notYetObserved' };
+      connection: 'local-stdio', ready: 'notYetObserved',
+      // An explicit roadmap, not a fallback chain. No path can inherit the
+      // readiness of another path or authorize a physical action by itself.
+      connectionPaths: [
+        { id: 'usb-c', status: 'coredevice-requires-active-tunnel', macRequired: true },
+        { id: 'wifi', status: 'coredevice-requires-active-tunnel', macRequired: true },
+        { id: 'cellular', status: 'companion-not-implemented', macRequired: false },
+        { id: 'on-device', status: 'separate-native-app', macRequired: false },
+        { id: 'simulator', status: 'test-only-not-physical-evidence', macRequired: true }
+      ] };
   }
   // Keep recent stopped-session receipts readable, but bound retained history.
   // The device lease (not this in-memory history) remains the exclusivity gate.
