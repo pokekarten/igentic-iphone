@@ -93,7 +93,12 @@ export async function loadConfig(path) {
     throw new PluginError('invalidConfig');
   if (!/^[A-Fa-f0-9-]{20,50}$/.test(c.deviceId ?? '') || !BUNDLES.has(c.bundleId))
     throw new PluginError('invalidConfig');
-  for (const key of ['mobilecliPath', 'policyPath']) {
+  // A stale/removed legacy CLI path must not prevent the native CoreDevice
+  // driver from starting. The legacy option validates the executable when
+  // explicitly invoked, never as a prerequisite for the first-party path.
+  if (c.mobilecliPath !== undefined && !isAbsolute(c.mobilecliPath))
+    throw new PluginError('invalidConfig');
+  for (const key of ['policyPath']) {
     if (!isAbsolute(c[key] ?? '') || !(await stat(c[key])).isFile()) throw new PluginError('invalidConfig');
   }
   return c;

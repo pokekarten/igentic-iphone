@@ -15,8 +15,12 @@ This directory contains the smallest installable iOS application wrapper for the
 
 ## What it does not do
 
+- The app accepts exactly two optional first-party diagnostic launch actions
+  (open-diagnostics and open-discovery) plus a UUID nonce. The corresponding
+  SwiftUI view writes a fixed receipt only after appearing. There is no
+  arbitrary device command, external listener or user-data disclosure.
 - No networking or external providers.
-- No persistence or private user data.
+- No personal-data persistence. A fixed, nonpersonal iGentic bridge receipt is atomically replaced.
 - One **read-only, fixed-output App Intent** and discoverable App Shortcuts are included; no live diagnostic data, user data, model-driven calls, or privileged tool execution.
 - No model calls or model weights.
 - No Apple account, team identifier, certificate, provisioning profile or device identifier is stored in the repository.

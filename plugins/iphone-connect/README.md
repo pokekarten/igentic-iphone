@@ -18,9 +18,12 @@ roadmap in the [research atlas on Draft PR #379](https://github.com/pokekarten/i
 - macOS with Node.js 22+, Xcode and an already paired, unlocked physical iPhone.
 - The already signed iGentic Diagnostics app installed on that phone. This setup
   does not install, remove, sign or grant permissions to any iPhone application.
-- A **separately installed MobileCLI**. The local adapter was developed against
-  1.0.24. The MobileCLI binary and developer runner are not bundled. Inspect its
-  FSL-1.1-ALv2 terms before redistributing or commercializing a dependent product.
+- **First-party Apple CoreDevice + iGentic native view-receipt adapter** is
+  the default. It needs no external mobile automation binary. It can only
+  launch two fixed view routes in our own signed Diagnostics app and verify
+  its per-launch UUID receipt.
+- The separate MobileCLI implementation is a legacy **optional** driver; its
+  own license applies only when explicitly selected.
 
 ### Connection paths: all retained, readiness never transferred
 
@@ -34,13 +37,15 @@ remain CoreDevice-available; that does not establish whether it is USB or Wi-Fi.
 
 | Path | Current boundary | Independent proof required |
 | --- | --- | --- |
-| USB-C | Existing physical CoreDevice adapter | Fresh tunnel and fixed-app action receipt |
-| Wi-Fi | Existing physical CoreDevice adapter; no cable-free acceptance | Fresh tunnel after cable removal and fixed-app action receipt |
+| USB-C | First-party Apple CoreDevice adapter | Fresh tunnel and own-app UUID receipt |
+| Wi-Fi | First-party CoreDevice adapter, no MobileCLI dependency | Fresh network tunnel and own-app UUID receipt on real iPhone |
 | Cellular | Separate authenticated outbound companion **not yet implemented** | Real 4G/5G iPhone app lifecycle and approved app-owned action receipt |
 | On-device | Native App Intents and Shortcuts, outside this Mac plugin | iPhone-local execution and owner permission |
 | Simulator | Explicit fixture/native simulator tests, **not physical-device evidence** | Simulator-specific acceptance only |
 
 Xcode 27 may report Wi-Fi as `localNetwork`; it maps to the fixed `network-coredevice` code **only while the paired physical tunnel is active**. A transient tunnel or Bonjour discovery alone is not evidence that MobileCLI can see the device.
+
+The first-party driver uses Apple's devicectl plus a nonce-matched fixed receipt from our own SwiftUI view. This is **not** arbitrary iOS UI control. Read the [first-party implementation](FIRST_PARTY_COREDEVICE.md) and its physical-device test limits.
 
 No route silently falls back to another. Disconnection cannot turn a remembered
 USB, Wi-Fi, VPN or simulator path into an available physical iPhone.
@@ -65,8 +70,12 @@ From this directory:
 
 ```sh
 npm ci --ignore-scripts
-node scripts/setup.mjs --mobilecli /absolute/path/to/mobilecli
+node scripts/setup.mjs
 npm run doctor
+npm run smoke
+
+# Optional legacy driver only, when separately installed:
+IGENTIC_IPHONE_DRIVER=mobilecli npm run doctor
 ```
 
 Setup builds only the small Swift policy executable from this repository with

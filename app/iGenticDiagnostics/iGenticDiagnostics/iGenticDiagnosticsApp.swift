@@ -6,6 +6,8 @@ import iGenticApp
 @main
 struct iGenticDiagnosticsApp: App {
     @State private var physicalProbeStatus = ""
+    // Only a fixed app-owned diagnostic route, never arbitrary URL, tap or shell.
+    private let pluginBridge = iGenticNativeBridgeLaunch.parse(ProcessInfo.processInfo.arguments)
     private let approvalPolicyStore: AppActionApprovalPolicyStore
     private let setupConfirmationStore: AppActionApprovalPolicySetupConfirmationStore
     private let initialApprovalPolicy: AppActionApprovalPolicy
@@ -35,7 +37,11 @@ struct iGenticDiagnosticsApp: App {
                 approvalPolicy: initialApprovalPolicy,
                 approvalPolicyStore: approvalPolicyStore,
                 setupConfirmationStore: setupConfirmationStore,
-                requiresInitialSetupConfirmation: requiresInitialSetupConfirmation
+                requiresInitialSetupConfirmation: requiresInitialSetupConfirmation,
+                nativeBridgeOpenDiscovery: pluginBridge?.action == "open-discovery",
+                nativeBridgeScreenObserved: { [pluginBridge] view in
+                    pluginBridge?.writeObservedReceipt(view: view)
+                }
             )
             .overlay(alignment: .top) {
                 if !physicalProbeStatus.isEmpty {
@@ -148,6 +154,46 @@ struct iGenticDiagnosticsShortcuts: AppShortcutsProvider {
                 ],
                 shortTitle: "Check Diagnostics",
             systemImageName: "checkmark.shield"
+        )
+    }
+}
+
+// Per-launch, one-purpose, privacy-safe device bridge. The host passes a fresh
+// UUID nonce to Apple's CoreDevice launch service. Our own view emits a tiny
+// receipt only after SwiftUI's onAppear, never from launch's exit status alone.
+// This does not authorize general iOS UI control or write any user data.
+private struct iGenticNativeBridgeLaunch {
+    let action: String
+    let nonce: String
+
+    static func parse(_ args: [String]) -> Self? {
+        let actions = args.filter { $0.hasPrefix("--igentic-bridge-action=") }
+        let nonces = args.filter { $0.hasPrefix("--igentic-bridge-nonce=") }
+        guard actions.count == 1, nonces.count == 1 else { return nil }
+        let action = String(actions[0].dropFirst("--igentic-bridge-action=".count))
+        let nonce = String(nonces[0].dropFirst("--igentic-bridge-nonce=".count))
+        guard ["open-diagnostics", "open-discovery"].contains(action),
+              let uuid = UUID(uuidString: nonce),
+              uuid.uuidString.lowercased() == nonce.lowercased() else { return nil }
+        return Self(action: action, nonce: nonce.lowercased())
+    }
+
+    func writeObservedReceipt(view: String) {
+        let expected = action == "open-discovery" ? "discovery" : "diagnostics"
+        guard view == expected else { return }
+        // One fixed file; atomic replace, no private content, no token or network.
+        let data: [String: Any] = [
+            "schema": 1, "nonce": nonce, "action": action,
+            "view": view, "status": "observed"
+        ]
+        guard let directory = FileManager.default.urls(
+            for: .documentDirectory, in: .userDomainMask
+        ).first,
+        let bytes = try? JSONSerialization.data(withJSONObject: data, options: [.sortedKeys])
+        else { return }
+        try? bytes.write(
+            to: directory.appendingPathComponent("igentic-plugin-receipt.json"),
+            options: [.atomic, .completeFileProtectionUnlessOpen]
         )
     }
 }

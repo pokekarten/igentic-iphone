@@ -15,8 +15,10 @@ export class PhoneService {
     return makeConnectionReport({ backend: this.backend.kind, devices: await this.backend.list() });
   }
   capabilities() {
-    return { backend: this.backend.kind, mode: 'diagnostics-only', requiresMac: true,
-      actions: ['open-diagnostics', 'open-discovery'], observation: 'fixed-markers-only',
+    return { backend: this.backend.kind, driver: this.backend.driver ?? 'legacy-or-fixture',
+      mode: 'diagnostics-only', requiresMac: true,
+      actions: ['open-diagnostics', 'open-discovery'],
+      observation: this.backend.driver === 'coredevice-native' ? 'own-app-view-receipt' : 'fixed-markers-only',
       screenshots: false, personalAppControl: false, reminderWrites: false,
       connection: 'local-stdio', ready: 'notYetObserved',
       // An explicit roadmap, not a fallback chain. No path can inherit the

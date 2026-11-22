@@ -7,6 +7,7 @@ import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { PhoneService } from './service.mjs';
 import { MobileBackend, FixtureBackend, loadConfig } from './backend.mjs';
+import { NativeCoreDeviceBackend } from './native-coredevice.mjs';
 import { PluginError } from './process.mjs';
 
 export const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -42,7 +43,7 @@ export function createServer(service) {
     'Use this to find the configured iPhone alias and connection availability. No personal device identifiers or installed app list.',
     {}, true, () => service.list());
   add('iphone_connection_report', 'Check USB, Wi-Fi and other connection paths',
-    'Read-only live CoreDevice status and five separately scoped route states. No device identifiers, network scan or iPhone actions. A detected tunnel is not proof of MobileCLI or app readiness.',
+    'Read-only live CoreDevice status and five separately scoped route states. No device identifiers, network scan or iPhone actions. A detected tunnel is not proof of app-owned receipt or optional legacy driver readiness.',
     {}, true, () => service.connectionReport());
   add('iphone_get_capabilities', 'Get iPhone capabilities',
     'Use this to check actual supported actions and limitations. Configuration is not observed device readiness.',
@@ -51,10 +52,10 @@ export function createServer(service) {
     'Use this for a requested iGentic diagnostic task. Acquires a 5-minute exclusive local-device lease; does not capture the screen.',
     { device: z.literal('iphone-1') }, false, a => service.start(a.device));
   add('iphone_open_diagnostics', 'Open iGentic Diagnostics',
-    'Launch only the configured iGentic Diagnostics app and verify fixed public UI markers. Foreground application changes.',
+    'Launch only the configured iGentic Diagnostics app and verify fixed own-app view receipt or optional legacy UI. Foreground application changes.',
     session, false, a => service.open(a.sessionId));
   add('iphone_observe', 'Observe diagnostic state',
-    'Read only fixed recognized public labels and element counts from the permitted foreground app. No raw text, screenshots, coordinates or private data returned. Refreshes session observation state.',
+    'Read only fixed own-app marker states from its view receipt or optional legacy UI. No raw text, screenshots, coordinates or private data returned. Refreshes session observation state.',
     session, false, a => service.observe(a.sessionId));
   add('iphone_prepare_action', 'Prepare safe navigation',
     'Prepare one immutable open-discovery navigation from a fresh observation. Changes local proposal state; does not tap the phone.',
@@ -89,7 +90,14 @@ export async function main() {
     try { await access(path); configPath = path; } catch {}
   }
   const config = mode === 'physical' ? await loadConfig(configPath) : null;
-  const service = new PhoneService({ backend: mode === 'fixture' ? new FixtureBackend() : new MobileBackend(config),
+  // First-party Apple CoreDevice is the default. External MobileCLI is an
+  // explicitly selected, independent legacy option; not a hard dependency.
+  const driver = process.env.IGENTIC_IPHONE_DRIVER ?? 'coredevice';
+  if (!['coredevice', 'mobilecli'].includes(driver)) throw new PluginError('unknownDriver');
+  if (mode === 'physical' && driver === 'mobilecli' && !config?.mobilecliPath)
+    throw new PluginError('mobilecliNotConfigured');
+  const service = new PhoneService({ backend: mode === 'fixture' ? new FixtureBackend()
+    : driver === 'coredevice' ? new NativeCoreDeviceBackend(config) : new MobileBackend(config),
     stateDir: process.env.IGENTIC_IPHONE_STATE_DIR ?? join(homedir(), 'Library/Application Support/iGentic/iphone-connect') });
   const server = createServer(service);
   const close = async () => { await service.close(); await server.close(); };

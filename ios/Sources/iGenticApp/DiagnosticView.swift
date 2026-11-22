@@ -6,8 +6,11 @@ public struct DiagnosticView: View {
     private let state: DiagnosticViewState
     private let approvalPolicyStore: AppActionApprovalPolicyStore?
     private let setupConfirmationStore: AppActionApprovalPolicySetupConfirmationStore?
+    private let nativeBridgeOpenDiscovery: Bool
+    private let nativeBridgeScreenObserved: ((String) -> Void)?
     @State private var approvalPolicy: AppActionApprovalPolicy
     @State private var isInitialSetupPresented: Bool
+    @State private var nativeBridgeDiscoveryPresented = false
     @State private var isReminderApprovalPresented: Bool
     @State private var reminderApprovalOutcome: String
 
@@ -16,11 +19,15 @@ public struct DiagnosticView: View {
         approvalPolicy: AppActionApprovalPolicy = .default,
         approvalPolicyStore: AppActionApprovalPolicyStore? = nil,
         setupConfirmationStore: AppActionApprovalPolicySetupConfirmationStore? = nil,
-        requiresInitialSetupConfirmation: Bool = false
+        requiresInitialSetupConfirmation: Bool = false,
+        nativeBridgeOpenDiscovery: Bool = false,
+        nativeBridgeScreenObserved: ((String) -> Void)? = nil
     ) {
         self.state = state
         self.approvalPolicyStore = approvalPolicyStore
         self.setupConfirmationStore = setupConfirmationStore
+        self.nativeBridgeOpenDiscovery = nativeBridgeOpenDiscovery
+        self.nativeBridgeScreenObserved = nativeBridgeScreenObserved
         self._approvalPolicy = State(initialValue: approvalPolicy)
         self._isInitialSetupPresented = State(
             initialValue: requiresInitialSetupConfirmation
@@ -129,6 +136,17 @@ public struct DiagnosticView: View {
                 }
             }
             .navigationTitle("iGentic Diagnostics")
+            .navigationDestination(isPresented: $nativeBridgeDiscoveryPresented) {
+                ExploreView()
+                    .onAppear { nativeBridgeScreenObserved?("discovery") }
+            }
+            .onAppear {
+                if nativeBridgeOpenDiscovery {
+                    nativeBridgeDiscoveryPresented = true
+                } else {
+                    nativeBridgeScreenObserved?("diagnostics")
+                }
+            }
         }
         .sheet(isPresented: $isInitialSetupPresented) {
             if let approvalPolicyStore, let setupConfirmationStore {
