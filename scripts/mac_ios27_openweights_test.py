@@ -129,8 +129,6 @@ def run_steps(phase: str, scratch: Path) -> list[dict[str, object]]:
     env["APP_PATH"] = str(scratch / "derived/Build/Products/Debug-iphonesimulator/iGenticDiagnostics.app")
     env["SCREENSHOT_PATH"] = str(scratch / "iGenticDiagnostics-launch.png")
     env["BUNDLE_IDENTIFIER"] = "org.example.iGenticDiagnostics"
-    # Explicitly avoid remote caches and sending telemetry through this test runner.
-    env["SWIFTPM_DISABLE_SANDBOX"] = "0"
     for index, (argv, cwd) in enumerate(command_plan(phase, scratch), start=1):
         label = f"step {index}: {Path(argv[0]).name} {argv[1]}"
         print(f"Running {label}", flush=True)
