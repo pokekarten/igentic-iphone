@@ -7,8 +7,12 @@ function render(result) {
   if (result.isError) { status.textContent = result.content?.[0]?.text ?? 'Request failed'; return; }
   const d = result.structuredContent?.data ?? {};
   sessionId = d.sessionId ?? sessionId;
-  const mode = d.backend === 'fixture' ? 'Synthetic test device' : 'Connected iPhone';
-  status.textContent = d.stopped ? 'Session stopped' : `${mode} · ${d.status ?? d.mode ?? 'Ready'}`;
+  // A configured physical backend is not evidence of a reachable phone.
+  // Only a real sanitized observation can justify an observed-state label.
+  const mode = d.backend === 'fixture' ? 'Synthetic test device'
+    : d.backend === 'physical' ? (Array.isArray(d.markers) ? 'iPhone diagnostics observed' : 'iPhone connection not verified')
+      : 'iGentic diagnostics status';
+  status.textContent = d.stopped ? 'Session stopped' : `${mode} · ${d.status ?? d.mode ?? 'Availability unknown'}`;
   document.querySelector('#details').textContent = d.markers?.join(' · ')
     ?? 'Diagnostics and bundled discovery only. No personal app content is shared.';
   document.querySelector('#stop').disabled = !sessionId || d.stopped === true;

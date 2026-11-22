@@ -13,7 +13,7 @@ const chrome = process.env.CHROME_BIN ?? ['/Applications/Google Chrome.app/Conte
 test('MCP Apps browser handshake, refresh and stop controls', { skip: !chrome }, async t => {
   const source = `import {AppBridge,PostMessageTransport} from '@modelcontextprotocol/ext-apps/app-bridge';
     const frame=document.querySelector('iframe'); window.calls=[];
-    const bridge=new AppBridge(null,{name:'acceptance-host',version:'1.0.0'},{serverTools:{}});
+    const bridge=new AppBridge(null,{name:'acceptance-host',version:'1.0.0'},{serverTools:{}});window.testBridge=bridge;
     bridge.oncalltool=async p=>{window.calls.push(p.name);return {content:[],structuredContent:{data:
       p.name==='iphone_stop_session'?{stopped:true}:{backend:'fixture',markers:['Explore']}}};};
     bridge.oninitialized=async()=>{
@@ -47,5 +47,13 @@ test('MCP Apps browser handshake, refresh and stop controls', { skip: !chrome },
   await frame.getByText('Session stopped', { exact: true }).waitFor();
   assert.deepEqual(await page.evaluate(() => window.calls), ['iphone_observe', 'iphone_stop_session']);
   assert.equal(await frame.getByRole('button', { name: 'Stop session' }).isDisabled(), true);
+  // A physical backend's configuration is not a successfully connected phone.
+  await page.evaluate(async () => window.testBridge.sendToolResult({ content: [],
+    structuredContent: { data: { backend: 'physical', mode: 'diagnostics-only' } } }));
+  await frame.getByText('iPhone connection not verified · diagnostics-only', { exact: true }).waitFor();
+  // Only sanitized, observed diagnostic markers justify the observed-state label.
+  await page.evaluate(async () => window.testBridge.sendToolResult({ content: [],
+    structuredContent: { data: { backend: 'physical', markers: ['Explore'] } } }));
+  await frame.getByText('iPhone diagnostics observed · Availability unknown', { exact: true }).waitFor();
   assert.deepEqual(errors, []);
 });
