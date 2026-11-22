@@ -31,7 +31,7 @@ standalone Mac build preflight. Exclusion does not mean those PRs are invalid.
 
 1. #380 and #386 both declare a native `iGenticDiagnosticsUITests` target
    with different Xcode object IDs. The integration reuses #380's target and
-   app scheme, adds the `DiagnosticsUITests.swift` source from #386 to it,
+   app scheme, adds the `app/iGenticDiagnostics/iGenticDiagnosticsUITests/DiagnosticsUITests.swift` source from #386 to it,
    and keeps all iOS targets at deployment minimum **27.0**. Both distinct
    UI test classes remain active. Follow-up: review the final exact Xcode
    project diff before landing parent PRs.
