@@ -136,3 +136,22 @@ The physical iPhone Air is currently paired and listed as available. Installing 
 A detector false positive was also fixed after reproducing that the ordinary phrase “morgen um 18 Uhr” matched the generic IBAN-like regex. The detector now checks recognized IBAN jurisdiction prefixes, plus an explicitly labeled or digit-dense fallback; the regression and full suite pass. This country-prefix set must be maintained if IBAN participation standards add jurisdictions.
 
 No additional reminder was created. The existing test reminder and full Reminders permission remain as previously approved. No new dependency, model weights, external inference, paid model or billing fallback was introduced. Firecrawl's official Apple-document search reported 8 search credits plus 1 page-scrape credit; no billing activation was performed. The changed code and this evidence still require publication to the existing feature/documentation Draft PRs; `main` was not changed.
+
+
+## 2026-11-22 exact-head GitHub CI and final verification
+
+The corrected source is now recorded in Draft PR [#390](https://github.com/pokekarten/igentic-iphone/pull/390), head `5f7b4350556b1f4e6fb284b64e5a5e37f02fef51`, based on #386 at `91452b969ac015470ff3ec54f4b9a8020e641289`. The exact comparison is **20 commits ahead, 0 behind, 18 changed files**. The documentation update is recorded in Draft PR [#379](https://github.com/pokekarten/igentic-iphone/pull/379), head `373f96097e4ef50326ab6334713483bc5b49e06d`.
+
+On PR #390's exact code head, GitHub Actions completed successfully:
+
+- macOS Swift package build and tests: **378 tests passed, zero failures**.
+- Linux Swift package build and tests: **377 tests passed, zero failures**.
+- Apple Foundation Models baseline host compile: passed.
+- Repository structure validation, Repo Audit, PR Change Scope, Pull Request Quality and Docs Consistency: passed.
+- iOS App Wrapper: unsigned simulator build, install, launch, screenshot, terminate and relaunch all passed.
+
+On PR #379's exact documentation head, GitHub Actions completed successfully: **340 macOS tests** and **339 Linux tests**, zero failures; Apple Foundation Models host compile, repository structure, Repo Audit, PR Change Scope, Pull Request Quality and Docs Consistency also passed.
+
+The first Linux run on #390 exposed SwiftPM discovery incompatibility for four synchronous main-actor tests; the test methods were made async. Its first strict macOS package compile also exposed an actor-boundary transfer of the non-Sendable EventKit store through the async permission API. The adapter now invokes EventKit's callback API on its owning actor and returns only the granted Boolean through a checked continuation; the exact-head macOS and Linux suites both pass after this fix.
+
+Local verification on the integrated checkout also passed: `cd ios && swift test -j 1` (**328 tests, zero failures**), `git diff --check`, and Xcode 27.2 generic iOS app compilation with code signing disabled. These results are host/compile evidence. The new model-driven route is still not signed, installed or inferred on the physical iPhone because Xcode has no configured Apple account session for the selected team and no matching provisioning profile. The separate earlier, explicitly approved manual EventKit reminder write/readback belongs to its earlier signed app revision. No additional reminder was created. Both pull requests remain Draft and unmerged; `main` was not changed.
