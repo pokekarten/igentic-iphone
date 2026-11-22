@@ -59,7 +59,7 @@ jobs:
       - name: Show Xcode and Swift versions
         run: |
           xcodebuild -version
-          xcodebuild -version | grep -Eq '^Xcode 27(\\.|$)'
+          xcodebuild -version | grep -Eq '^Xcode 27([.]|$)'
           swift --version
 
       - name: Resolve local package dependency
