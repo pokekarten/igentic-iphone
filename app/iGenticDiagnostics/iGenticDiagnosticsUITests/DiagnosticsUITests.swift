@@ -1,6 +1,7 @@
 import XCTest
 
 final class DiagnosticsUITests: XCTestCase {
+    @MainActor
     func testLaunchExploreAndSyntheticApprovalCancel() {
         let app = XCUIApplication()
         app.launch()
