@@ -62,7 +62,8 @@ if [[ ! -s "${SCREENSHOT_PATH}" ]]; then
   exit 1
 fi
 
-screenshot_bytes="$(stat -f '%z' "${SCREENSHOT_PATH}")"
+# POSIX byte count works on macOS runners and Linux audit regression hosts.
+screenshot_bytes="$(wc -c < "${SCREENSHOT_PATH}" | tr -d '[:space:]')"
 echo "Captured simulator screenshot (${screenshot_bytes} bytes): ${SCREENSHOT_PATH}"
 xcrun simctl terminate "${SIMULATOR_UDID}" "${BUNDLE_IDENTIFIER}"
 

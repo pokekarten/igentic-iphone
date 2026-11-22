@@ -58,6 +58,11 @@ class DualDisplaySmokeContract(unittest.TestCase):
             sleep = bin_dir / "sleep"
             sleep.write_text("#!/bin/sh\nexit 0\n")
             sleep.chmod(0o755)
+            # A Linux audit host has no macOS `stat -f %z` semantics.
+            # If the smoke script ever reintroduces that call, fail.
+            stat = bin_dir / "stat"
+            stat.write_text("#!/bin/sh\nexit 88\n")
+            stat.chmod(0o755)
             app = work / "iGenticDiagnostics.app"
             app.mkdir()
             screenshot = work / "simulator-only.png"
@@ -79,6 +84,7 @@ class DualDisplaySmokeContract(unittest.TestCase):
                                                  "--display=1",str(screenshot)]])
             self.assertEqual(len([x for x in commands if x[:2] == ["simctl","launch"]]), 2)
             self.assertEqual(len([x for x in commands if x[:2] == ["simctl","shutdown"]]), 1)
+            self.assertIn("Captured simulator screenshot (17 bytes)", result.stdout)
             self.assertIn("smoke test passed", result.stdout)
 
 
