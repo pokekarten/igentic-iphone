@@ -14,7 +14,11 @@ const OWN = Object.prototype.hasOwnProperty;
 
 function fail() { throw new Error('invalidTaskEnvelope'); }
 function assertKey(key) {
-  if (!Buffer.isBuffer(key) || key.length !== 32) throw new Error('invalidOwnerRelayKey');
+  // Length alone does not establish a secret: an all-zero or repeated-byte
+  // test/default key is trivially guessable. This guard catches obvious
+  // misconfiguration, not low entropy in general. Provision randomly.
+  if (!Buffer.isBuffer(key) || key.length !== 32
+    || key.every(byte => byte === key[0])) throw new Error('invalidOwnerRelayKey');
 }
 function exactFields(object, fields) {
   return object !== null && typeof object === 'object' && !Array.isArray(object)
