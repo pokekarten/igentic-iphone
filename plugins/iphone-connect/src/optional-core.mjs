@@ -23,13 +23,14 @@ export function optionalToolCatalog() {
       { id: 'text-draft', implemented: 'native-ios-app', entry: 'Offline-Werkzeuge', noMacRequired: true },
       { id: 'workspace-note', implemented: 'native-ios-app-owner-confirmation', entry: 'Offline-Werkzeuge > Notizen lokal verwalten', noMacRequired: true },
       { id: 'speak-text', implemented: 'native-ios-app', entry: 'Offline-Werkzeuge', noMacRequired: true },
+      { id: 'dictate-text', implemented: 'native-ios-app-user-permission', entry: 'Offline-Werkzeuge > Deutsch lokal diktieren', noMacRequired: true },
       { id: 'read-image-text', implemented: 'native-ios-app', entry: 'Offline-Werkzeuge', noMacRequired: true },
       { id: 'reminder', implemented: 'native-ios-app-owner-approval', entry: 'Erinnerung erstellen', noMacRequired: true },
       { id: 'task-handoff', implemented: 'mcp-pure-offline', entry: 'iphone_prepare_local_task', noMacRequired: true }
     ],
     optionalProviders: OPTIONAL.map(([id, purpose, firstPartyFallback]) =>
       ({ id, purpose, firstPartyFallback, installed: 'not-checked', enabled: 'not-checked' })),
-    networkNotRequiredFor: ['offline-native-editor', 'ios-speech', 'ios-vision-ocr', 'manual-reminder-draft'],
+    networkNotRequiredFor: ['offline-native-editor', 'ios-speech', 'ios-on-device-dictation-if-supported', 'ios-vision-ocr', 'manual-reminder-draft'],
     physicalControl: 'only-allowlisted-own-app-with-fresh-coredevice-evidence',
     limits: ['no-arbitrary-ios-shell', 'no-cross-app-taps', 'no-background-device-control',
       'no-provider-is-assumed-installed', 'no-automatic-action-replay']
@@ -53,6 +54,10 @@ const TASKS = Object.freeze({
   'speak-text': { entry: 'iGentic Diagnostics > Offline-Werkzeuge', steps: [
     'Open Offline-Werkzeuge, enter or paste text.',
     'Tap Vorlesen. The iOS speech synthesizer runs on the device.' ] },
+  'dictate-text': { entry: 'iGentic Diagnostics > Offline-Werkzeuge > Deutsch lokal diktieren', steps: [
+    'Open Deutsch lokal diktieren in the signed updated iGentic iOS app.',
+    'Tap Aufnahme starten and approve microphone and speech recognition. On-device German recognition must be supported; otherwise no recording starts.',
+    'Stop after at most 30 seconds. Copy the transcript explicitly if needed. No speech data is sent to the MCP client.' ] },
   'read-image-text': { entry: 'iGentic Diagnostics > Offline-Werkzeuge', steps: [
     'Open Offline-Werkzeuge and select one image with the system photo picker.',
     'Tap/copy the recognized text only if you want to share it. OCR runs in native Vision.' ] },

@@ -17,13 +17,17 @@ manually open `Offline-Werkzeuge` for these first-party iOS functions:
 | Discovery | Bundled Explore content | Web-based agent research |
 | Text draft and explicit copy | Local SwiftUI editor + iOS clipboard | Fieldglass text workspace |
 | Read aloud | Apple's `AVSpeechSynthesizer`, user-initiated | Cloud text-to-speech |
+| German dictation | iOS Speech with `requiresOnDeviceRecognition=true` and explicit microphone/speech permission; fails when no local German recognizer is available | FluidAudio, WhisperKit, cloud ASR (optional) |
 | OCR from an explicitly chosen photo | PhotosPicker + native Vision; no photo-library blanket permission | Fieldglass OCR / external OCR |
 | Reminder draft, review, approval | Existing EventKit-backed reminder flow | Shortcut, cloud reminder service |
 
 Text and OCR results are temporary view state, not sent to a remote agent,
 written to a file or logged. Clipboard export is a separate user button;
-anything copied is subject to normal iOS clipboard semantics. Speech is
-stopped on leaving the screen. Only a manually selected image is loaded;
+anything copied is subject to normal iOS clipboard semantics. Speech playback is
+stopped on leaving the screen. Dictation is independently user-started,
+limited to 30 seconds, keeps audio in memory and never sends a transcript
+to MCP; it is unavailable when iOS has no on-device German recognizer.
+Only a manually selected image is loaded;
 image inputs over 12 MB are rejected and extracted text is capped to
 3,000 characters. Native reminders require user permission and separate
 explicit approval. They may sync according to the chosen Apple Reminders

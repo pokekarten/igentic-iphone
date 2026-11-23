@@ -58,7 +58,7 @@ export function createServer(service) {
     {}, true, () => optionalToolCatalog());
   add('iphone_prepare_local_task', 'Prepare a Mac-free iPhone task',
     'Make a manual, non-executing handoff for on-device diagnostics, discovery, draft, speech, selected-image OCR or reminder. No iPhone connection or external provider needed.',
-    { task: z.enum(['diagnostics', 'discovery', 'text-draft', 'workspace-note', 'speak-text', 'read-image-text', 'reminder']),
+    { task: z.enum(['diagnostics', 'discovery', 'text-draft', 'workspace-note', 'speak-text', 'dictate-text', 'read-image-text', 'reminder']),
       text: z.string().max(800).optional() }, true,
     a => prepareLocalTask(a.task, a.text));
   add('iphone_start_session', 'Start diagnostic session',

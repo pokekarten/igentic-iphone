@@ -28,6 +28,15 @@ public struct OfflineToolsView: View {
                     .font(.footnote)
             }
 
+            Section("Sprache offline") {
+                NavigationLink("Deutsch lokal diktieren") {
+                    OfflineDictationView()
+                }
+                .accessibilityIdentifier("igentic-offline-dictation")
+                Text("Aufnahme nur nach ausdrücklichem Tippen, ohne Cloud-Ausweichroute.")
+                    .font(.footnote)
+            }
+
             Section("Text ohne KI-Dienst") {
                 TextEditor(text: $draft)
                     .frame(minHeight: 110)
