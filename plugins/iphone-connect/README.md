@@ -29,6 +29,13 @@ This does not trigger App Intents, write reminders, reach the phone remotely,
 connect a ChatGPT account automatically, or claim mobile-client support.
 The existing read-only diagnostics App Intent remains separate.
 
+A further offline-only security prototype is described in
+[AUTHENTICATED_TASK_ENVELOPE.md](AUTHENTICATED_TASK_ENVELOPE.md): a strictly
+read-only HMAC-authenticated owner-relay task proposal with expiry and
+in-memory replay protection. It does **not** connect this plugin to an iPhone,
+install a Site tool, start a server or execute any request. Real transport,
+enrolment, persistent replay checks and device receipts remain separate gates.
+
 ## Requirements and setup
 
 - macOS with Node.js 22+, Xcode and an already paired, unlocked physical iPhone.
