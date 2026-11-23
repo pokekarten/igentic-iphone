@@ -100,7 +100,9 @@ export function createPrivateDeliveryAttemptMarker({ directory, key } = {}) {
     try {
       fd = openSync(bindingPath, constants.O_RDONLY | NOFOLLOW);
       const st = fstatSync(fd);
-      if (!privateFile(st) || st.size !== expectedBinding.length) fail();
+      // Hardlinks are regular files: forbid aliases to the key commitment.
+      if (!privateFile(st) || st.nlink !== 1
+          || st.size !== expectedBinding.length) fail();
       const actual = Buffer.alloc(expectedBinding.length);
       if (readSync(fd, actual, 0, actual.length, 0) !== actual.length
           || !timingSafeEqual(actual, expectedBinding)) fail();
@@ -154,7 +156,8 @@ export function createPrivateDeliveryAttemptMarker({ directory, key } = {}) {
       if (!verifyBinding({ create: false })) return null;
       try {
         const st = lstatSync(markerPath(requestId));
-        if (!privateFile(st) || st.size !== 0) fail();
+        // Recovery must not trust an attempt whose inode has outside aliases.
+        if (!privateFile(st) || st.nlink !== 1 || st.size !== 0) fail();
         return Object.freeze({
           state: 'outcome-unknown',
           actionExecuted: false,

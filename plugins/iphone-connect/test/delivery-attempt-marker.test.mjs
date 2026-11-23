@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {randomBytes, randomUUID} from 'node:crypto';
 import {
   mkdtempSync, rmSync, readdirSync, readFileSync, chmodSync, symlinkSync,
-  writeFileSync, unlinkSync
+  writeFileSync, unlinkSync, linkSync
 } from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -234,6 +234,33 @@ test('world-readable or symlinked key binding fails closed', t => {
   assert.throws(()=>marker.markPrepared({requestId:randomUUID(),
     receiptNonce:randomUUID(),route:'local-shortcuts'}),
     /deliveryMarkerUnavailable/);
+});
+
+test('hardlinked key binding must block recovery and every new send', t => {
+  const f=fixture(t), marker=f.marker(), requestId=randomUUID();
+  marker.markPrepared({
+    requestId,receiptNonce:randomUUID(),route:'local-shortcuts'
+  });
+  const outside=join(tmpdir(),'igentic-binding-link-'+randomUUID());
+  linkSync(join(f.directory,'.key-binding'),outside);
+  t.after(()=>unlinkSync(outside));
+  assert.throws(()=>marker.recover({requestId}),/deliveryMarkerUnavailable/);
+  assert.throws(()=>marker.markPrepared({
+    requestId:randomUUID(),receiptNonce:randomUUID(),route:'local-shortcuts'
+  }),/deliveryMarkerUnavailable/);
+});
+
+test('hardlinked prepared marker must not be accepted as a trusted recovery', t => {
+  const f=fixture(t), marker=f.marker(), requestId=randomUUID();
+  marker.markPrepared({
+    requestId,receiptNonce:randomUUID(),route:'local-shortcuts'
+  });
+  const name=readdirSync(f.directory).find(x=>x.endsWith('.attempt'));
+  assert.ok(name);
+  const outside=join(tmpdir(),'igentic-attempt-link-'+randomUUID());
+  linkSync(join(f.directory,name),outside);
+  t.after(()=>unlinkSync(outside));
+  assert.throws(()=>marker.recover({requestId}),/deliveryMarkerUnavailable/);
 });
 
 test('empty private store recovery is a no-op and never creates key material', t => {
