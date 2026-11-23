@@ -5,15 +5,35 @@ import { fileURLToPath } from 'node:url';
 import { handleSitesMcp } from '../../igentic-chatgpt-iphone/sites-reference/mcp-handler.mjs';
 import { HANDOFF_ACTIONS, prepareChatGPTHandoff } from '../src/chatgpt-handoff.mjs';
 
-const request = (rpc, options = {}) => new Request('https://owner-site.invalid/mcp', {
-  method: 'POST', headers: { 'content-type': 'application/json' },
-  body: JSON.stringify(rpc), ...options
+const version = '2026-07-28';
+const meta = {
+  'io.modelcontextprotocol/protocolVersion': version,
+  'io.modelcontextprotocol/clientInfo': { name: 'igentic-test', version: '1' },
+  'io.modelcontextprotocol/clientCapabilities': {}
+};
+const call = (method, params, id = 1) => ({
+  jsonrpc: '2.0', id, method,
+  params: params === null || Array.isArray(params) ? params : { ...(params ?? {}), _meta: meta }
 });
-const call = (method, params, id = 1) => ({ jsonrpc: '2.0', id, method, ...(params === undefined ? {} : { params }) });
+const request = (rpc, options = {}) => {
+  const { headers: extraHeaders = {}, ...rest } = options;
+  return new Request('https://owner-site.invalid/mcp', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json',
+      'mcp-protocol-version': version, 'mcp-method': rpc?.method ?? 'tools/list',
+      ...(rpc?.method === 'tools/call' && typeof rpc?.params?.name === 'string'
+        ? { 'mcp-name': rpc.params.name } : {}), ...extraHeaders },
+    body: JSON.stringify(rpc), ...rest
+  });
+};
 
 test('Sites wire protocol discovers one read-only tool and returns all canonical handoffs', async () => {
   const discovery = await (await handleSitesMcp(request(call('server/discover')))).json();
-  assert.deepEqual(discovery.result, { supportedVersions: ['2026-07-28'], capabilities: { tools: {} } });
+  assert.equal(discovery.result.resultType, 'complete');
+  assert.deepEqual(discovery.result.supportedVersions, [version]);
+  assert.deepEqual(discovery.result.capabilities, { tools: {} });
+  assert.deepEqual(discovery.result._meta['io.modelcontextprotocol/serverInfo'],
+    { name: 'igentic-iphone-handoff', version: '0.1.0' });
   const listing = await (await handleSitesMcp(request(call('tools/list')))).json();
   assert.equal(listing.result.tools.length, 1);
   const tool = listing.result.tools[0];
@@ -107,4 +127,58 @@ test('built Worker serves the fixed page and MCP without network, secrets or dev
   assert.doesNotMatch(text, /SYNTHETIC_PRIVATE_SENTINEL/);
   assert.deepEqual(JSON.parse(text).result.structuredContent.data, prepareChatGPTHandoff('discovery'));
   assert.equal((await worker.fetch(new Request('https://owner-site.invalid/secret'))).status, 404);
+});
+
+test('MCP 2026-07-28 results include complete discriminator and server identity', async () => {
+  for (const method of ['server/discover', 'tools/list']) {
+    const data = await (await handleSitesMcp(request(call(method)))).json();
+    assert.equal(data.result.resultType, 'complete');
+    assert.equal(data.result._meta['io.modelcontextprotocol/serverInfo'].name, 'igentic-iphone-handoff');
+  }
+  for (const action of HANDOFF_ACTIONS) {
+    const data = await (await handleSitesMcp(request(call('tools/call', {
+      name: 'iphone_chatgpt_handoff', arguments: { action }
+    })))).json();
+    assert.equal(data.result.resultType, 'complete');
+    assert.equal(data.result.structuredContent.data.actionExecuted, false);
+    assert.equal(data.result.structuredContent.data.requiresOwnerTap, true);
+  }
+});
+
+test('MCP 2026-07-28 rejects missing or mismatched request mirror headers', async () => {
+  const rpc = call('tools/call', { name: 'iphone_chatgpt_handoff',
+    arguments: { action: 'diagnostics' } });
+  for (const headers of [
+    { 'mcp-protocol-version': '2025-11-25' },
+    { 'mcp-method': 'tools/list' },
+    { 'mcp-name': 'untrusted-tool' }
+  ]) {
+    const response = await handleSitesMcp(request(rpc, { headers }));
+    assert.equal(response.status, 400);
+    assert.equal((await response.json()).error.code, -32020);
+  }
+  const missing = await handleSitesMcp(new Request('https://owner-site.invalid/mcp', {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(rpc)
+  }));
+  assert.equal(missing.status, 400);
+  assert.equal((await missing.json()).error.code, -32020);
+});
+
+test('MCP 2026-07-28 unsupported versions advertise supported versions', async () => {
+  const rpc = call('tools/list');
+  rpc.params._meta = { ...meta, 'io.modelcontextprotocol/protocolVersion': '2099-01-01' };
+  const response = await handleSitesMcp(request(rpc, {
+    headers: { 'mcp-protocol-version': '2099-01-01' }
+  }));
+  assert.equal(response.status, 400);
+  const data = await response.json();
+  assert.equal(data.error.code, -32022);
+  assert.deepEqual(data.error.data.supported, [version]);
+  assert.equal(data.error.data.requested, '2099-01-01');
+});
+
+test('unknown modern RPC methods return 404 and a method-not-found error', async () => {
+  const response = await handleSitesMcp(request(call('resources/read')));
+  assert.equal(response.status, 404);
+  assert.equal((await response.json()).error.code, -32601);
 });
