@@ -87,6 +87,32 @@ final class DiagnosticsUITests: XCTestCase {
     }
 
     @MainActor
+    func testAPIFreeLoopSetupGuideHasSafeNativeLinks() {
+        let app = XCUIApplication()
+        app.launch()
+        let confirm = app.buttons["Confirm and continue"]
+        if confirm.waitForExistence(timeout: 10) { confirm.tap() }
+        guard let entry = scrollToControl("igentic-open-agent-home", in: app)
+        else { return }
+        entry.tap()
+        XCTAssertTrue(app.navigationBars["iGentic Agent"]
+            .waitForExistence(timeout: 15))
+        guard let setup = scrollToControl("igentic-loop-open-setup", in: app)
+        else { return }
+        setup.tap()
+        XCTAssertTrue(app.navigationBars["KI-Loop einrichten"]
+            .waitForExistence(timeout: 10))
+        XCTAssertTrue(app.descendants(matching: .any)
+            .matching(identifier: "igentic-loop-setup-name")
+            .firstMatch.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["iGentic KI Loop"].exists)
+        // Do not tap Create/Run: that would invoke another OS app or model.
+        XCTAssertTrue(app.descendants(matching: .any)
+            .matching(identifier: "igentic-loop-setup-local-state")
+            .firstMatch.exists)
+    }
+
+    @MainActor
     private func scrollToControl(_ identifier: String, in app: XCUIApplication) -> XCUIElement? {
         // Use a stable accessibility identifier, not a SwiftUI-dependent
         // Button/Link element type; a row may be virtualized while off-screen.

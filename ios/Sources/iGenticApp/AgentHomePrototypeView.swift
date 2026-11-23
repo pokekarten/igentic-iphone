@@ -11,8 +11,6 @@ public struct AgentHomePrototypeView: View {
     @State private var loopMessage: String?
     @State private var loopReady = false
     private let loopStore = AgentLoopShortcutExchangeStore()
-    // Fixed own workflow name, no task, user ID, secrets, or result in the URL.
-    private let loopShortcutURL = URL(string: "shortcuts://run-shortcut?name=iGentic%20KI%20Loop")!
     @Environment(\.dismiss) private var dismiss
 
     public init() {}
@@ -96,7 +94,7 @@ public struct AgentHomePrototypeView: View {
                     .disabled(input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     .accessibilityIdentifier("igentic-loop-prepare")
                     if loopReady {
-                        Link(destination: loopShortcutURL) {
+                        Link(destination: AgentLoopShortcutSetup.runURL) {
                             Label("iGentic KI Loop in Kurzbefehle starten",
                                   systemImage: "play.circle")
                         }
@@ -105,6 +103,8 @@ public struct AgentHomePrototypeView: View {
                     Text(loopMessage ?? "Noch kein KI-Auftrag vorbereitet.")
                         .font(.footnote)
                         .accessibilityIdentifier("igentic-loop-prepare-result")
+                    NavigationLink("ChatGPT-Loop einrichten") { AgentLoopShortcutSetupView() }
+                        .accessibilityIdentifier("igentic-loop-open-setup")
                     NavigationLink("KI-Antwort prüfen") { AgentLoopInboxView() }
                         .accessibilityIdentifier("igentic-loop-open-inbox")
                     Text("Vor dem Aufruf des ChatGPT-Erweiterungsmodells entscheidet deine Kurzbefehle-Konfiguration über das Senden. iGentic verschickt nichts selbst.")
@@ -123,18 +123,6 @@ public struct AgentHomePrototypeView: View {
                             .accessibilityIdentifier("igentic-agent-status-result")
                     }
                     Text("Akku, Stromsparmodus und iOS-Version werden nur auf diesem Gerät gelesen.")
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-
-                VStack(alignment: .leading, spacing: 8) {
-                    if let launchURL = AgentLoopShortcutLaunch.url {
-                        Link(destination: launchURL) {
-                            Label("iGentic ChatGPT Loop in Kurzbefehle starten",
-                                  systemImage: "arrow.up.right.square")
-                        }
-                        .accessibilityIdentifier("igentic-agent-start-shortcut")
-                    }
-                    Text("Nur nach deinem Tippen. Der Kurzbefehl muss vorher eingerichtet sein. Kein privater Auftrag wird über die URL übertragen; ChatGPT-Antworten werden separat durch den iGentic App Intent geprüft.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
 

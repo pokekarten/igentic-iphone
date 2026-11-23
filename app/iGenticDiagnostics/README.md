@@ -181,3 +181,13 @@ Air via Wi-Fi, and an app-owned, DEBUG-only synthetic Start → Receive →
 Store → Clear acceptance returned a fresh verified CoreDevice receipt. This
 proves the local app storage path, **not** a real ChatGPT/Apple Shortcuts model
 invocation. No OpenAI API, credential or user-data write was used.
+
+
+### In-app setup guide
+
+Under **iGentic Agent → ChatGPT-Loop einrichten**, the installed app now
+shows the canonical four Shortcuts actions, the exact local workflow name,
+a link opening the blank Apple Shortcuts editor, a fixed run link and the
+current *local task* state. It does **not** claim the user's Shortcut is
+installed or the ChatGPT extension is enabled. The old developer two-turn
+loop is labelled separately to avoid competing launch buttons.

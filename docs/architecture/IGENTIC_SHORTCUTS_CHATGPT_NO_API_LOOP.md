@@ -147,3 +147,28 @@ ChatGPT mobile-app invocation, Siri voice recognition, ChatGPT Site plugin
 return connection, phone screen automation or external device write. A
 user-configured iGentic KI Loop Shortcut with ChatGPT Extension Model
 must still be created and independently tested on the phone.
+
+
+## Native on-iPhone setup guide (added 2026-11-23)
+
+The latest iGentic Agent screen links to **ChatGPT-Loop einrichten**, an
+on-device setup guide. It uses Apple's documented
+shortcuts://create-shortcut URL to open a **blank** Shortcuts editor, and
+a fixed, single-query-item shortcuts://run-shortcut?name=... URL to start
+the installed workflow. Neither URL contains the user's prompt, answer,
+credentials or a callback. The app displays the four action names and
+the state of its local pending exchange, and links to its review inbox.
+
+The separate older experimental **iGentic ChatGPT Loop Test** is explicitly
+labelled an optional developer workflow in the guide; it must not be confused
+with the primary user-facing **iGentic KI Loop**.
+
+**Honest readiness scope:** iGentic can read its own pending/answered/expired
+task state but cannot discover or authenticate the user's private Shortcuts
+library, confirm ChatGPT-extension enrollment, install a multi-app Shortcut
+silently, or prove a model call from a Shortcuts launch URL. The person must
+finish the actions in the Shortcuts editor and approve relevant prompts.
+
+Official Apple guides:
+- https://support.apple.com/de-de/guide/shortcuts/apda283236d7/ios
+- https://support.apple.com/guide/shortcuts/use-apple-intelligence-in-shortcuts-tpg3vrvwmclv/ios
