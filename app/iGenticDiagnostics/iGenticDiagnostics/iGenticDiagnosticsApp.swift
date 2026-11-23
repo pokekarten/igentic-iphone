@@ -289,7 +289,7 @@ struct iGenticStartAILoopIntent: AppIntent {
         guard decision.isAllowed, !decision.requiresApproval else {
             throw iGenticDiagnosticsIntentError.policyDenied
         }
-        return .result(value: try AgentLoopShortcutExchangeStore().begin(task: instruction))
+        return .result(value: try AgentLoopShortcutExchangeStore().beginTicket(task: instruction))
     }
 }
 
@@ -321,6 +321,36 @@ struct iGenticReadAILoopPromptIntent: AppIntent {
 
 // Request binding prevents a stale or out-of-order Shortcuts reply from
 // attaching to a subsequent task. The ID is correlation, never authorization.
+// Optional structured alternative to the simpler separate Prompt + ID
+// actions. The JSON ticket is for Shortcuts dictionary parsing only and must
+// never be forwarded wholesale to ChatGPT: send only its prompt field.
+@available(iOS 27.0, *)
+struct iGenticReadAILoopTicketIntent: AppIntent {
+    static let title: LocalizedStringResource = "iGentic KI-Auftragspaket lesen"
+    static let description = IntentDescription(
+        "Returns JSON with taskId and prompt for advanced owner-configured Shortcuts."
+    )
+    static let supportedModes: IntentModes = .background
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ReturnsValue<String> {
+        let decision = PolicyEngine().decide(
+            PolicyRequest(
+                privacyMode: .localOnly,
+                dataClassification: DataClassification(
+                    level: .contextualPrivateData,
+                    reason: "Read structured local Shortcuts ticket."
+                ),
+                actionRisk: .read, requestedDelegationTarget: .localDevice
+            )
+        )
+        guard decision.isAllowed, !decision.requiresApproval else {
+            throw iGenticDiagnosticsIntentError.policyDenied
+        }
+        return .result(value: try AgentLoopShortcutExchangeStore().pendingTicket())
+    }
+}
+
 @available(iOS 27.0, *)
 struct iGenticReadAILoopTaskIDIntent: AppIntent {
     static let title: LocalizedStringResource = "iGentic KI-Auftrags-ID lesen"
@@ -482,6 +512,12 @@ struct iGenticDiagnosticsShortcuts: AppShortcutsProvider {
             phrases: ["Read AI prompt with \(.applicationName)"],
             shortTitle: "KI-Prompt lesen",
             systemImageName: "text.bubble"
+        )
+        AppShortcut(
+            intent: iGenticReadAILoopTicketIntent(),
+            phrases: ["Read AI task ticket with \(.applicationName)"],
+            shortTitle: "KI-Auftragspaket",
+            systemImageName: "doc.text"
         )
         AppShortcut(
             intent: iGenticReadAILoopTaskIDIntent(),

@@ -130,6 +130,32 @@ public final class AgentLoopShortcutExchangeStore {
         return state.id.uuidString.lowercased()
     }
 
+    /// Structured handoff for Shortcuts: save taskId separately and send only
+    /// prompt to Apple's "Use Model" action. The ID is correlation, not auth.
+    private struct ShortcutTicket: Encodable {
+        let schema = 1
+        let taskId: String
+        let prompt: String
+    }
+
+    public func beginTicket(task: String) throws -> String {
+        _ = try begin(task: task)
+        return try pendingTicket()
+    }
+
+    public func pendingTicket() throws -> String {
+        let prompt = try pendingPrompt()
+        guard let current = try snapshot() else {
+            throw AgentLoopExchangeError.noPendingExchange
+        }
+        let ticket = ShortcutTicket(
+            taskId: current.id.uuidString.lowercased(), prompt: prompt
+        )
+        guard let serialized = String(data: try JSONEncoder().encode(ticket), encoding: .utf8)
+        else { throw AgentLoopExchangeError.invalidStoredExchange }
+        return serialized
+    }
+
     private static func modelPrompt(for task: String) -> String {
         """
         Du beantwortest eine Frage aus einem iGentic-Kurzbefehl.

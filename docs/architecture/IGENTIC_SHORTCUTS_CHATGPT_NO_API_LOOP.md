@@ -64,14 +64,18 @@ Create a second shortcut with a distinguishable name such as
 
 1. **Eingabe abfragen / Ask for Input** (Text), or use dictated text.
 2. **iGentic KI-Auftrag starten** — insert the entered text in **Frage**;
-   the action stores the pending exchange and returns a model prompt.
+   the action stores the pending exchange and returns a structured JSON
+   ticket with fields taskId and prompt. For the beginner workflow, ignore
+   this JSON output; use steps 3 and 4 to retrieve the fields separately.
 3. **iGentic KI-Auftrags-ID lesen** — save the correlation UUID to a Shortcuts
    variable named **Auftrags-ID**.
-4. **Modell verwenden → Extension Model (ChatGPT)**, with the saved **model
-   prompt from step 2** as input (not the UUID from step 3).
-5. **iGentic KI-Antwort übernehmen**, with both **Model Response** and the
-   saved **Auftrags-ID** as separate parameters.
-6. **App öffnen → iGentic Diagnostics**; review result manually.
+4. **iGentic KI-Prompt lesen** — save the plain prompt in a Shortcuts
+   variable for the model step (do not feed the JSON ticket or UUID to ChatGPT).
+5. **Modell verwenden → Extension Model (ChatGPT)**, with the **KI-Prompt**
+   from step 4 as input.
+6. **iGentic KI-Antwort übernehmen**, with both **Model Response** and the
+   saved **Auftrags-ID** from step 3 as separate parameters.
+7. **App öffnen → iGentic Diagnostics**; review result manually.
 
 Say **"Siri, iGentic Frage"** to invoke the shortcut if iOS exposes the
 chosen custom shortcut name. This is ordinary Siri → Shortcuts invocation,
@@ -196,3 +200,15 @@ prevention, **not** a cryptographic proof that ChatGPT created the response.
 
 Any previously configured Shortcut using the old three-step return sequence
 must be updated to supply the new separate ID parameter.
+
+
+## Advanced optional structured ticket
+
+For advanced Shortcuts users the separate **iGentic KI-Auftragspaket lesen**
+App Intent provides a JSON dictionary containing exactly schema=1, taskId
+and prompt. **iGentic KI-Auftrag starten** also returns this JSON ticket.
+Use Apple Shortcuts' dictionary parsing to pass only the prompt text into
+Use Model, and retain taskId locally for the receive intent. Never send the
+whole JSON package to the model: the ID is correlation rather than a cloud
+credential, but sending it serves no purpose. The normal guided five-step
+workflow continues to offer simpler separate Prompt and ID actions.

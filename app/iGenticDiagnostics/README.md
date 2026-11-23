@@ -194,3 +194,10 @@ a link opening the blank Apple Shortcuts editor, a fixed run link and the
 current *local task* state. It does **not** claim the user's Shortcut is
 installed or the ChatGPT extension is enabled. The old developer two-turn
 loop is labelled separately to avoid competing launch buttons.
+
+
+Advanced workflow: **iGentic KI-Auftragspaket lesen** returns a structured
+JSON ticket (schema, taskId, prompt), while **iGentic KI-Auftrag starten**
+creates a task and returns such a ticket. For a beginner setup, use the
+separate iGentic KI-Auftrags-ID lesen and iGentic KI-Prompt lesen actions.
+Only the plain prompt may be forwarded to an external model.
