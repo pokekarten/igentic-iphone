@@ -1,6 +1,11 @@
 import Foundation
 import XCTest
 @testable import iGenticApp
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#endif
 
 final class AgentLoopShortcutExchangeTests: XCTestCase {
     @MainActor
@@ -187,6 +192,86 @@ final class AgentLoopShortcutExchangeTests: XCTestCase {
             XCTAssertNil(try store.snapshot()?.answer)
             let currentID = try XCTUnwrap(store.snapshot()).id.uuidString
             XCTAssertNoThrow(try store.receive(answer: "Korrekte Antwort", taskID: currentID))
+        }
+    }
+
+    func testExternalFileLockRefusesCompetingShortcutMutation() async throws {
+        try await MainActor.run {
+            let (store, path) = Self.makeStore()
+            defer { try? FileManager.default.removeItem(at: path.deletingLastPathComponent()) }
+            _ = try store.begin(task: "Start mit privatem Lock")
+            try store.clear()
+            #if canImport(Darwin) || canImport(Glibc)
+            // A separate file descriptor simulates a second App Intents
+            // process holding the same persistent OS-level advisory lock.
+            let fd = open(path.appendingPathExtension("lock").path, O_RDONLY | O_NOFOLLOW)
+            XCTAssertGreaterThanOrEqual(fd, 0)
+            guard fd >= 0 else { return }
+            defer { _ = close(fd) }
+            XCTAssertEqual(flock(fd, LOCK_EX | LOCK_NB), 0)
+            XCTAssertThrowsError(try store.begin(task: "Blocked duplicate")) {
+                XCTAssertEqual($0 as? AgentLoopExchangeError, .exchangeBusy)
+            }
+            XCTAssertNil(try store.snapshot())
+            XCTAssertEqual(flock(fd, LOCK_UN), 0)
+            XCTAssertNoThrow(try store.begin(task: "After unlock"))
+            XCTAssertEqual(try store.snapshot()?.task, "After unlock")
+            #endif
+        }
+    }
+
+    func testReentrantBeginCannotReplaceOtherPendingExchange() async throws {
+        try await MainActor.run {
+            let (base, path) = Self.makeStore()
+            defer { try? FileManager.default.removeItem(at: path.deletingLastPathComponent()) }
+            let second = AgentLoopShortcutExchangeStore(
+                fileURL: path, clock: { Date(timeIntervalSince1970: 1_700_000_000) }
+            )
+            var raced = false
+            var attempted = false
+            let first = AgentLoopShortcutExchangeStore(fileURL: path, clock: {
+                if !attempted {
+                    attempted = true
+                    do {
+                        _ = try second.begin(task: "Unzulässiger zweiter Auftrag")
+                        raced = true
+                    } catch {}
+                }
+                return Date(timeIntervalSince1970: 1_700_000_000)
+            })
+            _ = try first.begin(task: "Erster Auftrag")
+            XCTAssertFalse(raced, "Concurrent/reentrant begin must fail closed")
+            XCTAssertEqual(try base.snapshot()?.task, "Erster Auftrag")
+        }
+    }
+
+    func testReentrantClearCannotReplaceExchangeDuringReceive() async throws {
+        try await MainActor.run {
+            let (base, path) = Self.makeStore()
+            defer { try? FileManager.default.removeItem(at: path.deletingLastPathComponent()) }
+            _ = try base.begin(task: "Sicherer Auftrag")
+            let id = try base.pendingTaskID()
+            var raceOnClock = false
+            var replaced = false
+            let second = AgentLoopShortcutExchangeStore(
+                fileURL: path, clock: { Date(timeIntervalSince1970: 1_700_000_000) }
+            )
+            let first = AgentLoopShortcutExchangeStore(fileURL: path, clock: {
+                if raceOnClock {
+                    raceOnClock = false
+                    do {
+                        try second.clear()
+                        _ = try second.begin(task: "Unzulässiger neuer Auftrag")
+                        replaced = true
+                    } catch {}
+                }
+                return Date(timeIntervalSince1970: 1_700_000_000)
+            })
+            raceOnClock = true
+            _ = try first.receive(answer: "Geprüfte Antwort", taskID: id)
+            XCTAssertFalse(replaced, "Clear/start must not race with a reply write")
+            XCTAssertEqual(try base.snapshot()?.id.uuidString.lowercased(), id)
+            XCTAssertEqual(try base.snapshot()?.answer, "Geprüfte Antwort")
         }
     }
 
