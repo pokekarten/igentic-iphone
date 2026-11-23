@@ -81,9 +81,27 @@ No external scripts, telemetry, cookies or authentication data are used.
 
 As of November 23, 2026 the W3C community draft is experimental and
 Chromium support depends on its version, flag/trial and document security.
-The code is tested with a synthetic `document.modelContext` harness,
-**not** verified in ChatGPT's mobile app or hosted browser. Do not call
-a passing unit test a live browser tool or ChatGPT plugin.
+The code is covered by a synthetic `document.modelContext` test
+and a **separate real-browser opt-in acceptance**. The real-browser
+test uses a temporary loopback HTTP server and a clean, isolated headless
+Google Chrome 157 context with the experimental WebMCP flags enabled:
+
+```sh
+# From the repository root, with Node and the plugin's dev dependencies:
+cd plugins/iphone-connect && npm ci --ignore-scripts && cd ../..
+node scripts/smoke-chatgpt-webmcp-chrome.mjs
+```
+
+The acceptance invokes `document.modelContext.getTools()` and
+`executeTool()` in **actual Chrome**, checks each of the three
+read-only URLs, verifies an invalid action is rejected and confirms no
+automatic navigation or external browser request. The test is
+deterministic, prints only sanitized booleans, closes Chrome and its
+temporary local server, and creates no app account or iPhone action.
+The first run passed on Mac with Chrome 157 on November 23, 2026.
+The experiment has **not** been verified in the user's ChatGPT mobile
+app, in a hosted ChatGPT Site, or on mobile Safari. Native WebMCP
+browser success is not equivalent to a connected ChatGPT plugin.
 
 References:
 - https://webmachinelearning.github.io/webmcp/
