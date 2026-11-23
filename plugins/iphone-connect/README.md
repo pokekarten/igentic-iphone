@@ -18,6 +18,17 @@ reminder writes, general tap/type commands and public hosting are not exposed.
 This is an executable initial capability boundary, not the entire product
 roadmap in the [research atlas on Draft PR #379](https://github.com/pokekarten/igentic-iphone/blob/docs/iphone-agent-ecosystem-2026-11-21/docs/research/IPHONE_AGENT_PROJECT_ATLAS.md).
 
+## Experimental ChatGPT-specific API handoff (new, read-only)
+
+See [CHATGPT_HANDOFF.md](CHATGPT_HANDOFF.md). ChatGPT can connect to the
+client-neutral, loopback-only Streamable HTTP MCP prototype using an approved
+private MCP tunnel and call `iphone_chatgpt_handoff`. It returns only a
+fixed `igentic://handoff/v1/...` link that the owner may open on their iPhone.
+The signed iGentic app then displays a second in-app navigation choice.
+This does not trigger App Intents, write reminders, reach the phone remotely,
+connect a ChatGPT account automatically, or claim mobile-client support.
+The existing read-only diagnostics App Intent remains separate.
+
 ## Requirements and setup
 
 - macOS with Node.js 22+, Xcode and an already paired, unlocked physical iPhone.
