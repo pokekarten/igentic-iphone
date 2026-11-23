@@ -185,6 +185,14 @@ public final class AgentLoopStatusShortcutStore {
                 state.stage = .readAttempted
                 try save(state)
                 let summary = statusReader().shortcutSummary
+                // The in-app read may finish after the task has expired, or
+                // after the system clock has moved backwards. Keep the
+                // persisted attempt uncertain: do not export stale status,
+                // mark it successful, or allow a speculative second read.
+                let ageAfterRead = clock().timeIntervalSince(state.createdAt)
+                guard ageAfterRead >= 0, ageAfterRead < Self.ttl else {
+                    throw AgentLoopStatusShortcutError.expired
+                }
                 state.stage = .awaitingFinish
                 try save(state)
                 return try encode(AgentLoopStatusShortcutResult(
