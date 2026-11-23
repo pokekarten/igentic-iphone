@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { makeConnectionReport } from './connection-report.mjs';
 import { optionalToolCatalog, prepareLocalTask } from './optional-core.mjs';
 import { HANDOFF_ACTIONS, prepareChatGPTHandoff } from './chatgpt-handoff.mjs';
+import { oauthFromEnvironment } from './oauth-jwks.mjs';
 import { validateOAuthConfig, isLocalGatewayRequest, hasBoundedJSONBody,
   hasValidOAuthAccess, protectedResourceMetadata } from './portable-gateway-security.mjs';
 
@@ -134,7 +135,12 @@ export async function startPortableGateway({ port = 0, oauth } = {}) {
   };
 }
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  startPortableGateway({ port: Number(process.env.IGENTIC_PORTABLE_MCP_PORT ?? '37865') })
+  // CLI staging mode uses JOSE JWKS cryptographic verification, not a test
+  // callback. Incomplete OAuth config fails closed before opening the port.
+  startPortableGateway({
+    port: Number(process.env.IGENTIC_PORTABLE_MCP_PORT ?? '37865'),
+    oauth: oauthFromEnvironment(process.env)
+  })
     .then(gateway => console.error('iGentic read-only MCP gateway: http://127.0.0.1:' + gateway.port + '/mcp'))
     .catch(() => { console.error('gatewayStartupFailed'); process.exitCode = 1; });
 }

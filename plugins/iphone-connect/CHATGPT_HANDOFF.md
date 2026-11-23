@@ -211,3 +211,50 @@ Relevant docs:
 - https://developers.openai.com/plugins/build/auth
 - https://developers.openai.com/plugins/build/mcp-server
 - https://help.openai.com/en/articles/12584461-connecting-custom-mcp-servers-in-chatgpt
+
+
+## Cryptographically verified JWKS access tokens (staging only)
+
+The portable gateway now includes a **real JOSE JWT access-token verifier**,
+not just a mockable OAuth callback. The default remains private
+`127.0.0.1` and does not read or control the phone. In an explicitly
+operator-configured staging shell, provide these *public* trusted metadata
+settings (never a private signing key or personal token):
+
+```sh
+export IGENTIC_OAUTH_ISSUER=https://issuer.example.org
+export IGENTIC_OAUTH_RESOURCE=https://mcp.example.org
+export IGENTIC_OAUTH_JWKS_URI=https://issuer.example.org/.well-known/jwks.json
+npm run serve:portable
+```
+
+This **does not deploy HTTPS**; the service intentionally still binds
+`127.0.0.1`. All three fields must be present or startup fails closed.
+The issuer and resource must be exact HTTPS origins; the JWKS URI must
+be a fixed HTTPS URL **under the issuer origin**. Choose a trusted real
+OAuth 2.1 identity provider and configure that provider to issue short-lived,
+asymmetric JWT access tokens with `iss`, `aud`, `sub`, `iat`,
+`exp` and space-delimited `scope`, including `igentic:handoff:read`.
+
+The `jose` verifier pins allowed asymmetric algorithms (RS256, PS256,
+ES256, EdDSA), rejects unsigned or HMAC-signed tokens, verifies the
+signature against the trusted remote JWKS and validates issuer, audience,
+subject, expiration, not-before, an issuance age at most one hour,
+and the required read-only scope. The JWKS address is configured by the
+operator; `jku` and `x5u` URLs inside token headers cannot redirect
+key retrieval. Remote JWKS fetches have bounded timeout and caching.
+The token and key are never emitted in MCP outputs.
+
+Tests generate **temporary RSA keys** to cryptographically sign
+disposable JWTs and verify both rejection cases and actual successful
+read-only MCP calls; no real identity provider, live account, secret or
+TLS server is used. These tests are not proof of a working OAuth
+authorization-code/PKCE exchange from ChatGPT.
+
+Before a real ChatGPT connection, separately complete: eligible
+ChatGPT plugin/connector entitlement, real identity-provider discovery
+and client registration (CIMD/DCR as supported), PKCE S256 code flow,
+an approved Secure MCP Tunnel or stable HTTPS ingress, ownership and
+user authorization, and safe physical iPhone invocation. Do **not**
+publish the local listener or treat token verification as authorization
+for other-app control or write operations.
