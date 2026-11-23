@@ -84,14 +84,22 @@ public struct AgentLoopShortcutSetupView: View {
                         .font(.headline.monospaced())
                         .textSelection(.enabled)
                         .accessibilityIdentifier("igentic-project-chat-shortcut-name")
-                    Text("Füge die ChatGPT-Aktion „Start chat in project“ hinzu und wähle darin ausdrücklich das iGentic-Projekt. Dieser Chat nutzt den ausgewählten Projektkontext; die Projektwahl erfolgt durch dich im Kurzbefehle-Editor.")
+                    Text("Diese Einrichtung ist unabhängig vom KI-Loop oben. Das ChatGPT-Projekt wird im Apple-Kurzbefehle-Editor gewählt, nicht über einen iGentic-Link.")
                         .font(.subheadline)
+                    ForEach(AgentLoopShortcutSetup.projectChatActions.indices, id: \.self) { index in
+                        Text(AgentLoopShortcutSetup.projectChatActions[index])
+                            .font(.subheadline)
+                    }
+                    Link(destination: AgentLoopShortcutSetup.createURL) {
+                        Label("Projektchat-Kurzbefehl anlegen", systemImage: "plus.square")
+                    }
+                    .accessibilityIdentifier("igentic-project-chat-create")
                     Link(destination: AgentLoopShortcutSetup.projectChatRunURL) {
                         Label("iGentic-Projektchat über Kurzbefehle öffnen",
                               systemImage: "bubble.left.and.text.bubble.right")
                     }
                     .accessibilityIdentifier("igentic-project-chat-launch")
-                    Text("Der Startlink enthält nur den festen Namen des Kurzbefehls. Er prüft weder dessen Installation noch die Projektwahl und liefert keine automatische Modellantwort an iGentic zurück. Für einen lokalen Rückkanal verwende den getrennten iGentic KI Loop oben.")
+                    Text("Der Startlink enthält nur den festen Kurzbefehlnamen. Er prüft weder Installation noch Projektwahl und schickt keine KI-Antwort an iGentic. Es entsteht ein NEUER Chat im Projekt, nicht die exakte Fortsetzung eines alten Threads. Um dieselbe Unterhaltung fortzusetzen, öffne den bestehenden Chat direkt in ChatGPT. Für einen lokalen Rückkanal dient der getrennte iGentic KI Loop.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 .accessibilityIdentifier("igentic-project-chat-guide")

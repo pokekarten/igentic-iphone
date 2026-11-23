@@ -24,6 +24,15 @@ public enum AgentLoopShortcutSetup {
         return components.url!
     }
 
+    // Owner-configured, project-aware interactive chat. The ChatGPT iOS
+    // action owns the project selector; iGentic cannot select a project,
+    // send a message, or prove a successful chat using the fixed launcher.
+    public static let projectChatActions = [
+        "1. ChatGPT-Aktion „Start chat in project“ hinzufügen und das gewünschte vorhandene iGentic-iPhone-Projekt ausdrücklich auswählen.",
+        "2. Optional die ChatGPT-Aktion „Voice Mode“ direkt danach hinzufügen, um im neu gestarteten Projektchat zu sprechen.",
+        "3. Kurzbefehl exakt „iGentic Projekt-Chat“ nennen. Danach mit Siri oder aus iGentic starten und prüfen, dass das richtige Projekt geöffnet wird."
+    ]
+
     // These are names/actions the owner can find in the system Shortcuts editor.
     // We cannot query or silently populate a user's private Shortcut library.
     public static let actions = [

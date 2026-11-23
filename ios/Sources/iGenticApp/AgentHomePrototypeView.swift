@@ -113,6 +113,24 @@ public struct AgentHomePrototypeView: View {
                 .padding(14)
                 .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
 
+                VStack(alignment: .leading, spacing: 9) {
+                    Text("ChatGPT-Projektchat").font(.headline)
+                    Text("Starte einen neuen Chat im zuvor im Kurzbefehl ausgewählten Projekt. Projektanweisungen und verfügbare Projektquellen bleiben dort nutzbar; der bisherige Chatverlauf wird nicht vollständig kopiert.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                    Link(destination: AgentLoopShortcutSetup.projectChatRunURL) {
+                        Label("Neuen iGentic-Projektchat starten", systemImage: "bubble.left.and.text.bubble.right")
+                    }
+                    .accessibilityIdentifier("igentic-agent-project-chat-launch")
+                    NavigationLink("Projekt-Kurzbefehl einmalig einrichten") {
+                        AgentLoopShortcutSetupView()
+                    }
+                    .accessibilityIdentifier("igentic-agent-project-chat-setup")
+                    Text("Nur ein fester Shortcutname wird geöffnet. Der Text aus dem Eingabefeld wird nicht mitgesendet, und iGentic kann die ChatGPT-Projektwahl ohne echten iPhone-Test nicht bestätigen.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                .padding(14)
+                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+
                 VStack(alignment: .leading, spacing: 8) {
                     Button("iPhone-Status lokal lesen") {
                         statusText = AgentLoopDeviceStatusReader.read().shortcutSummary

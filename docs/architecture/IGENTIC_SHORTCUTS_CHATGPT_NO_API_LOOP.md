@@ -301,3 +301,42 @@ Public references and evidence (not physical acceptance):
   (Oct 19, 2026: project-specific action discovery)
 - https://help.openai.com/en/articles/10169521-projects-in-chatgpt
   (project contexts, instructions and sources)
+
+
+## Project-chat one-time setup refinement (2026-11-23, offline)
+
+iGentic Agent Home now offers a separate **Neuen iGentic-Projektchat starten**
+launcher, in addition to the non-project `iGentic KI Loop` model-reply
+pipeline. The guided in-app setup has its own create-shortcut link and three
+steps: pick the ChatGPT app's `Start chat in project` action, choose the actual
+project inside the Shortcuts editor, optionally append `Voice Mode`, then
+name the shortcut exactly `iGentic Projekt-Chat`. Siri can run the *owner-created*
+named shortcut. No automatic library modification, iPhone access, account token,
+unverified ChatGPT URL scheme, or project ID is involved.
+
+This distinction is essential: `Start chat in project` starts a **new**
+conversation under the selected project's instructions, files and applicable
+project memory. It does **not** resume the very same transcript. For an exact
+ongoing thread, open that existing ChatGPT project chat directly. An existing
+chat outside the intended project does not automatically become project context;
+move any relevant chat into the project in ChatGPT when that option is available,
+or add approved project instructions/files. Project-only memory excludes
+non-project chat context. Project context relevance is not proof that the full
+contents of all earlier chats were inserted into the active model window.
+
+The project-launch Shortcut intentionally does not include iGentic's typed
+prompt in its launch URL or automatically pass any user text to ChatGPT. The
+app cannot verify which ChatGPT project the owner selected, that the chat opened,
+that voice mode started, or that the AI ran. The separate local model-reply path
+remains available where an iGentic-owned response is needed.
+
+On-device acceptance after the iPhone becomes available: (1) choose the right
+ChatGPT project in the real Shortcuts editor; (2) run the named Shortcut from
+iGentic; (3) confirm the project header in the ChatGPT app and no unintended
+new default chat; (4) optionally confirm Voice Mode; (5) confirm no task text
+was transferred by the URL and no fake execution receipt was generated.
+
+References:
+- https://help.openai.com/en/articles/10169521-projects-in-chatgpt
+- https://community.openai.com/t/feature-request-end-chatgpt-voice-mode-without-touching-screen/1401642
+- https://developer.apple.com/documentation/appintents/app-shortcuts

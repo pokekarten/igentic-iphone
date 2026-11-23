@@ -41,6 +41,20 @@ final class AgentLoopShortcutSetupTests: XCTestCase {
         XCTAssertFalse(setup.projectChatRunURL.absoluteString.contains("x-success"))
     }
 
+    func testProjectChatSetupKeepsInteractiveChatSeparateFromModelReplyLoop() {
+        let projectSteps = AgentLoopShortcutSetup.projectChatActions
+        XCTAssertEqual(projectSteps.count, 3)
+        XCTAssertTrue(projectSteps[0].contains("Start chat in project"))
+        XCTAssertTrue(projectSteps[0].contains("auswählen"))
+        XCTAssertTrue(projectSteps[1].contains("Optional"))
+        XCTAssertTrue(projectSteps[1].contains("Voice Mode"))
+        XCTAssertTrue(projectSteps[2].contains(AgentLoopShortcutSetup.projectChatShortcutName))
+        // A new ChatGPT project conversation cannot be mistaken for an
+        // authenticated model reply or an executed phone command.
+        XCTAssertFalse(projectSteps.joined().contains("KI-Antwort übernehmen"))
+        XCTAssertFalse(projectSteps.joined().contains("actionExecuted=true"))
+    }
+
     func testStepsRequireActualModelAndNativeReturn() {
         XCTAssertEqual(AgentLoopShortcutSetup.actions.count, 5)
         XCTAssertTrue(AgentLoopShortcutSetup.actions[0].contains("Auftrags-ID lesen"))
