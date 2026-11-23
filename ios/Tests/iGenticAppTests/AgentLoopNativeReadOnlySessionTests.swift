@@ -110,6 +110,46 @@ final class AgentLoopNativeReadOnlySessionTests: XCTestCase {
         }
     }
 
+    func testSlowStatusReaderCannotReturnObservationAfterExpiry() async {
+        await MainActor.run {
+            var clock = Date(timeIntervalSince1970: 1_800_000_000)
+            var reads = 0
+            let session = AgentLoopNativeReadOnlySession(statusReader: {
+                reads += 1
+                // A synchronous native read can finish after the five-minute
+                // budget. Its result must not be surfaced as a valid turn.
+                clock = clock.addingTimeInterval(
+                    AgentLoopNativeReadOnlySession.timeLimit
+                )
+                return syntheticLoopStatus()
+            }, now: { clock })
+            let result = session.accept(modelReply: #"{"action":"status.read"}"#)
+            XCTAssertEqual(reads, 1)
+            XCTAssertEqual(result.stage, .expired)
+            XCTAssertNil(result.localObservation)
+            XCTAssertEqual(result.turnCount, 1)
+            XCTAssertFalse(result.remoteActionExecuted)
+            XCTAssertFalse(result.ownerApprovalGranted)
+            XCTAssertEqual(
+                session.accept(modelReply: #"{"action":"finish"}"#).stage,
+                .expired
+            )
+        }
+    }
+
+    func testClockRollbackDuringStatusReadDoesNotExposeObservation() async {
+        await MainActor.run {
+            var clock = Date(timeIntervalSince1970: 1_800_000_000)
+            let session = AgentLoopNativeReadOnlySession(statusReader: {
+                clock = clock.addingTimeInterval(-1)
+                return syntheticLoopStatus()
+            }, now: { clock })
+            let result = session.accept(modelReply: #"{"action":"status.read"}"#)
+            XCTAssertEqual(result.stage, .expired)
+            XCTAssertNil(result.localObservation)
+        }
+    }
+
     func testOversizedResponseDoesNotLeakIntoReceipt() async {
         await MainActor.run {
             let secret = "PRIVATE_PROMPT_TO_AVOID"

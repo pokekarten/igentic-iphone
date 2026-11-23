@@ -134,6 +134,15 @@ public final class AgentLoopNativeReadOnlySession {
                 observation = nil
                 return receipt(reason: "status-reader-reentrancy")
             }
+            // The native reader is synchronous but could be slow or cause a
+            // system-clock adjustment. Never surface a stale observation after
+            // the overall two-turn session budget has already expired.
+            let afterReadElapsed = now().timeIntervalSince(createdAt)
+            guard afterReadElapsed >= 0, afterReadElapsed < Self.timeLimit else {
+                observation = nil
+                stage = .expired
+                return receipt(reason: "invalid-or-expired-clock")
+            }
             observation = observed
             stage = .awaitingFinish
             return receipt(reason: "local-status-observed-not-exported")
