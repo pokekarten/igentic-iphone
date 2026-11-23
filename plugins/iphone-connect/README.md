@@ -246,3 +246,33 @@ resource or connection domains are allowed by the resource CSP.
 
 See [privacy](PRIVACY.md), [third-party notices](THIRD_PARTY_NOTICES.md) and the
 [implementation evidence](../../docs/reports/chatgpt-iphone-plugin-2026-11-22.md).
+
+
+### Reproduce a published ChatGPT Site plugin response on the physical iPhone
+
+The optional `smoke:published:wifi` command accepts **three actual tool-result
+objects supplied by the operator**, in order: `diagnostics`, `discovery`,
+`reminder-draft`. Each must contain `structuredContent.data` with the exact
+canonical handoff contract. Supply only these public, fixed fields: no account
+identifiers, tokens, phone records or other user data.
+
+```sh
+# On the owner’s Mac, with the paired physical iPhone reachable over Wi-Fi:
+npm run smoke:published:wifi < /path/to/three-site-tool-results.json
+```
+
+The test rejects altered URLs, changed authorization/status fields and
+non-Wi-Fi devices. It dispatches only the three fixed **own-app preview** URLs
+using Apple CoreDevice, and requires a fresh, nonce-like, app-owned receipt
+after each dispatch. It never creates a reminder, invokes a generic iOS shell,
+reads private phone data or bypasses the in-app confirmation.
+
+**Scope:** The operator must obtain the responses from the *real installed
+ChatGPT Site plugin* and hand them to this program. The program cannot
+independently authenticate their origin. Success proves the submitted fixed
+links can open app-owned previews over the Mac-to-iPhone route, **not**
+autonomous Site-to-Mac communication, a human owner tap, approval of writes,
+cellular reachability, or direct live phone control by the hosted Site.
+A future remote connection requires a separately authenticated gateway or
+a private Secure MCP Tunnel and a newly connected plugin; do not expose the
+loopback MCP endpoint publicly.
