@@ -1,7 +1,7 @@
 // Transport-neutral, offline-only agent loop protocol. Never dispatches network,
 // Siri/Shortcuts, an iOS App Intent, or any device operation. A MAC authenticates
 // key possession only; it does not attest a physical iPhone or owner consent.
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const MAC = /^[0-9a-f]{64}$/;
@@ -138,6 +138,10 @@ export function createTransportNeutralAgentLoop({
     prepareDelivery({ requestId, route } = {}) {
       if (!match(requestId) || !ROUTES.has(route)
           || state !== 'awaiting-manual-delivery' || expire()) invalid();
+      // Bind the eventual key-authenticated acknowledgement to this exact
+      // delivery preparation, not merely a valid owner task ID. This
+      // challenge is local protocol data, never owner approval or attestation.
+      task.receiptNonce = randomUUID();
       transport = route;
       attemptCount += 1;
       state = 'delivery-prepared-not-sent';
@@ -146,6 +150,7 @@ export function createTransportNeutralAgentLoop({
       return Object.freeze({
         schema: 1, requestId: task.requestId,
         capability: CAPABILITY, route,
+        receiptNonce: task.receiptNonce,
         status: 'prepared-not-sent', actionExecuted: false,
         iPhoneConnected: 'not-checked'
       });
@@ -172,7 +177,8 @@ export function createTransportNeutralAgentLoop({
           || typeof envelope.signature !== 'string' || !MAC.test(envelope.signature))
         receiptInvalid();
       const body = normalizeReceipt(envelope.body);
-      if (!match(body.requestId) || body.observedAt < task.issuedAt
+      if (!match(body.requestId) || body.nonce !== task.receiptNonce
+          || body.observedAt < task.issuedAt
           || body.observedAt > now() + 5
           || body.observedAt >= task.expiresAt) receiptInvalid();
       const supplied = Buffer.from(envelope.signature, 'hex');

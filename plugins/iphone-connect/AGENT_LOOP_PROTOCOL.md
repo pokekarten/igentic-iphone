@@ -52,8 +52,16 @@ Ablauf nach einem möglichen Versand heißt outcome-unknown.
 ## Device-Receipt ist mehr als ein HMAC
 
 Es gibt einen vom Owner-Auftrag getrennten HMAC-SHA256-Antwortvertrag mit
-exakter Anfragekennung, Capability, Zeitstempel und Nonce. Der Test kann eine
-synthetische Antwort mit einem lokalen Schlüssel erzeugen. Erfolgreiche Prüfung
+exakter Anfragekennung, Capability, Zeitstempel und Nonce. Beim Übergang
+\`prepareDelivery\` erzeugt der Protokollzustand einen frischen, zufälligen
+\`receiptNonce\`. Eine signierte Rückmeldung wird nur angenommen, wenn der
+Nonce genau zur zuvor vorbereiteten Lieferung gehört. Der Nonce erscheint
+nicht im öffentlich lesbaren Status-Snapshot und gehört nur in den späteren
+separat authentifizierten Geräte-Adapter, nicht in einen Modell-Prompt oder
+einen öffentlichen Site-Tool-Aufruf. Dadurch kann ein beliebiger, zwar gültig
+signierter, aber nicht zur Lieferung gehörender Beleg nicht akzeptiert werden.
+Der Test kann eine synthetische Antwort mit einem lokalen Schlüssel erzeugen.
+Erfolgreiche Prüfung
 beweist **nur Schlüsselbesitz, keine physische Geräte-Identität und keine
 tatsächliche iOS-Aktion**. Die Anzeige bleibt deshalb bewusst:
 

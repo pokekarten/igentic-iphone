@@ -45,10 +45,12 @@ test('successful key possession is not evidence of physical iPhone execution', (
   const loop = make(), envelope = signed();
   const id = envelope.body.requestId;
   loop.start({ envelope, entryPoint: 'chatgpt-site' });
-  loop.prepareDelivery({ requestId: id, route: 'cellular-foreground' });
+  const prepared = loop.prepareDelivery({
+    requestId: id, route: 'cellular-foreground'
+  });
   loop.recordTransport({ requestId: id, outcome: 'transport-acknowledged' });
   const receipt = signReadOnlyDeviceKeyReceipt({
-    key: deviceKey, requestId: id, observedAt: time, nonce: randomUUID()
+    key: deviceKey, requestId: id, observedAt: time, nonce: prepared.receiptNonce
   });
   const result = loop.acceptKeyReceipt(receipt);
   assert.equal(result.state, 'receipt-key-authenticated');
@@ -58,6 +60,52 @@ test('successful key possession is not evidence of physical iPhone execution', (
   assert.equal(result.ownerApproved, false);
   assert.equal(result.iPhoneConnected, 'not-checked');
   assert.throws(() => loop.acceptKeyReceipt(receipt), /invalidAgentLoopTransition/);
+});
+
+test('a signed receipt with an arbitrary nonce cannot complete this delivery', () => {
+  const loop = make(), envelope = signed();
+  const requestId = envelope.body.requestId;
+  loop.start({ envelope, entryPoint: 'chatgpt-site' });
+  const preparation = loop.prepareDelivery({
+    requestId, route: 'coredevice-wifi'
+  });
+  assert.match(preparation.receiptNonce,
+    /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  assert.equal(Object.hasOwn(loop.snapshot(), 'receiptNonce'), false);
+  loop.recordTransport({ requestId, outcome: 'transport-acknowledged' });
+
+  const forgedNonce = signReadOnlyDeviceKeyReceipt({
+    key: deviceKey, requestId, nonce: randomUUID(), observedAt: time
+  });
+  assert.throws(() => loop.acceptKeyReceipt(forgedNonce),
+    /invalidAgentLoopReceipt/);
+  assert.equal(loop.snapshot().state, 'awaiting-key-authenticated-receipt');
+  assert.equal(loop.snapshot().receiptKeyAuthenticated, false);
+
+  const exact = signReadOnlyDeviceKeyReceipt({
+    key: deviceKey, requestId, nonce: preparation.receiptNonce, observedAt: time
+  });
+  const result = loop.acceptKeyReceipt(exact);
+  assert.equal(result.state, 'receipt-key-authenticated');
+  assert.equal(result.actionExecuted, false);
+  assert.equal(result.iPhoneConnected, 'not-checked');
+});
+
+test('separate task preparations cannot share the same receipt challenge', () => {
+  const a = make(), b = make();
+  const first = signed(), second = signed();
+  a.start({ envelope: first, entryPoint: 'manual-client' });
+  b.start({ envelope: second, entryPoint: 'manual-client' });
+  const one = a.prepareDelivery({
+    requestId: first.body.requestId, route: 'coredevice-usb'
+  });
+  const two = b.prepareDelivery({
+    requestId: second.body.requestId, route: 'coredevice-usb'
+  });
+  assert.notEqual(one.receiptNonce, two.receiptNonce);
+  assert.throws(() => a.prepareDelivery({
+    requestId: first.body.requestId, route: 'coredevice-usb'
+  }), /invalidAgentLoopTransition/);
 });
 
 test('model text, spoofed action or forged owner approval cannot enter a loop', () => {
@@ -125,10 +173,12 @@ test('timeout before sending and after transport observation differ', () => {
 test('wrong key, wrong task, future receipt, unexpected fields fail closed', () => {
   const loop = make(), envelope = signed(), requestId = envelope.body.requestId;
   loop.start({ envelope, entryPoint: 'shortcuts-chatgpt' });
-  loop.prepareDelivery({ requestId, route: 'local-shortcuts' });
+  const prepared = loop.prepareDelivery({
+    requestId, route: 'local-shortcuts'
+  });
   loop.recordTransport({ requestId, outcome: 'transport-acknowledged' });
   const base = signReadOnlyDeviceKeyReceipt({
-    key: deviceKey, requestId, observedAt: time, nonce: randomUUID()
+    key: deviceKey, requestId, observedAt: time, nonce: prepared.receiptNonce
   });
   const rejected = [
     { ...base, signature: '0'.repeat(64) },
@@ -136,7 +186,11 @@ test('wrong key, wrong task, future receipt, unexpected fields fail closed', () 
     { ...base, body: { ...base.body, requestId: randomUUID() } },
     { ...base, body: { ...base.body, observedAt: time + 10 } },
     signReadOnlyDeviceKeyReceipt({
-      key: randomBytes(32), requestId, observedAt: time, nonce: randomUUID()
+      key: randomBytes(32), requestId, observedAt: time,
+      nonce: prepared.receiptNonce
+    }),
+    signReadOnlyDeviceKeyReceipt({
+      key: deviceKey, requestId, observedAt: time, nonce: randomUUID()
     }),
     { ...base, actionExecuted: true },
     { ...base, signature: 'ABC' }
@@ -199,16 +253,17 @@ test('real sealed durable owner admission feeds protocol, replay survives restar
   assert.equal(loop.start({
     envelope: signedTask, entryPoint: 'chatgpt-site'
   }).state, 'awaiting-manual-delivery');
-  assert.equal(loop.prepareDelivery({
+  const prepared = loop.prepareDelivery({
     requestId: signedTask.body.requestId, route: 'cellular-foreground'
-  }).status, 'prepared-not-sent');
+  });
+  assert.equal(prepared.status, 'prepared-not-sent');
   assert.equal(loop.recordTransport({
     requestId: signedTask.body.requestId,
     outcome: 'transport-acknowledged'
   }).state, 'awaiting-key-authenticated-receipt');
   const signedReceipt = signReadOnlyDeviceKeyReceipt({
     key: localDeviceKey, requestId: signedTask.body.requestId,
-    nonce: randomUUID(), observedAt: time
+    nonce: prepared.receiptNonce, observedAt: time
   });
   const status = loop.acceptKeyReceipt(signedReceipt);
   assert.equal(status.receiptKeyAuthenticated, true);
