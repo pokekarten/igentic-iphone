@@ -192,3 +192,10 @@ headless browser, clicks all three read-only controls, confirms three real
 same-origin MCP calls, validates the owner-tapped link without following it,
 and fails on external requests or page errors. It does not connect to
 ChatGPT or any real iPhone, and does not publish the private Site.
+
+The console bounds each operator-initiated browser request to 12 seconds, has an
+explicit Cancel button, disables competing actions while a request is pending,
+rejects late responses after cancellation, and removes stale handoff links on
+destination changes. Cancelling a browser read never claims remote device
+cancellation. Plugin unavailability is not interpreted as iPhone offline
+verification.

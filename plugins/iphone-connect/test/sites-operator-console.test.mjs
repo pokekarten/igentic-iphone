@@ -31,12 +31,13 @@ class FakeElement {
 }
 const names = [
   'show-capabilities', 'show-shortcuts', 'prepare-handoff',
-  'handoff-action', 'prepared-link', 'status',
+  'cancel-mcp-request', 'handoff-action', 'prepared-link', 'status',
   'capability-list', 'shortcuts-list'
 ];
-function initialize(customFetch) {
+function initialize(customFetch, timers = {}) {
   const elements = new Map(names.map(name => [name, new FakeElement()]));
   elements.get('handoff-action').value = 'diagnostics';
+  elements.get('cancel-mcp-request').disabled = true;
   const calls = [];
   const listeners = new Map();
   const fetch = async (url, options) => {
@@ -56,7 +57,9 @@ function initialize(customFetch) {
       addEventListener: (name, handler) => listeners.set(name, handler)
     },
     fetch,
-    AbortController
+    AbortController,
+    setTimeout: timers.setTimeout ?? setTimeout,
+    clearTimeout: timers.clearTimeout ?? clearTimeout
   }, { timeout: 1000 });
   return {
     get: id => elements.get(id),
@@ -69,6 +72,8 @@ test('console HTML is static, same-origin-only and has no arbitrary task inputs'
   assert.match(html, /src="\/console\.js"/);
   assert.match(html, /connect-src 'self'/);
   assert.match(html, /script-src 'self'/);
+  assert.match(html, /id="cancel-mcp-request"[^>]*disabled/);
+  assert.match(html, /12 Sekunden/);
   assert.match(html, /\[hidden\] \{ display: none !important; \}/);
   assert.doesNotMatch(html, /<form\b|<iframe\b|<textarea\b|http:\/\//i);
   assert.doesNotMatch(source, /localStorage|sessionStorage|document\.cookie|location\.href|window\.open/);
@@ -102,6 +107,8 @@ test('three intentional button clicks call only fixed MCP tools and never naviga
     assert.doesNotMatch(options.body, /password|private-text|ownerApproved|udid/i);
   }
   page.get('handoff-action').value = 'reminder-draft';
+  page.get('handoff-action').listeners.get('change')();
+  assert.equal(page.get('prepared-link').hidden, true);
   await page.get('prepare-handoff').click();
   assert.equal(page.get('prepared-link').href, 'igentic://handoff/v1/reminder-draft');
   page.close();
@@ -126,7 +133,8 @@ test('tampered tool response, fake approval or mismatched URL fails closed', asy
     { actionExecuted: true },
     { requiresOwnerTap: false },
     { action: 'discovery' },
-    { iPhoneConnected: 'connected' }
+    { iPhoneConnected: 'connected' },
+    { dataSentToIPhone: 'private-data' }
   ]) {
     const page = initialize(async (url, options) => {
       assert.equal(url, '/mcp');
@@ -134,7 +142,7 @@ test('tampered tool response, fake approval or mismatched URL fails closed', asy
       const data = {
         schema: 1, actionExecuted: false, iPhoneConnected: 'not-checked',
         action: 'diagnostics', launchUrl: 'igentic://handoff/v1/diagnostics',
-        requiresOwnerTap: true,
+        requiresOwnerTap: true, dataSentToIPhone: 'none',
         authorization: 'link-is-navigation-only-not-permission',
         ...changes
       };
@@ -157,4 +165,93 @@ test('network errors never show a fake connected state or auto-navigation', asyn
   assert.equal(page.get('capability-list').children.length, 0);
   assert.equal(page.get('prepared-link').hidden, true);
   assert.match(page.get('status').textContent, /Plugin-Abfrage nicht verfügbar/);
+});
+
+test('explicit cancel aborts a hanging MCP request and restores controls', async () => {
+  const page = initialize((_url, options) => new Promise((_resolve, reject) => {
+    options.signal.addEventListener('abort', () => reject(Error('clientCancelled')), { once: true });
+  }));
+  const pending = page.get('prepare-handoff').click();
+  assert.equal(page.get('cancel-mcp-request').disabled, false);
+  assert.equal(page.get('prepare-handoff').disabled, true);
+  assert.equal(page.get('prepared-link').hidden, true);
+  await page.get('cancel-mcp-request').click();
+  await pending;
+  assert.equal(page.get('cancel-mcp-request').disabled, true);
+  assert.equal(page.get('prepare-handoff').disabled, false);
+  assert.equal(page.get('prepared-link').hidden, true);
+  assert.match(page.get('status').textContent, /abgebrochen/);
+});
+
+test('12-second timer aborts the request without opening a handoff', async () => {
+  let triggerTimeout, timersCleared = 0;
+  const page = initialize((_url, options) => new Promise((_resolve, reject) => {
+    options.signal.addEventListener('abort', () => reject(Error('timeout')), { once: true });
+  }), {
+    setTimeout(callback, ms) {
+      assert.equal(ms, 12000);
+      triggerTimeout = callback;
+      return 7;
+    },
+    clearTimeout(id) {
+      assert.equal(id, 7);
+      timersCleared += 1;
+    }
+  });
+  const pending = page.get('prepare-handoff').click();
+  assert.equal(typeof triggerTimeout, 'function');
+  triggerTimeout();
+  await pending;
+  assert.equal(timersCleared, 1);
+  assert.equal(page.get('prepared-link').hidden, true);
+  assert.equal(page.get('prepare-handoff').disabled, false);
+  assert.match(page.get('status').textContent, /abgelaufen/);
+});
+
+test('cancelled late promise cannot re-enable link even if network ignores abort', async () => {
+  let resolveResponse;
+  const page = initialize((_url, options) => new Promise(resolve => {
+    resolveResponse = () => resolve({
+      ok: true,
+      async json() {
+        return {
+          id: JSON.parse(options.body).id,
+          result: {
+            resultType: 'complete', isError: false,
+            structuredContent: { data: {
+              schema: 1, action: 'diagnostics',
+              actionExecuted: false, iPhoneConnected: 'not-checked',
+              dataSentToIPhone: 'none',
+              launchUrl: 'igentic://handoff/v1/diagnostics',
+              requiresOwnerTap: true,
+              authorization: 'link-is-navigation-only-not-permission'
+            } }
+          }
+        };
+      }
+    });
+  }));
+  const pending = page.get('prepare-handoff').click();
+  await page.get('cancel-mcp-request').click();
+  resolveResponse();
+  await pending;
+  assert.equal(page.get('prepared-link').hidden, true);
+  assert.equal(Object.hasOwn(page.get('prepared-link'), 'href'), false);
+  assert.equal(page.get('cancel-mcp-request').disabled, true);
+});
+
+test('changing destination during a pending response cannot expose stale URL', async () => {
+  let releaseResponse;
+  const page = initialize((url, options) => new Promise(resolve => {
+    releaseResponse = async () => resolve(await handleSitesMcp(
+      new Request('https://owner-site.invalid' + url, options)
+    ));
+  }));
+  const pending = page.get('prepare-handoff').click();
+  page.get('handoff-action').value = 'discovery';
+  page.get('handoff-action').listeners.get('change')();
+  await releaseResponse();
+  await pending;
+  assert.equal(page.get('prepared-link').hidden, true);
+  assert.equal(Object.hasOwn(page.get('prepared-link'), 'href'), false);
 });

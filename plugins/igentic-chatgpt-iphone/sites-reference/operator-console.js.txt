@@ -5,10 +5,12 @@
   const VERSION = '2026-07-28';
   const ACTIONS = ['diagnostics', 'discovery', 'reminder-draft'];
   const TOOLS = ['igentic_get_capabilities', 'igentic_shortcuts_setup', 'iphone_chatgpt_handoff'];
+  const REQUEST_TIMEOUT_MS = 12000;
   const byId = id => document.getElementById(id);
   const capabilities = byId('show-capabilities');
   const shortcuts = byId('show-shortcuts');
   const handoff = byId('prepare-handoff');
+  const cancel = byId('cancel-mcp-request');
   const action = byId('handoff-action');
   const link = byId('prepared-link');
   const status = byId('status');
@@ -36,6 +38,7 @@
     busy = value;
     for (const button of buttons) button.disabled = value;
     action.disabled = value;
+    cancel.disabled = !value;
   };
   const allowedData = data => data && typeof data === 'object'
     && data.schema === 1 && data.actionExecuted === false
@@ -46,8 +49,10 @@
         && Object.keys(args).length !== 0)) throw Error('blockedTool');
     const controller = new AbortController();
     active = controller;
+    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
     const id = ++requestId;
-    const response = await fetch('/mcp', {
+    try {
+      const response = await fetch('/mcp', {
       method: 'POST',
       credentials: 'same-origin',
       cache: 'no-store',
@@ -69,12 +74,20 @@
         }
       })
     });
-    if (!response.ok) throw Error('siteMcpUnavailable');
-    const rpc = await response.json();
-    if (rpc.id !== id || rpc.result?.resultType !== 'complete'
-        || rpc.result?.isError !== false
-        || !allowedData(rpc.result?.structuredContent?.data)) throw Error('invalidSiteToolResult');
-    return rpc.result.structuredContent.data;
+      if (controller.signal.aborted) throw Error('siteMcpCancelled');
+      if (!response.ok) throw Error('siteMcpUnavailable');
+      const rpc = await response.json();
+      // Some adapters/mocks may settle even after cancellation: never accept
+      // a late answer, especially when preparing a manual first-party link.
+      if (controller.signal.aborted) throw Error('siteMcpCancelled');
+      if (rpc.id !== id || rpc.result?.resultType !== 'complete'
+          || rpc.result?.isError !== false
+          || !allowedData(rpc.result?.structuredContent?.data))
+        throw Error('invalidSiteToolResult');
+      return rpc.result.structuredContent.data;
+    } finally {
+      clearTimeout(timeout);
+    }
   }
 
   async function run(operation) {
@@ -87,7 +100,7 @@
       status.textContent = 'Werkzeugantwort empfangen. iPhone-Verbindung: nicht geprüft. Keine Aktion ausgeführt.';
       return result;
     } catch {
-      status.textContent = 'Plugin-Abfrage nicht verfügbar oder Antwort ungültig. Keine iPhone-Aktion ausgeführt.';
+      status.textContent = 'Plugin-Abfrage nicht verfügbar, abgebrochen, abgelaufen oder Antwort ungültig. Keine iPhone-Aktion ausgeführt.';
       clearLink();
     } finally {
       active = null;
@@ -117,14 +130,22 @@
     putItems(steps, data.steps);
   }));
 
+  // Never retain a prepared link after changing the intended destination.
+  action.addEventListener('change', clearLink);
+  cancel.addEventListener('click', () => {
+    if (busy) active?.abort();
+  });
+
   handoff.addEventListener('click', () => run(async () => {
     const selected = action.value;
     if (!ACTIONS.includes(selected)) throw Error('unsupportedHandoff');
     const data = await callTool('iphone_chatgpt_handoff', { action: selected });
     const exactUrl = 'igentic://handoff/v1/' + selected;
     if (data.action !== selected || data.launchUrl !== exactUrl
-        || data.requiresOwnerTap !== true || data.authorization
-          !== 'link-is-navigation-only-not-permission') throw Error('badHandoff');
+        || data.requiresOwnerTap !== true
+        || data.dataSentToIPhone !== 'none'
+        || data.authorization !== 'link-is-navigation-only-not-permission'
+        || action.value !== selected) throw Error('badHandoff');
     link.href = exactUrl; // only validated, fixed first-party app scheme
     link.hidden = false;
   }));
