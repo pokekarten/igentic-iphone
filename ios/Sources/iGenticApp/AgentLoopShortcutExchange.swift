@@ -1,5 +1,10 @@
 import Foundation
 import AgentCore
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#endif
 
 /// A deliberately small, iPhone-local inbox for one sequential Shortcuts AI
 /// exchange. It has no network client, model execution or capability dispatcher.
@@ -23,6 +28,7 @@ public enum AgentLoopExchangeError: Error, Equatable {
     case alreadyAnswered
     case invalidStoredExchange
     case mismatchedTaskID
+    case exchangeBusy
 }
 
 extension AgentLoopExchangeError: LocalizedError {
@@ -46,6 +52,8 @@ extension AgentLoopExchangeError: LocalizedError {
             return "Gespeicherter KI-Auftrag ist beschädigt. Keine Aktion ausgeführt."
         case .mismatchedTaskID:
             return "KI-Antwort gehört nicht zum aktuell offenen Auftrag. Nichts übernommen."
+        case .exchangeBusy:
+            return "Eine andere iGentic-Kurzbefehle-Aktion bearbeitet den Auftrag. Bitte erneut versuchen."
         }
     }
 }
@@ -57,6 +65,9 @@ public final class AgentLoopShortcutExchangeStore {
     public static let expiration: TimeInterval = 30 * 60
     private let fileURL: URL
     private let clock: () -> Date
+    // Cross-process file locks protect the disk state; the main-actor guard
+    // also prevents a synchronous callback re-entering a mutation locally.
+    private static var activeMutationPaths = Set<String>()
 
     public init(fileURL: URL = defaultFileURL(), clock: @escaping () -> Date = Date.init) {
         self.fileURL = fileURL
@@ -71,31 +82,76 @@ public final class AgentLoopShortcutExchangeStore {
             .appendingPathComponent("shortcut-ai-exchange-v1.json")
     }
 
-    /// Returns text for Shortcuts' built-in "Use Model" action; the caller
-    /// chooses Apple On-Device, Apple Cloud, or the ChatGPT extension.
-    /// The raw instruction is never sent by this method.
-    @discardableResult
-    public func begin(task: String) throws -> String {
+    /// A write is one transaction across the app and its App Intents
+    /// processes. A persistent, private lock file is intentionally never
+    /// unlinked: removing it while another process holds its inode would
+    /// create two independent locks. OS flock releases on process death.
+    private func withExclusiveMutation<T>(_ body: () throws -> T) throws -> T {
+        let directory = fileURL.deletingLastPathComponent()
+        try FileManager.default.createDirectory(
+            at: directory, withIntermediateDirectories: true,
+            attributes: [.posixPermissions: 0o700]
+        )
+        let lockPath = fileURL.appendingPathExtension("lock").standardizedFileURL.path
+        guard !Self.activeMutationPaths.contains(lockPath) else {
+            throw AgentLoopExchangeError.exchangeBusy
+        }
+        Self.activeMutationPaths.insert(lockPath)
+        defer { Self.activeMutationPaths.remove(lockPath) }
+
+        #if canImport(Darwin) || canImport(Glibc)
+        let fd = open(lockPath, O_RDWR | O_CREAT | O_NOFOLLOW, 0o600)
+        guard fd >= 0 else { throw AgentLoopExchangeError.exchangeBusy }
+        defer { _ = close(fd) }
+        var metadata = stat()
+        guard fstat(fd, &metadata) == 0,
+              (metadata.st_mode & mode_t(S_IFMT)) == mode_t(S_IFREG),
+              (metadata.st_mode & 0o077) == 0,
+              metadata.st_uid == geteuid(),
+              metadata.st_nlink == 1 else {
+            throw AgentLoopExchangeError.exchangeBusy
+        }
+        // Refuse contention rather than hanging Siri/Shortcuts on a lock.
+        guard flock(fd, LOCK_EX | LOCK_NB) == 0 else {
+            throw AgentLoopExchangeError.exchangeBusy
+        }
+        defer { _ = flock(fd, LOCK_UN) }
+        return try body()
+        #else
+        throw AgentLoopExchangeError.exchangeBusy
+        #endif
+    }
+
+    private func createPendingExchange(task: String) throws -> AgentLoopExchange {
         let trimmed = task.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, trimmed.count <= 512,
               trimmed.utf8.count <= Self.maximumTaskBytes, !containsUnsafeControl(trimmed)
         else { throw AgentLoopExchangeError.invalidTask }
 
-        // The user must review sensitive material outside this automated
-        // pipeline; never silently forward recognisable contacts/IBANs.
+        // This must also be checked before acquiring any disk lock.
         guard !SensitiveDataDetector().detect(in: trimmed).hasFindings else {
             throw AgentLoopExchangeError.sensitiveTask
         }
 
-        if try snapshot() != nil {
-            throw AgentLoopExchangeError.exchangeAlreadyExists
+        return try withExclusiveMutation {
+            if try snapshot() != nil {
+                throw AgentLoopExchangeError.exchangeAlreadyExists
+            }
+            let exchange = AgentLoopExchange(
+                id: UUID(), createdAt: clock(), task: trimmed,
+                answer: nil, answeredAt: nil
+            )
+            try save(exchange)
+            return exchange
         }
-        let exchange = AgentLoopExchange(
-            id: UUID(), createdAt: clock(), task: trimmed,
-            answer: nil, answeredAt: nil
-        )
-        try save(exchange)
-        return Self.modelPrompt(for: trimmed)
+    }
+
+    /// Returns text for Shortcuts' built-in "Use Model" action; the caller
+    /// chooses Apple On-Device, Apple Cloud, or the ChatGPT extension.
+    /// The raw instruction is never sent by this method.
+    @discardableResult
+    public func begin(task: String) throws -> String {
+        Self.modelPrompt(for: try createPendingExchange(task: task).task)
     }
 
     /// Allows the iGentic app to prepare a task locally and launch the fixed
@@ -139,17 +195,29 @@ public final class AgentLoopShortcutExchangeStore {
     }
 
     public func beginTicket(task: String) throws -> String {
-        _ = try begin(task: task)
-        return try pendingTicket()
+        // The ticket must refer to the very task we just committed. Do not
+        // re-read a later exchange created by another Shortcuts process.
+        try encodeTicket(for: createPendingExchange(task: task))
     }
 
     public func pendingTicket() throws -> String {
-        let prompt = try pendingPrompt()
         guard let current = try snapshot() else {
             throw AgentLoopExchangeError.noPendingExchange
         }
+        let age = clock().timeIntervalSince(current.createdAt)
+        guard age >= 0, age <= Self.expiration else {
+            throw AgentLoopExchangeError.expired
+        }
+        guard current.answer == nil else {
+            throw AgentLoopExchangeError.alreadyAnswered
+        }
+        return try encodeTicket(for: current)
+    }
+
+    private func encodeTicket(for current: AgentLoopExchange) throws -> String {
         let ticket = ShortcutTicket(
-            taskId: current.id.uuidString.lowercased(), prompt: prompt
+            taskId: current.id.uuidString.lowercased(),
+            prompt: Self.modelPrompt(for: current.task)
         )
         // Stable key order prevents nondeterministic Shortcuts ticket text
         // when the same pending task is read in successive model turns.
@@ -181,34 +249,71 @@ public final class AgentLoopShortcutExchangeStore {
         guard !trimmed.isEmpty, trimmed.utf8.count <= Self.maximumAnswerBytes,
               !containsUnsafeControl(trimmed)
         else { throw AgentLoopExchangeError.invalidAnswer }
-        guard var exchange = try snapshot() else {
-            throw AgentLoopExchangeError.noPendingExchange
+        return try withExclusiveMutation {
+            guard var exchange = try snapshot() else {
+                throw AgentLoopExchangeError.noPendingExchange
+            }
+            guard let expectedID = UUID(uuidString: taskID),
+                  expectedID.uuidString.lowercased() == taskID.lowercased(),
+                  exchange.id == expectedID else {
+                throw AgentLoopExchangeError.mismatchedTaskID
+            }
+            let age = clock().timeIntervalSince(exchange.createdAt)
+            guard age >= 0, age <= Self.expiration else {
+                throw AgentLoopExchangeError.expired
+            }
+            guard exchange.answer == nil else {
+                throw AgentLoopExchangeError.alreadyAnswered
+            }
+            exchange.answer = trimmed
+            exchange.answeredAt = clock()
+            try save(exchange)
+            return "iGentic: KI-Antwort lokal übernommen. Keine iPhone-Aktion ausgeführt. Bitte in iGentic Agent prüfen."
         }
-        guard let expectedID = UUID(uuidString: taskID),
-              expectedID.uuidString.lowercased() == taskID.lowercased(),
-              exchange.id == expectedID else {
-            throw AgentLoopExchangeError.mismatchedTaskID
-        }
-        let age = clock().timeIntervalSince(exchange.createdAt)
-        guard age >= 0, age <= Self.expiration else {
-            throw AgentLoopExchangeError.expired
-        }
-        guard exchange.answer == nil else {
-            throw AgentLoopExchangeError.alreadyAnswered
-        }
-        exchange.answer = trimmed
-        exchange.answeredAt = clock()
-        try save(exchange)
-        return "iGentic: KI-Antwort lokal übernommen. Keine iPhone-Aktion ausgeführt. Bitte in iGentic Agent prüfen."
     }
 
     /// Read-only snapshot for the owner's iGentic screen.
     /// The file never leaves the sandbox through an MCP tool or remote endpoint.
     public func snapshot() throws -> AgentLoopExchange? {
-        guard FileManager.default.fileExists(atPath: fileURL.path) else { return nil }
-        let bytes = try Data(contentsOf: fileURL)
+        #if canImport(Darwin) || canImport(Glibc)
+        // Keep the opened inode fixed while inspecting it: checking a path
+        // and subsequently calling Data(contentsOf:) would follow a symlink
+        // or race with a replaced filesystem entry.
+        let fd = fileURL.path.withCString {
+            open($0, O_RDONLY | O_NOFOLLOW | O_CLOEXEC)
+        }
+        guard fd >= 0 else {
+            if errno == ENOENT { return nil }
+            throw AgentLoopExchangeError.invalidStoredExchange
+        }
+        defer { _ = close(fd) }
+        var metadata = stat()
+        guard fstat(fd, &metadata) == 0,
+              (metadata.st_mode & mode_t(S_IFMT)) == mode_t(S_IFREG),
+              (metadata.st_mode & 0o077) == 0,
+              metadata.st_uid == geteuid(),
+              metadata.st_nlink == 1,
+              metadata.st_size >= 0,
+              metadata.st_size <= 16_384 else {
+            throw AgentLoopExchangeError.invalidStoredExchange
+        }
+        let bytes: Data
+        do {
+            // Read at most one byte beyond the limit; an inode that grows
+            // after fstat cannot trigger an unbounded allocation.
+            let handle = FileHandle(fileDescriptor: fd, closeOnDealloc: false)
+            bytes = try handle.read(upToCount: 16_385) ?? Data()
+        } catch {
+            throw AgentLoopExchangeError.invalidStoredExchange
+        }
         guard bytes.count <= 16_384,
-              let state = try? JSONDecoder().decode(AgentLoopExchange.self, from: bytes),
+              bytes.count == Int(metadata.st_size) else {
+            throw AgentLoopExchangeError.invalidStoredExchange
+        }
+        #else
+        throw AgentLoopExchangeError.invalidStoredExchange
+        #endif
+        guard let state = try? JSONDecoder().decode(AgentLoopExchange.self, from: bytes),
               state.task.count <= 512,
               state.task.utf8.count <= Self.maximumTaskBytes,
               !state.task.isEmpty,
@@ -221,8 +326,10 @@ public final class AgentLoopShortcutExchangeStore {
     }
 
     public func clear() throws {
-        if FileManager.default.fileExists(atPath: fileURL.path) {
-            try FileManager.default.removeItem(at: fileURL)
+        try withExclusiveMutation {
+            if FileManager.default.fileExists(atPath: fileURL.path) {
+                try FileManager.default.removeItem(at: fileURL)
+            }
         }
     }
 

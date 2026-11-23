@@ -340,3 +340,31 @@ References:
 - https://help.openai.com/en/articles/10169521-projects-in-chatgpt
 - https://community.openai.com/t/feature-request-end-chatgpt-voice-mode-without-touching-screen/1401642
 - https://developer.apple.com/documentation/appintents/app-shortcuts
+
+## Shortcuts exchange cross-process consistency (2026-11-23)
+
+The local `AgentLoopShortcutExchangeStore` is shared between the iGentic
+SwiftUI owner screen and independent iOS App Intents/Shortcuts invocations.
+An in-memory `@MainActor` alone does **not** serialize two different app
+processes. Begin, receive, and owner-clear now use a single advisory
+nonblocking `flock` around each read-check-write transaction, backed by a
+persistent 0600 `shortcut-ai-exchange-v1.json.lock` file in the app's
+Application Support directory. The lock file is deliberately **not deleted**
+after use; deleting/recreating a locked inode would make two locks that do
+not coordinate. An OS process crash releases the lock automatically.
+
+If another process owns the lock, the operation returns `exchangeBusy`
+and does not read a stale snapshot and overwrite another task. The main-actor
+in-process guard also rejects synchronous callbacks that try to re-enter a
+mutation while already holding the lock. On-disk writes remain atomic; task
+IDs and expiration still gate replies; only the user can clear a stored task.
+A beginTicket response is generated from the exact record just created, not
+by reloading a potentially replaced record. A pendingTicket likewise
+generates its prompt and task ID from the **same** validated snapshot.
+
+This is app-local transaction safety, not cryptographic authorization, a
+remote transport, physical-device attestation, or proof that Shortcuts is
+installed. The lock file has no task content or device identifiers. Offline
+tests cover both same-process reentrancy and a second OS-level lock handle.
+Keychain enrollment, independently verified device receipts, and signed
+iPhone acceptance are separate pending gates.
