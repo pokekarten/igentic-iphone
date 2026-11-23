@@ -65,6 +65,11 @@ public enum AgentLoopTaskBridge {
 /// a model, execute a device operation, persist private text or grant approval.
 /// Shortcuts may use the returned JSON to choose its next *explicit* action.
 public enum AgentLoopModelHandoff {
+    /// Correlates two Shortcuts turns; NOT authentication, a session or a task queue.
+    public static func newCorrelationID() -> String {
+        UUID().uuidString.lowercased()
+    }
+
     private static let permittedActions: Set<String> = [
         "status.read", "reminder.draft", "finish"
     ]
