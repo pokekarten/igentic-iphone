@@ -18,9 +18,21 @@ Only when the read-only `iphone_chatgpt_handoff` MCP tool is actually
 available, invoke it with exactly one of the above enumerated actions and
 show its `launchUrl`, `actionExecuted:false` and `requiresOwnerTap:true`.
 Never invent a tool result or imply a ChatGPT account/device connection.
-If it is unavailable, explain that installing the skill alone does not
-connect the MCP API; provide setup guidance from CHATGPT_HANDOFF.md in
-the sibling `plugins/iphone-connect` source directory, not a fake URL.
+If the MCP tool is unavailable, state that **no tool was called and
+no device connection was checked**. You may offer exactly one of the three
+fixed own-app URLs as an **optional manual navigation link**:
+`igentic://handoff/v1/diagnostics`, `igentic://handoff/v1/discovery`,
+or `igentic://handoff/v1/reminder-draft`. Never attach user content,
+parameters, a token or a fragment. Label it as manual navigation,
+not a result from a connected ChatGPT MCP tool. The signed app must already
+be installed; the owner has to open the link and tap again inside iGentic.
+If the client cannot open custom schemes, open iGentic directly.
+
+A skills-only plugin may be used without MCP. An optional owner-hosted
+ChatGPT Sites plugin is documented in `sites-reference/README.md`.
+Direct custom MCP connection is restricted by account/workspace permissions
+and cannot currently be configured on mobile. Neither path automatically
+installs the iOS app.
 
 The user must intentionally open the returned URL on the iPhone. The
 separately signed iGentic app then presents a **second local choice** to

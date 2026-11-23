@@ -69,3 +69,18 @@ Official docs:
 https://developers.openai.com/plugins/build/plugins
 https://developers.openai.com/plugins/deploy/connect-chatgpt
 https://help.openai.com/en/articles/12584461-connecting-custom-mcp-servers-in-chatgpt
+
+
+## ChatGPT Sites and skills-only fallback
+
+The owner can use a **skills-only plugin** for three exact manual app
+links without a connected MCP server. See
+`sites-reference/README.md` for the optional owner-hosted ChatGPT Sites
+reference contract and static link page.
+
+ChatGPT Plus supports Sites (subject to access), while directly adding
+a custom MCP server is currently restricted to eligible Business and
+Enterprise/Edu workspaces on ChatGPT web. Setting up custom MCP servers
+on iPhone is not supported. A published Site and its associated plugin
+require separate owner actions; these source files do not create them.
+The Site reference makes no personal-data or device-connection claims.
