@@ -84,8 +84,9 @@ test('admission key is pinned even if the caller mutates its Buffer', () => {
   const authenticEnvelope = sign(original);
   supplied.fill(0);
   assert.equal(admission.admit(authenticEnvelope).state, 'authenticated-proposal-only');
-  assert.throws(() => admission.admit(sign(supplied)),
+  assert.throws(() => admission.admit(sign(key())),
     /unauthenticatedTaskEnvelope/);
+  assert.throws(() => sign(supplied), /invalidOwnerRelayKey/);
 });
 
 test('obviously predictable constant-byte relay keys fail closed', () => {
