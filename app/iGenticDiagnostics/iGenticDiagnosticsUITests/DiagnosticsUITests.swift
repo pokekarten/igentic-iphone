@@ -30,6 +30,34 @@ final class DiagnosticsUITests: XCTestCase {
         XCTAssertFalse(app.navigationBars["Review reminder"].exists)
     }
 
+
+    @MainActor
+    func testChatGPTHandoffOpensPreviewWithoutAutomaticNavigation() {
+        let app = XCUIApplication()
+        app.launch()
+        // Initial setup still needs the owner's local confirmation.
+        let confirm = app.buttons["Confirm and continue"]
+        if confirm.waitForExistence(timeout: 10) { confirm.tap() }
+        XCTAssertTrue(app.navigationBars["iGentic Diagnostics"].waitForExistence(timeout: 15))
+
+        // Apple XCUIApplication.open exercises the real custom URL dispatch
+        // and SwiftUI onOpenURL rather than only calling the Swift URL parser.
+        let url = URL(string: "igentic://handoff/v1/discovery")!
+        app.open(url)
+        let preview = app.staticTexts[
+            "Du hast diesen Link auf dem iPhone geöffnet. Es wurde keine Aktion ausgeführt oder freigegeben."
+        ]
+        XCTAssertTrue(preview.waitForExistence(timeout: 15))
+        // No discovery screen until the owner makes a second local choice.
+        XCTAssertFalse(app.navigationBars["Explore"].exists)
+        let openDiscovery = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label == %@", "Lokale Entdeckungen öffnen"))
+            .firstMatch
+        XCTAssertTrue(openDiscovery.waitForExistence(timeout: 10))
+        openDiscovery.tap()
+        XCTAssertTrue(app.navigationBars["Explore"].waitForExistence(timeout: 10))
+    }
+
     @MainActor
     private func scrollToControl(_ identifier: String, in app: XCUIApplication) -> XCUIElement? {
         // Use a stable accessibility identifier, not a SwiftUI-dependent
