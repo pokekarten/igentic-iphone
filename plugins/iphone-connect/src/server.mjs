@@ -9,6 +9,7 @@ import { PhoneService } from './service.mjs';
 import { MobileBackend, FixtureBackend, loadConfig } from './backend.mjs';
 import { NativeCoreDeviceBackend } from './native-coredevice.mjs';
 import { PluginError } from './process.mjs';
+import { optionalToolCatalog, prepareLocalTask } from './optional-core.mjs';
 
 export const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 export const UI_URI = 'ui://igentic/iphone-dashboard.html';
@@ -52,6 +53,14 @@ export function createServer(service) {
   add('iphone_get_capabilities', 'Get iPhone capabilities',
     'Use this to check actual supported actions and limitations. Configuration is not observed device readiness.',
     {}, true, () => service.capabilities());
+  add('iphone_tool_catalog', 'List first-party and optional tools',
+    'Offline first-party capabilities and optional provider equivalents. Installed or connected third-party tools are never inferred.',
+    {}, true, () => optionalToolCatalog());
+  add('iphone_prepare_local_task', 'Prepare a Mac-free iPhone task',
+    'Make a manual, non-executing handoff for on-device diagnostics, discovery, draft, speech, selected-image OCR or reminder. No iPhone connection or external provider needed.',
+    { task: z.enum(['diagnostics', 'discovery', 'text-draft', 'speak-text', 'read-image-text', 'reminder']),
+      text: z.string().max(800).optional() }, true,
+    a => prepareLocalTask(a.task, a.text));
   add('iphone_start_session', 'Start diagnostic session',
     'Use this for a requested iGentic diagnostic task. Acquires a 5-minute exclusive local-device lease; does not capture the screen.',
     { device: z.literal('iphone-1') }, false, a => service.start(a.device));

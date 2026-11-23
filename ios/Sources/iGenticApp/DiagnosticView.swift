@@ -62,6 +62,17 @@ public struct DiagnosticView: View {
                         .foregroundStyle(.secondary)
                 }
 
+                #if os(iOS)
+                Section("Offline-Basisfunktionen") {
+                    NavigationLink("Offline-Werkzeuge") {
+                        OfflineToolsView()
+                    }
+                    .accessibilityIdentifier("igentic-offline-tools")
+                    Text("Textentwurf, lokales Vorlesen und Bildtexterkennung – ohne Mac, ChatGPT-Plugin oder externe Anbieter.")
+                        .font(.footnote)
+                }
+                #endif
+
                 #if canImport(EventKit)
                 Section("Aufgaben") {
                     NavigationLink("Erinnerung erstellen") {

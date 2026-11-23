@@ -18,7 +18,7 @@ From the plugin folder, run these commands:
     npm ci --ignore-scripts
     npm run serve:portable
 
-The portable protocol preview is a Streamable HTTP MCP service at http://127.0.0.1:37865/mcp and has exactly two read-only tools: iphone_connection_report and iphone_get_capabilities.
+The portable protocol preview is a Streamable HTTP MCP service at http://127.0.0.1:37865/mcp and has four read-only tools: iphone_connection_report, iphone_get_capabilities, iphone_tool_catalog and iphone_prepare_local_task. The last two are pure first-party offline helpers; they never contact an iPhone.
 
 It is loopback-only, client-neutral and stateless. It DOES NOT read an iPhone, access Mac CoreDevice, operate apps, make writes, or collect credentials. Any device report says no actual device was observed. The original desktop stdio plugin continues separately; no backend is automatically substituted for another.
 
@@ -37,7 +37,7 @@ For ChatGPT-specific account/plugin installation, follow current ChatGPT app and
 
 ## Acceptance evidence to collect separately
 
-1. Generic Streamable HTTP MCP client loads exactly two safe read-only tools.
+1. Generic Streamable HTTP MCP client loads exactly four safe read-only tools.
 2. Desktop stdio diagnostics, policy and synthetic tests continue passing.
 3. Native App Intent runs on a physical phone with user approval.
 4. Cellular auth and delivery work when USB and Wi-Fi are disconnected.

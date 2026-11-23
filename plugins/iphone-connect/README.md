@@ -1,7 +1,7 @@
 # iGentic iPhone Connect
 
 Version 0.1.0 is a **local desktop developer plugin** for ChatGPT/Codex-compatible
-MCP hosts. It includes thirteen typed tools, one skill, an MCP Apps dashboard with live route checks, a
+MCP hosts. It includes fifteen typed tools, one skill, an MCP Apps dashboard with live route checks, a
 physical-iPhone adapter, a separate fixture backend, and a Swift bridge to the
 existing iGentic `PolicyEngine` and `AuditLog`.
 
@@ -131,6 +131,8 @@ not proof that the physical iPhone used cellular data.
 
 The primary goal is an independent native iPhone agent, with App Intents, Shortcuts and a client-neutral MCP interface. An additional read-only Streamable HTTP protocol preview is available with npm run serve:portable. It binds to loopback only and **does not** connect to the iPhone. The physical desktop stdio backend remains separate. See [portable architecture](PORTABLE_MCP.md).
 
+The signed iOS app also contains a first-party **Offline-Werkzeuge** view with a local text editor, speech through Apple AVFoundation, user-selected photo OCR through Vision, and the existing separate approved reminder workflow. None requires ChatGPT, the Mac, MobileCLI or an external model. These changes require installing the **updated** signed app to use on a physical phone. See [optional tools and true fallback limits](OPTIONAL_TOOLS.md).
+
 ## Install the desktop plugin
 
 From the repository root, after dependency setup:
@@ -167,6 +169,8 @@ limited to approved partners; see [desktop-only plugins](https://developers.open
 | `iphone_list_devices` | Return only configured alias, backend and observed connection availability |
 | `iphone_connection_report` | Read-only live physical-tunnel status and independent USB-C, Wi-Fi, cellular, on-device and test route states; never claims an unverified app action |
 | `iphone_get_capabilities` | Explain current capability boundary without claiming readiness |
+| `iphone_tool_catalog` | List built-in offline functions and independent optional providers without assuming they are installed |
+| `iphone_prepare_local_task` | Prepare non-executing native handoff instructions even with no Mac, network or iPhone connection |
 | `iphone_start_session` | Acquire a five-minute exclusive device lease |
 | `iphone_open_diagnostics` | Launch the fixed app, check foreground identity and return recognized markers |
 | `iphone_observe` | Refresh fixed marker/count observation; suppress raw content |

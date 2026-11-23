@@ -15,7 +15,8 @@ test('portable Streamable HTTP MCP works for generic clients read-only', async t
   ));
   const tools = (await client.listTools()).tools;
   assert.deepEqual(tools.map(x => x.name).sort(),
-    ['iphone_connection_report', 'iphone_get_capabilities']);
+    ['iphone_connection_report', 'iphone_get_capabilities',
+      'iphone_prepare_local_task', 'iphone_tool_catalog']);
   assert.ok(tools.every(x => x.annotations.readOnlyHint === true));
   assert.ok(tools.every(x => x.annotations.destructiveHint === false));
   const result = await client.callTool({ name: 'iphone_connection_report', arguments: {} });
@@ -29,6 +30,13 @@ test('portable Streamable HTTP MCP works for generic clients read-only', async t
   const caps = await client.callTool({ name: 'iphone_get_capabilities', arguments: {} });
   assert.deepEqual(caps.structuredContent.data.actions, []);
   assert.equal(caps.structuredContent.data.deviceControl, 'not-connected');
+  const catalog = await client.callTool({ name: 'iphone_tool_catalog', arguments: {} });
+  assert.equal(catalog.structuredContent.data.optionalProviders.find(p => p.id === 'chatgpt').installed, 'not-checked');
+  const offline = await client.callTool({ name: 'iphone_prepare_local_task',
+    arguments: { task: 'read-image-text' } });
+  assert.equal(offline.structuredContent.data.status, 'manual-handoff-only');
+  assert.equal(offline.structuredContent.data.deviceActionExecuted, false);
+  assert.equal(offline.structuredContent.data.appInstalled, 'not-checked');
   const unavailable = await client.callTool({ name: 'iphone_execute_action', arguments: {} });
   assert.equal(unavailable.isError, true);
 });

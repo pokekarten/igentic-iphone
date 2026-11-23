@@ -5,6 +5,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { z } from 'zod';
 import { makeConnectionReport } from './connection-report.mjs';
+import { optionalToolCatalog, prepareLocalTask } from './optional-core.mjs';
 
 const noArgs = z.object({}).strict();
 const output = z.object({ data: z.record(z.string(), z.unknown()) });
@@ -38,6 +39,19 @@ export function createPortableMcp() {
     actions: [],
     transport: 'loopback-streamable-http'
   }));
+  mcp.registerTool('iphone_tool_catalog', {
+    title: 'List independent iPhone capabilities and optional tools',
+    description: 'First-party local functions and optional providers. Never claims that an add-on is installed or reachable.',
+    inputSchema: noArgs, outputSchema: output, annotations
+  }, async () => wrap(optionalToolCatalog()));
+  mcp.registerTool('iphone_prepare_local_task', {
+    title: 'Prepare a manual on-device task without Mac or cloud',
+    description: 'Non-executing instructions for the first-party native app. User-supplied draft text remains within this request; no phone is contacted.',
+    inputSchema: z.object({
+      task: z.enum(['diagnostics', 'discovery', 'text-draft', 'speak-text', 'read-image-text', 'reminder']),
+      text: z.string().max(800).optional()
+    }).strict(), outputSchema: output, annotations
+  }, async ({ task, text }) => wrap(prepareLocalTask(task, text)));
   return mcp;
 }
 export async function startPortableGateway({ port = 0 } = {}) {

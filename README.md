@@ -19,6 +19,14 @@ provides a local MCP server, typed diagnostics tools and an MCP Apps dashboard
 for ChatGPT/Codex-compatible hosts. See its [implementation and acceptance evidence](docs/reports/chatgpt-iphone-plugin-2026-11-22.md)
 for the exact tested scope and outstanding physical-device/web-connection gates.
 
+**All add-ons are optional.** The native iOS `Offline-Werkzeuge` module provides
+manual text drafts, explicit copy, on-device speech and selected-image Vision
+OCR without ChatGPT, Mac or third-party automation. The existing reminder
+workflow keeps separate approval. The plugin has a standalone read-only
+[tool catalog and manual fallback](plugins/iphone-connect/OPTIONAL_TOOLS.md);
+neither helper asserts phone connectivity. Physical use of new native code
+requires a freshly signed and installed iGentic build.
+
 This repository is intentionally small and controller-friendly. It is designed for a workflow where ChatGPT acts as the project controller through the GitHub Connector, Codex creates narrow Draft PRs, and real iPhone testing decides what is actually usable.
 
 ## Mission

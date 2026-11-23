@@ -15,7 +15,16 @@ test('official MCP client: discovery, strict schemas, resource and end-to-end na
   t.after(async () => { await client.close(); await rm(state, { recursive: true, force: true }); });
   await client.connect(transport);
   const tools = (await client.listTools()).tools;
-  assert.equal(tools.length, 13);
+  assert.equal(tools.length, 15);
+  assert.equal(tools.find(t => t.name === 'iphone_tool_catalog').annotations.readOnlyHint, true);
+  const optionalTools = await client.callTool({ name: 'iphone_tool_catalog', arguments: {} });
+  assert.equal(optionalTools.structuredContent.data.policy, 'all-optional-no-implicit-provider-fallback');
+  assert.equal(optionalTools.structuredContent.data.optionalProviders.find(p => p.id === 'mobilecli').installed, 'not-checked');
+  const offline = await client.callTool({ name: 'iphone_prepare_local_task',
+    arguments: { task: 'reminder', text: 'Test-Erinnerung' } });
+  assert.equal(offline.structuredContent.data.status, 'manual-handoff-only');
+  assert.equal(offline.structuredContent.data.deviceActionExecuted, false);
+  assert.equal(offline.structuredContent.data.approval, 'explicit-on-device-before-write');
   assert.equal(tools.find(t => t.name === 'iphone_native_launch_app').annotations.readOnlyHint, false);
 
   assert.equal(tools.find(t => t.name === 'iphone_native_app_status').annotations.readOnlyHint, true);
