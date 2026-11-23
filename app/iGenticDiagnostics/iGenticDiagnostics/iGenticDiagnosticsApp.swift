@@ -106,6 +106,58 @@ struct iGenticDiagnosticsApp: App {
                 print(physicalProbeStatus)
                 #endif
             }
+            #if DEBUG
+            .task {
+            // One strictly opt-in, own-app, synthetic physical acceptance:
+            // no AI model is invoked, and any preexisting owner task is
+            // NEVER touched. The only external receipt is fixed booleans.
+            guard ProcessInfo.processInfo.arguments.contains("--igentic-shortcuts-loop-smoke")
+            else { return }
+            let store = AgentLoopShortcutExchangeStore()
+            var outcome = "notVerified"
+            var didClear = false
+            do {
+                if try store.snapshot() != nil {
+                    outcome = "preexistingOwnerSessionSkipped"
+                } else {
+                    defer { try? store.clear() }
+                    let prompt = try store.begin(task: "Nenne eine Demo-Zimmerpflanze")
+                    _ = try store.receive(answer: "Demoantwort: Basilikum")
+                    let observed = try store.snapshot()
+                    if prompt.contains("Demo-Zimmerpflanze"),
+                       observed?.task == "Nenne eine Demo-Zimmerpflanze",
+                       observed?.answer == "Demoantwort: Basilikum",
+                       observed?.isAnswered == true {
+                        outcome = "syntheticLocalRoundTripVerified"
+                    }
+                    try store.clear()
+                    didClear = try store.snapshot() == nil
+                }
+            } catch {
+                outcome = "syntheticLocalRoundTripFailed"
+            }
+            let packet: [String: Any] = [
+                "schema": 1,
+                "mode": "synthetic-only",
+                "outcome": outcome,
+                "cleanedUp": didClear,
+                "chatGPTCalled": false,
+                "iOSActionExecuted": false,
+                "personalDataReturned": false
+            ]
+            if let directory = FileManager.default.urls(
+                for: .documentDirectory, in: .userDomainMask
+            ).first,
+            let data = try? JSONSerialization.data(
+                withJSONObject: packet, options: [.sortedKeys]
+            ) {
+                try? data.write(
+                    to: directory.appendingPathComponent("igentic-shortcuts-loop-smoke-receipt.json"),
+                    options: [.atomic, .completeFileProtectionUnlessOpen]
+                )
+            }
+            }
+            #endif
         }
     }
 }
@@ -208,6 +260,93 @@ struct iGenticPrepareAgentTaskIntent: AppIntent {
     }
 }
 
+// Apple Shortcuts can chain these three first-party actions around its built-in
+// "Use Model" action (including the ChatGPT extension). No OpenAI API key,
+// external iGentic server, synthetic model response or arbitrary iOS execution.
+@available(iOS 27.0, *)
+struct iGenticStartAILoopIntent: AppIntent {
+    static let title: LocalizedStringResource = "iGentic KI-Auftrag starten"
+    static let description = IntentDescription(
+        "Stores one bounded local request and returns the prompt for the next Shortcuts model action."
+    )
+    static let supportedModes: IntentModes = .background
+
+    @Parameter(title: "Frage")
+    var instruction: String
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ReturnsValue<String> {
+        let decision = PolicyEngine().decide(
+            PolicyRequest(
+                privacyMode: .localOnly,
+                dataClassification: DataClassification(
+                    level: .contextualPrivateData, reason: "Local model task preparation."
+                ),
+                actionRisk: .prepare, requestedDelegationTarget: .localDevice
+            )
+        )
+        guard decision.isAllowed, !decision.requiresApproval else {
+            throw iGenticDiagnosticsIntentError.policyDenied
+        }
+        return .result(value: try AgentLoopShortcutExchangeStore().begin(task: instruction))
+    }
+}
+
+@available(iOS 27.0, *)
+struct iGenticReadAILoopPromptIntent: AppIntent {
+    static let title: LocalizedStringResource = "iGentic KI-Prompt lesen"
+    static let description = IntentDescription(
+        "Returns the single locally prepared prompt to the owner's Shortcut; does not contact an AI provider."
+    )
+    static let supportedModes: IntentModes = .background
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ReturnsValue<String> {
+        let decision = PolicyEngine().decide(
+            PolicyRequest(
+                privacyMode: .localOnly,
+                dataClassification: DataClassification(
+                    level: .contextualPrivateData, reason: "Read a local pending AI prompt."
+                ),
+                actionRisk: .read, requestedDelegationTarget: .localDevice
+            )
+        )
+        guard decision.isAllowed, !decision.requiresApproval else {
+            throw iGenticDiagnosticsIntentError.policyDenied
+        }
+        return .result(value: try AgentLoopShortcutExchangeStore().pendingPrompt())
+    }
+}
+
+@available(iOS 27.0, *)
+struct iGenticReceiveAILoopAnswerIntent: AppIntent {
+    static let title: LocalizedStringResource = "iGentic KI-Antwort übernehmen"
+    static let description = IntentDescription(
+        "Stores one model response locally for owner review. Never executes an AI-proposed iPhone action."
+    )
+    static let supportedModes: IntentModes = .background
+
+    @Parameter(title: "Modellantwort")
+    var answer: String
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ReturnsValue<String> {
+        let decision = PolicyEngine().decide(
+            PolicyRequest(
+                privacyMode: .localOnly,
+                dataClassification: DataClassification(
+                    level: .contextualPrivateData, reason: "Receive untrusted model text locally."
+                ),
+                actionRisk: .prepare, requestedDelegationTarget: .localDevice
+            )
+        )
+        guard decision.isAllowed, !decision.requiresApproval else {
+            throw iGenticDiagnosticsIntentError.policyDenied
+        }
+        return .result(value: try AgentLoopShortcutExchangeStore().receive(answer: answer))
+    }
+}
+
 @available(iOS 16.0, *)
 struct iGenticDiagnosticsShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
@@ -236,6 +375,24 @@ struct iGenticDiagnosticsShortcuts: AppShortcutsProvider {
             ],
             shortTitle: "Agent Task Preview",
             systemImageName: "checklist"
+        )
+        AppShortcut(
+            intent: iGenticStartAILoopIntent(),
+            phrases: ["Start AI loop with \(.applicationName)"],
+            shortTitle: "KI-Auftrag starten",
+            systemImageName: "bubble.left.and.text.bubble.right"
+        )
+        AppShortcut(
+            intent: iGenticReadAILoopPromptIntent(),
+            phrases: ["Read AI prompt with \(.applicationName)"],
+            shortTitle: "KI-Prompt lesen",
+            systemImageName: "text.bubble"
+        )
+        AppShortcut(
+            intent: iGenticReceiveAILoopAnswerIntent(),
+            phrases: ["Receive AI answer with \(.applicationName)"],
+            shortTitle: "KI-Antwort übernehmen",
+            systemImageName: "tray.and.arrow.down"
         )
     }
 }

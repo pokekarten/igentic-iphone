@@ -158,3 +158,26 @@ execution** implied by these local App Intents. The private hosted Sites
 plugin remains an independent, manual-link-only workflow. Full architecture
 and the verified vs proposed capability boundaries are documented in
 [the native agent-loop design](../../docs/architecture/IGENTIC_CHATGPT_IPHONE_AGENT_LOOP.md).
+
+## iGentic → Apple Shortcuts → ChatGPT → iGentic (no API)
+
+A bounded, native, owner-controlled round trip is implemented using three
+local App Intents: **iGentic KI-Auftrag starten**, **iGentic KI-Prompt lesen**
+and **iGentic KI-Antwort übernehmen**. The app may launch the fixed custom
+shortcut **iGentic KI Loop** via Apple's supported URL scheme, with *no task
+text in the URL*. The owner configures **Use Model → Extension Model (ChatGPT)**
+as the middle step. The returned model response is saved and displayed in
+**iGentic Agent → KI-Antwort prüfen** and can be deleted locally. It is never
+executed as an iOS action.
+
+This does not grant remote-device control, create a hosted ChatGPT plugin,
+require an OpenAI API key or silently configure the user's Shortcuts. The
+new signed iGentic build and the user-created Shortcut are both needed on the
+phone; simulator tests do not prove the ChatGPT extension is available.
+Follow the [four-action Shortcuts setup and Siri variant](../../docs/architecture/IGENTIC_SHORTCUTS_CHATGPT_NO_API_LOOP.md).
+
+On 2026-11-23, the owner-signed build was installed on the real paired iPhone
+Air via Wi-Fi, and an app-owned, DEBUG-only synthetic Start → Receive →
+Store → Clear acceptance returned a fresh verified CoreDevice receipt. This
+proves the local app storage path, **not** a real ChatGPT/Apple Shortcuts model
+invocation. No OpenAI API, credential or user-data write was used.

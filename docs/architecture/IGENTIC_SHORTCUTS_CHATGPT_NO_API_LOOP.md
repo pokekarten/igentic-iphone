@@ -1,0 +1,149 @@
+# iGentic ↔ ChatGPT using Apple Shortcuts — no OpenAI API (iOS 27)
+
+## What is actually supported
+
+Apple Shortcuts on supported iPhones offers **Use Model → Extension Model →
+ChatGPT**. Its output can be passed as the next Shortcut action's text input.
+This uses Apple's ChatGPT integration, **not an OpenAI API key** and **not the
+owner-private ChatGPT Sites plugin**. The person must enable Apple Intelligence
+and ChatGPT integration (if available for this device, region, account and
+language); a provider may show its own consent/usage controls. Normal Siri can
+run a named Shortcut, but Siri's own conversational ChatGPT flow is distinct.
+
+Official documentation:
+- https://support.apple.com/en-mt/guide/shortcuts/tpg3vrvwmclv/10.0/ios/27
+- https://support.apple.com/en-ie/guide/shortcuts/apd624386f42/10.0/ios/27
+- https://help.openai.com/en/articles/10269382-setting-up-chatgpt-with-apple-intelligence
+
+The iGentic app **never** calls an OpenAI API, scrapes the ChatGPT app, reads
+account cookies or assumes the ChatGPT consumer app can return callbacks.
+Shortcuts is the actual supported model-response bridge.
+
+## Setup: one-time owner action on the real iPhone
+
+Prerequisites: a **new signed iGentic build including this PR** is installed,
+Apple Intelligence is available and enabled, and in Settings → Siri → ChatGPT
+the owner enabled the extension. Then, in Shortcuts create a custom shortcut
+named exactly:
+
+**iGentic KI Loop**
+
+Add these actions **in this order**:
+
+1. **iGentic KI-Prompt lesen** — no input. Reads the current prepared request
+   only from the iGentic sandbox and returns the complete plain-text prompt.
+   The task does not appear in the launcher URL.
+2. **Modell verwenden / Use Model** — choose **Extension Model (ChatGPT)**.
+   Set the prompt input to the prior action's variable **KI-Prompt**.
+   Disable interactive Follow Up for this first deterministic test. Set the
+   output to **Text** where offered. The model action is the only external
+   step; Shortcuts/Apple may show a first-time provider consent prompt.
+   Alternatively choose **On-Device** as an API-free and network-free fallback.
+3. **iGentic KI-Antwort übernehmen** — feed the preceding **Model Response**
+   variable into the **Modellantwort** parameter. This app intent stores the
+   untrusted text in the protected iGentic app container. No model output
+   becomes a device action.
+4. **App öffnen / Open App** — select **iGentic Diagnostics**. In the app,
+   choose **iGentic Agent → KI-Antwort prüfen** to read, evaluate and delete.
+
+**Run from the iGentic app:** open iGentic Agent, type a task, tap
+**KI-Auftrag lokal vorbereiten**, then **iGentic KI Loop in Kurzbefehle
+starten**. iGentic launches only the **fixed shortcut name** through Apple's
+documented shortcuts URL scheme. No user text, token, ID or private content
+is embedded in that URL. The shortcut must already have been installed by the
+owner; an unconfigured shortcut does not constitute a successful model call.
+
+## Siri-first variant (without opening iGentic beforehand)
+
+Create a second shortcut with a distinguishable name such as
+**iGentic Frage**, consisting of:
+
+1. **Eingabe abfragen / Ask for Input** (Text), or use dictated text.
+2. **iGentic KI-Auftrag starten** — insert the entered text in **Frage**;
+   its output is a complete model prompt and stores the pending exchange.
+3. **Modell verwenden → Extension Model (ChatGPT)**, with the previous
+   prompt as input.
+4. **iGentic KI-Antwort übernehmen**, with the Model Response as input.
+5. **App öffnen → iGentic Diagnostics**; review result manually.
+
+Say **"Siri, iGentic Frage"** to invoke the shortcut if iOS exposes the
+chosen custom shortcut name. This is ordinary Siri → Shortcuts invocation,
+not iGentic programmatically commanding Siri's dialogue system.
+
+## Trust and lifecycle
+
+- Owner must configure and run the Shortcut. The model provider is selected
+  in Shortcuts, not by iGentic. An Apple Intelligence account/region setting
+  may block ChatGPT; use the On-Device model when supported.
+- One active local exchange at a time; entering a second task while an old one
+  is stored fails until the owner deletes the first.
+- One locally initiated task, up to 512 characters / 2 KiB; known IBAN/email/
+  phone patterns are blocked from this automatic model-prompt route. This is
+  a heuristic, **not a guarantee that all private content is detected**.
+- One model answer, up to 8 KiB, must arrive within 30 minutes. Empty text,
+  control characters, duplicate results and expired results fail closed.
+- Stores one local JSON file with iOS file protection and restricted filesystem
+  permissions. No server, analytics, background polling, chat history import
+  or transparent sync. The user can clear task and response from the app.
+- Model output is **untrusted text**, including model-suggested Shortcuts
+  names or instructions. It is displayed for review only; neither this
+  module nor the receive App Intent has any action execution API.
+- The local pending exchange proves sequential state, **not cryptographic
+  provenance of the provider**. Any owner-authorized Shortcut that knows
+  these first-party actions can supply a reply while one task is pending.
+  Write/other-app actions require separate native policies and owner approval.
+- Protected file may be inaccessible while iPhone is locked. If Shortcuts
+  cannot complete after lock or app suspension, rerun after unlocking; do not
+  assert guaranteed background delivery.
+
+## Acceptance plan and evidence boundaries
+
+1. **Mac Swift package tests:** start → saved prompt → reply → app inbox;
+   reject sensitive, invalid, stale and replayed text.
+2. **Xcode simulator:** new iOS App Intents compile, App Home and inbox render.
+   System AppIntentsTesting might be blocked by the observed Apple Customer
+   build restriction (Code 803). Neither simulation nor a test fixture is
+   physical ChatGPT provider evidence.
+3. **Physical iPhone:** install a new owner-signed build; configure the
+   Shortcut in Shortcuts, enable the ChatGPT extension and run a real question.
+   Verify the exact text appears back in iGentic and no write occurred.
+4. **Siri:** invoke the Siri-first named Shortcut on the real phone and repeat.
+5. **Model fallback:** test On-Device separately, including offline operation.
+   Note that On-Device and ChatGPT responses are independent providers.
+6. Keep the existing owner-private Sites handoff plugin unchanged. The
+   **ChatGPT → iPhone via direct plugin tool** remains a distinct future
+   authenticated MCP project; this release implements the **iPhone/Siri →
+   Shortcuts → ChatGPT → iGentic** loop only.
+
+## Actual acceptance on physical iPhone — 2026-11-23
+
+On the owner's paired physical iPhone Air, over CoreDevice **Wi-Fi**:
+
+- Owner's existing local development signing profile matched the device and
+  the exact installed iGentic app bundle. A new iOS 27 build was signed,
+  installed in-place, and the app launched successfully (exit status 0).
+- A gated **DEBUG-only** first-party device smoke ran with a fixed synthetic
+  plant request and fixed synthetic response, directly inside the signed app.
+  The app created its local pending exchange, accepted a local answer,
+  independently read the same answer from its protected store, and cleared
+  the fixture afterward.
+- A strict fixed-schema, app-owned receipt was retrieved independently through
+  Apple's CoreDevice app-container file-copy. It reported
+  syntheticLocalRoundTripVerified, cleanedUp=true,
+  chatGPTCalled=false, iOSActionExecuted=false and
+  personalDataReturned=false. No unique device IDs or user task contents
+  were exported.
+- The simulator build passed App Intents metadata extraction after correcting
+  Siri phrase interpolation. A separate simulator UI test passed for opening
+  the native iGentic AI inbox. Earlier attempts to test in-screen start
+  via XCUITest were not reliable because accessibility/scrolling queries
+  failed; the hardware smoke above instead tests the real store layer.
+- Local Swift package tests passed, including six tests for this exchange's
+  replay, expiry, validation, protected storage lifecycle and untrusted-output
+  behavior.
+
+This is **not** evidence of a real Shortcuts Use Model provider call,
+ChatGPT mobile-app invocation, Siri voice recognition, ChatGPT Site plugin
+return connection, phone screen automation or external device write. A
+user-configured iGentic KI Loop Shortcut with ChatGPT Extension Model
+must still be created and independently tested on the phone.

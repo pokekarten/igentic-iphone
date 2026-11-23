@@ -68,6 +68,25 @@ final class DiagnosticsUITests: XCTestCase {
     }
 
     @MainActor
+    func testAgentLoopInboxOpensWithoutCallingExternalModel() {
+        // This is a UI-only acceptance. The pure Swift store tests cover the
+        // Start → Receive → Review protocol and failures; Apple's customer
+        // AppIntentsTesting environment does not run the real ChatGPT model.
+        let app = XCUIApplication()
+        app.launch()
+        let confirm = app.buttons["Confirm and continue"]
+        if confirm.waitForExistence(timeout: 10) { confirm.tap() }
+        guard let entry = scrollToControl("igentic-open-agent-home", in: app) else { return }
+        entry.tap()
+        XCTAssertTrue(app.navigationBars["iGentic Agent"].waitForExistence(timeout: 15))
+        guard let inbox = scrollToControl("igentic-loop-open-inbox", in: app) else { return }
+        inbox.tap()
+        XCTAssertTrue(app.navigationBars["KI-Antwort prüfen"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Kein offener KI-Auftrag"].waitForExistence(timeout: 10))
+        // No model or OS Shortcuts actions are invoked by this navigation.
+    }
+
+    @MainActor
     private func scrollToControl(_ identifier: String, in app: XCUIApplication) -> XCUIElement? {
         // Use a stable accessibility identifier, not a SwiftUI-dependent
         // Button/Link element type; a row may be virtualized while off-screen.
@@ -75,7 +94,9 @@ final class DiagnosticsUITests: XCTestCase {
         for attempt in 0...6 {
             if control.exists && control.isHittable { return control }
             if attempt == 6 { break }
-            if app.collectionViews.firstMatch.exists {
+            if app.scrollViews.firstMatch.exists {
+                app.scrollViews.firstMatch.swipeUp()
+            } else if app.collectionViews.firstMatch.exists {
                 app.collectionViews.firstMatch.swipeUp()
             } else if app.tables.firstMatch.exists {
                 app.tables.firstMatch.swipeUp()

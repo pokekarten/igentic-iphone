@@ -8,6 +8,11 @@ public struct AgentHomePrototypeView: View {
     @State private var submitted = ""
     @State private var proposal: AgentHomeProposal?
     @State private var statusText: String?
+    @State private var loopMessage: String?
+    @State private var loopReady = false
+    private let loopStore = AgentLoopShortcutExchangeStore()
+    // Fixed own workflow name, no task, user ID, secrets, or result in the URL.
+    private let loopShortcutURL = URL(string: "shortcuts://run-shortcut?name=iGentic%20KI%20Loop")!
     @Environment(\.dismiss) private var dismiss
 
     public init() {}
@@ -74,6 +79,40 @@ public struct AgentHomePrototypeView: View {
                     .accessibilityIdentifier("igentic-agent-proposal")
                 }
 
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("ChatGPT-Loop ohne API").font(.headline)
+                    Text("Auftrag lokal vorbereiten → eigener Kurzbefehl → „Modell verwenden“ (ChatGPT) → KI-Antwort lokal empfangen.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                    Button("KI-Auftrag lokal vorbereiten") {
+                        do {
+                            _ = try loopStore.begin(task: input)
+                            loopReady = true
+                            loopMessage = "Auftrag lokal bereit. Der Kurzbefehl muss auf deinem iPhone eingerichtet sein."
+                        } catch {
+                            loopReady = false
+                            loopMessage = "Nicht vorbereitet: Bitte einen gültigen Auftrag eingeben, sensible Angaben entfernen oder den vorherigen Auftrag in der KI-Antwort-Ansicht löschen."
+                        }
+                    }
+                    .disabled(input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .accessibilityIdentifier("igentic-loop-prepare")
+                    if loopReady {
+                        Link(destination: loopShortcutURL) {
+                            Label("iGentic KI Loop in Kurzbefehle starten",
+                                  systemImage: "play.circle")
+                        }
+                        .accessibilityIdentifier("igentic-loop-launch-shortcut")
+                    }
+                    Text(loopMessage ?? "Noch kein KI-Auftrag vorbereitet.")
+                        .font(.footnote)
+                        .accessibilityIdentifier("igentic-loop-prepare-result")
+                    NavigationLink("KI-Antwort prüfen") { AgentLoopInboxView() }
+                        .accessibilityIdentifier("igentic-loop-open-inbox")
+                    Text("Vor dem Aufruf des ChatGPT-Erweiterungsmodells entscheidet deine Kurzbefehle-Konfiguration über das Senden. iGentic verschickt nichts selbst.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                .padding(14)
+                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+
                 VStack(alignment: .leading, spacing: 8) {
                     Button("iPhone-Status lokal lesen") {
                         statusText = AgentLoopDeviceStatusReader.read().shortcutSummary
@@ -104,6 +143,15 @@ public struct AgentHomePrototypeView: View {
         }
         .navigationTitle("iGentic Agent")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            if let state = try? loopStore.snapshot() {
+                let age = Date().timeIntervalSince(state.createdAt)
+                loopReady = !state.isAnswered
+                    && age >= 0 && age <= AgentLoopShortcutExchangeStore.expiration
+            } else {
+                loopReady = false
+            }
+        }
     }
 
     @ViewBuilder
