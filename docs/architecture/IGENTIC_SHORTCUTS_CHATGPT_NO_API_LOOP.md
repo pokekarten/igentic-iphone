@@ -212,3 +212,37 @@ Use Model, and retain taskId locally for the receive intent. Never send the
 whole JSON package to the model: the ID is correlation rather than a cloud
 credential, but sending it serves no purpose. The normal guided five-step
 workflow continues to offer simpler separate Prompt and ID actions.
+
+
+## Auto-registered native shortcuts vs owner-installed workflow (2026-11-23)
+
+The native `iGenticDiagnosticsShortcuts: AppShortcutsProvider` now **features four**
+first-party shortcuts: fixed diagnostics, local device status, agent task
+preview, and local AI task preparation. iOS registers those with the installed
+signed app, exposing them via Siri, Spotlight and Shortcuts; they do not depend
+on creating a personal shortcut or an OpenAI API subscription.
+
+The underlying task ID, prompt, ticket, reply-receive, loop-token, and
+model-reply-review `AppIntent` types remain available as *individual actions*
+when the owner edits a Shortcut. They are deliberately **not** all featured
+as standalone App Shortcuts. Apple recommends focusing on a few common tasks.
+
+The in-app guide provides a first-party `ShortcutsLink` that opens iGentic's
+App Shortcuts page. This is discovery, not proof of a successful invocation.
+
+The **multi-app** workflow `iGentic KI Loop` still needs one explicit owner
+setup in the Shortcuts editor, including selecting the ChatGPT extension model
+(or a suitable on-device model) and confirming permissions. The
+`shortcuts://create-shortcut` link creates only a *blank* editor, and
+`shortcuts://run-shortcut?name=...` can launch only a previously installed
+owner shortcut. Neither link can install, configure or attest a model step.
+No credentials, task text or private data are embedded in either link.
+
+Offline verification: Swift package tests, Xcode simulator build and
+App Intents metadata extraction. Physical iPhone Siri/Shortcuts discovery,
+provider selection, model call and return remain separate acceptance gates.
+
+Apple:
+- https://developer.apple.com/documentation/appintents/app-shortcuts
+- https://developer.apple.com/documentation/appintents/shortcutslink
+- https://developer.apple.com/documentation/appintents/acceleratingappinteractionswithappintents

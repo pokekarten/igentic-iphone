@@ -1,5 +1,6 @@
 #if os(iOS) && canImport(SwiftUI)
 import SwiftUI
+import AppIntents
 
 /// Human-approved setup instructions. No access to the Shortcuts library,
 /// Siri conversations, ChatGPT tokens or automated iOS UI control.
@@ -18,8 +19,18 @@ public struct AgentLoopShortcutSetupView: View {
                 Text("iGentic → Kurzbefehle → ChatGPT oder lokales Modell → iGentic. Kein eigener OpenAI-API-Schlüssel erforderlich.")
                     .font(.subheadline)
 
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Automatisch mit iGentic verfügbar").font(.headline)
+                    Text("Nach Installation der neuen iGentic-App erscheinen vier App Shortcuts in Siri, Spotlight und Kurzbefehle: Diagnose prüfen, iPhone-Status lesen, Agent-Aufgabe vorbereiten und KI-Auftrag starten.")
+                    ShortcutsLink()
+                        .accessibilityIdentifier("igentic-native-app-shortcuts")
+                    Text("Diese nativen Aktionen benötigen keinen Import. Die weiteren iGentic-Schritte für den KI-Loop findest du als einzelne Aktionen im Kurzbefehle-Editor. Keine dieser Aktionen ruft ChatGPT selbst auf.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                .accessibilityIdentifier("igentic-auto-shortcuts-guide")
+
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("1. Kurzbefehl anlegen").font(.headline)
+                    Text("1. ChatGPT-Kurzbefehl einmalig verbinden").font(.headline)
                     Text("Erstelle einen eigenen Kurzbefehl mit exakt diesem Namen:")
                     Text(AgentLoopShortcutSetup.primaryShortcutName)
                         .font(.headline.monospaced())
@@ -78,7 +89,7 @@ public struct AgentLoopShortcutSetupView: View {
                         .font(.caption).foregroundStyle(.secondary)
                 }
 
-                Text("iGentic kann weder erkennen, ob ChatGPT in Apples Einstellungen aktiviert ist, noch einen privaten Kurzbefehl automatisch installieren. Nutze bei fehlendem ChatGPT-Erweiterungsmodell ersatzweise das lokale Modell, sofern es auf deinem iPhone verfügbar ist.")
+                Text("Die vier eingebauten App Shortcuts installiert iOS automatisch mit der App. Den zusätzlichen mehrstufigen ChatGPT-Kurzbefehl kann iGentic nicht still in deine private Kurzbefehle-Sammlung schreiben. Ebenso kann die App die ChatGPT-Aktivierung nicht zuverlässig erkennen. Wenn das Erweiterungsmodell fehlt, verwende ein verfügbares lokales Modell.")
                     .font(.footnote).foregroundStyle(.secondary)
             }
             .padding()

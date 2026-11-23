@@ -473,15 +473,18 @@ struct iGenticReviewModelReplyIntent: AppIntent {
 }
 
 @available(iOS 16.0, *)
+// Featured shortcuts are installed by iOS with the app (no manual import).
+// Keep the catalog small: the other typed App Intents remain available as
+// building blocks in the Shortcuts editor for owner-configured AI workflows.
 struct iGenticDiagnosticsShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
         AppShortcut(
-                intent: iGenticReadOnlyDiagnosticsIntent(),
-                phrases: [
-                    "Check diagnostics in \(.applicationName)",
-                    "Show diagnostics in \(.applicationName)"
-                ],
-                shortTitle: "Check Diagnostics",
+            intent: iGenticReadOnlyDiagnosticsIntent(),
+            phrases: [
+                "Check diagnostics in \(.applicationName)",
+                "Show diagnostics in \(.applicationName)"
+            ],
+            shortTitle: "Check Diagnostics",
             systemImageName: "checkmark.shield"
         )
         AppShortcut(
@@ -506,46 +509,6 @@ struct iGenticDiagnosticsShortcuts: AppShortcutsProvider {
             phrases: ["Start AI loop with \(.applicationName)"],
             shortTitle: "KI-Auftrag starten",
             systemImageName: "bubble.left.and.text.bubble.right"
-        )
-        AppShortcut(
-            intent: iGenticReadAILoopPromptIntent(),
-            phrases: ["Read AI prompt with \(.applicationName)"],
-            shortTitle: "KI-Prompt lesen",
-            systemImageName: "text.bubble"
-        )
-        AppShortcut(
-            intent: iGenticReadAILoopTicketIntent(),
-            phrases: ["Read AI task ticket with \(.applicationName)"],
-            shortTitle: "KI-Auftragspaket",
-            systemImageName: "doc.text"
-        )
-        AppShortcut(
-            intent: iGenticReadAILoopTaskIDIntent(),
-            phrases: ["Read AI task ID with \(.applicationName)"],
-            shortTitle: "KI-Auftrags-ID",
-            systemImageName: "number"
-        )
-        AppShortcut(
-            intent: iGenticReceiveAILoopAnswerIntent(),
-            phrases: ["Receive AI answer with \(.applicationName)"],
-            shortTitle: "KI-Antwort übernehmen",
-            systemImageName: "tray.and.arrow.down"
-        )
-        AppShortcut(
-            intent: iGenticCreateLoopTokenIntent(),
-            phrases: [
-                "Create a loop token with \(.applicationName)"
-            ],
-            shortTitle: "Loop Token",
-            systemImageName: "number"
-        )
-        AppShortcut(
-            intent: iGenticReviewModelReplyIntent(),
-            phrases: [
-                "Review a model reply with \(.applicationName)"
-            ],
-            shortTitle: "Review Model Reply",
-            systemImageName: "checkmark.shield"
         )
     }
 }
