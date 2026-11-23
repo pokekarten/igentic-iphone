@@ -64,3 +64,41 @@ public enum CellularHeartbeatProtocol {
     }
     #endif
 }
+
+/// Per-request synchronization between URLSession's task completion and its
+/// potentially later didFinishCollecting metrics callback. Never infer a radio
+/// from a URLSession success. Only a bounded wait is allowed: no metrics must
+/// remain "not verified" rather than a guessed cellular success.
+final class CellularTransportObservation: @unchecked Sendable {
+    private let lock = NSLock()
+    private var capturedFlags: [Bool]?
+
+    func record(_ flags: [Bool]) {
+        lock.lock()
+        if capturedFlags == nil { capturedFlags = flags }
+        lock.unlock()
+    }
+
+    func snapshot() -> [Bool]? {
+        lock.lock()
+        defer { lock.unlock() }
+        return capturedFlags
+    }
+
+    func waitForEvidence(
+        attempts: Int = 12, pollDelay: Duration = .milliseconds(100)
+    ) async -> String {
+        guard attempts > 0 else { return "transport-not-verified" }
+        for attempt in 0..<attempts {
+            if let flags = snapshot() {
+                return CellularHeartbeatProtocol.classifyTransport(
+                    transactionCellularFlags: flags
+                )
+            }
+            if attempt + 1 < attempts {
+                try? await Task.sleep(for: pollDelay)
+            }
+        }
+        return "transport-not-verified"
+    }
+}
