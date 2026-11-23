@@ -25,7 +25,7 @@ final class DeviceContractsTests: XCTestCase {
     @available(iOS 18.0, *)
     func testNativeShortcutPerformsOCRAndReturnsMinimalReceipt() async throws {
         let id = UUID()
-        var intent = CheckImageIntent()
+        let intent = CheckImageIntent()
         intent.link = "fieldglass://experiment/v1?id=\(id.uuidString)&term=ORBIT&region=top"
         let data = await MainActor.run { Reader.sample() }
         intent.image = IntentFile(data: data, filename: "example.png", type: .png)

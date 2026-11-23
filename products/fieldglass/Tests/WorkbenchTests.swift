@@ -11,6 +11,18 @@ final class WorkbenchTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Im gewählten Bereich wurde kein Treffer erkannt."].waitForExistence(timeout: 30))
     }
 
+    func testKeyboardSearchRunsOCR() {
+        let app = XCUIApplication()
+        app.launch()
+        app.buttons["run"].swipeUp()
+        let term = app.textFields["term"]
+        term.tap()
+        term.typeText("XYZ\n")
+        XCTAssertTrue(app.staticTexts["reading-ready"].waitForExistence(timeout: 30))
+        XCTAssertEqual(app.staticTexts["reading-ready"].label, "Im gewählten Bereich wurde kein Treffer erkannt.")
+        XCTAssertFalse(app.keyboards.firstMatch.exists)
+    }
+
     func testNativeWorkspace() {
         let app = XCUIApplication()
         func open(_ action: String, _ text: String) {

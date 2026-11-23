@@ -20,9 +20,9 @@ struct LocalLanguage: View {
             Button("Text zusammenfassen") { summarize() }
                 .disabled(running || text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             if running { Button("Bearbeitung stoppen") { cancel(); message = "Bearbeitung gestoppt." } }
-            if let message { Text(message).foregroundStyle(.secondary) }
+            if let message { Text(message).foregroundStyle(.secondary).accessibilityIdentifier("language-status") }
             if let generated {
-                Text(generated).textSelection(.enabled)
+                Text(generated).textSelection(.enabled).accessibilityIdentifier("language-result")
                 Button("Als Entwurf übernehmen") { text = generated; self.generated = nil }
                 ShareLink("Ergebnis teilen", item: generated)
             }

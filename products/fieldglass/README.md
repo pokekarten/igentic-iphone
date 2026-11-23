@@ -9,7 +9,7 @@ Fieldglass ist eine eigenständige iOS-Werkbank mit lokalem MCP-Plugin. Ein Expe
 3. Unter „Letzte Ergebnisse“ die zwei Berichte ansehen oder teilen. Im Plugin vergleicht `compare_results` die beiden JSON-Berichte in der angegebenen Reihenfolge. Ein Bericht enthält Laufkennung, Quelle, Geräteklasse, Bereich und OCR-Ausgang. Der Suchtext und das Foto bleiben außerhalb des Berichts.
 4. Für ein eigenes Bild „Bild auswählen“ verwenden. Der System-Picker übergibt das ausgewählte Bild. „Werkzeuge öffnen“ bietet Gerätestatus, Textentwurf, Vorlesen und Erinnerungen.
 
-Im Chat kann man mit `prepare_experiment` einen beliebigen Suchtext mit ganzem Bild, oberer oder unterer Hälfte kombinieren. Den erzeugten Link auf dem iPhone öffnen oder in „Auftrag laden“ einfügen. Die App startet die Bildprüfung auf Knopfdruck. Suchtext und Entwurf stehen im Link im Klartext. Für persönliche Inhalte kann man beides direkt in der App eingeben. Die letzten zwei OCR-Ergebnisse bleiben im Arbeitsspeicher. Geteilte JSON-Berichte sind Angaben des Absenders und enthalten keine Signatur.
+Im Chat kann man mit `prepare_experiment` einen beliebigen Suchtext mit ganzem Bild, oberer oder unterer Hälfte kombinieren. Den erzeugten Link auf dem iPhone öffnen oder in „Auftrag laden“ einfügen. Die App startet die Bildprüfung über „Jetzt prüfen“ oder über die Suchtaste der Bildschirmtastatur. Suchtext und Entwurf stehen im Link im Klartext. Für persönliche Inhalte kann man beides direkt in der App eingeben. Die letzten zwei OCR-Ergebnisse bleiben im Arbeitsspeicher. Geteilte JSON-Berichte sind Angaben des Absenders und enthalten keine Signatur.
 
 Im Textentwurf lassen sich ausgewählte deutsche Audiodateien über Speech transkribieren. Der Auftrag verwendet ausschließlich lokale Spracherkennung. „Text zusammenfassen“ verwendet ab iOS 26 das verfügbare Apple-Systemmodell. Transkript und Zusammenfassung werden zur Übernahme oder zum Teilen angezeigt. Die App erklärt fehlende Geräteunterstützung direkt im Entwurf.
 
@@ -36,12 +36,16 @@ In Xcode das Scheme Fieldglass auswählen und auf einem Simulator starten. Die H
 
 Für die Weitergabe aus einem Git-Checkout erzeugt `scripts/package-source.sh` ein ZIP der eingecheckten Produktquellen und eine SHA-256-Prüfsumme unter `dist/`. Das entpackte Verzeichnis enthält App, Plugin, Tests und Marketplace-Manifest. Dort gelten die gleichen Installationsschritte.
 
+## Ohne WLAN
+
+Der Mac kann einen Auftrag per USB-Datenkabel an die installierte App übergeben, sobald Apple das entsperrte, gekoppelte iPhone erreicht. Prüfe dafür im Gerätekanal `device_status`. Der manuelle Import eines bereits vorhandenen Links und Vision-OCR laufen in der installierten App auch offline. Ein Link kann über einen vom Nutzer gewählten Kanal zum Telefon gelangen. Eine Fernsitzung über Mobilfunk würde einen eigenen, authentifizierten Internetkanal erfordern und ist noch offen.
+
 ## Kanäle und Werkzeuge
 
 | Kanal | Einrichtung | Werkzeuge |
 | --- | --- | --- |
 | Manuelle Übergabe | Standard, auch ohne Xcode am MCP-Host | get_channels (interaktive Oberfläche), prepare_experiment, prepare_workspace, read_result, compare_results |
-| Mac → Simulator / iPhone | Im MCP-Serverprozess FIELDGLASS_CHANNEL auf simulator oder device setzen und FIELDGLASS_TARGET auf die lokale Geräte-ID. Die App muss installiert sein. | deliver_experiment und deliver_workspace laden einen Auftrag. submitted bedeutet, dass Apples Werkzeug den Auftrag angenommen hat. |
+| Mac → Simulator / iPhone | Im MCP-Serverprozess FIELDGLASS_CHANNEL auf simulator oder device setzen und FIELDGLASS_TARGET auf die lokale Geräte-ID. Die App muss installiert sein. | deliver_experiment und deliver_workspace öffnen den Link. `submitted` bedeutet, dass Apples Werkzeug die Öffnung angenommen hat; `delivery-unconfirmed` bedeutet, dass der Aufruf kein bestätigtes Ergebnis lieferte und der Gerätezustand geprüft werden muss. |
 | Physische Verbindung | Konfiguriertes iPhone am Mac. | device_status prüft, ob Apple das ausgewählte physische iPhone als verbunden meldet. |
 | Simulatorlabor | Simulatorziel wie oben. | simulator_status, simulator_app zum Starten und Beenden von Fieldglass |
 | Lokale Medien | Zusätzlich FIELDGLASS_CAPTURE=local. | simulator_screenshot, simulator_record_clip (2–10 Sekunden). Die gesamte Simulatoranzeige wird aufgenommen. Der Server liefert Pfad und Größe. Dateien liegen in ~/Library/Application Support/Fieldglass/Captures und bleiben bis zur lokalen Löschung erhalten. |
@@ -69,6 +73,8 @@ Für den eigenen Treiber nach dem Build die erzeugte .xctestrun-Datei unter Buil
 ```sh
 FIELDGLASS_SMOKE_TARGET=SIMULATOR_UUID FIELDGLASS_XCTESTRUN=/absoluter/pfad/Fieldglass.xctestrun node plugin/scripts/acceptance-client.mjs lab
 ```
+
+Mit der Option `lab-inputs` anstelle von `lab` prüft derselbe Client Doppeltap, Halten, Ziehen, Wischen, Texteingabe mit Suchtaste und den Abbruch bei einem fehlenden Ziel in der Fieldglass-App.
 
 Produktentscheidungen, Quellen und ausstehende Abnahmen stehen in [PRODUCT.md](PRODUCT.md).
 

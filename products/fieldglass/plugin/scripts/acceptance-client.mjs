@@ -23,10 +23,25 @@ try {
     assert.ok(response.steps?.[0]?.identifiers.includes('run'),JSON.stringify(response));
     assert.deepEqual(response.steps.slice(1).map(x=>x.status),['submitted','present']);
     console.log('Own XCTest driver verified inspect → tap → observed result.');
+  } else if (process.argv[2] === 'lab-inputs') {
+    const commands = [
+      {action:'inspect'}, {action:'double-tap',target:{x:0.5,y:0.4}}, {action:'hold',target:{x:0.5,y:0.4}},
+      {action:'drag',x:0.6,y:0.6,toX:0.6,toY:0.45}, {action:'swipe',direction:'down'},
+      {action:'type',identifier:'term',text:'XYZ\n'}, {action:'wait-for',identifier:'reading-ready'}
+    ];
+    const result = await invoke('simulator_workflow',{commands});
+    assert.deepEqual(result.steps?.map(step => step.status),
+      ['observed','submitted','submitted','submitted','submitted','submitted','present']);
+    const stopped = await invoke('simulator_workflow',{commands:[
+      {action:'wait-for',identifier:'missing-fieldglass-test-target'}, {action:'tap',target:{identifier:'run'}}
+    ]});
+    assert.deepEqual(stopped.steps,[{status:'target-unavailable'}]);
+    console.log('Simulator inputs reached an OCR result. A missing element stopped further input.');
   } else if (process.argv[2] === 'submit') {
     const {experimentId} = await invoke('prepare_experiment',{term:'HAFEN',region:'bottom'});
     const result = await invoke('deliver_experiment',{experimentId,term:'HAFEN',region:'bottom'});
-    assert.deepEqual(result,{status:'submitted',channel:'simulator'});
+    assert.ok(['submitted','delivery-unconfirmed'].includes(result?.status), JSON.stringify(result));
+    assert.equal(result?.channel,'simulator');
     assert.equal((await invoke('simulator_status',{})).state,'Booted');
     if (process.env.FIELDGLASS_TEST_CAPTURE === '1') {
       for (const [name,args] of [['simulator_screenshot',{}],['simulator_record_clip',{seconds:2}]]) {

@@ -37,13 +37,57 @@ struct WorkspaceJob: Identifiable {
     }
 }
 
-private final class Speaker: ObservableObject {
-    let synth = AVSpeechSynthesizer()
+@MainActor private final class Speaker: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
+    private let synth = AVSpeechSynthesizer()
+    private var current: AVSpeechUtterance?
+    @Published private(set) var message: String?
+
+    override init() {
+        super.init()
+        synth.delegate = self
+    }
+
     func speak(_ text: String) {
-        synth.stopSpeaking(at: .immediate)
+        stop()
         let utterance = AVSpeechUtterance(string: text)
         utterance.voice = AVSpeechSynthesisVoice(language: "de-DE")
+        utterance.accessibilityLabel = UUID().uuidString
+        current = utterance
+        message = "Sprachausgabe angefordert."
         synth.speak(utterance)
+    }
+
+    func stop() {
+        current = nil
+        synth.stopSpeaking(at: .immediate)
+        message = nil
+    }
+
+    func stop(with feedback: String) {
+        current = nil
+        synth.stopSpeaking(at: .immediate)
+        message = feedback
+    }
+
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didStart utterance: AVSpeechUtterance) {
+        report("Text wird vorgelesen.", utterance: utterance, finished: false)
+    }
+
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
+        report("Vorlesen abgeschlossen.", utterance: utterance, finished: true)
+    }
+
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
+        report("Sprachausgabe unterbrochen.", utterance: utterance, finished: true)
+    }
+
+    private nonisolated func report(_ feedback: String, utterance: AVSpeechUtterance, finished: Bool) {
+        let identifier = ObjectIdentifier(utterance)
+        Task { @MainActor in
+            guard let active = current, ObjectIdentifier(active) == identifier else { return }
+            message = feedback
+            if finished { current = nil }
+        }
     }
 }
 
@@ -93,19 +137,21 @@ struct WorkspaceActions: View {
                             .disabled(!validText)
                         if let statusDraft { ShareLink("Entwurf teilen", item: statusDraft) }
                     case .speak:
-                        Button("Vorlesen starten") { speaker.speak(text); status = "Sprachausgabe angefordert." }.disabled(!validText)
-                        Button("Vorlesen stoppen") { speaker.synth.stopSpeaking(at: .immediate); status = "Sprachausgabe gestoppt." }
+                        Button("Vorlesen starten") { status = nil; speaker.speak(text) }.disabled(!validText)
+                        Button("Vorlesen stoppen") { speaker.stop(with: "Sprachausgabe gestoppt."); status = nil }
                     case .reminder:
                         Button("Speichern prüfen") { confirming = true }.disabled(!validText || saving || attempted)
                     }
-                    if let status { Text(status).accessibilityIdentifier("actionStatus") }
+                    if let feedback = action == .speak ? (speaker.message ?? status) : status {
+                        Text(feedback).accessibilityIdentifier("actionStatus")
+                    }
                 }
                 if action == .draft { LocalLanguage(text: $text) }
             }
             .navigationTitle("Werkzeuge")
             .toolbar { Button("Fertig") { dismiss() }.disabled(saving) }
             .onChange(of: text) { resetResult() }.onChange(of: action) { resetResult() }
-            .onDisappear { speaker.synth.stopSpeaking(at: .immediate) }
+            .onDisappear { speaker.stop() }
             .interactiveDismissDisabled(saving)
             .alert("In der Standardliste speichern?", isPresented: $confirming) {
                 Button("Abbrechen", role: .cancel) {}
@@ -120,7 +166,7 @@ struct WorkspaceActions: View {
 
     private var validText: Bool { !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && text.utf8.count <= 480 }
     private func resetResult() {
-        statusDraft = nil; status = nil; attempted = false; speaker.synth.stopSpeaking(at: .immediate)
+        statusDraft = nil; status = nil; attempted = false; speaker.stop()
     }
 
     @MainActor private func saveReminder(_ title: String) async {

@@ -10,6 +10,8 @@
 <key>NSRemindersFullAccessUsageDescription</key><string>Fieldglass legt die von dir bestätigte Erinnerung in deiner Standardliste an.</string>
 <key>NSSpeechRecognitionUsageDescription</key><string>Fieldglass transkribiert die ausgewählte Audiodatei lokal auf diesem Gerät.</string>
 <key>UISupportedInterfaceOrientations</key><array><string>UIInterfaceOrientationPortrait</string><string>UIInterfaceOrientationPortraitUpsideDown</string><string>UIInterfaceOrientationLandscapeLeft</string><string>UIInterfaceOrientationLandscapeRight</string></array>
+<key>UIFileSharingEnabled</key><true/>
+<key>LSSupportsOpeningDocumentsInPlace</key><true/>
 <key>UILaunchScreen</key><dict/>
 <key>CFBundleURLTypes</key><array><dict><key>CFBundleURLSchemes</key><array><string>fieldglass</string></array></dict></array>
 </dict></plist>

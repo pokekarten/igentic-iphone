@@ -14,6 +14,8 @@ struct Workbench: View {
     @State private var source = "example"
     @State private var selection: PhotosPickerItem?
     @State private var generation = UUID()
+    @FocusState private var editingTerm: Bool
+    @State private var latestCheckSucceeded = false
     @State private var busy = false
     @State private var readings: [Reading] = []
     @State private var message: String?
@@ -53,6 +55,9 @@ struct Workbench: View {
                 }
                 Section("Text im Bild prüfen") {
                     TextField("Suchtext", text: Binding(get: { term }, set: { term = $0; newExperiment() }))
+                        .focused($editingTerm)
+                        .submitLabel(.search)
+                        .onSubmit { run() }
                         .accessibilityIdentifier("term")
                     Picker("Bereich", selection: Binding(get: { region }, set: { region = $0; newExperiment() })) {
                         ForEach(Region.allCases, id: \.self) { Text($0.label).tag($0) }
@@ -60,7 +65,7 @@ struct Workbench: View {
                     Button(action: run) {
                         Label(busy ? "Prüfung läuft" : "Jetzt prüfen", systemImage: "viewfinder")
                     }.disabled(experiment == nil || busy || loading).accessibilityIdentifier("run")
-                    if let message { Text(message).foregroundStyle(.secondary).accessibilityIdentifier(readings.isEmpty ? "state-message" : "reading-ready") }
+                    if let message { Text(message).foregroundStyle(.secondary).accessibilityIdentifier(latestCheckSucceeded ? "reading-ready" : "state-message") }
                 }
                 if !readings.isEmpty {
                     Section("Letzte Ergebnisse") {
@@ -114,7 +119,7 @@ struct Workbench: View {
         }))
     }
 
-    private func invalidate() { generation = UUID(); busy = false; message = nil }
+    private func invalidate() { generation = UUID(); busy = false; latestCheckSucceeded = false; message = nil }
     private func newExperiment() { invalidate(); experimentID = UUID(); readings = [] }
     private func importText(_ text: String) {
         if let url = URL(string: text), let job = WorkspaceJob(link: url) {
@@ -122,15 +127,16 @@ struct Workbench: View {
             report = nil; workspaceJob = job; return
         }
         guard let url = URL(string: text), let e = Experiment(link: url) else {
-            message = "Der Experiment-Link ist ungültig."; return
+            latestCheckSucceeded = false; message = "Der Experiment-Link ist ungültig."; return
         }
         if experimentID == e.id && term == e.term && region == e.region { return }
         invalidate(); experimentID = e.id; term = e.term; region = e.region; readings = []
         message = "Auftrag geladen. Bild auswählen und Prüfung starten."
     }
     private func run() {
-        guard let experiment else { return }
-        busy = true; message = nil
+        editingTerm = false
+        guard let experiment, !busy, !loading else { return }
+        latestCheckSucceeded = false; busy = true; message = nil
         let token = UUID(); generation = token
         let bytes = data, kind = source
         Task {
@@ -142,6 +148,7 @@ struct Workbench: View {
                 let reading = Reading(experimentId: experiment.id, region: experiment.region.rawValue,
                                       source: kind, outcome: match ? "match" : "no-match")
                 readings = Array(([reading] + readings).prefix(2))
+                latestCheckSucceeded = true
                 message = match ? "Suchtext erkannt." : "Im gewählten Bereich wurde kein Treffer erkannt."
             } catch {
                 guard generation == token else { return }

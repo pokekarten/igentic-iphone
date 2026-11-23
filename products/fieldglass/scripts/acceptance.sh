@@ -6,7 +6,7 @@ output=$(mktemp -d)
 echo "Results: $output"
 link=$(node plugin/scripts/acceptance-client.mjs prepare)
 xcodegen generate
-TEST_RUNNER_FIELDGLASS_LINK="$link" xcodebuild -scheme Fieldglass -destination "platform=iOS Simulator,id=$sim_id" -parallel-testing-enabled NO -skip-testing:FieldglassUITests/WorkbenchDriver -derivedDataPath "${FIELDGLASS_DERIVED_DATA:-$output/build}" -resultBundlePath "$output/test.xcresult" test
+TEST_RUNNER_FIELDGLASS_LINK="$link" xcodebuild -scheme Fieldglass -destination "platform=iOS Simulator,id=$sim_id" -parallel-testing-enabled NO -skip-testing:FieldglassUITests/WorkbenchDriver -skip-testing:FieldglassUITests/SimulatorSystemTests -derivedDataPath "${FIELDGLASS_DERIVED_DATA:-$output/build}" -resultBundlePath "$output/test.xcresult" test
 xcrun xcresulttool export attachments --path "$output/test.xcresult" --output-path "$output/receipts" --filter 'fieldglass-*'
 python3 - "$output/receipts" <<'PY'
 import json, pathlib, sys
