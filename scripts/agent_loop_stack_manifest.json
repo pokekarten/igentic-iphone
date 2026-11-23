@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "purpose": "Offline-only, pinned, never-pushed agent-loop composition acceptance",
+  "branches": [
+    {
+      "pr": 420,
+      "ref": "fix/delivery-marker-key-rotation-20261123",
+      "sha": "a46edff41284f326678421c08d58da0eada3071d"
+    },
+    {
+      "pr": 414,
+      "ref": "fix/owner-relay-replay-integrity-20261123",
+      "sha": "d63d94999dba3b6077f4c95cde9d61bd1c79e920"
+    },
+    {
+      "pr": 416,
+      "ref": "feat/ios-agent-loop-owner-task-verifier-20261123",
+      "sha": "5b07dcc5f084afabc2d24cf1b25b2828b792047e"
+    },
+    {
+      "pr": 410,
+      "ref": "feat/plugin-capability-guide-20261123",
+      "sha": "e25ac78c4b91761b96ca54a03758a1d6d3f096a6"
+    },
+    {
+      "pr": 421,
+      "ref": "feat/native-readonly-loop-20261123",
+      "sha": "360220d36688e0a20bef8b7a460d02f0d49ca358"
+    }
+  ]
+}
