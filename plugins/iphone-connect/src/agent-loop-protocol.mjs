@@ -69,10 +69,14 @@ export function signReadOnlyDeviceKeyReceipt({ key, requestId, nonce, observedAt
  * verify that the receipt key lives on a real physical iPhone.
  */
 export function createTransportNeutralAgentLoop({
-  admission, receiptKey, nowSeconds = () => Math.floor(Date.now() / 1000)
+  admission, receiptKey, nowSeconds = () => Math.floor(Date.now() / 1000),
+  deliveryAttemptMarker
 } = {}) {
   if (!admission || typeof admission.admit !== 'function'
-      || typeof nowSeconds !== 'function') invalid();
+      || typeof nowSeconds !== 'function'
+      || (deliveryAttemptMarker !== undefined
+        && (!deliveryAttemptMarker
+          || typeof deliveryAttemptMarker.markPrepared !== 'function'))) invalid();
   requireKey(receiptKey);
   const trustedReceiptKey = Buffer.from(receiptKey);
   let state = 'empty', task = null, transport = null;
@@ -145,7 +149,14 @@ export function createTransportNeutralAgentLoop({
       // Bind the eventual key-authenticated acknowledgement to this exact
       // delivery preparation, not merely a valid owner task ID. This
       // challenge is local protocol data, never owner approval or attestation.
-      task.receiptNonce = randomUUID();
+      const receiptNonce = randomUUID();
+      // An optional local crash guard MUST persist the may-have-been-sent
+      // marker before returning a payload that an adapter could dispatch.
+      // If persistence fails, leave the loop awaiting delivery and fail closed.
+      if (deliveryAttemptMarker !== undefined && deliveryAttemptMarker.markPrepared({
+        requestId: task.requestId, receiptNonce, route
+      }) !== true) invalid();
+      task.receiptNonce = receiptNonce;
       transport = route;
       attemptCount += 1;
       state = 'delivery-prepared-not-sent';
