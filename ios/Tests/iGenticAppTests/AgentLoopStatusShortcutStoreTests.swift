@@ -266,6 +266,83 @@ final class AgentLoopStatusShortcutStoreTests: XCTestCase {
         }
     }
 
+    func testExpiredDuringNativeReadNeverExportsStaleStatus() async throws {
+        try await MainActor.run {
+            let dir = FileManager.default.temporaryDirectory
+                .appendingPathComponent("igentic-expiry-\(UUID())")
+            defer { try? FileManager.default.removeItem(at: dir) }
+            var clock = Date(timeIntervalSince1970: 1_800_000_000)
+            let store = AgentLoopStatusShortcutStore(
+                fileURL: dir.appendingPathComponent("journal.json"),
+                clock: { clock }
+            )
+            let task = try jsonDictionary(store.begin())
+            let id = try XCTUnwrap(task["taskId"] as? String)
+            var reads = 0
+            XCTAssertThrowsError(try store.advance(
+                taskID: id, modelReply: #"{"action":"status.read"}"#,
+                statusReader: {
+                    reads += 1
+                    clock = clock.addingTimeInterval(
+                        AgentLoopStatusShortcutStore.ttl
+                    )
+                    return demoShortcutsStatus()
+                }
+            )) {
+                XCTAssertEqual($0 as? AgentLoopStatusShortcutError, .expired)
+            }
+            XCTAssertEqual(reads, 1)
+            // Even if the wall clock returns to the original valid window,
+            // the persisted marker must stop a speculative second local read.
+            clock = Date(timeIntervalSince1970: 1_800_000_000)
+            XCTAssertEqual(try store.stageForOwner(), .readAttempted)
+            XCTAssertThrowsError(try store.advance(
+                taskID: id, modelReply: #"{"action":"status.read"}"#,
+                statusReader: { reads += 1; return demoShortcutsStatus() }
+            )) {
+                XCTAssertEqual($0 as? AgentLoopStatusShortcutError, .uncertainRead)
+            }
+            XCTAssertEqual(reads, 1)
+        }
+    }
+
+    func testClockRollbackDuringNativeReadNeverReturnsObservation() async throws {
+        try await MainActor.run {
+            let dir = FileManager.default.temporaryDirectory
+                .appendingPathComponent("igentic-expiry-\(UUID())")
+            defer { try? FileManager.default.removeItem(at: dir) }
+            var clock = Date(timeIntervalSince1970: 1_800_000_000)
+            let store = AgentLoopStatusShortcutStore(
+                fileURL: dir.appendingPathComponent("journal.json"),
+                clock: { clock }
+            )
+            let id = try XCTUnwrap(
+                jsonDictionary(store.begin())["taskId"] as? String
+            )
+            var reads = 0
+            XCTAssertThrowsError(try store.advance(
+                taskID: id, modelReply: #"{"action":"status.read"}"#,
+                statusReader: {
+                    reads += 1
+                    clock = clock.addingTimeInterval(-1)
+                    return demoShortcutsStatus()
+                }
+            )) {
+                XCTAssertEqual($0 as? AgentLoopStatusShortcutError, .expired)
+            }
+            XCTAssertEqual(reads, 1)
+            clock = Date(timeIntervalSince1970: 1_800_000_000)
+            XCTAssertEqual(try store.stageForOwner(), .readAttempted)
+            XCTAssertThrowsError(try store.advance(
+                taskID: id, modelReply: #"{"action":"status.read"}"#,
+                statusReader: { reads += 1; return demoShortcutsStatus() }
+            )) {
+                XCTAssertEqual($0 as? AgentLoopStatusShortcutError, .uncertainRead)
+            }
+            XCTAssertEqual(reads, 1)
+        }
+    }
+
     func testCorruptOrSymlinkedJournalAndBusyClaimFailClosed() async throws {
         try await MainActor.run {
             let dir = FileManager.default.temporaryDirectory
