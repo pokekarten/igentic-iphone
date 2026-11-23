@@ -4,7 +4,7 @@ import XCTest
 
 final class AgentLoopShortcutExchangeTests: XCTestCase {
     @MainActor
-    private func makeStore(now: Date = Date(timeIntervalSince1970: 1_700_000_000))
+    private static func makeStore(now: Date = Date(timeIntervalSince1970: 1_700_000_000))
         -> (AgentLoopShortcutExchangeStore, URL)
     {
         let directory = FileManager.default.temporaryDirectory
@@ -15,7 +15,7 @@ final class AgentLoopShortcutExchangeTests: XCTestCase {
 
     func testFullLocalShortcutLoopSurvivesNewStoreInstance() async throws {
         try await MainActor.run {
-            let (store, path) = makeStore()
+            let (store, path) = Self.makeStore()
             defer { try? FileManager.default.removeItem(at: path.deletingLastPathComponent()) }
             let prompt = try store.begin(task: "Schlage drei Ideen für eine Pflanze vor")
             XCTAssertTrue(prompt.contains("Schlage drei Ideen"))
@@ -46,7 +46,7 @@ final class AgentLoopShortcutExchangeTests: XCTestCase {
 
     func testNoResultWithoutLocallyStartedSession() async throws {
         try await MainActor.run {
-            let (store, path) = makeStore()
+            let (store, path) = Self.makeStore()
             defer { try? FileManager.default.removeItem(at: path.deletingLastPathComponent()) }
             XCTAssertThrowsError(try store.receive(answer: "unexpected")) {
                 XCTAssertEqual($0 as? AgentLoopExchangeError, .noPendingExchange)
@@ -60,7 +60,7 @@ final class AgentLoopShortcutExchangeTests: XCTestCase {
 
     func testSensitiveAndInvalidTasksAreNotPreparedForExternalModel() async throws {
         try await MainActor.run {
-            let (store, path) = makeStore()
+            let (store, path) = Self.makeStore()
             defer { try? FileManager.default.removeItem(at: path.deletingLastPathComponent()) }
             for bad in ["", "   ", String(repeating: "A", count: 513), "Start\u{0000}now"] {
                 XCTAssertThrowsError(try store.begin(task: bad))
@@ -75,7 +75,7 @@ final class AgentLoopShortcutExchangeTests: XCTestCase {
     func testExpiredResultRejectedAndNoDeviceWrite() async throws {
         try await MainActor.run {
             let time = Date(timeIntervalSince1970: 1_700_000_000)
-            let (store, path) = makeStore(now: time)
+            let (store, path) = Self.makeStore(now: time)
             defer { try? FileManager.default.removeItem(at: path.deletingLastPathComponent()) }
             _ = try store.begin(task: "Teste den Entwurf")
             let late = AgentLoopShortcutExchangeStore(
@@ -90,7 +90,7 @@ final class AgentLoopShortcutExchangeTests: XCTestCase {
 
     func testReplyIsOnlyUntrustedTextAndNeverExecuted() async throws {
         try await MainActor.run {
-            let (store, path) = makeStore()
+            let (store, path) = Self.makeStore()
             defer { try? FileManager.default.removeItem(at: path.deletingLastPathComponent()) }
             _ = try store.begin(task: "Erkläre mir Kurzbefehle")
             for invalid in ["", "\u{0000}", String(repeating: "x", count: 8193)] {
@@ -106,7 +106,7 @@ final class AgentLoopShortcutExchangeTests: XCTestCase {
 
     func testTruncatedOrMalformedDiskStateFailsClosed() async throws {
         try await MainActor.run {
-            let (store, path) = makeStore()
+            let (store, path) = Self.makeStore()
             defer { try? FileManager.default.removeItem(at: path.deletingLastPathComponent()) }
             _ = try store.begin(task: "Ein Test")
             try Data("not JSON".utf8).write(to: path, options: .atomic)
