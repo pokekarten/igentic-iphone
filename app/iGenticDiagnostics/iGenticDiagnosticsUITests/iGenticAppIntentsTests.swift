@@ -12,15 +12,28 @@ final class iGenticAppIntentsTests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15))
-        let definitions = IntentDefinitions(bundleIdentifier: "org.example.iGenticDiagnostics")
-        let diagnostics = definitions.intents["iGenticReadOnlyDiagnosticsIntent"]
-        // Repeated system dispatch must remain deterministic and read-only.
-        // This exercise is intentionally limited to synthetic fixed output.
+        // System metadata registration may lag the first foreground launch
+        // on a cold simulator. Retry ONLY Apple's documented observed
+        // registration-unavailable signal; never suppress unrelated failures.
+        // All three actual dispatches must still complete and match exactly.
         for _ in 0..<3 {
-            let result = try await diagnostics.makeIntent().run()
-            let output = try result.value.as(String.self)
+            var output: String?
+            for attempt in 0..<6 {
+                do {
+                    let definitions = IntentDefinitions(bundleIdentifier: "org.example.iGenticDiagnostics")
+                    let diagnostics = definitions.intents["iGenticReadOnlyDiagnosticsIntent"]
+                    let result = try await diagnostics.makeIntent().run()
+                    output = try result.value.as(String.self)
+                    break
+                } catch {
+                    let failure = error as NSError
+                    guard failure.domain == "AppIntentsServicesMetadataErrorDomain",
+                          failure.code == 400, attempt < 5 else { throw error }
+                    try await Task.sleep(for: .seconds(2))
+                }
+            }
             XCTAssertEqual(
-                output,
+                try XCTUnwrap(output),
                 "iGentic diagnostics shortcut is available. This is a fixed demo response, not a device health check. No personal data was accessed."
             )
         }
