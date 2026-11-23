@@ -15,6 +15,14 @@ final class AgentLoopModelHandoffTests: XCTestCase {
         return object
     }
 
+    func testTokensAreFreshAnonymousUUIDs() {
+        let first = AgentLoopModelHandoff.newCorrelationID()
+        let second = AgentLoopModelHandoff.newCorrelationID()
+        XCTAssertNotEqual(first, second)
+        XCTAssertEqual(UUID(uuidString: first)?.uuidString.lowercased(), first)
+        XCTAssertEqual(UUID(uuidString: second)?.uuidString.lowercased(), second)
+    }
+
     func testKnownStatusActionReturnsOnlyPreviewAndCorrelation() {
         let value = review(#"{"action":"status.read"}"#)
         XCTAssertEqual(value["schema"] as? Int, 1)
