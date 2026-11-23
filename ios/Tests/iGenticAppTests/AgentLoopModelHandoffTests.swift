@@ -15,6 +15,27 @@ final class AgentLoopModelHandoffTests: XCTestCase {
         return object
     }
 
+    func testTwoTurnSyntheticShortcutsLoopNeverClaimsExecution() {
+        // Synthetic representation of Use Model -> iGentic review -> local read
+        // -> Use Model -> iGentic review. No ChatGPT or iPhone is called here.
+        let id = AgentLoopModelHandoff.newCorrelationID()
+        let first = review(#"{"action":"status.read"}"#, id: id)
+        XCTAssertEqual(first["decision"] as? String, "previewOnly")
+        XCTAssertEqual(first["nextAction"] as? String, "status.read")
+        let observed = AgentLoopLocalStatus(batteryFraction: 0.5,
+                                            lowPowerModeEnabled: false,
+                                            osVersion: "27.2").shortcutSummary
+        XCTAssertTrue(observed.contains("Akku 50 %"))
+        let second = review(#"{"action":"finish"}"#, id: id)
+        XCTAssertEqual(second["taskId"] as? String, first["taskId"] as? String)
+        XCTAssertEqual(second["decision"] as? String, "stopped")
+        XCTAssertEqual(second["nextAction"] as? String, "none")
+        XCTAssertEqual(first["executed"] as? Bool, false)
+        XCTAssertEqual(second["executed"] as? Bool, false)
+        XCTAssertEqual(first["approved"] as? Bool, false)
+        XCTAssertEqual(second["approved"] as? Bool, false)
+    }
+
     func testShortcutLinkDoesNotContainPrivateTextOrCallback() {
         guard let url = AgentLoopShortcutLaunch.url else {
             return XCTFail("Fixed Shortcut URL should be constructible")
