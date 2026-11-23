@@ -26,3 +26,17 @@ Before merge or claiming physical readiness, separately test on a **signed** own
 5. Record independent physical acceptance rather than upgrading a simulator result.
 
 Apple references: [local-recognizer support](https://developer.apple.com/documentation/speech/sfspeechrecognizer/supportsondevicerecognition), [request must stay on-device](https://developer.apple.com/documentation/speech/sfspeechrecognitionrequest/requiresondevicerecognition), [microphone authorization](https://developer.apple.com/documentation/avfaudio/avaudioapplication/requestrecordpermission%28completionhandler%3A%29).
+
+
+## Hintergrundwechsel – Datenschutzgrenze
+
+Auch wenn die Diktieransicht beim App-Wechsel im Navigationsstapel bleibt,
+stoppt der iOS-Scene-Observer die gestartete oder auf Berechtigungen wartende
+Aufnahme beim Übergang zu background, entwertet die Sessionkennung und
+verwirft verspätete Recognition-Callbacks. Der Zwischenzustand inactive
+(z. B. systemeigene Berechtigungsabfrage) stoppt absichtlich nicht, damit
+das erstmalige Einholen der Einwilligung nicht allein durch die Apple-UI
+abgebrochen wird. Die App startet bei der Rückkehr nie automatisch neu.
+Ein sichtbarer Hinweis erklärt das Ende der Aufnahme. Eine echte
+Hintergrund-Unterbrechung muss nach Installation auf einem signierten iPhone
+noch separat geprüft werden; ein Simulator-Build beweist keine Laufzeitwirkung.

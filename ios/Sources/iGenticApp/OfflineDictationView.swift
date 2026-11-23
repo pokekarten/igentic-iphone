@@ -123,6 +123,17 @@ private final class OfflineDictationController: ObservableObject {
         }
     }
 
+    /// Scene backgrounding does not necessarily remove a navigation view.
+    /// Stop the microphone even if the view is still retained in the stack.
+    /// Do not deactivate an unrelated idle audio session.
+    func stopOnBackground() {
+        guard recording || starting || engine != nil || recognitionTask != nil else {
+            return
+        }
+        stop()
+        status = "Aufnahme beim Wechsel in den Hintergrund beendet."
+    }
+
     func stop() {
         // Invalidate late recognition callbacks, including post-stop final text.
         generation = UUID()
@@ -151,6 +162,7 @@ private final class OfflineDictationController: ObservableObject {
 }
 
 public struct OfflineDictationView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @StateObject private var dictation = OfflineDictationController()
     public init() {}
 
@@ -193,6 +205,11 @@ public struct OfflineDictationView: View {
         }
         .navigationTitle("Sprache offline")
         .onDisappear { dictation.stop() }
+        .onChange(of: scenePhase) { _, next in
+            // A permission alert can temporarily set .inactive; only a
+            // genuine background transition should cancel that consent flow.
+            if next == .background { dictation.stopOnBackground() }
+        }
     }
 }
 #endif
