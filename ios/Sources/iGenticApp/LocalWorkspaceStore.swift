@@ -138,6 +138,14 @@ public struct LocalWorkspaceStore {
         guard properties.isRegularFile == true, properties.isSymbolicLink != true else {
             throw LocalWorkspaceError.unsafeEntry
         }
+        // A hardlink is a regular file and bypasses the symlink guard.
+        // Never allow a workspace entry to alias another file, even within
+        // the app's sandbox. Missing link-count evidence also fails closed.
+        let attributes = try fileManager.attributesOfItem(atPath: url.path)
+        guard let links = attributes[.referenceCount] as? NSNumber,
+              links.intValue == 1 else {
+            throw LocalWorkspaceError.unsafeEntry
+        }
     }
 
     private func validateName(_ name: String) throws {
