@@ -6,6 +6,7 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import { z } from 'zod';
 import { makeConnectionReport } from './connection-report.mjs';
 import { optionalToolCatalog, prepareLocalTask } from './optional-core.mjs';
+import { HANDOFF_ACTIONS, prepareChatGPTHandoff } from './chatgpt-handoff.mjs';
 
 const noArgs = z.object({}).strict();
 const output = z.object({ data: z.record(z.string(), z.unknown()) });
@@ -52,6 +53,12 @@ export function createPortableMcp() {
       text: z.string().max(800).optional()
     }).strict(), outputSchema: output, annotations
   }, async ({ task, text }) => wrap(prepareLocalTask(task, text)));
+  mcp.registerTool('iphone_chatgpt_handoff', {
+    title: 'Prepare an iPhone handoff link for ChatGPT',
+    description: 'Generate an allowlisted user-tapped link into our signed iGentic iPhone app. Does NOT call App Intents, execute actions, read phone data or imply a connected iPhone. For reminders, review and owner approval stay inside the app.',
+    inputSchema: z.object({ action: z.enum(HANDOFF_ACTIONS) }).strict(),
+    outputSchema: output, annotations
+  }, async ({ action }) => wrap(prepareChatGPTHandoff(action)));
   return mcp;
 }
 export async function startPortableGateway({ port = 0 } = {}) {
