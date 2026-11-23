@@ -158,3 +158,24 @@ Tests: `swift test --package-path ios --filter AgentLoopLocalReplayJournalTests`
 verifies restart duplicate rejection, empty/private markers, expiry,
 directory permission failure and symlink rejection on macOS. These tests
 do not verify iOS Shortcuts, a phone network connection or physical actions.
+
+### Fail-closed combined read-only admission (offline prototype)
+
+`AgentLoopLocalReplayJournal.inspectAndReserveCanonicalProposal(_:relayKey:nowSeconds:)`
+is the public, intentionally non-executing admission boundary. It accepts raw
+bytes only, re-runs exact canonical HMAC verification and expiry/allowlist checks,
+then persists a one-shot journal marker **before** returning a preview.
+The lower-level `reserveVerifiedPreview` helper is module-internal; it is
+not a public mechanism for an untrusted external caller to declare a preview
+verified. A bad signature, unsupported action, expired task or changed replay
+key does not produce an authorized output. Invalid signed payloads do not burn
+a journal entry. A duplicate valid proposal always fails even after a simulated
+app restart. Use distinct pre-provisioned keys for signing and on-device
+journal filenames.
+
+This is **not** an execution or owner-approval pipeline: successful admission
+still returns `actionExecuted=false`, `ownerApproved=false`,
+`replayAdmitted=false` and `deviceReceipt=none`. Production still requires
+private iOS key enrollment and storage, explicit local policy/consent, lifecycle
+integration, an authenticated transport, signed independent device receipts and
+physical-iPhone acceptance. Do not expose the bridge as a remote write API.

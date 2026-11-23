@@ -49,13 +49,36 @@ public final class AgentLoopLocalReplayJournal {
         self.inode = metadata.st_ino
     }
 
+    /// Inspect exact signed relay bytes and make a durable local one-shot
+    /// reservation as one fail-closed operation. This is the public entry
+    /// point for future read-only relay consumers; callers cannot pass an
+    /// arbitrary preview here or skip the cryptographic signature check.
+    ///
+    /// The reservation consumes the request ID even if a caller crashes
+    /// afterwards. Neither its success nor the returned preview authorizes
+    /// an iPhone action, proves owner consent, or generates a device receipt.
+    @discardableResult
+    public func inspectAndReserveCanonicalProposal(
+        _ bytes: Data,
+        relayKey: Data,
+        nowSeconds: Int
+    ) throws -> AgentLoopRemoteTaskPreview {
+        guard let preview = AgentLoopRemoteTaskVerifier.inspectCanonicalProposal(
+            bytes, relayKey: relayKey, nowSeconds: nowSeconds
+        ) else {
+            throw AgentLoopLocalReplayJournalError.invalidPreview
+        }
+        try reserveVerifiedPreview(preview, nowSeconds: nowSeconds)
+        return preview
+    }
+
     /// Atomically reserves a single task ID before any possible dispatch.
     /// A crash after file creation is treated as "possibly already handled":
     /// the same ID cannot be reserved again, even in a new app process.
     ///
     /// A successful return ONLY means a local marker was persisted. It never
     /// sets replayAdmitted, ownerApproved or actionExecuted in the preview.
-    public func reserveVerifiedPreview(
+    func reserveVerifiedPreview(
         _ preview: AgentLoopRemoteTaskPreview,
         nowSeconds: Int
     ) throws {

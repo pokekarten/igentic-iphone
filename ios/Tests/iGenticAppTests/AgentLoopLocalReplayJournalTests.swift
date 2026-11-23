@@ -28,6 +28,92 @@ final class AgentLoopLocalReplayJournalTests: XCTestCase {
         ))
     }
 
+    func testCanonicalSignedAdmissionPersistsBeforeReturningPreview() throws {
+        let directory = try createDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        // The replay-file key and the signing key are intentionally separate.
+        let journal = try AgentLoopLocalReplayJournal(
+            directory: directory, key: Data((32..<64).map(UInt8.init))
+        )
+        let proposal = try journal.inspectAndReserveCanonicalProposal(
+            Data(fixture.utf8), relayKey: key, nowSeconds: now
+        )
+        XCTAssertEqual(proposal.requestID, "11111111-2222-4333-8444-555555555555")
+        XCTAssertFalse(proposal.actionExecuted)
+        XCTAssertFalse(proposal.ownerApproved)
+        XCTAssertFalse(proposal.replayAdmitted)
+        XCTAssertEqual(proposal.deviceReceipt, "none")
+        XCTAssertEqual(
+            try FileManager.default.contentsOfDirectory(atPath: directory.path).count,
+            2
+        )
+        let restarted = try AgentLoopLocalReplayJournal(
+            directory: directory, key: Data((32..<64).map(UInt8.init))
+        )
+        XCTAssertThrowsError(
+            try restarted.inspectAndReserveCanonicalProposal(
+                Data(fixture.utf8), relayKey: key, nowSeconds: now
+            )
+        ) {
+            XCTAssertEqual($0 as? AgentLoopLocalReplayJournalError, .alreadyRecorded)
+        }
+    }
+
+    func testInvalidSignedEnvelopeNeverConsumesReplayReservation() throws {
+        let directory = try createDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let journal = try AgentLoopLocalReplayJournal(directory: directory, key: key)
+        let tampered = fixture.replacingOccurrences(
+            of: "igentic.own_app.status.read", with: "reminder.create"
+        )
+        // Give the tampered capability the *correct* signing key, so the
+        // rejection proves the canonical allowlist rather than only a key
+        // mismatch. The final entry is valid wire text with the wrong key.
+        let invalidInputs: [(Data, Data)] = [
+            (Data(tampered.utf8), key),
+            (Data("{}".utf8), key),
+            (Data(fixture.utf8), Data((32..<64).map(UInt8.init)))
+        ]
+        for (bytes, signingKey) in invalidInputs {
+            XCTAssertThrowsError(
+                try journal.inspectAndReserveCanonicalProposal(
+                    bytes, relayKey: signingKey, nowSeconds: now
+                )
+            ) {
+                XCTAssertEqual($0 as? AgentLoopLocalReplayJournalError, .invalidPreview)
+            }
+        }
+        XCTAssertTrue(
+            try FileManager.default.contentsOfDirectory(atPath: directory.path).isEmpty
+        )
+        // The correct signed proposal can still be admitted exactly once.
+        _ = try journal.inspectAndReserveCanonicalProposal(
+            Data(fixture.utf8), relayKey: key, nowSeconds: now
+        )
+        XCTAssertEqual(
+            try FileManager.default.contentsOfDirectory(atPath: directory.path).count,
+            2
+        )
+    }
+
+    func testExpiredOrFutureSignedProposalFailsBeforeCreatingAnyMarker() throws {
+        let directory = try createDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let journal = try AgentLoopLocalReplayJournal(directory: directory, key: key)
+        for time in [now - 6, now + 60] {
+            XCTAssertThrowsError(
+                try journal.inspectAndReserveCanonicalProposal(
+                    Data(fixture.utf8), relayKey: key, nowSeconds: time
+                )
+            ) {
+                XCTAssertEqual($0 as? AgentLoopLocalReplayJournalError, .invalidPreview)
+            }
+        }
+        XCTAssertTrue(
+            try FileManager.default.contentsOfDirectory(atPath: directory.path).isEmpty
+        )
+    }
+
     func testVerifiedTaskCanOnlyBeReservedOnceEvenAfterRestart() throws {
         let directory = try createDirectory()
         defer { try? FileManager.default.removeItem(at: directory) }
