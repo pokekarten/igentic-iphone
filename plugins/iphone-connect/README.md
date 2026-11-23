@@ -41,6 +41,15 @@ server or executes a request. Owner/device enrolment, cross-host replay
 protection, authenticated transport and independent device receipts remain
 separate gates.
 
+## Client-neutral Agent Loop contract (offline-only)
+
+See [AGENT_LOOP_PROTOCOL.md](AGENT_LOOP_PROTOCOL.md) for a runnable
+cross-client state contract for ChatGPT, Siri, Shortcuts, local models and the
+iGentic app. It connects the existing authenticated read-only proposals, the
+sealed SQLite replay ledger and the read-only Site tool contract in *tests*.
+It never starts a server, executes a device action or treats an unknown
+delivery as success. A key-authenticated receipt is not hardware attestation.
+
 ## Requirements and setup
 
 - macOS with Node.js 22+, Xcode and an already paired, unlocked physical iPhone.
