@@ -99,8 +99,10 @@ foreground-only on-device request inbox with owner-bound receipts.
 
 ## Physical-device acceptance still outstanding
 
-- [ ] Build, sign and install the exact PR app on the owner's iPhone.
-- [ ] Open each fixed `igentic://handoff/v1/...` route from the actual iPhone.
+- [x] Build, sign and install PR #406 on the physical iPhone Air over Wi-Fi.
+- [x] Dispatch the allowlisted diagnostics/discovery links via CoreDevice
+      and independently verify fresh first-party sheet receipts on the phone.
+      The reminder-draft physical route remains a separate acceptance task.
 - [ ] Verify the local second-tap confirmation; no route auto-executes.
 - [ ] Confirm an unknown route is ignored without navigating or approving.
 - [ ] Verify a real ChatGPT tool invocation **only if account and remote MCP
@@ -116,9 +118,9 @@ they are not evidence that the ChatGPT account or physical phone is connected.
 
 There is **no** hosted HTTPS service, OAuth provider, online account binding,
 automated ChatGPT connection, remote App Intents execution, mobile-data test,
-background daemon, generic tap/type, cross-app automation or physical-device
-acceptance in this PR. This is an API contract plus a locally initiated,
-platform-supported app-navigation test. The server does not know if the phone
+background daemon, generic tap/type, cross-app automation or generic iPhone control in this PR. The narrow first-party physical
+own-app URL dispatch and sheet receipts have now passed; a real connected
+ChatGPT account/tool invocation remains unverified. The server does not know if the phone
 is installed, connected, opened, or which screen is displayed.
 
 A later true phone-control plugin would require an authenticated per-user
@@ -163,3 +165,41 @@ contents remain local; the console prints only sanitized fixed booleans.
 Do not treat the test as a ChatGPT-account invocation, a screen capture,
 an owner approval, a reminder write, an App Intent execution or general
 cross-app UI control.
+
+
+## OAuth resource-server boundary (staged, NOT yet publicly deployable)
+
+The portable MCP service now supports an **optional OAuth 2.1 resource-server
+integration seam** in `startPortableGateway({ oauth })`, requiring an explicit
+HTTPS resource identifier, HTTPS authorization-server origin(s), and a trusted
+`verifyAccessToken` callback. When configured, it publishes
+`/.well-known/oauth-protected-resource`, challenges unauthenticated MCP
+requests with `WWW-Authenticate: Bearer resource_metadata=...`, and
+independently checks the returned verified claims for issuer, resource
+audience, expiration, not-before and fixed read-only scope
+`igentic:handoff:read`. The existing default local gateway is unchanged:
+it binds `127.0.0.1`, never a public interface, and does not assert an
+iPhone connection.
+
+**This is not a deployed OAuth provider or a signed-token verifier.**
+Before exposing a private service through an approved Secure MCP Tunnel or a
+trusted HTTPS ingress, choose a well-supported OAuth 2.1 identity provider
+and implement `verifyAccessToken` with actual JWKS signature, issuer,
+audience, expiry and scope validation. The provider must supply authorization
+code + PKCE, resource indicator support and CIMD/DCR as required by ChatGPT.
+The new Node tests deliberately use **synthetic fixture claims**, not valid
+production credentials or a real ChatGPT account.
+
+The local HTTP listener also refuses forged Host/Origin headers, untrusted
+forwarded-host hints, oversized JSON posts and unbounded/chunked bodies.
+Such transport hardening is defense-in-depth, not a substitute for a trusted
+identity provider, secure tunnel, TLS, browser approval or device consent.
+No public DNS, credentials, authorization issuer, secret token or hosted
+endpoint is provisioned by this PR.
+
+Run `npm test` and inspect `test/portable-gateway-security.test.mjs`
+for the positive real MCP SDK client path and the negative auth/rebinding tests.
+Relevant docs:
+- https://developers.openai.com/plugins/build/auth
+- https://developers.openai.com/plugins/build/mcp-server
+- https://help.openai.com/en/articles/12584461-connecting-custom-mcp-servers-in-chatgpt
