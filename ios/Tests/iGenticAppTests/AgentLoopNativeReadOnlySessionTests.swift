@@ -2,21 +2,22 @@ import Foundation
 import XCTest
 @testable import iGenticApp
 
-final class AgentLoopNativeReadOnlySessionTests: XCTestCase {
-    private func status() -> AgentLoopLocalStatus {
-        AgentLoopLocalStatus(
-            batteryFraction: 0.47,
-            lowPowerModeEnabled: false,
-            osVersion: "27.2"
-        )
-    }
+// Pure synthetic fixture. Never capture an XCTestCase across actors.
+private func syntheticLoopStatus() -> AgentLoopLocalStatus {
+    AgentLoopLocalStatus(
+        batteryFraction: 0.47,
+        lowPowerModeEnabled: false,
+        osVersion: "27.2"
+    )
+}
 
+final class AgentLoopNativeReadOnlySessionTests: XCTestCase {
     func testTwoTurnsActuallyCallOnlyLocalStatusReaderOnce() async {
         await MainActor.run {
             var reads = 0
             let session = AgentLoopNativeReadOnlySession(statusReader: {
                 reads += 1
-                return self.status()
+                return syntheticLoopStatus()
             })
             XCTAssertEqual(session.snapshot().turnCount, 0)
             XCTAssertNil(session.snapshot().localObservation)
@@ -51,7 +52,7 @@ final class AgentLoopNativeReadOnlySessionTests: XCTestCase {
                 var reads = 0
                 let session = AgentLoopNativeReadOnlySession(statusReader: {
                     reads += 1
-                    return self.status()
+                    return syntheticLoopStatus()
                 })
                 let result = session.accept(modelReply: candidate)
                 XCTAssertEqual(result.stage, .rejected, candidate)
@@ -70,14 +71,14 @@ final class AgentLoopNativeReadOnlySessionTests: XCTestCase {
             var reads = 0
             let wrongFirst = AgentLoopNativeReadOnlySession(statusReader: {
                 reads += 1
-                return self.status()
+                return syntheticLoopStatus()
             })
             XCTAssertEqual(wrongFirst.accept(modelReply: #"{"action":"finish"}"#).stage,
                            .rejected)
             XCTAssertEqual(reads, 0)
             let wrongSecond = AgentLoopNativeReadOnlySession(statusReader: {
                 reads += 1
-                return self.status()
+                return syntheticLoopStatus()
             })
             XCTAssertEqual(wrongSecond.accept(modelReply: #"{"action":"status.read"}"#).stage,
                            .awaitingFinish)
@@ -93,7 +94,7 @@ final class AgentLoopNativeReadOnlySessionTests: XCTestCase {
             var reads = 0
             let expired = AgentLoopNativeReadOnlySession(statusReader: {
                 reads += 1
-                return self.status()
+                return syntheticLoopStatus()
             }, now: { time })
             time = time.addingTimeInterval(AgentLoopNativeReadOnlySession.timeLimit)
             XCTAssertEqual(expired.accept(modelReply: #"{"action":"status.read"}"#).stage, .expired)
@@ -101,7 +102,7 @@ final class AgentLoopNativeReadOnlySessionTests: XCTestCase {
             var now = Date(timeIntervalSince1970: 1_800_000_000)
             let backwards = AgentLoopNativeReadOnlySession(statusReader: {
                 reads += 1
-                return self.status()
+                return syntheticLoopStatus()
             }, now: { now })
             now = now.addingTimeInterval(-1)
             XCTAssertEqual(backwards.accept(modelReply: #"{"action":"status.read"}"#).stage, .expired)
@@ -112,7 +113,7 @@ final class AgentLoopNativeReadOnlySessionTests: XCTestCase {
     func testOversizedResponseDoesNotLeakIntoReceipt() async {
         await MainActor.run {
             let secret = "PRIVATE_PROMPT_TO_AVOID"
-            let session = AgentLoopNativeReadOnlySession(statusReader: { self.status() })
+            let session = AgentLoopNativeReadOnlySession(statusReader: { syntheticLoopStatus() })
             let output = session.accept(modelReply: secret + String(repeating: "x", count: 1500))
             XCTAssertEqual(output.stage, .rejected)
             XCTAssertFalse(output.reason.contains(secret))
