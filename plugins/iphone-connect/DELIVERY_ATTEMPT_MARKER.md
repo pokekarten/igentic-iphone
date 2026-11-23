@@ -22,6 +22,25 @@ uses O_EXCL and O_NOFOLLOW; the marker and directory are fsynced before
 any delivery payload is returned. Two concurrent local writers cannot
 reserve the same request.
 
+### Persistent key binding (fail closed)
+
+The owner-private marker directory also contains one 0600
+`.delivery-key-seal` file. It holds **only a domain-separated SHA-256 HMAC
+of a fixed protocol label**, not the secret itself. When a completely empty
+directory is first opened, the seal is created exclusively and both file and
+directory are fsynced before operation. Every later open, marker reservation
+and recovery checks the seal using a constant-time comparison.
+
+**Rotating the filename key in the same directory is deliberately rejected.**
+Without this check, a new key would derive different marker filenames and
+make an already-possibly-sent task appear new. Missing, altered, symlinked or
+other-key seals fail closed. An existing *unsealed nonempty* directory is not
+automatically provisioned: it needs an audited, explicit migration. There is
+currently **no automated key rotation or restore workflow**, and the prototype
+does not protect against an OS-level attacker deleting/rolling back both
+seal and marker directory. The independent durable task replay ledger remains
+mandatory for any future real transport.
+
 ## Optional explicit wiring
 
 ```js
@@ -63,7 +82,9 @@ receive the delivery preparation.
   `actionExecuted: false`, `ownerApproved: false`,
   `iPhoneConnected: not-checked`, `deviceReceipt: none`.
   This is a conservative local observation **not a device receipt**.
-- A missing marker does not prove that the task was never sent.
+- A missing marker does not prove that the task was never sent. A missing
+  or invalid directory key seal is a hard error, even when another key
+  could otherwise find a different filename.
   The separate durable owner-admission replay ledger must still be
   checked. An owner/OS attacker who can delete or roll back both
   marker directory and replay ledger is outside this local prototype's

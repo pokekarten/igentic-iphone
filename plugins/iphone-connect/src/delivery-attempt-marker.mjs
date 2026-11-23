@@ -1,11 +1,16 @@
 // Optional offline-only write-ahead safety marker. A marker is persisted and
 // fsynced BEFORE prepareDelivery returns data to any possible transport.
 // It is not a queue, a receipt, a device command or a proof of delivery.
-import { createHmac } from 'node:crypto';
-import { constants, closeSync, fsyncSync, lstatSync, openSync } from 'node:fs';
+import { createHmac, timingSafeEqual } from 'node:crypto';
+import {
+  constants, closeSync, fstatSync, fsyncSync, lstatSync, openSync,
+  readFileSync, readdirSync, writeSync
+} from 'node:fs';
 import { join, isAbsolute, resolve } from 'node:path';
 
 const DOMAIN = 'igentic-delivery-attempt-v1\n';
+const SEAL_DOMAIN = 'igentic-delivery-marker-directory-key-v1\n';
+const SEAL_NAME = '.delivery-key-seal';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ROUTES = new Set([
   'cellular-foreground', 'coredevice-usb', 'coredevice-wifi', 'local-shortcuts'
@@ -39,6 +44,11 @@ export function createPrivateDeliveryAttemptMarker({ directory, key } = {}) {
       || key.every(byte => byte === key[0])
       || !Number.isInteger(NOFOLLOW)) fail();
   const privateKey = Buffer.from(key);
+  // Bind all attempt filenames in this directory to one persistent key. A
+  // changed key must never make old attempts disappear after process restart.
+  const sealDigest = Buffer.from(createHmac('sha256', privateKey)
+    .update(SEAL_DOMAIN).digest('hex'), 'ascii');
+  const sealPath = join(directory, SEAL_NAME);
   let identity;
   try {
     identity = lstatSync(directory);
@@ -53,12 +63,57 @@ export function createPrivateDeliveryAttemptMarker({ directory, key } = {}) {
         fail();
     } catch { fail(); }
   }
+  function validateSeal() {
+    validateDirectory();
+    let fd;
+    try {
+      fd = openSync(sealPath, constants.O_RDONLY | NOFOLLOW);
+      const metadata = fstatSync(fd);
+      if (!privateFile(metadata) || metadata.nlink !== 1
+          || metadata.size !== sealDigest.length) fail();
+      const stored = readFileSync(fd);
+      if (stored.length !== sealDigest.length
+          || !timingSafeEqual(stored, sealDigest)) fail();
+    } catch { fail(); }
+    finally { if (fd !== undefined) closeSync(fd); }
+  }
+  function initializeSeal() {
+    validateDirectory();
+    let missing = false;
+    try { lstatSync(sealPath); }
+    catch (error) {
+      if (error?.code !== 'ENOENT') fail();
+      missing = true;
+    }
+    if (missing) {
+      // Never silently rotate the key for existing markers (or for an
+      // unrecognized, possibly rolled-back directory).
+      try {
+        if (readdirSync(directory).length !== 0) fail();
+        let fd;
+        try {
+          fd = openSync(sealPath, constants.O_WRONLY | constants.O_CREAT
+            | constants.O_EXCL | NOFOLLOW, 0o600);
+          if (writeSync(fd, sealDigest) !== sealDigest.length) fail();
+          fsyncSync(fd);
+        } finally { if (fd !== undefined) closeSync(fd); }
+        const directoryFd = openSync(directory,
+          constants.O_RDONLY | constants.O_DIRECTORY | NOFOLLOW);
+        try { fsyncSync(directoryFd); }
+        finally { closeSync(directoryFd); }
+      } catch { fail(); }
+    }
+    validateSeal();
+  }
+  // The initial provisioning is permitted only in a completely empty
+  // owner-private directory; subsequent opens and operations fail closed.
+  initializeSeal();
   return Object.freeze({
     markPrepared({ requestId, receiptNonce, route } = {}) {
       validateRequest(requestId);
       if (typeof receiptNonce !== 'string' || !UUID.test(receiptNonce)
           || !ROUTES.has(route)) throw new Error('invalidDeliveryMarkerRequest');
-      validateDirectory();
+      validateSeal();
       const path = markerPath(requestId);
       let fd;
       try {
@@ -84,7 +139,7 @@ export function createPrivateDeliveryAttemptMarker({ directory, key } = {}) {
     },
     recover({ requestId } = {}) {
       validateRequest(requestId);
-      validateDirectory();
+      validateSeal();
       try {
         const st = lstatSync(markerPath(requestId));
         if (!privateFile(st) || st.size !== 0) fail();

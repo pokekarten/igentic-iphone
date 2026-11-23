@@ -72,8 +72,9 @@ test('two independent marker handles reject duplicate reservations',t=>{
 test('marker filenames and empty bodies reveal no request ID, key or nonce',t=>{
   const f=fixture(t), id=randomUUID(), nonce=randomUUID();
   f.marker().markPrepared({requestId:id,receiptNonce:nonce,route:'local-shortcuts'});
-  const files=readdirSync(f.directory);
+  const files=readdirSync(f.directory).filter(name=>name.endsWith('.attempt'));
   assert.equal(files.length,1);
+  assert.ok(readdirSync(f.directory).includes('.delivery-key-seal'));
   assert.match(files[0],/^[0-9a-f]{64}\.attempt$/);
   assert.equal(files[0].includes(id),false);
   const body=readFileSync(join(f.directory,files[0]));
@@ -106,7 +107,7 @@ test('unknown or invalid command routes and secret material never create a marke
   assert.throws(()=>marker.markPrepared({
     requestId:id,receiptNonce:'unsafe',route:'local-shortcuts'
   }),/invalidDeliveryMarkerRequest/);
-  assert.equal(readdirSync(f.directory).length,0);
+  assert.deepEqual(readdirSync(f.directory),['.delivery-key-seal']);
   assert.throws(()=>createPrivateDeliveryAttemptMarker({
     directory:f.directory,key:Buffer.alloc(32)
   }),/deliveryMarkerUnavailable/);
