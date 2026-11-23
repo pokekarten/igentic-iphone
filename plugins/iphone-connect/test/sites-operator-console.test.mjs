@@ -32,7 +32,7 @@ class FakeElement {
 const names = [
   'show-capabilities', 'show-shortcuts', 'prepare-handoff',
   'cancel-mcp-request', 'handoff-action', 'prepared-link', 'status',
-  'capability-list', 'shortcuts-list'
+  'capability-list', 'shortcuts-list', 'project-chat-status'
 ];
 function initialize(customFetch, timers = {}) {
   const elements = new Map(names.map(name => [name, new FakeElement()]));
@@ -74,6 +74,7 @@ test('console HTML is static, same-origin-only and has no arbitrary task inputs'
   assert.match(html, /script-src 'self'/);
   assert.match(html, /id="cancel-mcp-request"[^>]*disabled/);
   assert.match(html, /12 Sekunden/);
+  assert.match(html, /id="project-chat-status"/);
   assert.match(html, /\[hidden\] \{ display: none !important; \}/);
   assert.doesNotMatch(html, /<form\b|<iframe\b|<textarea\b|http:\/\//i);
   assert.doesNotMatch(source, /localStorage|sessionStorage|document\.cookie|location\.href|window\.open/);
@@ -89,6 +90,8 @@ test('three intentional button clicks call only fixed MCP tools and never naviga
   assert.match(page.get('capability-list').children[1].textContent, /hier nicht verfügbar/);
   await page.get('show-shortcuts').click();
   assert.equal(page.get('shortcuts-list').children.length, 5);
+  assert.match(page.get('project-chat-status').textContent, /nicht verifiziert/);
+  assert.match(page.get('project-chat-status').textContent, /ChatGPT-Projekt/);
   await page.get('prepare-handoff').click();
   assert.equal(page.get('prepared-link').hidden, false);
   assert.equal(page.get('prepared-link').href, 'igentic://handoff/v1/diagnostics');
@@ -254,4 +257,27 @@ test('changing destination during a pending response cannot expose stale URL', a
   await pending;
   assert.equal(page.get('prepared-link').hidden, true);
   assert.equal(Object.hasOwn(page.get('prepared-link'), 'href'), false);
+});
+
+
+test('forged project-context success is rejected instead of presenting an unverified Shortcut as a project chat', async () => {
+  const page = initialize(async (url, options) => {
+    assert.equal(url, '/mcp');
+    const req = JSON.parse(options.body);
+    assert.equal(req.params.name, 'igentic_shortcuts_setup');
+    return { ok: true, async json() { return {
+      id: req.id,
+      result: { resultType: 'complete', isError: false, structuredContent: { data: {
+        schema: 1, actionExecuted: false, iPhoneConnected: 'not-checked',
+        status: 'owner-manual-setup-instructions', shortcutCreated: false,
+        requiresOwnerSetup: true, steps: Array(5).fill('fake step'),
+        projectChat: { availableFromThisSite: true,
+          shortcutProjectContext: 'verified', requiresSeparateUserConfirmation: false }
+      } } }
+    }; } };
+  });
+  await page.get('show-shortcuts').click();
+  assert.equal(page.get('shortcuts-list').children.length, 0);
+  assert.match(page.get('project-chat-status').textContent, /nicht verifiziert/);
+  assert.match(page.get('status').textContent, /Antwort ungültig/);
 });

@@ -17,6 +17,7 @@
   const buttons = [capabilities, shortcuts, handoff];
   const list = byId('capability-list');
   const steps = byId('shortcuts-list');
+  const projectChatStatus = byId('project-chat-status');
   let requestId = 0;
   let busy = false;
   let active = null;
@@ -121,13 +122,20 @@
 
   shortcuts.addEventListener('click', () => run(async () => {
     clearList(steps);
+    projectChatStatus.textContent = 'Projektchat-Kontext: nicht verifiziert.';
     const data = await callTool('igentic_shortcuts_setup', {});
     if (data.status !== 'owner-manual-setup-instructions'
         || data.shortcutCreated !== false || data.requiresOwnerSetup !== true
         || !Array.isArray(data.steps) || data.steps.length !== 5
-        || data.steps.some(s => typeof s !== 'string' || s.length > 220))
+        || data.steps.some(s => typeof s !== 'string' || s.length > 220)
+        || !data.projectChat
+        || data.projectChat.availableFromThisSite !== false
+        || data.projectChat.shortcutProjectContext !== 'not-verified'
+        || data.projectChat.requiresSeparateUserConfirmation !== true)
       throw Error('badShortcuts');
     putItems(steps, data.steps);
+    projectChatStatus.textContent =
+      'Projektchat-Kontext: nicht verifiziert. „Modell verwenden“ ist nicht automatisch ein Chat im gewählten ChatGPT-Projekt. Projektwahl und Kontextübernahme müssen separat auf dem iPhone geprüft werden.';
   }));
 
   // Never retain a prepared link after changing the intended destination.

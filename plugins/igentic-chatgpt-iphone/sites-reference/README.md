@@ -199,3 +199,15 @@ rejects late responses after cancellation, and removes stale handoff links on
 destination changes. Cancelling a browser read never claims remote device
 cancellation. Plugin unavailability is not interpreted as iPhone offline
 verification.
+
+
+### ChatGPT project context versus Shortcuts model replies
+
+The read-only `igentic_shortcuts_setup` response distinguishes a
+ChatGPT **Use Model** reply in Apple Shortcuts from a verified conversation in
+a specific ChatGPT Project. Neither this Site nor a successful Shortcuts reply
+proves project selection, conversation reuse, or context continuity. The
+`projectChat` field and visible console warning are deliberately
+`not-verified`, until signed native acceptance demonstrates it. No project
+identifier, conversation URL, account token or arbitrary text is sent to Site
+MCP tools.
