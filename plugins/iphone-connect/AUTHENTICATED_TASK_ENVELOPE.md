@@ -14,7 +14,10 @@ used. The phone can be disconnected during every test in this PR.
 a UUID request ID, integer issued/expiry times, a <= 60-second lifetime and
 empty parameters. The signature is domain-separated from the existing cellular
 readiness HMAC. Secrets must never be stored in Git, source, URLs, or ChatGPT
-prompts. No key is included in the plugin tool output.
+prompts. No key is included in the plugin tool output. Keys must be
+generated using a cryptographically secure random source and separately
+provisioned. The code rejects uniform-byte keys (including all-zero defaults)
+but cannot measure or guarantee the entropy of an otherwise 32-byte key.
 
 `createOwnerProposalAdmission` validates this request with constant-time
 MAC comparison, bounded skew, expiry, exact schema, strictly one read-only
@@ -28,13 +31,24 @@ an **authenticated proposal**, with:
 
 The module has no HTTP listener, no queue, no iOS adapter, no model call,
 no memory of private conversations and no command/shell invocation. No Site
-MCP tool is added by this change. In-memory replay defense is sufficient
-only for local protocol tests, **not** real multi-process distributed security.
+MCP tool is added by this change. The default in-memory replay defense is sufficient only for local
+protocol tests; it is **not** safe across process restarts or multiple workers.
 
-An optional standalone follow-up, [DURABLE_REPLAY_LEDGER.md](DURABLE_REPLAY_LEDGER.md),
-adds explicit one-time provisioning and a sealed local SQLite ledger with
-multi-process transactional replay protection on the same Mac. It is
-not a network gateway, a device receipt, or global replay consensus.
+## Persistent local replay admission: PR #412
+
+The default in-memory replay cache remains **test-only**, and cannot provide
+restart-safe protection. The separately reviewed
+[sealed local SQLite replay ledger](DURABLE_REPLAY_LEDGER.md) is the preferred
+offline durable prototype. The earlier auto-creating replay store was removed
+from the combined integration branch: silent database re-creation after
+deletion could erase the history of admitted requests.
+
+The sealed ledger requires explicit one-time owner provisioning and an
+existing private database; it stores keyed digests rather than raw task IDs.
+It fails closed when its file is missing, replaced, corrupted or sealed
+with a different key. No running relay, transport, iOS action or owner
+permission is implied. Single-host SQLite is not cross-host consensus or
+protection against rollback of an entire trusted-host backup.
 
 ## Next implementation gates — not included or claimed here
 

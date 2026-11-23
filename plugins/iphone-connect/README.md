@@ -32,13 +32,14 @@ The existing read-only diagnostics App Intent remains separate.
 A further offline-only security prototype is described in
 [AUTHENTICATED_TASK_ENVELOPE.md](AUTHENTICATED_TASK_ENVELOPE.md): a strictly
 read-only HMAC-authenticated owner-relay task proposal with expiry and
-in-memory replay protection. An optional
-[durable local replay ledger](DURABLE_REPLAY_LEDGER.md) adds explicit one-time
-SQLite provisioning, keyed request digests, restart-safe replay checks and
-fail-closed missing/corrupt database handling. Neither module connects this
-plugin to an iPhone, installs a Site tool, starts a server or executes any
-request. Owner/device enrolment, cross-host replay protection, real transport
-and independent device receipts remain separate gates.
+in-memory replay protection. The [sealed single-host replay ledger](DURABLE_REPLAY_LEDGER.md)
+adds explicit owner provisioning, opaque keyed request digests and restart-safe
+atomic consumption. It supersedes the earlier auto-created SQLite experiment:
+the legacy store is intentionally removed in this integration PR. Neither
+module connects this plugin to an iPhone, installs a Site tool, starts a
+server or executes a request. Owner/device enrolment, cross-host replay
+protection, authenticated transport and independent device receipts remain
+separate gates.
 
 ## Requirements and setup
 

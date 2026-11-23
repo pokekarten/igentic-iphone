@@ -33,7 +33,9 @@ function existingPrivateFile(path) {
   return stat;
 }
 function validateKey(key) {
-  if (!Buffer.isBuffer(key) || key.length !== 32) throw new Error('invalidOwnerRelayKey');
+  if (!Buffer.isBuffer(key) || key.length !== 32
+      || key.every(byte => byte === key[0]))
+    throw new Error('invalidOwnerRelayKey');
 }
 function privateSeal(key) {
   return createHmac('sha256', key).update(SEAL_DOMAIN).digest('hex');

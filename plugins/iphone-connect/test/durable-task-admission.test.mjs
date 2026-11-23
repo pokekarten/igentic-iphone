@@ -26,6 +26,22 @@ const admission = (f, nowSeconds = () => NOW, maxRecords = 256) =>
   createDurableOwnerProposalAdmission({ key: f.key, databasePath: f.databasePath,
     nowSeconds, maxRecords });
 
+test('obviously predictable owner relay keys cannot provision or open the ledger', () => {
+  const f = fixture({ provisioned: false });
+  try {
+    for (const weakKey of [Buffer.alloc(32), Buffer.alloc(32, 0xff)]) {
+      assert.throws(() => provisionPrivateReplayLedger({
+        key: weakKey, databasePath: f.databasePath
+      }), /invalidOwnerRelayKey/);
+      assert.equal(existsSync(f.databasePath), false);
+    }
+    provisionPrivateReplayLedger(f);
+    assert.throws(() => createDurableOwnerProposalAdmission({
+      key: Buffer.alloc(32), databasePath: f.databasePath
+    }), /invalidOwnerRelayKey/);
+  } finally { f.cleanup(); }
+});
+
 test('a signed read-only proposal persists but is never executed', () => {
   const f = fixture();
   try {
