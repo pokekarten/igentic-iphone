@@ -104,6 +104,32 @@ allein entstehen. Eigene Geräteaktion erfordert zulässigen Scope und
 verlässliche Bestätigung; Kauf, Senden, Lösch- oder Sicherheitsaktionen
 erfordern besonders strenge lokale Freigabe.
 
+## Live-Readiness MacBook Neo / iPhone Air (2026-11-23)
+
+Read-only über die autorisierte Mac-Desktop-Verbindung überprüft; IDs,
+Gerätenamen, Netzwerkadressen und App-Inhalte werden nicht dokumentiert.
+
+- Host: macOS **27.2.1**, Xcode **27.2**.
+- Physisches **iPhone Air**, CoreDevice `pairingState=paired`,
+  `transportType=localNetwork` (WLAN/Netzwerk, nicht USB-C).
+- Beim ersten `devicectl list devices --json-output -` war der
+  **Tunnel noch `disconnected`**. Daher genügt `available (paired)`
+  ausdrücklich **nicht** als Beweis für echte Steuerung.
+- Ein darauffolgendes **rein lesendes**
+  `devicectl device info details` war erfolgreich und meldete
+  `tunnelState=connected`. Die CoreDevice-Verbindung war in
+  diesem Moment tatsächlich nutzbar; das ist kein Dauerverfügbarkeitsbeweis.
+- `ipb`, `iph` (iphone-cli) und `appium` waren **nicht als
+  Shell-Kommandos installiert**. Nur `xcrun` wurde als verfügbar geprüft.
+- **Nicht geprüft:** ob die aktuelle iGentic-App auf dem Telefon installiert
+  ist, ob der Bildschirm entsperrt ist, AX-Trees, Screenshot, Touch-Befehle,
+  physische App-Intents-Ausführung, Mobilfunk, dauerhafter Hintergrundbetrieb.
+
+**Nächster sicherer Akzeptanztest:** nur die eigene iGentic-App erkennen,
+danach in einer synthetischen Testansicht einen einzigen lokal bestätigten
+Tap mit eigenständiger Nachbeobachtung ausführen. Nie das Vorhandensein eines
+CoreDevice-Tunnels mit bereits bewiesener Cross-App-Bedienung gleichsetzen.
+
 ## Testreihenfolge, mit echten Abnahmekriterien
 
 **Phase A: sofort, stabilste Hardwarebasis (Mac + vorhandenes iOS 27)**
