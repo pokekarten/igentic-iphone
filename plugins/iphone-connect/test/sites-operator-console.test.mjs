@@ -160,8 +160,10 @@ test('tampered tool response, fake approval or mismatched URL fails closed', asy
         ...changes
       };
       return { ok: true, async json() {
-        return { id: request.id, result: {
-          resultType: 'complete', isError: false, structuredContent: { data }
+        return { jsonrpc: '2.0', id: request.id, result: {
+          resultType: 'complete', isError: false, structuredContent: { data },
+          _meta: { 'io.modelcontextprotocol/serverInfo':
+            { name: 'igentic-iphone-handoff', version: '0.2.0' } }
         } };
       } };
     });
@@ -228,9 +230,11 @@ test('cancelled late promise cannot re-enable link even if network ignores abort
       ok: true,
       async json() {
         return {
-          id: JSON.parse(options.body).id,
+          jsonrpc: '2.0', id: JSON.parse(options.body).id,
           result: {
             resultType: 'complete', isError: false,
+            _meta: { 'io.modelcontextprotocol/serverInfo':
+              { name: 'igentic-iphone-handoff', version: '0.2.0' } },
             structuredContent: { data: {
               schema: 1, action: 'diagnostics',
               actionExecuted: false, iPhoneConnected: 'not-checked',
@@ -276,8 +280,11 @@ test('forged project-context success is rejected instead of presenting an unveri
     const req = JSON.parse(options.body);
     assert.equal(req.params.name, 'igentic_shortcuts_setup');
     return { ok: true, async json() { return {
-      id: req.id,
-      result: { resultType: 'complete', isError: false, structuredContent: { data: {
+      jsonrpc: '2.0', id: req.id,
+      result: { resultType: 'complete', isError: false,
+        _meta: { 'io.modelcontextprotocol/serverInfo':
+          { name: 'igentic-iphone-handoff', version: '0.2.0' } },
+        structuredContent: { data: {
         schema: 1, actionExecuted: false, iPhoneConnected: 'not-checked',
         status: 'owner-manual-setup-instructions', shortcutCreated: false,
         requiresOwnerSetup: true, steps: Array(5).fill('fake step'),
@@ -456,6 +463,43 @@ test('discovery rejecting extra remote authority prevents a false Site compatibi
     if (req.method === 'server/discover') {
       rpc.result.capabilities.resources = {listChanged:true};
     }
+    return { ok: true, async json() { return rpc; } };
+  });
+  await page.get('verify-site-registry').click();
+  assert.equal(page.calls.length, 1);
+  assert.match(page.get('site-registry-status').textContent, /nicht bestätigt/);
+  assert.equal(page.get('copy-site-check').disabled, true);
+});
+
+
+test('tool action rejects success-shaped JSON-RPC from an unverified or wrong Site server', async () => {
+  const corruptions = [
+    ['wrong server identity', rpc => { rpc.result._meta['io.modelcontextprotocol/serverInfo'].name = 'foreign-server'; }],
+    ['no server identity', rpc => { delete rpc.result._meta; }],
+    ['wrong JSON-RPC version', rpc => { rpc.jsonrpc = '1.0'; }],
+    ['JSON-RPC mixed result and error', rpc => { rpc.error = { code: -1, message: 'failure' }; }],
+    ['unexpected server identity field', rpc => { rpc.result._meta['io.modelcontextprotocol/serverInfo'].deviceWrite=true; }]
+  ];
+  for (const [name, corrupt] of corruptions) {
+    const page = initialize(async (url, options) => {
+      const real = await handleSitesMcp(new Request('https://owner-site.invalid' + url, options));
+      const rpc = await real.json();
+      corrupt(rpc);
+      return { ok: true, async json() { return rpc; } };
+    });
+    await page.get('prepare-handoff').click();
+    assert.equal(page.calls.length, 1, name);
+    assert.equal(page.get('prepared-link').hidden, true, name);
+    assert.equal(Object.hasOwn(page.get('prepared-link'), 'href'), false, name);
+    assert.match(page.get('status').textContent, /Antwort ungültig/, name);
+  }
+});
+
+test('forged or malformed discovery cannot enable sanitized report copy', async () => {
+  const page = initialize(async (url, options) => {
+    const real = await handleSitesMcp(new Request('https://owner-site.invalid' + url, options));
+    const rpc = await real.json();
+    rpc.result._meta['io.modelcontextprotocol/serverInfo'].version = '1.0.0';
     return { ok: true, async json() { return rpc; } };
   });
   await page.get('verify-site-registry').click();

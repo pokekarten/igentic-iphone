@@ -243,3 +243,16 @@ browser; permission rejection is non-executing. A failed recheck invalidates
 the previous report, and leaving the page disables the copy action. This is a
 manual ChatGPT context handoff, not automatic ChatGPT Project selection or a
 signed device receipt.
+
+
+### Read response framing and source identity consistently
+
+All three read-only browser `tools/call` results, plus `server/discover`
+and `tools/list`, now require the exact `jsonrpc: "2.0"` framing,
+matching request ID, no simultaneous `error` field, a successful
+`resultType`, and the **expected, bounded Site server identity**
+(`igentic-iphone-handoff` version `0.2.0`). A malformed, unsigned,
+foreign, or inflated response cannot reveal a manually prepared handoff
+link or enable a compatibility report. This is same-origin response
+consistency, not cryptographic server attestation or device execution
+verification.
