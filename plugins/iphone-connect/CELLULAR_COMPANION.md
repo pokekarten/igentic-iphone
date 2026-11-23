@@ -60,6 +60,12 @@ network reachability, IP address, or guess based on enabled radios.
 - **All** recorded transactions non-cellular: UI reports a non-cellular route,
   even if mobile data is enabled.
 - Mixed or missing metrics: UI **does not claim** cellular transport.
+- Apple's transaction-metrics callback can arrive **after the HTTPS
+  response**. The first-party Swift client therefore waits for up to roughly
+  1.1 seconds after a successful response before classifying the transaction.
+  If no metrics arrive in that bounded interval, it safely reports
+  "transport not verified" instead of mislabelling it as cellular.
+  The app stays foreground-only; no background polling is installed.
 - A valid HTTPS server response can still be confirmed independently of
   the route's observed interface.
 
@@ -84,4 +90,6 @@ cellular proof. See Apple's
 
 The first-party Node protocol has unit and live **TLS loopback** tests for signature verification, invalid methods/body/path, timestamp expiry, wrong key, nonce replay, public-bind guard and exact fixed response. Swift tests include an exact Node/Swift HMAC test vector and
 fail-closed per-transaction interface classification tests (empty, all
-cellular, all non-cellular, and mixed). iOS simulator build tests ensure the optional UI compiles. A physical mobile-data test cannot be completed until the newly signed app can be installed and a trusted reachable HTTPS endpoint is configured.
+cellular, all non-cellular, and mixed), plus delayed-callback receipt and
+missing-metrics timeout tests. Swift exposes neither network metadata nor
+a false "cellular connected" state from a merely successful HTTPS response. iOS simulator build tests ensure the optional UI compiles. A physical mobile-data test cannot be completed until the newly signed app can be installed and a trusted reachable HTTPS endpoint is configured.

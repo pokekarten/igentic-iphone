@@ -63,8 +63,7 @@ private enum CellularKeychain {
 private final class CellularTransactionInspector:
     NSObject, URLSessionTaskDelegate, @unchecked Sendable {
 
-    private let lock = NSLock()
-    private var cellularFlags: [Bool] = []
+    private let observation = CellularTransportObservation()
 
     func urlSession(_ session: URLSession, task: URLSessionTask,
                     willPerformHTTPRedirection response: HTTPURLResponse,
@@ -75,17 +74,13 @@ private final class CellularTransactionInspector:
 
     func urlSession(_ session: URLSession, task: URLSessionTask,
                     didFinishCollecting metrics: URLSessionTaskMetrics) {
-        lock.lock()
-        cellularFlags = metrics.transactionMetrics.map(\.isCellular)
-        lock.unlock()
+        observation.record(metrics.transactionMetrics.map(\.isCellular))
     }
 
-    func routeEvidence() -> String {
-        lock.lock()
-        defer { lock.unlock() }
-        return CellularHeartbeatProtocol.classifyTransport(
-            transactionCellularFlags: cellularFlags
-        )
+    func routeEvidence() async -> String {
+        // Task metrics may arrive after URLSession.data(for:) resumes.
+        // Do not invalidate the session until this bounded wait completes.
+        await observation.waitForEvidence()
     }
 }
 
@@ -139,7 +134,7 @@ private enum CellularReadinessClient {
                   json["deviceControl"] as? String == "not-enabled",
                   json["backgroundExecution"] as? String == "not-guaranteed"
             else { return "Serverbestätigung nicht gültig" }
-            switch inspector.routeEvidence() {
+            switch await inspector.routeEvidence() {
             case "cellular-transport-observed":
                 return "Bestätigt: HTTPS-Anfrage tatsächlich über Mobilfunk übertragen."
             case "other-transport-observed":

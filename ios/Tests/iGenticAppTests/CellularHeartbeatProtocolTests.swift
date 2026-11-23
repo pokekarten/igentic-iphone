@@ -19,6 +19,34 @@ final class CellularHeartbeatProtocolTests: XCTestCase {
         }
     }
 
+    func testTaskMetricsMayArriveAfterHTTPCompletion() async {
+        let observation = CellularTransportObservation()
+        let delayed = Task {
+            try? await Task.sleep(for: .milliseconds(30))
+            observation.record([true, true])
+        }
+        let result = await observation.waitForEvidence(
+            attempts: 12, pollDelay: .milliseconds(10)
+        )
+        await delayed.value
+        XCTAssertEqual(result, "cellular-transport-observed")
+    }
+
+    func testMissingTaskMetricsNeverClaimCellular() async {
+        let observation = CellularTransportObservation()
+        let missing = await observation.waitForEvidence(
+            attempts: 2, pollDelay: .milliseconds(1)
+        )
+        XCTAssertEqual(missing, "transport-not-verified")
+        observation.record([false])
+        let firstObserved = await observation.waitForEvidence(attempts: 1)
+        XCTAssertEqual(firstObserved, "other-transport-observed")
+        // Later duplicates must not mutate the first task observation.
+        observation.record([true])
+        let secondObserved = await observation.waitForEvidence(attempts: 1)
+        XCTAssertEqual(secondObserved, "other-transport-observed")
+    }
+
     func testActualTransactionMetricsFailClosedOnMissingOrMixedNetworkRoutes() {
         XCTAssertEqual(
             CellularHeartbeatProtocol.classifyTransport(transactionCellularFlags: []),

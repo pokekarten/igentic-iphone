@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'plugins/iphone-connect/**'
+      - 'plugins/igentic-chatgpt-iphone/**'
       - 'ios/Sources/iGenticPluginPolicy/**'
       - 'ios/Package.swift'
       - '.github/workflows/iphone-plugin.yml'

@@ -30,6 +30,60 @@ final class DiagnosticsUITests: XCTestCase {
         XCTAssertFalse(app.navigationBars["Review reminder"].exists)
     }
 
+
+    @MainActor
+    func testChatGPTHandoffOpensPreviewWithoutAutomaticNavigation() {
+        let app = XCUIApplication()
+        app.launch()
+        // Initial setup still needs the owner's local confirmation.
+        let confirm = app.buttons["Confirm and continue"]
+        if confirm.waitForExistence(timeout: 10) { confirm.tap() }
+        XCTAssertTrue(app.navigationBars["iGentic Diagnostics"].waitForExistence(timeout: 15))
+
+        // Apple XCUIApplication.open exercises the real custom URL dispatch
+        // and SwiftUI onOpenURL rather than only calling the Swift URL parser.
+        let url = URL(string: "igentic://handoff/v1/discovery")!
+        app.open(url)
+        let preview = app.staticTexts[
+            "Du hast diesen Link auf dem iPhone geöffnet. Es wurde keine Aktion ausgeführt oder freigegeben."
+        ]
+        XCTAssertTrue(preview.waitForExistence(timeout: 15))
+        // No discovery screen until the owner makes a second local choice.
+        XCTAssertFalse(app.navigationBars["Explore"].exists)
+        // Match the owned row's stable identifier rather than scanning every
+        // label with an NSPredicate (which can time out in iOS 27 snapshots).
+        // Keep the element type open: SwiftUI exposes NavigationLink differently
+        // across the supported simulator runtimes.
+        let openDiscovery = app.descendants(matching: .any)
+            .matching(identifier: "igentic-handoff-open-discovery")
+            .firstMatch
+        guard openDiscovery.waitForExistence(timeout: 10) else {
+            XCTFail("Expected the manual handoff discovery control")
+            return
+        }
+        openDiscovery.tap()
+        XCTAssertTrue(app.navigationBars["Explore"].waitForExistence(timeout: 10))
+    }
+
+
+    @MainActor
+    func testChatGPTColdStartURLPreservesNavigationOnlyAfterSetup() {
+        let app = XCUIApplication()
+        // XCUIApplication.open launches the app from the real URL scheme,
+        // instead of passing synthetic SwiftUI state to DiagnosticView.
+        app.open(URL(string: "igentic://handoff/v1/diagnostics")!)
+        let confirm = app.buttons["Confirm and continue"]
+        if confirm.waitForExistence(timeout: 10) { confirm.tap() }
+
+        let preview = app.staticTexts[
+            "Du hast diesen Link auf dem iPhone geöffnet. Es wurde keine Aktion ausgeführt oder freigegeben."
+        ]
+        XCTAssertTrue(preview.waitForExistence(timeout: 15))
+        XCTAssertTrue(app.navigationBars["iGentic Diagnostics"].exists)
+        // The incoming link did not approve anything or open another app.
+        XCTAssertFalse(app.navigationBars["Explore"].exists)
+    }
+
     @MainActor
     func testAgentHomeLocalStatusAndPreview() {
         let app = XCUIApplication()

@@ -8,9 +8,12 @@ public struct DiagnosticView: View {
     private let setupConfirmationStore: AppActionApprovalPolicySetupConfirmationStore?
     private let nativeBridgeOpenDiscovery: Bool
     private let nativeBridgeScreenObserved: ((String) -> Void)?
+    private let handoffPreviewObserved: ((ChatGPTHandoffRoute) -> Void)?
     @State private var approvalPolicy: AppActionApprovalPolicy
     @State private var isInitialSetupPresented: Bool
     @State private var nativeBridgeDiscoveryPresented = false
+    @State private var chatGPTHandoff: ChatGPTHandoffRoute?
+    @State private var queuedChatGPTHandoff: ChatGPTHandoffRoute?
     @State private var isReminderApprovalPresented: Bool
     @State private var reminderApprovalOutcome: String
 
@@ -21,13 +24,15 @@ public struct DiagnosticView: View {
         setupConfirmationStore: AppActionApprovalPolicySetupConfirmationStore? = nil,
         requiresInitialSetupConfirmation: Bool = false,
         nativeBridgeOpenDiscovery: Bool = false,
-        nativeBridgeScreenObserved: ((String) -> Void)? = nil
+        nativeBridgeScreenObserved: ((String) -> Void)? = nil,
+        handoffPreviewObserved: ((ChatGPTHandoffRoute) -> Void)? = nil
     ) {
         self.state = state
         self.approvalPolicyStore = approvalPolicyStore
         self.setupConfirmationStore = setupConfirmationStore
         self.nativeBridgeOpenDiscovery = nativeBridgeOpenDiscovery
         self.nativeBridgeScreenObserved = nativeBridgeScreenObserved
+        self.handoffPreviewObserved = handoffPreviewObserved
         self._approvalPolicy = State(initialValue: approvalPolicy)
         self._isInitialSetupPresented = State(
             initialValue: requiresInitialSetupConfirmation
@@ -211,6 +216,63 @@ public struct DiagnosticView: View {
                 }
                 isReminderApprovalPresented = false
             }
+        }
+        // The external URL is not trusted, even when its source is ChatGPT.
+        // Never route it into any write/approval or device-control callback.
+        .onOpenURL { url in
+            // A cold-start URL is not an approval. Show the local setup first;
+            // queue at most one allowlisted navigation-only route in memory.
+            guard let route = ChatGPTHandoffRoute.parse(url) else { return }
+            if isInitialSetupPresented {
+                queuedChatGPTHandoff = route
+            } else {
+                chatGPTHandoff = route
+            }
+        }
+        .onChange(of: isInitialSetupPresented) { _, presenting in
+            guard !presenting, let route = queuedChatGPTHandoff else { return }
+            queuedChatGPTHandoff = nil
+            chatGPTHandoff = route
+        }
+        .sheet(item: $chatGPTHandoff) { route in
+            NavigationStack {
+                Form {
+                    Section("ChatGPT-Übergabe") {
+                        Text("Du hast diesen Link auf dem iPhone geöffnet. Es wurde keine Aktion ausgeführt oder freigegeben.")
+                        Text("Die Auswahl unten öffnet ausschließlich einen Bereich der iGentic-App.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                    Section("Manuell fortfahren") {
+                        switch route {
+                        case .diagnostics:
+                            Text("Diagnostics ist bereits geöffnet.")
+                        case .discovery:
+                            NavigationLink("Lokale Entdeckungen öffnen") {
+                                ExploreView()
+                            }
+                            .accessibilityIdentifier("igentic-handoff-open-discovery")
+                        case .reminderDraft:
+                            #if canImport(EventKit)
+                            NavigationLink("Erinnerungsentwurf prüfen") {
+                                CreateReminderTaskView()
+                            }
+                            #else
+                            Text("Erinnerungen sind auf diesem Gerät nicht verfügbar.")
+                            #endif
+                        }
+                    }
+                }
+                .navigationTitle(route.title)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Schließen") { chatGPTHandoff = nil }
+                    }
+                }
+            }
+            // A link alone is not a UI result. Only the actual SwiftUI sheet
+            // lifecycle emits this tiny, independently readable observation.
+            .onAppear { handoffPreviewObserved?(route) }
         }
     }
 }
