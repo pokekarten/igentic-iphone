@@ -8,13 +8,15 @@
   const REQUEST_TIMEOUT_MS = 12000;
   const byId = id => document.getElementById(id);
   const capabilities = byId('show-capabilities');
+  const verifyRegistry = byId('verify-site-registry');
+  const registryStatus = byId('site-registry-status');
   const shortcuts = byId('show-shortcuts');
   const handoff = byId('prepare-handoff');
   const cancel = byId('cancel-mcp-request');
   const action = byId('handoff-action');
   const link = byId('prepared-link');
   const status = byId('status');
-  const buttons = [capabilities, shortcuts, handoff];
+  const buttons = [capabilities, verifyRegistry, shortcuts, handoff];
   const list = byId('capability-list');
   const steps = byId('shortcuts-list');
   const projectChatStatus = byId('project-chat-status');
@@ -45,50 +47,88 @@
     && data.schema === 1 && data.actionExecuted === false
     && data.iPhoneConnected === 'not-checked';
 
-  async function callTool(name, args) {
-    if (!TOOLS.includes(name) || (name !== 'iphone_chatgpt_handoff'
-        && Object.keys(args).length !== 0)) throw Error('blockedTool');
+  // Same-origin inspection and calls use the identical bounded, cancellable MCP
+  // wire request. Only the three listed read methods can be issued by this UI.
+  async function callRpc(method, name, args) {
+    if (!['server/discover', 'tools/list', 'tools/call'].includes(method))
+      throw Error('blockedMcpMethod');
+    if (method === 'tools/call' && (!TOOLS.includes(name)
+        || (name !== 'iphone_chatgpt_handoff' && Object.keys(args).length !== 0)))
+      throw Error('blockedTool');
+    if (method !== 'tools/call' && (name !== undefined || args !== undefined))
+      throw Error('blockedMcpParameters');
     const controller = new AbortController();
     active = controller;
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
     const id = ++requestId;
+    const params = {
+      _meta: {
+        'io.modelcontextprotocol/protocolVersion': VERSION,
+        'io.modelcontextprotocol/clientCapabilities': {}
+      }
+    };
+    const headers = {
+      'content-type': 'application/json',
+      'Mcp-Protocol-Version': VERSION,
+      'Mcp-Method': method
+    };
+    if (method === 'tools/call') {
+      params.name = name;
+      params.arguments = args;
+      headers['Mcp-Name'] = name;
+    }
     try {
       const response = await fetch('/mcp', {
-      method: 'POST',
-      credentials: 'same-origin',
-      cache: 'no-store',
-      referrerPolicy: 'no-referrer',
-      signal: controller.signal,
-      headers: {
-        'content-type': 'application/json',
-        'Mcp-Protocol-Version': VERSION,
-        'Mcp-Method': 'tools/call',
-        'Mcp-Name': name
-      },
-      body: JSON.stringify({
-        jsonrpc: '2.0', id, method: 'tools/call',
-        params: {
-          _meta: {
-            'io.modelcontextprotocol/protocolVersion': VERSION,
-            'io.modelcontextprotocol/clientCapabilities': {}
-          }, name, arguments: args
-        }
-      })
-    });
+        method: 'POST', credentials: 'same-origin', cache: 'no-store',
+        referrerPolicy: 'no-referrer', signal: controller.signal,
+        headers, body: JSON.stringify({jsonrpc:'2.0',id,method,params})
+      });
       if (controller.signal.aborted) throw Error('siteMcpCancelled');
       if (!response.ok) throw Error('siteMcpUnavailable');
       const rpc = await response.json();
-      // Some adapters/mocks may settle even after cancellation: never accept
-      // a late answer, especially when preparing a manual first-party link.
+      // A late response, stale ID or error cannot become a successful result.
       if (controller.signal.aborted) throw Error('siteMcpCancelled');
-      if (rpc.id !== id || rpc.result?.resultType !== 'complete'
-          || rpc.result?.isError !== false
-          || !allowedData(rpc.result?.structuredContent?.data))
-        throw Error('invalidSiteToolResult');
-      return rpc.result.structuredContent.data;
+      if (rpc.id !== id || rpc.result?.resultType !== 'complete')
+        throw Error('invalidSiteRpc');
+      return rpc.result;
     } finally {
       clearTimeout(timeout);
     }
+  }
+
+  async function callTool(name, args) {
+    const result = await callRpc('tools/call', name, args);
+    if (result.isError !== false || !allowedData(result.structuredContent?.data))
+      throw Error('invalidSiteToolResult');
+    return result.structuredContent.data;
+  }
+
+  const expectedRegistry = ['igentic_get_capabilities', 'igentic_shortcuts_setup', 'iphone_chatgpt_handoff'];
+  const validServer = result => {
+    const server = result?._meta?.['io.modelcontextprotocol/serverInfo'];
+    return server?.name === 'igentic-iphone-handoff' && server.version === '0.2.0';
+  };
+  async function inspectSiteRegistry() {
+    const discovery = await callRpc('server/discover');
+    if (!validServer(discovery)
+        || !Array.isArray(discovery.supportedVersions)
+        || discovery.supportedVersions.length !== 1
+        || discovery.supportedVersions[0] !== VERSION
+        || !discovery.capabilities?.tools
+        || typeof discovery.capabilities.tools !== 'object')
+      throw Error('invalidSiteDiscovery');
+    const listing = await callRpc('tools/list');
+    if (!validServer(listing)
+        || !Array.isArray(listing.tools)
+        || listing.tools.length !== expectedRegistry.length
+        || listing.tools.some(t => !t || !expectedRegistry.includes(t.name)
+          || t.annotations?.readOnlyHint !== true
+          || t.annotations?.destructiveHint !== false
+          || t.annotations?.openWorldHint !== false
+          || t.inputSchema?.additionalProperties !== false)
+        || listing.tools.map(t=>t.name).sort().join('|') !== expectedRegistry.slice().sort().join('|'))
+      throw Error('siteToolsNotReady');
+    return listing.tools.length;
   }
 
   async function run(operation) {
@@ -108,6 +148,20 @@
       setBusy(false);
     }
   }
+
+  verifyRegistry.addEventListener('click', () => run(async () => {
+    registryStatus.textContent = 'Prüfe Site-MCP-Version und Toolliste …';
+    try {
+      const total = await inspectSiteRegistry();
+      registryStatus.textContent = 'Site-MCP v0.2.0 bestätigt: ' + total
+        + ' lesende Werkzeuge registriert. iPhone-Verbindung weiterhin nicht geprüft.';
+    } catch (error) {
+      registryStatus.textContent = 'Site-MCP-Kompatibilität nicht bestätigt. '
+        + 'Die veröffentlichte Site könnte veraltet oder unerreichbar sein. '
+        + 'Keine iPhone-Aktion ausgeführt.';
+      throw error;
+    }
+  }));
 
   capabilities.addEventListener('click', () => run(async () => {
     clearList(list);

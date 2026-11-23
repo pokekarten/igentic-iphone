@@ -35,16 +35,25 @@ try {
   browser = await chromium.launch({ channel: 'chrome', headless: true });
   const page = await browser.newPage();
   const errors = [];
-  const toolNames = [];
+  const mcpCalls = [];
   page.on('pageerror', () => errors.push('browserPageError'));
   page.on('request', req => {
     const url = new URL(req.url());
     if (url.hostname !== '127.0.0.1') errors.push('externalNetworkRequest');
-    if (url.pathname === '/mcp') toolNames.push('toolCall');
+    if (url.pathname === '/mcp') {
+      const request = req.postDataJSON();
+      mcpCalls.push({ method: request.method, tool: request.params?.name ?? null });
+    }
   });
   const pageUrl = 'http://127.0.0.1:' + server.address().port + '/console';
   await page.goto(pageUrl, { waitUntil: 'networkidle', timeout: 20000 });
   assert.equal(await page.locator('#prepared-link').isVisible(), false);
+  await page.locator('#verify-site-registry').click();
+  await page.waitForFunction(() =>
+    document.querySelector('#site-registry-status')?.textContent?.includes('v0.2.0 bestätigt'),
+    { timeout: 20000 }
+  );
+  assert.match(await page.locator('#site-registry-status').innerText(), /iPhone-Verbindung weiterhin nicht geprüft/);
   await page.locator('#show-capabilities').click();
   await page.locator('#capability-list li').first().waitFor({ state: 'visible', timeout: 20000 });
   assert.equal(await page.locator('#capability-list li').count(), 3);
@@ -60,10 +69,16 @@ try {
   assert.equal(await link.isVisible(), true);
   assert.equal(page.url(), pageUrl);
   assert.match(await page.locator('#status').innerText(), /Keine Aktion ausgeführt/);
-  assert.equal(toolNames.length, 3);
+  assert.deepEqual(mcpCalls, [
+    { method: 'server/discover', tool: null },
+    { method: 'tools/list', tool: null },
+    { method: 'tools/call', tool: 'igentic_get_capabilities' },
+    { method: 'tools/call', tool: 'igentic_shortcuts_setup' },
+    { method: 'tools/call', tool: 'iphone_chatgpt_handoff' }
+  ]);
   assert.deepEqual(errors, []);
   console.log(JSON.stringify({
-    realBrowser: true, sameOriginMcpCalls: toolNames.length,
+    realBrowser: true, sameOriginMcpCalls: mcpCalls.length, siteRegistryVerified: true,
     capabilityEntries: 3, shortcutSteps: 5,
     manualLinkValidated: true, noAutoNavigation: true,
     noExternalRequests: true, deviceExecuted: false, success: true

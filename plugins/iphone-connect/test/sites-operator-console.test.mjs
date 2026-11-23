@@ -30,7 +30,8 @@ class FakeElement {
   set innerHTML(value) { throw Error('unsafeHTMLRendering:' + value); }
 }
 const names = [
-  'show-capabilities', 'show-shortcuts', 'prepare-handoff',
+  'show-capabilities', 'verify-site-registry', 'site-registry-status',
+  'show-shortcuts', 'prepare-handoff',
   'cancel-mcp-request', 'handoff-action', 'prepared-link', 'status',
   'capability-list', 'shortcuts-list', 'project-chat-status'
 ];
@@ -75,6 +76,7 @@ test('console HTML is static, same-origin-only and has no arbitrary task inputs'
   assert.match(html, /id="cancel-mcp-request"[^>]*disabled/);
   assert.match(html, /12 Sekunden/);
   assert.match(html, /id="project-chat-status"/);
+  assert.match(html, /id="verify-site-registry"/);
   assert.match(html, /\[hidden\] \{ display: none !important; \}/);
   assert.doesNotMatch(html, /<form\b|<iframe\b|<textarea\b|http:\/\//i);
   assert.doesNotMatch(source, /localStorage|sessionStorage|document\.cookie|location\.href|window\.open/);
@@ -280,4 +282,67 @@ test('forged project-context success is rejected instead of presenting an unveri
   assert.equal(page.get('shortcuts-list').children.length, 0);
   assert.match(page.get('project-chat-status').textContent, /nicht verifiziert/);
   assert.match(page.get('status').textContent, /Antwort ungültig/);
+});
+
+test('Site compatibility button makes exactly two same-origin read-only MCP discovery calls', async () => {
+  const page = initialize();
+  await page.get('verify-site-registry').click();
+  assert.equal(page.calls.length, 2);
+  assert.deepEqual(page.calls.map(x => JSON.parse(x.options.body).method),
+    ['server/discover', 'tools/list']);
+  for (const { url, options } of page.calls) {
+    assert.equal(url, '/mcp');
+    assert.equal(options.method, 'POST');
+    assert.equal(options.credentials, 'same-origin');
+    assert.equal(options.headers['Mcp-Name'], undefined);
+    assert.equal(options.headers['Mcp-Method'], JSON.parse(options.body).method);
+    assert.deepEqual(Object.keys(JSON.parse(options.body).params), ['_meta']);
+  }
+  assert.match(page.get('site-registry-status').textContent, /v0\.2\.0 bestätigt/);
+  assert.match(page.get('site-registry-status').textContent, /iPhone-Verbindung weiterhin nicht geprüft/);
+  assert.equal(page.get('prepared-link').hidden, true);
+});
+
+test('outdated Site tool listing does not get falsely reported as compatible', async () => {
+  const page = initialize(async (url, options) => {
+    const req = JSON.parse(options.body);
+    const real = await handleSitesMcp(new Request('https://owner-site.invalid' + url, options));
+    const rpc = await real.json();
+    if (req.method === 'tools/list') rpc.result.tools = rpc.result.tools.slice(0,1);
+    return { ok: true, async json() { return rpc; } };
+  });
+  await page.get('verify-site-registry').click();
+  assert.equal(page.calls.length, 2);
+  assert.match(page.get('site-registry-status').textContent, /nicht bestätigt/);
+  assert.match(page.get('status').textContent, /Keine iPhone-Aktion ausgeführt/);
+  assert.equal(page.get('prepared-link').hidden, true);
+});
+
+test('forged writable plugin capability fails Site registry inspection', async () => {
+  const page = initialize(async (url, options) => {
+    const req = JSON.parse(options.body);
+    const real = await handleSitesMcp(new Request('https://owner-site.invalid' + url, options));
+    const rpc = await real.json();
+    if (req.method === 'tools/list')
+      rpc.result.tools[0].annotations.destructiveHint = true;
+    return { ok: true, async json() { return rpc; } };
+  });
+  await page.get('verify-site-registry').click();
+  assert.match(page.get('site-registry-status').textContent, /nicht bestätigt/);
+  assert.equal(page.get('prepared-link').hidden, true);
+});
+
+test('failed discovery stops before tool listing', async () => {
+  const page = initialize(async (url, options) => {
+    const req = JSON.parse(options.body);
+    const real = await handleSitesMcp(new Request('https://owner-site.invalid' + url, options));
+    const rpc = await real.json();
+    if (req.method === 'server/discover') {
+      rpc.result.supportedVersions = ['2025-03-26'];
+    }
+    return { ok: true, async json() { return rpc; } };
+  });
+  await page.get('verify-site-registry').click();
+  assert.equal(page.calls.length, 1);
+  assert.match(page.get('site-registry-status').textContent, /nicht bestätigt/);
 });

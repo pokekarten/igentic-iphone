@@ -211,3 +211,18 @@ proves project selection, conversation reuse, or context continuity. The
 `not-verified`, until signed native acceptance demonstrates it. No project
 identifier, conversation URL, account token or arbitrary text is sent to Site
 MCP tools.
+
+
+### Site MCP registry self-check (owner-clicked)
+
+The `/console` button **Site-MCP-Werkzeuge prüfen** performs two
+same-origin, manually triggered read-only MCP calls, `server/discover`
+and `tools/list`, using the exact mirrored method/version headers.
+It checks the supported protocol, server identity, **exactly three**
+allowlisted read-only tools and their non-destructive annotations.
+Missing/stale registration, unexpected write authority, a failed request
+or a forged response is reported as **not confirmed**, never as an
+available iPhone connection. This is a deployed-Site compatibility check,
+not proof of device access or actual task execution. Its code is still
+reference source until owner-authorized publication of the existing
+private Site.
