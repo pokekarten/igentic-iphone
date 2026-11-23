@@ -54,3 +54,38 @@ Official sources (verified November 23, 2026):
 - https://help.openai.com/en/articles/20001547-hosting-a-plugin-with-chatgpt-sites
 - https://help.openai.com/en/articles/12584461-connecting-custom-mcp-servers-in-chatgpt
 - https://developers.openai.com/plugins/deploy/connect-chatgpt
+
+
+## Optional WebMCP browser-site tools (experimental, not Site-hosted MCP)
+
+Separately from ChatGPT Sites' **server-hosted** MCP plugin, WebMCP
+provides **browser-tab** tools through the draft
+`document.modelContext.registerTool()` API. These are not equivalent:
+registering WebMCP on a page does not install a ChatGPT plugin, publish
+a Site, give ChatGPT mobile a tool, or create a remote MCP endpoint.
+
+The independent `webmcp.html` example (only when hosted over trusted
+HTTPS on a browser that supports the draft) uses same-origin
+`webmcp-init.mjs` and `webmcp-site.mjs` to expose exactly one
+read-only `iphone_chatgpt_handoff` tool with the same three fixed
+actions and payload as the server-side portable API. There is **no
+remote fetch, storage, arbitrary navigation or iOS action** in the
+tool callback. The HTML also displays the same three manual links
+without requiring WebMCP.
+
+The adapter declines insecure contexts, embedded frames and browsers
+without the API. It uses an AbortSignal to unregister on `pagehide`.
+Only the single local JavaScript module is allowed by the page's
+Content Security Policy (`script-src 'self'`, `connect-src 'none'`).
+No external scripts, telemetry, cookies or authentication data are used.
+
+As of November 23, 2026 the W3C community draft is experimental and
+Chromium support depends on its version, flag/trial and document security.
+The code is tested with a synthetic `document.modelContext` harness,
+**not** verified in ChatGPT's mobile app or hosted browser. Do not call
+a passing unit test a live browser tool or ChatGPT plugin.
+
+References:
+- https://webmachinelearning.github.io/webmcp/
+- https://developer.chrome.com/docs/modern-web-guidance/guides/webmcp/webmcp
+- https://help.openai.com/en/articles/20001547-hosting-a-plugin-with-chatgpt-sites

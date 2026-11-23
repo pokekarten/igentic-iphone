@@ -84,3 +84,14 @@ Enterprise/Edu workspaces on ChatGPT web. Setting up custom MCP servers
 on iPhone is not supported. A published Site and its associated plugin
 require separate owner actions; these source files do not create them.
 The Site reference makes no personal-data or device-connection claims.
+
+
+## WebMCP browser experiment
+
+The extra `sites-reference/webmcp.html` page offers an optional
+browser-native `document.modelContext` tool when available in a secure,
+top-level browser tab. Unlike a Site-hosted MCP server, WebMCP is local
+to that browser document and is **not** automatically available as a
+ChatGPT plugin. See `sites-reference/README.md` for the distinction
+and explicit approval requirements. The original static no-JavaScript
+`sites-reference/index.html` remains the safest fallback.
