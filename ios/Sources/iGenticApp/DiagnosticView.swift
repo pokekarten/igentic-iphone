@@ -62,7 +62,9 @@ public struct DiagnosticView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                // Local-first agent entry point; navigation only, no tool execution.
+                #if os(iOS)
+                // The prototype is iOS-only; the shared package also builds on macOS.
+                // No device-control test marker is moved or replaced.
                 Section("iGentic Agent") {
                     NavigationLink("Agenten-Prototyp öffnen") {
                         AgentHomePrototypeView()
@@ -71,6 +73,7 @@ public struct DiagnosticView: View {
                     Text("Chat-ähnliche, regelbasierte Vorschau mit Links zu eigenen sicheren Funktionen.")
                         .font(.footnote)
                 }
+                #endif
 
                 #if os(iOS)
                 Section("Offline-Basisfunktionen") {
