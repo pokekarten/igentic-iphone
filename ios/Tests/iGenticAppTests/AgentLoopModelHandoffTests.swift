@@ -15,6 +15,21 @@ final class AgentLoopModelHandoffTests: XCTestCase {
         return object
     }
 
+    func testShortcutLinkDoesNotContainPrivateTextOrCallback() {
+        guard let url = AgentLoopShortcutLaunch.url else {
+            return XCTFail("Fixed Shortcut URL should be constructible")
+        }
+        XCTAssertEqual(url.scheme, "shortcuts")
+        XCTAssertEqual(url.host, "run-shortcut")
+        let query = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems
+        XCTAssertEqual(query?.count, 1)
+        XCTAssertEqual(query?.first?.name, "name")
+        XCTAssertEqual(query?.first?.value, "iGentic ChatGPT Loop Test")
+        XCTAssertFalse(url.absoluteString.contains("prompt="))
+        XCTAssertFalse(url.absoluteString.contains("x-success"))
+        XCTAssertFalse(url.absoluteString.contains("callback="))
+    }
+
     func testTokensAreFreshAnonymousUUIDs() {
         let first = AgentLoopModelHandoff.newCorrelationID()
         let second = AgentLoopModelHandoff.newCorrelationID()
