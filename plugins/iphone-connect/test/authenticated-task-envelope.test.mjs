@@ -88,6 +88,21 @@ test('admission key is pinned even if the caller mutates its Buffer', () => {
     /unauthenticatedTaskEnvelope/);
 });
 
+test('obviously predictable constant-byte relay keys fail closed', () => {
+  const invalidKeys = [Buffer.alloc(32), Buffer.alloc(32, 0xff),
+    Buffer.alloc(32, 0x41)];
+  for (const weakKey of invalidKeys) {
+    assert.throws(() => createOwnerProposalAdmission({ key: weakKey }),
+      /invalidOwnerRelayKey/);
+    assert.throws(() => prepareSignedReadOnlyProposal({
+      key: weakKey, issuedAt: clock.value
+    }), /invalidOwnerRelayKey/);
+  }
+  // An ordinary random key is accepted; this does not prove general entropy.
+  const validKey = key();
+  assert.equal(sign(validKey).body.capability, 'igentic.own_app.status.read');
+});
+
 test('short TTL, future/expired timestamps, and malformed IDs fail closed', () => {
   const secret = key();
   let now = clock.value;
