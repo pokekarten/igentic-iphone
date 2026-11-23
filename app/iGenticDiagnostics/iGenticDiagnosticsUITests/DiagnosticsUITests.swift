@@ -58,6 +58,25 @@ final class DiagnosticsUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Explore"].waitForExistence(timeout: 10))
     }
 
+
+    @MainActor
+    func testChatGPTColdStartURLPreservesNavigationOnlyAfterSetup() {
+        let app = XCUIApplication()
+        // XCUIApplication.open launches the app from the real URL scheme,
+        // instead of passing synthetic SwiftUI state to DiagnosticView.
+        app.open(URL(string: "igentic://handoff/v1/diagnostics")!)
+        let confirm = app.buttons["Confirm and continue"]
+        if confirm.waitForExistence(timeout: 10) { confirm.tap() }
+
+        let preview = app.staticTexts[
+            "Du hast diesen Link auf dem iPhone geöffnet. Es wurde keine Aktion ausgeführt oder freigegeben."
+        ]
+        XCTAssertTrue(preview.waitForExistence(timeout: 15))
+        XCTAssertTrue(app.navigationBars["iGentic Diagnostics"].exists)
+        // The incoming link did not approve anything or open another app.
+        XCTAssertFalse(app.navigationBars["Explore"].exists)
+    }
+
     @MainActor
     private func scrollToControl(_ identifier: String, in app: XCUIApplication) -> XCUIElement? {
         // Use a stable accessibility identifier, not a SwiftUI-dependent
