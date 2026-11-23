@@ -222,7 +222,10 @@ final class AgentLoopSignedOwnerStatusGateTests: XCTestCase {
             XCTAssertTrue(initial.localReadCompleted)
 
             time = 2_000_000_061
-            let expired = gate.snapshot()
+            let expired = gate.stageSignedTaskForOwnerReview(
+                Data(signedTaskFixture.utf8), relayKey: signedTaskKey(),
+                privacyMode: .externalAI, statusClassification: .publicDefault
+            )
             XCTAssertEqual(expired.stage, .locallyReadExpired)
             XCTAssertNil(expired.ownerAppObservation,
                          "Expired battery/OS status must not look like fresh telemetry")
@@ -249,6 +252,7 @@ final class AgentLoopSignedOwnerStatusGateTests: XCTestCase {
                 Data(signedTaskFixture.utf8), relayKey: signedTaskKey(),
                 privacyMode: .externalAI, statusClassification: .publicDefault
             )
+            time += 10
             XCTAssertEqual(gate.readAfterLocalReviewAction().stage, .locallyRead)
             time -= 1
             let redacted = gate.snapshot()

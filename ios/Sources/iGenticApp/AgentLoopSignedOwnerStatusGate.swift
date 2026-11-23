@@ -45,6 +45,7 @@ public final class AgentLoopSignedOwnerStatusGate {
     private var pending: AgentLoopRemoteTaskPreview?
     private var trackedRequestID: String?
     private var admittedAtSeconds: Int?
+    private var readCompletedAtSeconds: Int?
     private var lastReadExpiresAt: Int?
     private var observed: String?
 
@@ -68,7 +69,7 @@ public final class AgentLoopSignedOwnerStatusGate {
         privacyMode: PrivacyMode,
         statusClassification: DataClassification
     ) -> AgentLoopSignedStatusGateReceipt {
-        guard stage == .empty else { return receipt() }
+        guard stage == .empty else { return snapshot() }
         do {
             let admittedAt = clockSeconds()
             let review = try replayJournal.inspectPolicyAndReserveForOwnerReview(
@@ -160,6 +161,7 @@ public final class AgentLoopSignedOwnerStatusGate {
             return receipt()
         }
         observed = coarseStatus
+        readCompletedAtSeconds = afterRead
         lastReadExpiresAt = task.expiresAt
         pending = nil
         stage = .locallyRead
@@ -179,7 +181,7 @@ public final class AgentLoopSignedOwnerStatusGate {
             // must not expose it as current telemetry. The read still
             // happened; preserve that fact without retaining its value.
             let now = clockSeconds()
-            if now < (admittedAtSeconds ?? Int.max) || now >= deadline {
+            if now < (readCompletedAtSeconds ?? Int.max) || now >= deadline {
                 observed = nil
                 stage = .locallyReadExpired
             }
