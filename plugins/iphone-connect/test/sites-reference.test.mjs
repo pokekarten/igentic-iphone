@@ -36,7 +36,7 @@ test('Sites page advertises only own-app links without network or script access'
   const html = readFileSync(new URL('../../igentic-chatgpt-iphone/sites-reference/index.html',
     import.meta.url), 'utf8');
   const hrefs = [...html.matchAll(/href="([^"]+)"/g)].map(x => x[1]);
-  assert.deepEqual(hrefs.sort(), HANDOFF_ACTIONS.map(a => 'igentic://handoff/v1/' + a).sort());
+  assert.deepEqual(hrefs.sort(), [...HANDOFF_ACTIONS.map(a => 'igentic://handoff/v1/' + a), '/console'].sort());
   for (const element of ['<script', '<form', '<iframe', '<img', '<link'])
     assert.equal(html.toLowerCase().includes(element), false);
   assert.ok(html.includes("connect-src 'none'"));

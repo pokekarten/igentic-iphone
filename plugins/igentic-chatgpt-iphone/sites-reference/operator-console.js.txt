@@ -1,0 +1,136 @@
+// First-party browser console for ONLY the three fixed, read-only Site MCP tools.
+// Same-origin MCP requests, no credentials in JS, device driver or auto-navigation.
+(() => {
+  'use strict';
+  const VERSION = '2026-07-28';
+  const ACTIONS = ['diagnostics', 'discovery', 'reminder-draft'];
+  const TOOLS = ['igentic_get_capabilities', 'igentic_shortcuts_setup', 'iphone_chatgpt_handoff'];
+  const byId = id => document.getElementById(id);
+  const capabilities = byId('show-capabilities');
+  const shortcuts = byId('show-shortcuts');
+  const handoff = byId('prepare-handoff');
+  const action = byId('handoff-action');
+  const link = byId('prepared-link');
+  const status = byId('status');
+  const buttons = [capabilities, shortcuts, handoff];
+  const list = byId('capability-list');
+  const steps = byId('shortcuts-list');
+  let requestId = 0;
+  let busy = false;
+  let active = null;
+
+  const clearLink = () => {
+    link.hidden = true;
+    link.removeAttribute('href');
+  };
+  const clearList = node => { node.replaceChildren(); };
+  const putItems = (node, values) => {
+    clearList(node);
+    for (const value of values) {
+      const item = document.createElement('li');
+      item.textContent = value;
+      node.appendChild(item);
+    }
+  };
+  const setBusy = value => {
+    busy = value;
+    for (const button of buttons) button.disabled = value;
+    action.disabled = value;
+  };
+  const allowedData = data => data && typeof data === 'object'
+    && data.schema === 1 && data.actionExecuted === false
+    && data.iPhoneConnected === 'not-checked';
+
+  async function callTool(name, args) {
+    if (!TOOLS.includes(name) || (name !== 'iphone_chatgpt_handoff'
+        && Object.keys(args).length !== 0)) throw Error('blockedTool');
+    const controller = new AbortController();
+    active = controller;
+    const id = ++requestId;
+    const response = await fetch('/mcp', {
+      method: 'POST',
+      credentials: 'same-origin',
+      cache: 'no-store',
+      referrerPolicy: 'no-referrer',
+      signal: controller.signal,
+      headers: {
+        'content-type': 'application/json',
+        'Mcp-Protocol-Version': VERSION,
+        'Mcp-Method': 'tools/call',
+        'Mcp-Name': name
+      },
+      body: JSON.stringify({
+        jsonrpc: '2.0', id, method: 'tools/call',
+        params: {
+          _meta: {
+            'io.modelcontextprotocol/protocolVersion': VERSION,
+            'io.modelcontextprotocol/clientCapabilities': {}
+          }, name, arguments: args
+        }
+      })
+    });
+    if (!response.ok) throw Error('siteMcpUnavailable');
+    const rpc = await response.json();
+    if (rpc.id !== id || rpc.result?.resultType !== 'complete'
+        || rpc.result?.isError !== false
+        || !allowedData(rpc.result?.structuredContent?.data)) throw Error('invalidSiteToolResult');
+    return rpc.result.structuredContent.data;
+  }
+
+  async function run(operation) {
+    if (busy) return;
+    clearLink(); // stale links never survive a new request or an error
+    setBusy(true);
+    status.textContent = 'Lese das Site-Plugin …';
+    try {
+      const result = await operation();
+      status.textContent = 'Werkzeugantwort empfangen. iPhone-Verbindung: nicht geprüft. Keine Aktion ausgeführt.';
+      return result;
+    } catch {
+      status.textContent = 'Plugin-Abfrage nicht verfügbar oder Antwort ungültig. Keine iPhone-Aktion ausgeführt.';
+      clearLink();
+    } finally {
+      active = null;
+      setBusy(false);
+    }
+  }
+
+  capabilities.addEventListener('click', () => run(async () => {
+    clearList(list);
+    const data = await callTool('igentic_get_capabilities', {});
+    if (data.status !== 'static-documentation-only'
+        || !Array.isArray(data.capabilities) || data.capabilities.length !== 3
+        || data.capabilities.some(x => typeof x.name !== 'string'
+          || typeof x.supportedByThisSite !== 'boolean')) throw Error('badCapabilities');
+    putItems(list, data.capabilities.map(x =>
+      x.name + ': ' + (x.supportedByThisSite ? 'manuell verfügbar' : 'hier nicht verfügbar')));
+  }));
+
+  shortcuts.addEventListener('click', () => run(async () => {
+    clearList(steps);
+    const data = await callTool('igentic_shortcuts_setup', {});
+    if (data.status !== 'owner-manual-setup-instructions'
+        || data.shortcutCreated !== false || data.requiresOwnerSetup !== true
+        || !Array.isArray(data.steps) || data.steps.length !== 5
+        || data.steps.some(s => typeof s !== 'string' || s.length > 220))
+      throw Error('badShortcuts');
+    putItems(steps, data.steps);
+  }));
+
+  handoff.addEventListener('click', () => run(async () => {
+    const selected = action.value;
+    if (!ACTIONS.includes(selected)) throw Error('unsupportedHandoff');
+    const data = await callTool('iphone_chatgpt_handoff', { action: selected });
+    const exactUrl = 'igentic://handoff/v1/' + selected;
+    if (data.action !== selected || data.launchUrl !== exactUrl
+        || data.requiresOwnerTap !== true || data.authorization
+          !== 'link-is-navigation-only-not-permission') throw Error('badHandoff');
+    link.href = exactUrl; // only validated, fixed first-party app scheme
+    link.hidden = false;
+  }));
+
+  window.addEventListener('pagehide', () => {
+    active?.abort();
+    clearLink();
+  });
+})();

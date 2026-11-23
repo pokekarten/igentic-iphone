@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; connect-src 'self'; img-src 'none'; form-action 'none'; base-uri 'none'">
+  <title>iGentic – ChatGPT Plugin-Bedienfeld</title>
+  <style>
+    :root { color-scheme: light dark; font: 16px/1.55 system-ui,-apple-system,BlinkMacSystemFont,sans-serif; }
+    body { max-width: 44rem; margin: 2rem auto; padding: 0 1.2rem; }
+    section { border: 1px solid GrayText; border-radius: .75rem; padding: 1.2rem; margin: 1rem 0; }
+    button, select, a.destination { padding: .7rem; border: 1px solid; border-radius: .5rem; font: inherit; }
+    button { cursor: pointer; }
+    button:disabled { cursor: wait; opacity: .5; }
+    a { color: inherit; }
+    a.destination { display: inline-block; margin-top: .7rem; }
+    [hidden] { display: none !important; }
+    button:focus-visible, a:focus-visible, select:focus-visible { outline: 3px solid Highlight; outline-offset: 3px; }
+    ul, ol { padding-left: 1.3rem; }
+    #status { min-height: 1.6rem; }
+    small { opacity: .85; }
+  </style>
+  <script src="/console.js" defer></script>
+</head>
+<body>
+<main>
+  <h1>iGentic Plugin-Bedienfeld</h1>
+  <p>Diese Oberfläche ruft ausschließlich die drei bereits vorhandenen <strong>lesenden</strong> Site-MCP-Werkzeuge auf. Sie ist kein Fernsteuerungsdienst. Das iPhone wird hier weder abgefragt noch bedient.</p>
+  <p id="status" role="status" aria-live="polite">Noch keine Werkzeugabfrage. iPhone-Verbindung: nicht geprüft.</p>
+
+  <section aria-labelledby="heading-capabilities">
+    <h2 id="heading-capabilities">1. Fähigkeiten und Voraussetzungen</h2>
+    <button id="show-capabilities" type="button">Plugin-Fähigkeiten abfragen</button>
+    <ul id="capability-list" aria-live="polite"></ul>
+  </section>
+
+  <section aria-labelledby="heading-shortcuts">
+    <h2 id="heading-shortcuts">2. Siri und ChatGPT-Kurzbefehle</h2>
+    <button id="show-shortcuts" type="button">Einrichtungsschritte abrufen</button>
+    <ol id="shortcuts-list" aria-live="polite"></ol>
+    <p><small>Die Einrichtung erfolgt bewusst auf dem iPhone durch den Eigentümer. Die Seite erstellt keine Kurzbefehle.</small></p>
+  </section>
+
+  <section aria-labelledby="heading-handoff">
+    <h2 id="heading-handoff">3. iGentic-App manuell öffnen</h2>
+    <label for="handoff-action">Bereich der eigenen iGentic-App</label>
+    <select id="handoff-action">
+      <option value="diagnostics">Diagnose</option>
+      <option value="discovery">Entdecken</option>
+      <option value="reminder-draft">Erinnerungsentwurf prüfen</option>
+    </select>
+    <button id="prepare-handoff" type="button">Handoff über Plugin vorbereiten</button>
+    <p><a class="destination" id="prepared-link" hidden rel="noreferrer">iGentic manuell öffnen</a></p>
+    <p><small>Der Link öffnet erst nach deinem Antippen die signierte App. Dort ist eine zweite manuelle Auswahl nötig. Es wird keine Erinnerung gespeichert.</small></p>
+  </section>
+
+  <p><strong>Sicherheitsstatus:</strong> Kein Ausführungsbeleg, keine Nutzerfreigabe und kein angeschlossenes iPhone werden durch diese Oberfläche bestätigt. Ein echter bidirektionaler Loop braucht später einen getrennten authentifizierten Relay und eine native iOS-Bestätigung.</p>
+  <p><a href="/">Zurück zu den drei festen manuellen Links</a></p>
+</main>
+</body>
+</html>

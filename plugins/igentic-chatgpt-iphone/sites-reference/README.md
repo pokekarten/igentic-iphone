@@ -94,7 +94,7 @@ From the repository root, after the existing plugin dependencies are installed:
 node --test plugins/iphone-connect/test/sites-mcp.test.mjs
 plugins/iphone-connect/node_modules/.bin/esbuild \
   plugins/igentic-chatgpt-iphone/sites-reference/worker.mjs \
-  --bundle --format=esm --platform=browser --loader:.html=text \
+  --bundle --format=esm --platform=browser --loader:.html=text --loader:.txt=text \
   --outfile=plugins/iphone-connect/dist/sites-handoff/server/index.js
 ```
 
@@ -163,3 +163,32 @@ References:
 - https://webmachinelearning.github.io/webmcp/
 - https://developer.chrome.com/docs/modern-web-guidance/guides/webmcp/webmcp
 - https://help.openai.com/en/articles/20001547-hosting-a-plugin-with-chatgpt-sites
+
+
+## Operator console at /console (still read-only)
+
+The original static / page remains usable without JavaScript and keeps the three
+fixed first-party app links. The optional /console page uses a fixed same-origin
+script at /console.js to call only the existing three Site MCP tools: capability
+discovery, manual Shortcuts setup instructions, and a manual first-party handoff.
+The script never posts arbitrary tasks, secrets or device identifiers, never
+navigates automatically, and never renders untrusted HTML. Only exact known
+app links can be shown after a validated tool response. All failures remain
+non-executing; the iPhone is still not checked. The hosted Site must provide
+its own owner authentication; this demo does not grant it.
+
+The /console page permits only script-src self and connect-src self. The original
+/ page keeps connect-src none. Static /console.js is served with no-store and
+nosniff headers. The test bundle requires the additional --loader:.txt=text
+flag, as above. This is not deployed to the private ChatGPT Site by GitHub.
+
+To test the **actual Chrome browser interaction** in a temporary local-only
+session after installing the existing plugin dev dependencies:
+
+    node scripts/smoke-chatgpt-sites-console-chrome.mjs
+
+This test serves the bundled Worker over 127.0.0.1 with an isolated
+headless browser, clicks all three read-only controls, confirms three real
+same-origin MCP calls, validates the owner-tapped link without following it,
+and fails on external requests or page errors. It does not connect to
+ChatGPT or any real iPhone, and does not publish the private Site.

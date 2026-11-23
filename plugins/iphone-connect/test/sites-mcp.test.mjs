@@ -110,10 +110,10 @@ test('built Worker serves the fixed page and MCP without network, secrets or dev
   const bundle = await build({
     entryPoints: [fileURLToPath(new URL('../../igentic-chatgpt-iphone/sites-reference/worker.mjs', import.meta.url))],
     bundle: true, write: false, format: 'esm', platform: 'browser',
-    loader: { '.html': 'text' }, metafile: true
+    loader: { '.html': 'text', '.txt': 'text' }, metafile: true
   });
   assert.equal(bundle.outputFiles.length, 1);
-  assert.equal(Object.keys(bundle.metafile.inputs).length, 5);
+  assert.equal(Object.keys(bundle.metafile.inputs).length, 7);
   for (const file of Object.keys(bundle.metafile.inputs))
     assert.doesNotMatch(file, /native-coredevice|node_modules|oauth|server\.mjs/);
   const { default: worker } = await import('data:text/javascript;base64,' +
@@ -123,6 +123,21 @@ test('built Worker serves the fixed page and MCP without network, secrets or dev
   assert.match(page.headers.get('content-security-policy'), /default-src 'none'/);
   const html = await page.text();
   assert.equal([...html.matchAll(/href="igentic:\/\/handoff\/v1\//g)].length, 3);
+  const consolePage = await worker.fetch(new Request('https://owner-site.invalid/console'));
+  assert.equal(consolePage.status, 200);
+  assert.match(consolePage.headers.get('content-security-policy'), /connect-src 'self'/);
+  assert.match(consolePage.headers.get('content-security-policy'), /frame-ancestors 'none'/);
+  assert.match(await consolePage.text(), /src="\/console\.js"/);
+  const consoleJS = await worker.fetch(new Request('https://owner-site.invalid/console.js'));
+  assert.equal(consoleJS.status, 200);
+  assert.match(consoleJS.headers.get('content-type'), /text\/javascript/);
+  assert.match(await consoleJS.text(), /igentic_shortcuts_setup/);
+  assert.equal((await worker.fetch(
+    new Request('https://owner-site.invalid/console?private=1'))).status, 404);
+  assert.equal((await worker.fetch(
+    new Request('https://owner-site.invalid/console.js?private=1'))).status, 404);
+  assert.equal((await worker.fetch(
+    new Request('https://owner-site.invalid/console', { method:'POST' }))).status, 404);
   const response = await worker.fetch(request(call('tools/call', {
     name: 'iphone_chatgpt_handoff', arguments: { action: 'discovery' }
   }), { headers: { 'content-type': 'application/json',
