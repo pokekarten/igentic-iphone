@@ -192,6 +192,15 @@ public struct AgentHomePrototypeView: View {
             .padding()
         }
         .scrollDismissesKeyboard(.immediately)
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Tastatur schließen") {
+                    isPromptFocused = false
+                }
+                .accessibilityIdentifier("igentic-agent-dismiss-keyboard")
+            }
+        }
         .navigationTitle("iGentic Agent")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {

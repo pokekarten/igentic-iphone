@@ -108,6 +108,19 @@ final class DiagnosticsUITests: XCTestCase {
         guard let prompt = scrollToControl("igentic-agent-prompt", in: app) else { return }
         prompt.tap()
         prompt.typeText("Offline Textentwurf")
+        // A multi-line field can leave the preview covered by the software
+        // keyboard on a compact iOS 27 simulator. Use the same visible,
+        // owner-controlled dismissal action available in the real app.
+        if app.keyboards.firstMatch.exists {
+            let closeKeyboard = app.buttons["igentic-agent-dismiss-keyboard"]
+            XCTAssertTrue(closeKeyboard.waitForExistence(timeout: 10))
+            closeKeyboard.tap()
+            let keyboardGone = XCTNSPredicateExpectation(
+                predicate: NSPredicate(format: "exists == false"),
+                object: app.keyboards.firstMatch
+            )
+            XCTAssertEqual(XCTWaiter.wait(for: [keyboardGone], timeout: 10), .completed)
+        }
         guard let preview = scrollToControl("igentic-agent-preview", in: app) else { return }
         preview.tap()
         XCTAssertTrue(app.descendants(matching: .any)
@@ -190,6 +203,21 @@ final class DiagnosticsUITests: XCTestCase {
                 app.tables.firstMatch.swipeUp()
             } else {
                 app.swipeUp()
+            }
+        }
+        // The SwiftUI scroll position can shift past a control when focus or
+        // keyboard safe-area insets change. Search back towards the top as
+        // well; never silently skip a missing required UI control.
+        for _ in 0..<6 {
+            if control.exists && control.isHittable { return control }
+            if app.scrollViews.firstMatch.exists {
+                app.scrollViews.firstMatch.swipeDown()
+            } else if app.collectionViews.firstMatch.exists {
+                app.collectionViews.firstMatch.swipeDown()
+            } else if app.tables.firstMatch.exists {
+                app.tables.firstMatch.swipeDown()
+            } else {
+                app.swipeDown()
             }
         }
         XCTFail("Expected a visible bundled diagnostic control: \(identifier)")
