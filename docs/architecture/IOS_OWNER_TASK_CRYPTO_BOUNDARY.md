@@ -162,7 +162,7 @@ do not verify iOS Shortcuts, a phone network connection or physical actions.
 ### Fail-closed combined read-only admission (offline prototype)
 
 `AgentLoopLocalReplayJournal.inspectAndReserveCanonicalProposal(_:relayKey:nowSeconds:)`
-is the public, intentionally non-executing admission boundary. It accepts raw
+is now a module-internal, intentionally non-executing admission helper. It accepts raw
 bytes only, re-runs exact canonical HMAC verification and expiry/allowlist checks,
 then persists a one-shot journal marker **before** returning a preview.
 The lower-level `reserveVerifiedPreview` helper is module-internal; it is
@@ -179,3 +179,29 @@ still returns `actionExecuted=false`, `ownerApproved=false`,
 private iOS key enrollment and storage, explicit local policy/consent, lifecycle
 integration, an authenticated transport, signed independent device receipts and
 physical-iPhone acceptance. Do not expose the bridge as a remote write API.
+
+### Native policy preflight (non-executing)
+
+AgentLoopNativePolicyPreflight.inspectForOwnerReview runs BEFORE a replay
+reservation or iOS action. It examines exact cryptographically verified wire
+bytes, then applies native PolicyEngine to the potential external disclosure of
+own-app status, using ActionRisk.externalShare and
+DelegationTarget.externalProvider. Local Only blocks the external return;
+restricted sensitive data blocks automatic delegation. Other eligible privacy
+settings yield only requiresLocalOwnerReview. No verdict enables automatic
+execution, changes approval policy, signs receipts, or sends data.
+
+Privacy mode and actual status data classification MUST come from native
+owner-controlled state, never from Site, ChatGPT or task text. This pure
+function does NOT claim settings loading, owner confirmation UI, consent
+receipt, or transport is wired up. The later replay reservation, protected
+enrollment, explicit action-specific consent and device receipts remain
+distinct mandatory production checks.
+
+The lower-level combined cryptographic helper and replay reservation are
+module-internal. The public journal entry point is the native
+inspectPolicyAndReserveForOwnerReview method. It rejects invalid or blocked
+tasks before creating replay files, then persists a one-shot marker only for
+a manually reviewed candidate. This does not obtain owner approval or send
+any result. Regression tests cover mode-denied tasks not consuming markers
+and duplicate rejection across restarted journal instances.

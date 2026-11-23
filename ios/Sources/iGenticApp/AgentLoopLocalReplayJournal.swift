@@ -1,3 +1,4 @@
+import AgentCore
 import Foundation
 
 #if canImport(CryptoKit) && canImport(Darwin)
@@ -58,7 +59,7 @@ public final class AgentLoopLocalReplayJournal {
     /// afterwards. Neither its success nor the returned preview authorizes
     /// an iPhone action, proves owner consent, or generates a device receipt.
     @discardableResult
-    public func inspectAndReserveCanonicalProposal(
+    func inspectAndReserveCanonicalProposal(
         _ bytes: Data,
         relayKey: Data,
         nowSeconds: Int
@@ -70,6 +71,32 @@ public final class AgentLoopLocalReplayJournal {
         }
         try reserveVerifiedPreview(preview, nowSeconds: nowSeconds)
         return preview
+    }
+
+    /// Public native-policy boundary for a review candidate, not execution.
+    ///
+    /// Owner-controlled mode/classification are checked against the risk of
+    /// sharing device status externally BEFORE consuming a one-shot marker.
+    /// Invalid or blocked tasks leave the private ledger unchanged.
+    /// Review candidates are conservatively reserved before presentation.
+    public func inspectPolicyAndReserveForOwnerReview(
+        _ bytes: Data,
+        relayKey: Data,
+        nowSeconds: Int,
+        privacyMode: PrivacyMode,
+        statusClassification: DataClassification
+    ) throws -> AgentLoopNativePolicyReview {
+        let review = AgentLoopNativePolicyPreflight.inspectForOwnerReview(
+            bytes,
+            relayKey: relayKey,
+            nowSeconds: nowSeconds,
+            privacyMode: privacyMode,
+            statusClassification: statusClassification
+        )
+        if case .requiresLocalOwnerReview(let verified) = review {
+            try reserveVerifiedPreview(verified, nowSeconds: nowSeconds)
+        }
+        return review
     }
 
     /// Atomically reserves a single task ID before any possible dispatch.
