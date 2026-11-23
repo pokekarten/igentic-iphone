@@ -164,6 +164,9 @@ final class AgentLoopNativeReadOnlySessionTests: XCTestCase {
             XCTAssertEqual(expired.remoteActionExecuted, false)
             XCTAssertEqual(session.accept(modelReply: #"{"action":"finish"}"#).stage, .expired)
             XCTAssertNil(session.snapshot().localObservation)
+        }
+    }
+
     func testNestedFinishCannotCompleteWhileStatusReadIsInProgress() async {
         await MainActor.run {
             var reads = 0
