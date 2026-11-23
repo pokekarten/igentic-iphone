@@ -120,4 +120,50 @@ final class AgentLoopNativeReadOnlySessionTests: XCTestCase {
             XCTAssertNil(output.localObservation)
         }
     }
+
+    func testSnapshotExpiresIdleSessionWithoutWaitingForModelReply() async {
+        await MainActor.run {
+            var clock = Date(timeIntervalSince1970: 1_800_000_000)
+            var readCount = 0
+            let session = AgentLoopNativeReadOnlySession(
+                statusReader: {
+                    readCount += 1
+                    return syntheticLoopStatus()
+                },
+                now: { clock }
+            )
+            XCTAssertEqual(session.snapshot().stage, .awaitingStatusProposal)
+            clock = clock.addingTimeInterval(AgentLoopNativeReadOnlySession.timeLimit)
+            let expired = session.snapshot()
+            XCTAssertEqual(expired.stage, .expired)
+            XCTAssertEqual(expired.reason, "invalid-or-expired-clock")
+            XCTAssertNil(expired.localObservation)
+            XCTAssertEqual(readCount, 0)
+            // A backwards clock must not reopen a terminal expired session.
+            clock = clock.addingTimeInterval(-10)
+            XCTAssertEqual(session.accept(modelReply: #"{"action":"status.read"}"#).stage, .expired)
+            XCTAssertEqual(readCount, 0)
+        }
+    }
+
+    func testSnapshotDropsUnexportedObservationAfterExpiry() async {
+        await MainActor.run {
+            var clock = Date(timeIntervalSince1970: 1_800_000_000)
+            let session = AgentLoopNativeReadOnlySession(
+                statusReader: { syntheticLoopStatus() },
+                now: { clock }
+            )
+            XCTAssertEqual(session.accept(modelReply: #"{"action":"status.read"}"#).stage,
+                           .awaitingFinish)
+            XCTAssertNotNil(session.snapshot().localObservation)
+            clock = clock.addingTimeInterval(AgentLoopNativeReadOnlySession.timeLimit + 1)
+            let expired = session.snapshot()
+            XCTAssertEqual(expired.stage, .expired)
+            XCTAssertNil(expired.localObservation)
+            XCTAssertEqual(expired.ownerApprovalGranted, false)
+            XCTAssertEqual(expired.remoteActionExecuted, false)
+            XCTAssertEqual(session.accept(modelReply: #"{"action":"finish"}"#).stage, .expired)
+            XCTAssertNil(session.snapshot().localObservation)
+        }
+    }
 }

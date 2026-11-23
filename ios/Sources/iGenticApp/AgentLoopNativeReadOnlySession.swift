@@ -45,7 +45,27 @@ public final class AgentLoopNativeReadOnlySession {
     }
 
     public func snapshot() -> AgentLoopNativeReadOnlyReceipt {
-        receipt(reason: "read-only-local-state")
+        if expirePendingIfNeeded() || stage == .expired {
+            return receipt(reason: "invalid-or-expired-clock")
+        }
+        return receipt(reason: "read-only-local-state")
+    }
+
+    /// Even a read-only status poll must enforce the age limit. Otherwise an
+    /// idle UI could display a still-actionable proposal and stale local
+    /// observation long after the session expired. This is a terminal state:
+    /// setting the clock backwards cannot reopen the task.
+    private func expirePendingIfNeeded() -> Bool {
+        guard stage == .awaitingStatusProposal || stage == .awaitingFinish else {
+            return false
+        }
+        let elapsed = now().timeIntervalSince(createdAt)
+        guard elapsed >= 0, elapsed < Self.timeLimit else {
+            stage = .expired
+            observation = nil
+            return true
+        }
+        return false
     }
 
     /// Accept at most two messages: status.read, then finish. The existing
@@ -56,9 +76,7 @@ public final class AgentLoopNativeReadOnlySession {
         guard stage == .awaitingStatusProposal || stage == .awaitingFinish else {
             return receipt(reason: "terminal-no-replay")
         }
-        let elapsed = now().timeIntervalSince(createdAt)
-        guard elapsed >= 0, elapsed < Self.timeLimit else {
-            stage = .expired
+        if expirePendingIfNeeded() {
             return receipt(reason: "invalid-or-expired-clock")
         }
         guard turnCount < 2 else {
