@@ -40,25 +40,27 @@ final class DiagnosticsUITests: XCTestCase {
         entry.tap()
 
         XCTAssertTrue(app.navigationBars["iGentic Agent"].waitForExistence(timeout: 15))
-        let status = app.descendants(matching: .any)
-            .matching(identifier: "igentic-agent-local-status").firstMatch
-        XCTAssertTrue(status.waitForExistence(timeout: 10))
+        // The Agent Home is a single long ScrollView. On smaller simulator
+        // screens the status action is below the prompt; scrolling down to it
+        // first leaves the offscreen TextField with a non-hittable AX frame.
+        // Exercise the proposal first, while the editable field is onscreen.
+        guard let prompt = scrollToControl("igentic-agent-prompt", in: app) else { return }
+        prompt.tap()
+        prompt.typeText("Offline Textentwurf")
+        guard let preview = scrollToControl("igentic-agent-preview", in: app) else { return }
+        preview.tap()
+        XCTAssertTrue(app.descendants(matching: .any)
+            .matching(identifier: "igentic-agent-proposal").firstMatch.waitForExistence(timeout: 10))
+
+        // Then scroll forward to the read-only status control; do not attempt
+        // to tap a virtualized field above the viewport again.
+        guard let status = scrollToControl("igentic-agent-local-status", in: app)
+        else { return }
         status.tap()
         let output = app.descendants(matching: .any)
             .matching(identifier: "igentic-agent-status-result").firstMatch
         XCTAssertTrue(output.waitForExistence(timeout: 10))
         XCTAssertTrue(output.label.contains("ChatGPT-Verbindung nicht geprüft"))
-
-        let prompt = app.descendants(matching: .any)
-            .matching(identifier: "igentic-agent-prompt").firstMatch
-        XCTAssertTrue(prompt.waitForExistence(timeout: 10))
-        prompt.tap()
-        prompt.typeText("Offline Textentwurf")
-        let preview = app.descendants(matching: .any)
-            .matching(identifier: "igentic-agent-preview").firstMatch
-        preview.tap()
-        XCTAssertTrue(app.descendants(matching: .any)
-            .matching(identifier: "igentic-agent-proposal").firstMatch.waitForExistence(timeout: 10))
         // iOS 27 currently does not consistently expose the ShareLink's
         // accessibility identifier in XCUITest. Manual share availability
         // is unit-tested by AgentLoopLocalBridgeTests; this UI test confirms
