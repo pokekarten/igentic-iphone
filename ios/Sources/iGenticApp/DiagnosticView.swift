@@ -12,6 +12,7 @@ public struct DiagnosticView: View {
     @State private var isInitialSetupPresented: Bool
     @State private var nativeBridgeDiscoveryPresented = false
     @State private var chatGPTHandoff: ChatGPTHandoffRoute?
+    @State private var queuedChatGPTHandoff: ChatGPTHandoffRoute?
     @State private var isReminderApprovalPresented: Bool
     @State private var reminderApprovalOutcome: String
 
@@ -203,8 +204,19 @@ public struct DiagnosticView: View {
         // The external URL is not trusted, even when its source is ChatGPT.
         // Never route it into any write/approval or device-control callback.
         .onOpenURL { url in
-            guard !isInitialSetupPresented else { return }
-            chatGPTHandoff = ChatGPTHandoffRoute.parse(url)
+            // A cold-start URL is not an approval. Show the local setup first;
+            // queue at most one allowlisted navigation-only route in memory.
+            guard let route = ChatGPTHandoffRoute.parse(url) else { return }
+            if isInitialSetupPresented {
+                queuedChatGPTHandoff = route
+            } else {
+                chatGPTHandoff = route
+            }
+        }
+        .onChange(of: isInitialSetupPresented) { _, presenting in
+            guard !presenting, let route = queuedChatGPTHandoff else { return }
+            queuedChatGPTHandoff = nil
+            chatGPTHandoff = route
         }
         .sheet(item: $chatGPTHandoff) { route in
             NavigationStack {
