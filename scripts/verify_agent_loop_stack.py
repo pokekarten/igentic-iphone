@@ -84,6 +84,51 @@ def git_clone_url() -> str:
     return url
 
 
+
+def audit_pins(entries: list[dict], *, url: str) -> None:
+    """Check *all* remote PR heads before any clone or merge.
+
+    This never rewrites the manifest. A clean preflight is not a guarantee
+    against a subsequent ref move: compose() rechecks each fetched head.
+    """
+    failures = 0
+    for item in entries:
+        ref = "refs/heads/" + item["ref"]
+        try:
+            output = checked(["git", "ls-remote", "--heads", url, ref],
+                             timeout_seconds=45)
+        except (OfflineStackError, subprocess.TimeoutExpired):
+            print("PIN UNVERIFIED PR #{}: remote head unavailable".format(
+                item["pr"]), file=sys.stderr, flush=True)
+            failures += 1
+            continue
+        lines = output.splitlines()
+        if len(lines) != 1 or "\t" not in lines[0]:
+            print("PIN UNVERIFIED PR #{}: missing or ambiguous head".format(
+                item["pr"]), file=sys.stderr, flush=True)
+            failures += 1
+            continue
+        sha, actual_ref = lines[0].split("\t", 1)
+        if actual_ref != ref or not HEX40.fullmatch(sha):
+            print("PIN UNVERIFIED PR #{}: invalid remote head".format(
+                item["pr"]), file=sys.stderr, flush=True)
+            failures += 1
+        elif sha != item["sha"]:
+            print("PIN DRIFT PR #{}: pinned {} -> observed {}".format(
+                item["pr"], item["sha"][:12], sha[:12]
+            ), file=sys.stderr, flush=True)
+            failures += 1
+        else:
+            print("PIN OK PR #{}: {}".format(
+                item["pr"], sha[:12]), flush=True)
+    if failures:
+        raise OfflineStackError(
+            "{} of {} pinned PR heads changed or could not be verified; "
+            "review changes before manually re-pinning; no merge performed."
+            .format(failures, len(entries))
+        )
+
+
 def compose(entries: list[dict], destination: Path, *, url: str) -> str:
     work = destination / "repo"
     # Clone only the first branch and fetch each other named ref. The clone
@@ -193,12 +238,18 @@ def verify(work: Path, mode: str) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
-    parser.add_argument("--mode", choices=("merge", "quick", "full", "full-ios"),
-                        default="quick")
+    parser.add_argument(
+        "--mode", choices=("heads", "merge", "quick", "full", "full-ios"),
+        default="quick"
+    )
     args = parser.parse_args()
     try:
         entries = manifest_entries(args.manifest)
         url = git_clone_url()
+        audit_pins(entries, url=url)
+        if args.mode == "heads":
+            print("PASS: all pinned PR heads verified; no clone or merge.", flush=True)
+            return 0
         with tempfile.TemporaryDirectory(prefix="igentic-pinned-stack-") as directory:
             root = Path(directory)
             compose(entries, root, url=url)
