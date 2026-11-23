@@ -5,6 +5,7 @@ import SwiftUI
 /// No LLM calls, cross-app automation, background control or fake receipts.
 public struct AgentHomePrototypeView: View {
     @State private var input = ""
+    @FocusState private var isPromptFocused: Bool
     @State private var submitted = ""
     @State private var proposal: AgentHomeProposal?
     @State private var statusText: String?
@@ -28,13 +29,31 @@ public struct AgentHomePrototypeView: View {
                         .font(.subheadline).foregroundStyle(.secondary)
                 }
 
+                // Keep the read-only status reachable without traversing
+                // the long Shortcuts and project-chat instructions below.
+                VStack(alignment: .leading, spacing: 8) {
+                    Button("iPhone-Status lokal lesen") {
+                        statusText = AgentLoopDeviceStatusReader.read().shortcutSummary
+                    }
+                    .accessibilityIdentifier("igentic-agent-local-status")
+                    if let statusText {
+                        Text(statusText).font(.footnote)
+                            .accessibilityIdentifier("igentic-agent-status-result")
+                    }
+                    Text("Akku, Stromsparmodus und iOS-Version werden nur auf diesem Gerät gelesen.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+
                 VStack(alignment: .leading, spacing: 10) {
                     TextField("Zum Beispiel: Erinnere mich morgen an die Pflanze", text: $input, axis: .vertical)
                         .lineLimit(2...4)
                         .textFieldStyle(.roundedBorder)
+                        .focused($isPromptFocused)
                         .accessibilityIdentifier("igentic-agent-prompt")
                     Button("Lokalen Vorschlag prüfen") {
-                        submitted = input
+                        isPromptFocused = false
+                        let result = AgentHomeCommandRouter.previewForDisplay(input)
+                        submitted = result.displayText
                         proposal = AgentLoopTaskBridge.preview(input)
                     }
                     .buttonStyle(.borderedProminent)
@@ -133,19 +152,6 @@ public struct AgentHomePrototypeView: View {
                 .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Button("iPhone-Status lokal lesen") {
-                        statusText = AgentLoopDeviceStatusReader.read().shortcutSummary
-                    }
-                    .accessibilityIdentifier("igentic-agent-local-status")
-                    if let statusText {
-                        Text(statusText).font(.footnote)
-                            .accessibilityIdentifier("igentic-agent-status-result")
-                    }
-                    Text("Akku, Stromsparmodus und iOS-Version werden nur auf diesem Gerät gelesen.")
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-
-                VStack(alignment: .leading, spacing: 8) {
                     Text("Eigener Offline-Agenten-Loop").font(.headline)
                     Button("Zwei sichere Schritte lokal testen") {
                         // Fixed, public-safe proposals; no model or external client invoked.
@@ -185,6 +191,7 @@ public struct AgentHomePrototypeView: View {
             }
             .padding()
         }
+        .scrollDismissesKeyboard(.immediately)
         .navigationTitle("iGentic Agent")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
