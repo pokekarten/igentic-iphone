@@ -220,8 +220,17 @@ final class AgentLoopSignedOwnerStatusGateTests: XCTestCase {
                 Data(signedTaskFixture.utf8), relayKey: signedTaskKey(),
                 privacyMode: .externalAI, statusClassification: .publicDefault
             ).stage, .awaitingOwnerReview)
-            XCTAssertEqual(gate.readAfterLocalReviewAction().stage, .locallyRead)
-            XCTAssertEqual(nestedStage, .localReadInProgress)
+            let result = gate.readAfterLocalReviewAction()
+            // A nested action is an attempted second invocation. Fail the
+            // entire first read rather than returning a success receipt.
+            XCTAssertEqual(result.stage, .denied)
+            XCTAssertEqual(nestedStage, .denied)
+            XCTAssertNil(result.ownerAppObservation)
+            XCTAssertFalse(result.localReadCompleted)
+            XCTAssertFalse(result.remoteActionExecuted)
+            XCTAssertFalse(result.ownerConsentAttested)
+            XCTAssertEqual(reads, 1)
+            XCTAssertEqual(gate.readAfterLocalReviewAction().stage, .denied)
             XCTAssertEqual(reads, 1)
         }
     }

@@ -97,6 +97,15 @@ public final class AgentLoopSignedOwnerStatusGate {
     @discardableResult
     public func readAfterLocalReviewAction() -> AgentLoopSignedStatusGateReceipt {
         guard stage == .awaitingOwnerReview, let task = pending else {
+            // A synchronous statusReader may re-enter this method while the
+            // first read is still executing. Reject the *whole* operation:
+            // blocking only the nested call would let the outer call falsely
+            // report a clean locally-completed read.
+            if stage == .localReadInProgress {
+                stage = .denied
+                pending = nil
+                observed = nil
+            }
             return receipt()
         }
         let beforeRead = clockSeconds()
