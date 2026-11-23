@@ -32,9 +32,18 @@ never pushed anywhere.
 From a clone with authenticated read-only access to the private repository:
 
     python3 -m unittest discover -s scripts -p test_verify_agent_loop_stack.py
+    python3 scripts/verify_agent_loop_stack.py --mode heads
     python3 scripts/verify_agent_loop_stack.py --mode merge
     python3 scripts/verify_agent_loop_stack.py --mode quick
     python3 scripts/verify_agent_loop_stack.py --mode full
+
+Heads mode checks **all** current remote refs, prints the full set of drifted
+or unverifiable PRs and exits nonzero without even cloning; this prevents one
+stale ref from hiding additional parallel changes. Every other mode executes
+the same fail-closed preflight before entering the disposable clone, and the
+composition independently rechecks fetched SHAs against ref movement.
+These are read-only network lookups to the Git remote, **not** an offline
+GitHub-free run. Do not automatically update a pin to make this step pass.
 
 Merge mode verifies heads and structure. Quick mode also executes selected
 cross-PR Node tests. Full mode installs existing plugin dependencies, runs
