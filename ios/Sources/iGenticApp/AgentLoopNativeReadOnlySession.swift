@@ -32,6 +32,9 @@ public final class AgentLoopNativeReadOnlySession {
     private var stage: AgentLoopNativeReadOnlyStage = .awaitingStatusProposal
     private var turnCount = 0
     private var observation: String?
+    // A synchronous injected/native reader must not re-enter accept() and
+    // issue a second local read or finish before the first read completes.
+    private var statusReadInProgress = false
 
     /// The reader is local and deliberately provided by the native app.
     /// The returned receipt is not independent physical-device attestation.
@@ -53,6 +56,10 @@ public final class AgentLoopNativeReadOnlySession {
     /// unknown actions, unsupported tool names and oversized replies.
     @discardableResult
     public func accept(modelReply: String) -> AgentLoopNativeReadOnlyReceipt {
+        if statusReadInProgress {
+            stage = .rejected
+            return receipt(reason: "status-reader-reentrancy")
+        }
         guard stage == .awaitingStatusProposal || stage == .awaitingFinish else {
             return receipt(reason: "terminal-no-replay")
         }
@@ -100,7 +107,16 @@ public final class AgentLoopNativeReadOnlySession {
                 stage = .rejected
                 return receipt(reason: "policy-denied-read")
             }
-            observation = statusReader().shortcutSummary
+            statusReadInProgress = true
+            let observed = statusReader().shortcutSummary
+            statusReadInProgress = false
+            // A synchronous callback could have attempted to re-enter
+            // accept() during the read. Its rejection must remain terminal.
+            guard stage == .awaitingStatusProposal else {
+                observation = nil
+                return receipt(reason: "status-reader-reentrancy")
+            }
+            observation = observed
             stage = .awaitingFinish
             return receipt(reason: "local-status-observed-not-exported")
 
