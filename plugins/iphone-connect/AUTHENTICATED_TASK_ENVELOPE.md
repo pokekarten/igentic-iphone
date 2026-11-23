@@ -31,8 +31,51 @@ an **authenticated proposal**, with:
 
 The module has no HTTP listener, no queue, no iOS adapter, no model call,
 no memory of private conversations and no command/shell invocation. No Site
-MCP tool is added by this change. In-memory replay defense is sufficient
-only for local protocol tests, **not** real multi-process distributed security.
+MCP tool is added by this change. The default in-memory replay defense is sufficient only for local
+protocol tests; it is **not** safe across process restarts or multiple workers.
+
+## Optional single-host durable replay store (still offline-only)
+
+The new src/durable-task-replay-store.mjs module provides an opt-in
+SQLite-backed replay store. It uses the built-in Node.js node:sqlite module
+(verified on the Mac with Node 26), explicit BEGIN IMMEDIATE transactions,
+a unique request ID constraint, expiry pruning and a bounded number of active
+records. A successful admission records a UUID and expiry time; it **never**
+stores the HMAC key, a signed payload, private text or device metadata.
+The original in-memory default remains for isolated demonstration tests.
+
+A caller must provision an existing, owner-owned 0700 directory and give an
+absolute database filename. A newly created database uses 0600 permissions.
+Existing symlinks, unsafe permissions and storage errors fail closed. Two
+independent local database connections and a separate operating-system
+process are exercised by regression tests against the same database.
+
+Offline example; the real owner key must come from a separate protected
+secret store and never be put in Git, an AI prompt or a web link:
+
+    import { createDurableTaskReplayStore } from './src/durable-task-replay-store.mjs';
+    import { createOwnerProposalAdmission } from './src/authenticated-task-envelope.mjs';
+
+    const replayStore = createDurableTaskReplayStore({
+      filePath: '/private/owner-only/igentic-replay.sqlite'
+    });
+    const admission = createOwnerProposalAdmission({
+      key: ownerRelayKey, replayStore
+    });
+    // Admit only after separate authentication, transport and policy checks.
+    // admission.admit(envelope)
+    replayStore.close();
+
+This module is **not** a hosted multi-tenant or distributed replay service.
+All processes must share the same owner-controlled local disk database.
+A shared network mount, separately hosted replicas, unverifiable filesystem,
+or the default in-memory mode is not sufficient for remote deployment.
+Database key rotation, hardened provisioning, HTTPS, owner enrollment,
+device attestation, separate iOS approval and device execution receipts
+remain unsolved product gates. Using a durable store **does not** create an
+iPhone connection or authorize a device action. Other Node runtimes need
+independent compatibility checks for the built-in node:sqlite API.
+
 
 ## Next implementation gates — not included or claimed here
 

@@ -79,11 +79,15 @@ export function prepareSignedReadOnlyProposal({
  * persistent replay protection and independent device receipts. No action runs.
  */
 export function createOwnerProposalAdmission({
-  key, nowSeconds = () => Math.floor(Date.now() / 1000), maxInflight = 128
+  key, nowSeconds = () => Math.floor(Date.now() / 1000), maxInflight = 128,
+  replayStore
 } = {}) {
   assertKey(key);
   if (typeof nowSeconds !== 'function' || !Number.isSafeInteger(maxInflight)
-    || maxInflight < 1 || maxInflight > 1024) throw new Error('invalidOwnerRelayConfig');
+    || maxInflight < 1 || maxInflight > 1024
+    || (replayStore !== undefined
+      && (!replayStore || typeof replayStore.reserve !== 'function')))
+    throw new Error('invalidOwnerRelayConfig');
   // Pin the owner key at admission construction. The caller retains its Buffer
   // and must not be able to change which secret this verifier trusts later.
   const relayKey = Buffer.from(key);
@@ -103,10 +107,19 @@ export function createOwnerProposalAdmission({
       if (received.length !== expected.length || !timingSafeEqual(received, expected))
         throw new Error('unauthenticatedTaskEnvelope');
       // Only authenticated, in-window requests enter the bounded replay cache.
-      for (const [id, expiration] of seen) if (expiration <= now) seen.delete(id);
-      if (seen.has(body.requestId)) throw new Error('replayedTaskEnvelope');
-      if (seen.size >= maxInflight) throw new Error('ownerRelayCapacityReached');
-      seen.set(body.requestId, body.expiresAt);
+      // A durable store is opt-in and MUST be independently provisioned before
+      // any future network listener. It persists one-time use across restarts.
+      if (replayStore !== undefined) {
+        if (replayStore.reserve({
+          requestId: body.requestId, expiresAt: body.expiresAt, now,
+          maxEntries: maxInflight
+        }) !== true) throw new Error('ownerReplayStoreUnavailable');
+      } else {
+        for (const [id, expiration] of seen) if (expiration <= now) seen.delete(id);
+        if (seen.has(body.requestId)) throw new Error('replayedTaskEnvelope');
+        if (seen.size >= maxInflight) throw new Error('ownerRelayCapacityReached');
+        seen.set(body.requestId, body.expiresAt);
+      }
       return Object.freeze({
         schema: 1, requestId: body.requestId, capability: CAPABILITY,
         state: 'authenticated-proposal-only', expiresAt: body.expiresAt,
