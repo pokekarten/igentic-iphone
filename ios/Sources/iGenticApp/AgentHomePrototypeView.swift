@@ -8,6 +8,7 @@ public struct AgentHomePrototypeView: View {
     @State private var submitted = ""
     @State private var proposal: AgentHomeProposal?
     @State private var statusText: String?
+    @State private var nativeLoopTestText: String?
     @State private var loopMessage: String?
     @State private var loopReady = false
     private let loopStore = AgentLoopShortcutExchangeStore()
@@ -141,6 +142,31 @@ public struct AgentHomePrototypeView: View {
                             .accessibilityIdentifier("igentic-agent-status-result")
                     }
                     Text("Akku, Stromsparmodus und iOS-Version werden nur auf diesem Gerät gelesen.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Eigener Offline-Agenten-Loop").font(.headline)
+                    Button("Zwei sichere Schritte lokal testen") {
+                        // Fixed, public-safe proposals; no model or external client invoked.
+                        let runner = AgentLoopNativeReadOnlySession(
+                            statusReader: { AgentLoopDeviceStatusReader.read() }
+                        )
+                        let observed = runner.accept(modelReply: #"{"action":"status.read"}"#)
+                        let finished = runner.accept(modelReply: #"{"action":"finish"}"#)
+                        if observed.stage == .awaitingFinish && finished.stage == .finished,
+                           let summary = observed.localObservation {
+                            nativeLoopTestText = "Lokal geprüft (zwei Schritte): \(summary) Keine KI angerufen, keine Fernaktion und keine Freigabe erteilt."
+                        } else {
+                            nativeLoopTestText = "Lokaler Test gestoppt. Keine Fernaktion ausgeführt."
+                        }
+                    }
+                    .accessibilityIdentifier("igentic-agent-native-loop-test")
+                    if let nativeLoopTestText {
+                        Text(nativeLoopTestText).font(.footnote)
+                            .accessibilityIdentifier("igentic-agent-native-loop-result")
+                    }
+                    Text("Nur feste Testvorschläge und eine eigene Statusabfrage. Kein ChatGPT-Aufruf, keine Datenweitergabe und keine anderen iPhone-Apps.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
 
