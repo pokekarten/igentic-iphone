@@ -198,9 +198,10 @@ authorized source/publication step and an actual connected-plugin invocation.
 
 GitHub independently reports this repository as **public** (`private:false`,
 `visibility:public`), whereas the current task described it as private.
-The new change is therefore prepared locally pending clarification before
-publishing it. Repository visibility was not changed. Remote CI cannot validate
-an unpublished local commit.
+Publication was initially held for clarification. The owner subsequently
+authorized continuation after the public visibility was disclosed, and commit
+`58a43e51971875704b268a937c74a0e477a4b62a` was pushed only to the existing
+PR #406 branch. Repository visibility was not changed.
 
 The physical test proves app-owned preview appearance, not a human tap in
 ChatGPT on iPhone, subsequent manual in-app navigation, or an active ChatGPT
@@ -208,3 +209,38 @@ plugin connection. No new iOS build/signing/install was needed for this
 JavaScript-only slice. Existing GitHub CI and the preinstalled signed iPhone
 app were used; no paid service, model API, account, credential or billing
 configuration was activated. No additional CI run was requested.
+
+### Published-head UI failure and focused follow-up
+
+The push triggered the existing CI workflows. Phase 0 (all four jobs), iPhone
+Plugin, Workflow Lint and the other queried repository checks passed on
+`58a43e5`. The plugin job independently reported 75 passed, 1 skipped and
+0 failures. The optional actual Swift-policy-helper test was then run locally
+with the existing configured executable: 1 passed, 0 skipped, 0 failures.
+
+The [iOS run](https://github.com/pokekarten/igentic-iphone/actions/runs/45177102469)
+failed with **3 of 4 UI tests passing**. In the handoff test, the preview and
+absence of automatic navigation were verified, but the broad label-predicate
+lookup for the manual discovery link timed out while resolving accessibility
+snapshots (DiagnosticsUITests.swift, original line 56). Cold-start handoff,
+synthetic approval cancellation and the read-only App Intent passed.
+
+The focused follow-up gives the existing discovery NavigationLink a stable
+accessibility identifier and queries that identifier directly, retaining the
+runtime-independent element type. A missing control stops the test before any
+tap. No timeout increase, test skip, automatic navigation or approval is added.
+The test still requires the explicit tap and then verifies the Explore view.
+
+Read-only inspection also found that the installed desktop plugin cache uses
+only the older MobileCLI backend, whereas this repository defaults to
+CoreDevice. This explains why the two acceptance paths are not interchangeable;
+the exact MobileCLI failure and an installed-plugin refresh remain unverified.
+
+Focused local acceptance on Xcode 27.2 / a dedicated iPhone Air iOS 27.2
+simulator: `testChatGPTHandoffOpensPreviewWithoutAutomaticNavigation` passed
+(84.512 seconds), **1 test, 0 failures, TEST SUCCEEDED**, process exit 0.
+The identifier resolved, the test explicitly tapped the control and then
+observed Explore. The dedicated simulator was shut down after verification;
+the pre-existing unrelated simulator and physical iPhone were not used.
+This is local simulator evidence for the follow-up, not a replacement for
+new-head GitHub CI or a physical-device/ChatGPT-client acceptance.

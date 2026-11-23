@@ -238,6 +238,7 @@ public struct DiagnosticView: View {
                             NavigationLink("Lokale Entdeckungen öffnen") {
                                 ExploreView()
                             }
+                            .accessibilityIdentifier("igentic-handoff-open-discovery")
                         case .reminderDraft:
                             #if canImport(EventKit)
                             NavigationLink("Erinnerungsentwurf prüfen") {
