@@ -15,7 +15,9 @@ test('official MCP client: discovery, strict schemas, resource and end-to-end na
   t.after(async () => { await client.close(); await rm(state, { recursive: true, force: true }); });
   await client.connect(transport);
   const tools = (await client.listTools()).tools;
-  assert.equal(tools.length, 12);
+  assert.equal(tools.length, 13);
+  assert.equal(tools.find(t => t.name === 'iphone_native_launch_app').annotations.readOnlyHint, false);
+
   assert.equal(tools.find(t => t.name === 'iphone_native_app_status').annotations.readOnlyHint, true);
   const ownStatus = await client.callTool({ name: 'iphone_native_app_status', arguments: {} });
   assert.deepEqual(ownStatus.structuredContent.data, {
@@ -33,6 +35,9 @@ test('official MCP client: discovery, strict schemas, resource and end-to-end na
   assert.equal((await invoke('arbitrary_shell', { command: 'rm' })).isError, true);
   const start = await invoke('iphone_start_session', { device: 'iphone-1' });
   const sessionId = start.structuredContent.data.sessionId;
+  const fixtureLaunch = await invoke('iphone_native_launch_app', { sessionId });
+  assert.equal(fixtureLaunch.isError, true, 'fixture must not pretend to execute a native physical action');
+  assert.equal(fixtureLaunch.content[0].text, 'nativeDriverRequired');
   const opened = await invoke('iphone_open_diagnostics', { sessionId });
   const observationId = opened.structuredContent.data.observationId;
   const prepared = await invoke('iphone_prepare_action', { sessionId, observationId, action: 'open-discovery' });

@@ -43,8 +43,7 @@ export function projectOwnAppStatus(apps, processes, bundleId) {
   // The process name by itself is insufficient evidence of app identity.
   const rooted = typeof url === 'string' && url.startsWith('file:') && url.endsWith('.app/');
   const processRunning = !rooted ? 'not-verified' : processes.some(p =>
-    typeof p?.executable === 'string' && p.executable.startsWith(url)
-      && p.executable.endsWith('/iGenticDiagnostics'));
+    typeof p?.executable === 'string' && p.executable === url + 'iGenticDiagnostics');
   return { supported: true, installed: true, processRunning,
     evidence: 'apple-coredevice-metadata' };
 }
@@ -116,6 +115,34 @@ export class NativeCoreDeviceBackend extends MobileBackend {
         connectionPath: physical.connectionPath };
     } finally {
       await rm(dir, { recursive: true, force: true });
+    }
+  }
+  // Separate, explicitly requested limited action for older installed app
+  // builds without the nonce receipt bridge. Does not claim view navigation.
+  async launchOwnApp(signal) {
+    await this.policy('open-diagnostics', signal);
+    const directory = await mkdtemp(join(tmpdir(), 'igentic-own-app-launch-'));
+    try {
+      const path = join(directory, 'launch.json');
+      await this.core(['device', 'process', 'launch', '--device',
+        this.config.deviceId, '--timeout', '16',
+        '--json-output', path, this.config.bundleId], signal, 21000);
+      const response = decode(await readFile(path, 'utf8'));
+      if (response.info?.outcome !== 'success' || !response.result?.process)
+        throw new PluginError('nativeProcessUnverified');
+      // Observe the fixed app identity independently AFTER launch.
+      const status = await this.appStatus(signal);
+      if (status.installed !== true || status.processRunning !== true)
+        throw new PluginError('nativeProcessUnverified');
+      return {
+        status: 'own-app-process-observed',
+        connectionPath: status.connectionPath,
+        foreground: 'not-verified',
+        viewNavigation: 'not-verified',
+        personalDataReturned: false
+      };
+    } finally {
+      await rm(directory, { recursive: true, force: true });
     }
   }
   async launch(action, signal) {

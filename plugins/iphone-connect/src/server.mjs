@@ -55,6 +55,9 @@ export function createServer(service) {
   add('iphone_start_session', 'Start diagnostic session',
     'Use this for a requested iGentic diagnostic task. Acquires a 5-minute exclusive local-device lease; does not capture the screen.',
     { device: z.literal('iphone-1') }, false, a => service.start(a.device));
+  add('iphone_native_launch_app', 'Launch only our iGentic app via Apple CoreDevice',
+    'Owner-requested, policy-gated first-party launch of the configured iGentic Diagnostics app. Independently verifies only that its process runs; foreground and view navigation remain unverified. Requires an exclusive session.',
+    session, false, a => service.nativeLaunch(a.sessionId));
   add('iphone_open_diagnostics', 'Open iGentic Diagnostics',
     'Launch only the configured iGentic Diagnostics app and verify fixed own-app view receipt or optional legacy UI. Foreground application changes.',
     session, false, a => service.open(a.sessionId));

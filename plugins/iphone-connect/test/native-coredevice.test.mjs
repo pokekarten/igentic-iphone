@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { NativeCoreDeviceBackend, verifiedNativeReceipt, projectOwnAppStatus } from '../src/native-coredevice.mjs';
 import { randomUUID } from 'node:crypto';
 import { PhoneService } from '../src/service.mjs';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
@@ -115,6 +115,7 @@ test('own-app status compares exact app URL to executable and never returns path
     evidence: 'apple-coredevice-metadata' });
   assert.doesNotMatch(JSON.stringify(result), /SECRET|321|private/i);
   assert.equal(projectOwnAppStatus(apps, [{ executable: url + 'some-other-app' }], bundleId).processRunning, false);
+  assert.equal(projectOwnAppStatus(apps, [{ executable: url + 'Frameworks/iGenticDiagnostics' }], bundleId).processRunning, false);
   assert.equal(projectOwnAppStatus(apps, [{ executable: url.replace('SECRET-UUID', 'OTHER') + 'iGenticDiagnostics' }],
     bundleId).processRunning, false);
   assert.deepEqual(projectOwnAppStatus([], [], bundleId),
@@ -128,4 +129,66 @@ test('own-app status fails closed on unknown and duplicated CoreDevice response'
   assert.throws(() => projectOwnAppStatus([app, app], [], bundleId), /backendFailed/);
   assert.throws(() => projectOwnAppStatus(undefined, [], bundleId), /backendFailed/);
   assert.throws(() => projectOwnAppStatus([app], {}, bundleId), /backendFailed/);
+});
+
+
+test('first-party own-app launch verifies process after Apple launch, without a view claim', async () => {
+  const config = {
+    deviceId: '1'.repeat(24),
+    bundleId: 'org.example.iGenticDiagnostics',
+    policyPath: process.execPath
+  };
+  const calls = [];
+  class NativeAppLaunchFake extends NativeCoreDeviceBackend {
+    async policy(operation) { calls.push(['policy',operation]); }
+    async core(args) {
+      calls.push(['core',args]);
+      const idx=args.indexOf('--json-output');
+      assert.ok(idx>=0);
+      await writeFile(args[idx+1], JSON.stringify({
+        info: { outcome: 'success' }, result: { process: { processIdentifier: 123 } }
+      }));
+      return '';
+    }
+    async appStatus() {
+      calls.push(['status']);
+      return { supported: true, installed: true, processRunning: true,
+        connectionPath: 'usb-coredevice' };
+    }
+  }
+  const bridge=new NativeAppLaunchFake(config);
+  const result=await bridge.launchOwnApp();
+  assert.deepEqual(result,{
+    status:'own-app-process-observed', connectionPath:'usb-coredevice',
+    foreground:'not-verified',viewNavigation:'not-verified',
+    personalDataReturned:false
+  });
+  assert.deepEqual(calls.map(c=>c[0]),['policy','core','status']);
+  assert.equal(calls[0][1],'open-diagnostics');
+  const args=calls[1][1];
+  assert.ok(args.includes(config.bundleId));
+  assert.ok(args.includes(config.deviceId));
+  assert.equal(args.includes('--terminate-existing'),false);
+  assert.equal(args.some(x=>x.startsWith('--igentic-bridge-')),false);
+  assert.doesNotMatch(JSON.stringify(result), /123|de\.bos|org\.example/);
+});
+
+test('first-party own-app launch refuses false process confirmation and bad launch receipts', async () => {
+  const cfg={deviceId:'1'.repeat(24),bundleId:'org.example.iGenticDiagnostics',policyPath:process.execPath};
+  class NativeAppLaunchFake extends NativeCoreDeviceBackend {
+    async policy() {}
+    async core(args) {
+      const idx=args.indexOf('--json-output');
+      await writeFile(args[idx+1],JSON.stringify({
+        info:{outcome:this.outcome??'success'},
+        result:{process:{processIdentifier:22}}
+      }));
+      return '';
+    }
+    async appStatus() { return {installed:true,processRunning:this.running??false}; }
+  }
+  const b=new NativeAppLaunchFake(cfg);
+  await assert.rejects(b.launchOwnApp(),/nativeProcessUnverified/);
+  b.running=true;b.outcome='failed';
+  await assert.rejects(b.launchOwnApp(),/nativeProcessUnverified/);
 });

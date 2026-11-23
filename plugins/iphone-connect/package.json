@@ -14,6 +14,8 @@
     "doctor": "node scripts/doctor.mjs",
     "build:ui": "node scripts/build-ui.mjs",
     "smoke": "node scripts/smoke.mjs",
+    "smoke:usb": "node scripts/smoke-native-transport.mjs --usb",
+    "smoke:wifi": "node scripts/smoke-native-transport.mjs --wifi",
     "package": "node scripts/package.mjs",
     "serve:portable": "node src/portable-gateway.mjs"
   },

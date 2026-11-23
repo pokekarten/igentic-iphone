@@ -23,7 +23,7 @@ export class PhoneService {
   capabilities() {
     return { backend: this.backend.kind, driver: this.backend.driver ?? 'legacy-or-fixture',
       mode: 'diagnostics-only', requiresMac: true,
-      actions: ['open-diagnostics', 'open-discovery'],
+      actions: ['open-diagnostics', 'open-discovery', 'native-launch-own-app'],
       observation: this.backend.driver === 'coredevice-native' ? 'own-app-view-receipt' : 'fixed-markers-only',
       screenshots: false, personalAppControl: false, reminderWrites: false,
       connection: 'local-stdio', ready: 'notYetObserved',
@@ -101,6 +101,13 @@ export class PhoneService {
   }
   async observe(id) {
     return this.within(id, async s => this.record(s, await this.backend.observe(s.controller.signal)));
+  }
+  async nativeLaunch(id) {
+    return this.within(id, async s => {
+      if (typeof this.backend.launchOwnApp !== 'function')
+        throw new PluginError('nativeDriverRequired');
+      return this.backend.launchOwnApp(s.controller.signal);
+    });
   }
   async open(id) {
     return this.within(id, async s => this.record(s, await this.backend.open(s.controller.signal)));

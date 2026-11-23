@@ -81,6 +81,10 @@ npm run smoke
 
 # Optional legacy driver only, when separately installed:
 IGENTIC_IPHONE_DRIVER=mobilecli npm run doctor
+
+# Real first-party own-app acceptance, USB-C and WLAN tested independently:
+npm run smoke:usb
+npm run smoke:wifi
 ```
 
 Setup builds only the small Swift policy executable from this repository with

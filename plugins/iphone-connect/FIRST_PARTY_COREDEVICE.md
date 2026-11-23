@@ -42,7 +42,7 @@ Fixture mode remains synthetic and never counts as hardware proof:
 
 ## Validation and outstanding acceptance
 
-40/40 Mac Node tests passed including first-party session/proposal/receipt and exact own-app status checks. The unsigned iOS simulator build succeeded. A real iOS 27.2 simulator independently observed both view-appearance receipts, for diagnostics and discovery, with the correct fresh nonce and fixed action. The Xcode-signed physical-device build for the owner's bundle was blocked by a missing local provisioning profile. No Apple account, certificate or provisioning settings were changed.
+42/42 Mac Node tests passed including first-party session/proposal/receipt and exact own-app launch/process checks. The unsigned iOS simulator build succeeded. A real iOS 27.2 simulator independently observed both view-appearance receipts, for diagnostics and discovery, with the correct fresh nonce and fixed action. The Xcode-signed physical-device build for the owner's bundle was blocked by a missing local provisioning profile. No Apple account, certificate or provisioning settings were changed.
 
 CoreDevice's app-container copy operation also failed when attempted against that simulator; simulator tests verified the app's file through Apple's simctl app-container path instead. The first-party read-only own-app status tool was separately tested on the
 real paired physical iPhone over WLAN: it returned installed=true,
@@ -52,3 +52,29 @@ CoreDevice only. This does not prove native UI navigation.
 The physical iPhone receipt retrieval and full WLAN-only MCP smoke therefore still require an owner-provisioned app version plus a fresh physical acceptance test. The previously validated MobileCLI USB-C end-to-end test remains separate evidence.
 
 Do not describe the new first-party path as physical WLAN-only E2E until a real device reads the app-owned receipt and verifies the action.
+
+## Physical transport-specific own-app acceptance
+
+Run the local first-party MCP acceptance script from the plugin directory:
+
+    npm run smoke:usb      # requires physical USB-C and CoreDevice tunnel
+    npm run smoke:wifi     # requires physical local-network tunnel, no USB-C
+
+The test requires an actual paired physical route, the allowlisted iGentic
+app installed, an exclusive policy-controlled session, a safe own-app
+launch, and an independent CoreDevice app-process confirmation. It returns
+only sanitized transport and fixed booleans. This is useful with the older
+signed app that does not yet support nonce receipts.
+
+On 2026-11-23, the physical iPhone Air was actually present in macOS's
+IOUSB tree and CoreDevice reported a currently active usb-coredevice tunnel.
+Running npm run smoke:usb on that device returned installed=true,
+launchStatus=own-app-process-observed and
+independentProcessVerification=true with privateContentReturned=false,
+exit code 0, and no residual iGentic device lease. The corresponding
+npm run smoke:wifi correctly failed with the USB cable still attached.
+An explicit synthetic fixture cannot pass physical USB acceptance.
+
+A successful result is **not** evidence of foreground or arbitrary UI
+navigation. The stronger receipt-based full app navigation still requires a
+provisioned and installed new app build and additional hardware acceptance.
