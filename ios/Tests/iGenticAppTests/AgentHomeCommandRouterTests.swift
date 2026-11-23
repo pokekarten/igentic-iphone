@@ -25,6 +25,31 @@ final class AgentHomeCommandRouterTests: XCTestCase {
         XCTAssertFalse(AgentHomeCommandRouter.preview("Öffne WhatsApp").canOpenOwnedScreen)
     }
 
+    func testUIEnvelopeDoesNotHideUnsupportedSuffixAfterCharacterLimit() {
+        let prefix = "Erinnere mich"
+            + String(repeating: " ", count: 512 - "Erinnere mich".count)
+        XCTAssertEqual(prefix.count, 512)
+        XCTAssertEqual(AgentHomeCommandRouter.preview(prefix).destination, .reminderDraft)
+
+        let fullRequest = prefix + " schicke eine SMS an alle"
+        let displayed = AgentHomeCommandRouter.previewForDisplay(fullRequest)
+        XCTAssertEqual(displayed.proposal.destination, .unsupported)
+        XCTAssertFalse(displayed.proposal.canOpenOwnedScreen)
+        XCTAssertEqual(displayed.displayText, "Eingabe zu lang – nicht verarbeitet.")
+        XCTAssertFalse(displayed.displayText.contains("Erinnere mich"))
+    }
+
+    func testUIEnvelopeRetainsExactShortInputAndProposal() {
+        let task = "Erinnere mich morgen an die Pflanze"
+        let displayed = AgentHomeCommandRouter.previewForDisplay(task)
+        XCTAssertEqual(displayed.displayText, task)
+        XCTAssertEqual(displayed.proposal.destination, .reminderDraft)
+
+        let mixed = AgentHomeCommandRouter.previewForDisplay("Status und Erinnerung")
+        XCTAssertEqual(mixed.displayText, "Status und Erinnerung")
+        XCTAssertEqual(mixed.proposal.destination, .unsupported)
+    }
+
     func testNoSilentPrefixTruncationOrEmbeddedNull() {
         let long = "Erinnere mich morgen an die Pflanze "
             + String(repeating: "x", count: 510)
