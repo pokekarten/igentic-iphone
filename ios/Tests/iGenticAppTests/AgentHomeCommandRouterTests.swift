@@ -30,7 +30,7 @@ final class AgentHomeCommandRouterTests: XCTestCase {
             + String(repeating: "x", count: 510)
             + " und schicke eine Nachricht"
         XCTAssertEqual(AgentHomeCommandRouter.preview(long).destination, .unsupported)
-        XCTAssertEqual(AgentHomeCommandRouter.preview("Status\\u{0000} lesen").destination, .unsupported)
+        XCTAssertEqual(AgentHomeCommandRouter.preview("Status" + String(UnicodeScalar(0)!) + " lesen").destination, .unsupported)
     }
 
     func testMixedLocalDestinationsAreNotGuessed() {
@@ -42,7 +42,7 @@ final class AgentHomeCommandRouterTests: XCTestCase {
         ]
         for example in examples {
             XCTAssertEqual(AgentHomeCommandRouter.preview(example).destination, .unsupported,
-                           "unexpected route for \\(example)")
+                           "unexpected routing")
         }
     }
 
@@ -57,7 +57,7 @@ final class AgentHomeCommandRouterTests: XCTestCase {
         ]
         for example in examples {
             XCTAssertEqual(AgentHomeCommandRouter.preview(example).destination, .unsupported,
-                           "unexpected route for \\(example)")
+                           "unexpected routing")
         }
     }
 
