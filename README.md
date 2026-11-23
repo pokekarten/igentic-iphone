@@ -27,7 +27,10 @@ interface once Apple's metrics arrive; missing metrics remain unverified.
 This is **not** remote iOS control, a continuous background service, or proof
 of real-world 4G/5G connectivity: deployment still needs a signed new iPhone
 app, trusted HTTPS host and explicit physical mobile-data acceptance. USB-C
-and Wi-Fi remain independent connection options.
+and Wi-Fi remain independent connection options. The optional
+`npm run smoke:cellular-host` preflight checks an explicitly configured
+owner-operated HTTPS server **from the Mac only** and never claims a cellular
+or iPhone-device connection.
 
 This repository is intentionally small and controller-friendly. It is designed for a workflow where ChatGPT acts as the project controller through the GitHub Connector, Codex creates narrow Draft PRs, and real iPhone testing decides what is actually usable.
 

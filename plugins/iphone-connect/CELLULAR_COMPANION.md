@@ -54,6 +54,36 @@ path. Private key files are never bundled or committed.
 
 Pairing remains **manual** in this version; there is no automatic credential enrollment, QR provisioning or hosted relay. Do not start public service without reviewing firewall, TLS certificate and key policies.
 
+## Mac-only readiness verification of an owner HTTPS server
+
+After the owner has explicitly provisioned a trusted HTTPS hostname,
+certificate and privately stored pairing key, run **on the Mac**:
+
+    cd plugins/iphone-connect
+    export IGENTIC_CELLULAR_ENDPOINT="https://YOUR-OWN-HOST/v1/companion/readiness"
+    export IGENTIC_CELLULAR_SHARED_KEY_FILE="/path/to/private/readiness.key"
+    npm run smoke:cellular-host
+
+The new first-party test client sends one nonce-bound HMAC-signed, fixed
+readiness JSON request to **only the explicitly configured HTTPS endpoint**.
+It uses normal system TLS trust, refuses redirects, checks the exact fixed
+response body, verifies the server's **request-bound HMAC response proof**,
+rejects malformed/oversized responses and checks private key-file permissions.
+The private key, URL, IP, host identity and request parameters are never
+printed. The production script offers **no** option to disable TLS
+verification. It does **not** create a service or expose a network port.
+Without owner configuration it fails closed and does not contact a host.
+
+Success only produces a sanitized record marked
+`authenticated-owner-host-readiness`, with
+`route=mac-network`, `cellularVerified=false`,
+`iphoneAppVerified=false` and `backgroundVerified=false`.
+**This is not a physical iPhone test** and not proof that any 4G/5G radio,
+iOS app, device authorization or agent loop is functioning. No host has been
+configured for the actual deployment in this PR. Tests use a *throwaway*
+localhost TLS certificate, trusted only by the test code; they never disable
+TLS checking for production.
+
 ## Per-request physical transport evidence
 
 The native client now observes Apple's
