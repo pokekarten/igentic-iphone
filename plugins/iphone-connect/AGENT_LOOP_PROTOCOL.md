@@ -49,6 +49,17 @@ iPhone widerrufen. Es gibt keine automatische Wiederholung, insbesondere nicht
 nach unklarem Empfang. Ablauf vor einem Versand heißt expired-before-send,
 Ablauf nach einem möglichen Versand heißt outcome-unknown.
 
+**Verspäteter Rückkanal:** Nach `sent-unconfirmed` bleibt der Versandstatus
+unklar und eine erneute Zustellung verboten. Innerhalb der ursprünglichen
+Task-Gültigkeit kann aber ein exakt nonce- und auftragsgebundener, gültig
+signierter `read-only-device-key-ack` nachträglich eintreffen und den
+Protokollzustand nach `receipt-key-authenticated` ändern. Das ist **kein**
+Beweis für Gerätezustand, Besitzerzustimmung oder iOS-Ausführung. Falscher
+Schlüssel/Nonce, ein abgelaufenes Zeitfenster und Rückmeldungen nach
+einem bereits beobachteten Timeout werden verworfen. Eine spätere
+Systemzeit-Rückstellung darf ein einmal geschlossenes Fenster nicht öffnen.
+Der Zustand `outcome-unknown` nach tatsächlichem Ablauf bleibt unverändert.
+
 ## Device-Receipt ist mehr als ein HMAC
 
 Es gibt einen vom Owner-Auftrag getrennten HMAC-SHA256-Antwortvertrag mit

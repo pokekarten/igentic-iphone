@@ -78,6 +78,9 @@ export function createTransportNeutralAgentLoop({
   let state = 'empty', task = null, transport = null;
   let attemptCount = 0, authenticatedReceipt = false;
   let deliveryAttempted = false;
+  // A sent-but-unconfirmed attempt may later receive a valid key receipt.
+  // This flag never permits retry or a physical device-success claim.
+  let lateReceiptAllowed = false;
   const now = () => {
     const t = nowSeconds();
     if (!Number.isSafeInteger(t) || t < 0) throw Error('invalidAgentLoopClock');
@@ -103,6 +106,7 @@ export function createTransportNeutralAgentLoop({
   const expire = () => {
     if (!task) return false;
     if (now() < task.expiresAt) return false;
+    lateReceiptAllowed = false;
     if (!['receipt-key-authenticated', 'cancelled-local', 'outcome-unknown',
           'expired-before-send'].includes(state)) {
       state = deliveryAttempted ? 'outcome-unknown' : 'expired-before-send';
@@ -163,6 +167,7 @@ export function createTransportNeutralAgentLoop({
         state = 'not-sent'; // manual intervention; never automatic retry
       } else if (outcome === 'sent-unconfirmed') {
         deliveryAttempted = true;
+        lateReceiptAllowed = true;
         state = 'outcome-unknown'; // no speculative resend
       } else {
         deliveryAttempted = true;
@@ -171,7 +176,11 @@ export function createTransportNeutralAgentLoop({
       return snapshot();
     },
     acceptKeyReceipt(envelope) {
-      if (state !== 'awaiting-key-authenticated-receipt') invalid();
+      // An unknown delivery is not permission to retry, but an independently
+      // authenticated, nonce-matched late receipt may resolve the uncertainty
+      // while this exact attempt's TTL is still open.
+      if (state !== 'awaiting-key-authenticated-receipt'
+          && !(state === 'outcome-unknown' && lateReceiptAllowed)) invalid();
       if (expire()) return snapshot();
       if (!EXACT(envelope, ['body', 'signature'])
           || typeof envelope.signature !== 'string' || !MAC.test(envelope.signature))
@@ -186,6 +195,7 @@ export function createTransportNeutralAgentLoop({
       if (supplied.length !== expected.length
           || !timingSafeEqual(supplied, expected)) receiptInvalid();
       authenticatedReceipt = true;
+      lateReceiptAllowed = false;
       state = 'receipt-key-authenticated';
       // Still not "executed", "device verified", or a ChatGPT reply. The
       // independent physical device, policy and owner receipts are missing.
