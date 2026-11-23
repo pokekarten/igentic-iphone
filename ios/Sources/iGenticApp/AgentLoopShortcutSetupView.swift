@@ -7,6 +7,7 @@ import AppIntents
 public struct AgentLoopShortcutSetupView: View {
     @State private var localStage: AgentLoopShortcutSetup.LocalStage = .noTask
     @State private var storageError = false
+    @State private var statusLoopStageText = "Noch nicht geprüft"
     private let store = AgentLoopShortcutExchangeStore()
 
     public init() {}
@@ -78,6 +79,24 @@ public struct AgentLoopShortcutSetupView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
+                    Text("Neu: echter lokaler Zwei-Schritt-Status-Loop").font(.headline)
+                    Text("Dieser unabhängige Test verarbeitet einen Modellvorschlag, liest danach auf dem iPhone nur Akku, Stromsparmodus und iOS-Version und akzeptiert anschließend ausschließlich den Abschluss. Der Zustand bleibt über getrennte Kurzbefehle-Aufrufe erhalten.")
+                        .font(.subheadline)
+                    ForEach(AgentLoopShortcutSetup.statusLoopActions.indices, id: \.self) { index in
+                        Text(AgentLoopShortcutSetup.statusLoopActions[index])
+                            .font(.subheadline)
+                    }
+                    Text(statusLoopStageText)
+                        .font(.caption)
+                        .accessibilityIdentifier("igentic-shortcuts-status-loop-state")
+                    Button("Status-Loop-Zustand lokal prüfen") { refreshStatusLoop() }
+                        .accessibilityIdentifier("igentic-shortcuts-status-loop-refresh")
+                    Text("Die erste Statusbeobachtung erscheint nur in der Ausgabe deiner eigenen iGentic-Aktion. Erst dein selbst eingerichteter Kurzbefehl könnte sie an ein externes KI-Modell schicken. Eine solche Weitergabe findet nicht automatisch in iGentic statt.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                .accessibilityIdentifier("igentic-shortcuts-status-loop-guide")
+
+                VStack(alignment: .leading, spacing: 8) {
                     Text("Separat: ChatGPT-Projektchat öffnen").font(.headline)
                     Text("Erstelle in Kurzbefehle einen zweiten Ablauf namens:")
                     Text(AgentLoopShortcutSetup.projectChatShortcutName)
@@ -123,7 +142,19 @@ public struct AgentLoopShortcutSetupView: View {
         }
         .navigationTitle("KI-Loop einrichten")
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear { refresh() }
+        .onAppear {
+            refresh()
+            refreshStatusLoop()
+        }
+    }
+
+    private func refreshStatusLoop() {
+        do {
+            let stage = try AgentLoopStatusShortcutStore().stageForOwner()
+            statusLoopStageText = "Lokaler Status-Loop: " + (stage?.rawValue ?? "kein Auftrag")
+        } catch {
+            statusLoopStageText = "Lokaler Status-Loop nicht lesbar oder gesperrt. Keine Wiederholung starten."
+        }
     }
 
     private func refresh() {

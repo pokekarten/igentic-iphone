@@ -410,6 +410,68 @@ struct iGenticReceiveAILoopAnswerIntent: AppIntent {
     }
 }
 
+// These two App Intents turn the verified read-only model proposal into an
+// actual owner-configured Shortcuts round trip across app invocations.
+// They never call ChatGPT, forward a status to a provider, grant approval,
+// execute a write action or assert physical iPhone attestation.
+@available(iOS 27.0, *)
+struct iGenticStartStatusLoopIntent: AppIntent {
+    static let title: LocalizedStringResource = "iGentic Status-Loop starten"
+    static let description = IntentDescription(
+        "Create one bounded read-only status task for an owner-configured Shortcut."
+    )
+    static let supportedModes: IntentModes = .background
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ReturnsValue<String> {
+        let decision = PolicyEngine().decide(PolicyRequest(
+            privacyMode: .localOnly,
+            dataClassification: .publicDefault,
+            actionRisk: .prepare,
+            requestedDelegationTarget: .localDevice
+        ))
+        guard decision.isAllowed, !decision.requiresApproval else {
+            throw iGenticDiagnosticsIntentError.policyDenied
+        }
+        return .result(value: try AgentLoopStatusShortcutStore().begin())
+    }
+}
+
+@available(iOS 27.0, *)
+struct iGenticAdvanceStatusLoopIntent: AppIntent {
+    static let title: LocalizedStringResource = "iGentic Status-Loop fortsetzen"
+    static let description = IntentDescription(
+        "Validate a model action, read only coarse local status or finish; no remote execution."
+    )
+    static let supportedModes: IntentModes = .background
+
+    @Parameter(title: "Auftrags-ID")
+    var taskID: String
+
+    @Parameter(title: "Modellvorschlag")
+    var modelReply: String
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ReturnsValue<String> {
+        let decision = PolicyEngine().decide(PolicyRequest(
+            privacyMode: .localOnly,
+            dataClassification: DataClassification(
+                level: .contextualPrivateData,
+                reason: "Fixed on-device status observation for an owner Shortcuts task."
+            ),
+            actionRisk: .read,
+            requestedDelegationTarget: .localDevice
+        ))
+        guard decision.isAllowed, !decision.requiresApproval else {
+            throw iGenticDiagnosticsIntentError.policyDenied
+        }
+        return .result(value: try AgentLoopStatusShortcutStore().advance(
+            taskID: taskID, modelReply: modelReply,
+            statusReader: { AgentLoopDeviceStatusReader.read() }
+        ))
+    }
+}
+
 // Shortcuts asks iGentic for a new anonymous correlation token before asking
 // ChatGPT. No user content is stored, and this token is NOT authentication.
 @available(iOS 27.0, *)
