@@ -1,19 +1,26 @@
 import Foundation
 
 /// Authoritative, user-facing configuration for the real API-free Shortcuts
-/// round trip. Neither URL creates a Shortcut silently or transports user text.
+/// round trip. No launcher URL creates a Shortcut or transports user text.
 public enum AgentLoopShortcutSetup {
     public static let primaryShortcutName = "iGentic KI Loop"
+    public static let projectChatShortcutName = "iGentic Projekt-Chat"
     public static let researchShortcutName = "iGentic ChatGPT Loop Test"
     public static let createURL = URL(string: "shortcuts://create-shortcut")!
 
-    public static var runURL: URL {
+    public static var runURL: URL { runShortcutURL(named: primaryShortcutName) }
+
+    /// A separately owner-configured ChatGPT project-chat launcher.
+    /// Opening it does not return a ChatGPT answer or execute an iPhone task.
+    public static var projectChatRunURL: URL {
+        runShortcutURL(named: projectChatShortcutName)
+    }
+
+    private static func runShortcutURL(named name: String) -> URL {
         var components = URLComponents()
         components.scheme = "shortcuts"
         components.host = "run-shortcut"
-        components.queryItems = [
-            URLQueryItem(name: "name", value: primaryShortcutName)
-        ]
+        components.queryItems = [URLQueryItem(name: "name", value: name)]
         return components.url!
     }
 

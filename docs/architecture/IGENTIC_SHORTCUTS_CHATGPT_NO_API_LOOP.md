@@ -263,14 +263,15 @@ Owner setup (requires ChatGPT app, account and accessible project):
    instructions and sources there, with sensitive content handled privately.
 2. In Apple Shortcuts, create a shortcut and search under ChatGPT for
    **Start chat in project** (the visible label may be localized).
-3. Select the destination ChatGPT project **in the native action**. Name the
-   shortcut for its role, for example **iGentic Projekt**; optionally add it
-   to the Home Screen or invoke that shortcut by name through Siri.
-4. Run it, then confirm in the ChatGPT UI that a **new chat belongs to the
-   selected project**. Test each project binding independently.
+3. Select the **iGentic** ChatGPT project in the native action. Name the
+   owner-configured shortcut **iGentic Projekt-Chat** (the fixed name linked
+   by the iGentic setup screen); optionally add it to the Home Screen or
+   invoke it by name through Siri.
+4. Run it, then confirm in the ChatGPT UI that the new chat belongs to the
+   **iGentic** project, not a general ChatGPT conversation.
 
-Recommended organization: one owner-configured launcher per stable project
-(e.g. iGentic, FFBK, OpenCatastrophe), plus optional manual project chooser.
+This is a dedicated iGentic launcher, not a multi-project router. Its
+configured ChatGPT project is selected by the owner, not by the iGentic app.
 Do not infer a general dynamic project-routing API or project CRUD API from
 this action; each action must use the destination actually exposed by the
 installed ChatGPT app. Never fabricate a project ID or a chat URL.

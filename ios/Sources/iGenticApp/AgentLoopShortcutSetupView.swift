@@ -78,6 +78,25 @@ public struct AgentLoopShortcutSetupView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
+                    Text("Separat: ChatGPT-Projektchat öffnen").font(.headline)
+                    Text("Erstelle in Kurzbefehle einen zweiten Ablauf namens:")
+                    Text(AgentLoopShortcutSetup.projectChatShortcutName)
+                        .font(.headline.monospaced())
+                        .textSelection(.enabled)
+                        .accessibilityIdentifier("igentic-project-chat-shortcut-name")
+                    Text("Füge die ChatGPT-Aktion „Start chat in project“ hinzu und wähle darin ausdrücklich das iGentic-Projekt. Dieser Chat nutzt den ausgewählten Projektkontext; die Projektwahl erfolgt durch dich im Kurzbefehle-Editor.")
+                        .font(.subheadline)
+                    Link(destination: AgentLoopShortcutSetup.projectChatRunURL) {
+                        Label("iGentic-Projektchat über Kurzbefehle öffnen",
+                              systemImage: "bubble.left.and.text.bubble.right")
+                    }
+                    .accessibilityIdentifier("igentic-project-chat-launch")
+                    Text("Der Startlink enthält nur den festen Namen des Kurzbefehls. Er prüft weder dessen Installation noch die Projektwahl und liefert keine automatische Modellantwort an iGentic zurück. Für einen lokalen Rückkanal verwende den getrennten iGentic KI Loop oben.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                .accessibilityIdentifier("igentic-project-chat-guide")
+
+                VStack(alignment: .leading, spacing: 8) {
                     Text("Optionaler Entwicklertest").font(.headline)
                     if let url = AgentLoopShortcutLaunch.url {
                         Link(destination: url) {

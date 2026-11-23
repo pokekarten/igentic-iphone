@@ -20,6 +20,27 @@ final class AgentLoopShortcutSetupTests: XCTestCase {
         XCTAssertFalse(setup.runURL.absoluteString.contains("x-success"))
     }
 
+    func testProjectChatLauncherIsIndependentAndDataFree() throws {
+        let setup = AgentLoopShortcutSetup.self
+        XCTAssertEqual(setup.projectChatShortcutName, "iGentic Projekt-Chat")
+        XCTAssertNotEqual(setup.projectChatShortcutName, setup.primaryShortcutName)
+        XCTAssertNotEqual(setup.projectChatRunURL, setup.runURL)
+
+        let parsed = try XCTUnwrap(
+            URLComponents(url: setup.projectChatRunURL, resolvingAgainstBaseURL: false)
+        )
+        XCTAssertEqual(parsed.scheme, "shortcuts")
+        XCTAssertEqual(parsed.host, "run-shortcut")
+        XCTAssertEqual(parsed.queryItems?.count, 1)
+        XCTAssertEqual(parsed.queryItems?.first?.name, "name")
+        XCTAssertEqual(parsed.queryItems?.first?.value, setup.projectChatShortcutName)
+        XCTAssertTrue(parsed.path.isEmpty)
+        XCTAssertFalse(setup.projectChatRunURL.absoluteString.contains("prompt="))
+        XCTAssertFalse(setup.projectChatRunURL.absoluteString.contains("text="))
+        XCTAssertFalse(setup.projectChatRunURL.absoluteString.contains("projectId="))
+        XCTAssertFalse(setup.projectChatRunURL.absoluteString.contains("x-success"))
+    }
+
     func testStepsRequireActualModelAndNativeReturn() {
         XCTAssertEqual(AgentLoopShortcutSetup.actions.count, 5)
         XCTAssertTrue(AgentLoopShortcutSetup.actions[0].contains("Auftrags-ID lesen"))
