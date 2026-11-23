@@ -126,6 +126,32 @@ jobs:
           echo "APP_PATH=${app_path}" >> "${GITHUB_ENV}"
           echo "SCREENSHOT_PATH=${screenshot_path}" >> "${GITHUB_ENV}"
 
+      - name: Create isolated iOS 27 simulator
+        run: |
+          set -euo pipefail
+          : "${IOS27_MATCHED_RUNTIME:?Select matching Xcode/iOS runtime first}"
+          # Concurrent Draft PRs must not install or run tests on the same
+          # default CoreSimulator device. Allocate one disposable simulator.
+          json="$(xcrun simctl list devices available -j)"
+          source_udid="$(printf '%s' "${json}" |
+            python3 scripts/select_ios27_simulator.py --match-runtime "${IOS27_MATCHED_RUNTIME}")"
+          spec="$(printf '%s' "${json}" | python3 -c '
+          import json, sys
+          selected = sys.argv[1]
+          for runtime, devices in json.load(sys.stdin).get("devices", {}).items():
+              for device in devices:
+                  if device.get("udid") == selected:
+                      kind = device.get("deviceTypeIdentifier", "")
+                      if kind.startswith("com.apple.CoreSimulator.SimDeviceType.iPhone-") and runtime.startswith("com.apple.CoreSimulator.SimRuntime.iOS-"):
+                          print(kind, runtime)
+                          sys.exit(0)
+          sys.exit("Selected simulator lacks a usable iPhone type/runtime")
+          ' "${source_udid}")"
+          read -r device_type runtime_id <<< "${spec}"
+          isolated_udid="$(xcrun simctl create "iGentic-CI-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" "${device_type}" "${runtime_id}")"
+          echo "IGENTIC_SIMULATOR_UDID=${isolated_udid}" >> "${GITHUB_ENV}"
+          echo "Created isolated matching iOS simulator ${isolated_udid}"
+
       - name: Install, launch, screenshot, and relaunch app
         run: |
           bash scripts/smoke-ios-simulator.sh
@@ -134,7 +160,7 @@ jobs:
         run: |
           set -euo pipefail
           : "${IOS27_MATCHED_RUNTIME:?The matched Xcode/iOS preflight must complete}"
-          simulator_udid="$(xcrun simctl list devices available -j | python3 scripts/select_ios27_simulator.py --match-runtime "${IOS27_MATCHED_RUNTIME}")"
+          simulator_udid="${IGENTIC_SIMULATOR_UDID:?Isolated simulator step must complete}"
           # Run the two fixed, synthetic-only paths, never a physical device.
           # Use a separate derived-data directory from the unsigned build.
           # The Xcode test runner requires simulator ad-hoc code signing.
@@ -148,3 +174,11 @@ jobs:
             -only-testing:iGenticDiagnosticsUITests/DiagnosticsUITests \
             -only-testing:iGenticDiagnosticsUITests/iGenticAppIntentsTests \
             CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- -jobs 2 test
+
+      - name: Remove isolated iOS simulator
+        if: always()
+        run: |
+          if [[ -n "${IGENTIC_SIMULATOR_UDID:-}" ]]; then
+            xcrun simctl shutdown "${IGENTIC_SIMULATOR_UDID}" >/dev/null 2>&1 || true
+            xcrun simctl delete "${IGENTIC_SIMULATOR_UDID}" || true
+          fi
