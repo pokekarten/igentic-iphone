@@ -29,6 +29,26 @@ export function verifiedNativeReceipt(value, { action, nonce }) {
   };
 }
 
+// Never return app URLs, executable paths, process IDs or device identities.
+export function projectOwnAppStatus(apps, processes, bundleId) {
+  if (!Array.isArray(apps) || !Array.isArray(processes)) throw new PluginError('backendFailed');
+  const matches = apps.filter(a => a && a.bundleIdentifier === bundleId);
+  if (matches.length > 1) throw new PluginError('backendFailed');
+  if (matches.length === 0) {
+    return { supported: true, installed: false, processRunning: false,
+      evidence: 'apple-coredevice-metadata' };
+  }
+  const url = matches[0].url;
+  // Compare the exact installed app bundle path to the executable path.
+  // The process name by itself is insufficient evidence of app identity.
+  const rooted = typeof url === 'string' && url.startsWith('file:') && url.endsWith('.app/');
+  const processRunning = !rooted ? 'not-verified' : processes.some(p =>
+    typeof p?.executable === 'string' && p.executable.startsWith(url)
+      && p.executable.endsWith('/iGenticDiagnostics'));
+  return { supported: true, installed: true, processRunning,
+    evidence: 'apple-coredevice-metadata' };
+}
+
 export class NativeCoreDeviceBackend extends MobileBackend {
   driver = NATIVE_DRIVER;
   constructor(config, { cli = '/usr/bin/xcrun', launchTimeout = 20000 } = {}) {
@@ -68,6 +88,32 @@ export class NativeCoreDeviceBackend extends MobileBackend {
       const info = await stat(path);
       if (!info.isFile() || info.size > 512) throw new PluginError('nativeReceiptInvalid');
       return verifiedNativeReceipt(decode(await readFile(path, 'utf8')), { action, nonce });
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  }
+  async appStatus(signal) {
+    await this.policy('device-status', signal);
+    const devices = await this.list(signal);
+    const physical = devices.find(d => d.id === 'iphone-1');
+    if (!physical?.available) return {
+      supported: true, installed: 'not-verified', processRunning: 'not-verified',
+      evidence: 'no-active-tunnel', connectionPath: 'none'
+    };
+    const dir = await mkdtemp(join(tmpdir(), 'igentic-own-app-status-'));
+    try {
+      const appsPath = join(dir, 'apps.json');
+      const processesPath = join(dir, 'processes.json');
+      await this.core(['device', 'info', 'apps', '--device', this.config.deviceId,
+        '--bundle-id', this.config.bundleId, '--timeout', '15',
+        '--json-output', appsPath], signal, 20000);
+      await this.core(['device', 'info', 'processes', '--device', this.config.deviceId,
+        '--search', 'iGentic', '--timeout', '15',
+        '--json-output', processesPath], signal, 20000);
+      const apps = decode(await readFile(appsPath, 'utf8')).result?.apps;
+      const processes = decode(await readFile(processesPath, 'utf8')).result?.runningProcesses;
+      return { ...projectOwnAppStatus(apps, processes, this.config.bundleId),
+        connectionPath: physical.connectionPath };
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

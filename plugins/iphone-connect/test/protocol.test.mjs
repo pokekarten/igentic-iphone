@@ -15,7 +15,12 @@ test('official MCP client: discovery, strict schemas, resource and end-to-end na
   t.after(async () => { await client.close(); await rm(state, { recursive: true, force: true }); });
   await client.connect(transport);
   const tools = (await client.listTools()).tools;
-  assert.equal(tools.length, 11);
+  assert.equal(tools.length, 12);
+  assert.equal(tools.find(t => t.name === 'iphone_native_app_status').annotations.readOnlyHint, true);
+  const ownStatus = await client.callTool({ name: 'iphone_native_app_status', arguments: {} });
+  assert.deepEqual(ownStatus.structuredContent.data, {
+    supported: false, installed: 'not-verified', processRunning: 'not-verified'
+  });
   assert.equal(tools.find(t => t.name === 'iphone_connection_report').annotations.readOnlyHint, true);
   const report = await client.callTool({ name: 'iphone_connection_report', arguments: {} });
   assert.equal(report.structuredContent.data.deviceStatus, 'synthetic-only');

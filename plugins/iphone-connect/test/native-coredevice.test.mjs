@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { NativeCoreDeviceBackend, verifiedNativeReceipt } from '../src/native-coredevice.mjs';
+import { NativeCoreDeviceBackend, verifiedNativeReceipt, projectOwnAppStatus } from '../src/native-coredevice.mjs';
 import { randomUUID } from 'node:crypto';
 import { PhoneService } from '../src/service.mjs';
 import { mkdtemp, rm } from 'node:fs/promises';
@@ -103,4 +103,29 @@ test('first-party device receipt completes a session/proposal/verified receipt w
   assert.equal(service.result(sessionId, proposal.proposalId).status, 'verified');
   await assert.rejects(service.execute(sessionId, proposal.proposalId), /invalidProposal/);
   await service.stop(sessionId);
+});
+
+test('own-app status compares exact app URL to executable and never returns paths or IDs', () => {
+  const bundleId = 'org.example.iGenticDiagnostics';
+  const url = 'file:///private/var/containers/Bundle/Application/SECRET-UUID/iGenticDiagnostics.app/';
+  const apps = [{ bundleIdentifier: bundleId, url, privateNote: 'SECRET-NOTE' }];
+  const processes = [{ executable: url + 'iGenticDiagnostics', processIdentifier: 321, personal: 'SECRET' }];
+  const result = projectOwnAppStatus(apps, processes, bundleId);
+  assert.deepEqual(result, { supported: true, installed: true, processRunning: true,
+    evidence: 'apple-coredevice-metadata' });
+  assert.doesNotMatch(JSON.stringify(result), /SECRET|321|private/i);
+  assert.equal(projectOwnAppStatus(apps, [{ executable: url + 'some-other-app' }], bundleId).processRunning, false);
+  assert.equal(projectOwnAppStatus(apps, [{ executable: url.replace('SECRET-UUID', 'OTHER') + 'iGenticDiagnostics' }],
+    bundleId).processRunning, false);
+  assert.deepEqual(projectOwnAppStatus([], [], bundleId),
+    { supported: true, installed: false, processRunning: false, evidence: 'apple-coredevice-metadata' });
+});
+
+test('own-app status fails closed on unknown and duplicated CoreDevice response', () => {
+  const bundleId = 'org.example.iGenticDiagnostics';
+  const app = { bundleIdentifier: bundleId, url: 'garbled' };
+  assert.equal(projectOwnAppStatus([app], [], bundleId).processRunning, 'not-verified');
+  assert.throws(() => projectOwnAppStatus([app, app], [], bundleId), /backendFailed/);
+  assert.throws(() => projectOwnAppStatus(undefined, [], bundleId), /backendFailed/);
+  assert.throws(() => projectOwnAppStatus([app], {}, bundleId), /backendFailed/);
 });

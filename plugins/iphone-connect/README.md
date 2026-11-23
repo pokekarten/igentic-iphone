@@ -1,9 +1,14 @@
 # iGentic iPhone Connect
 
 Version 0.1.0 is a **local desktop developer plugin** for ChatGPT/Codex-compatible
-MCP hosts. It includes eleven typed tools, one skill, an MCP Apps dashboard with live route checks, a
+MCP hosts. It includes twelve typed tools, one skill, an MCP Apps dashboard with live route checks, a
 physical-iPhone adapter, a separate fixture backend, and a Swift bridge to the
 existing iGentic `PolicyEngine` and `AuditLog`.
+
+The first-party read-only iphone_native_app_status tool inspects only the
+configured iGentic app identity and exact running executable, using Apple
+CoreDevice. It reports fixed booleans and no app paths, process IDs or
+device identifiers. Process running does not mean foreground UI.
 
 The implemented workflow is: discover the configured device, acquire a short
 exclusive session, open our Diagnostics app, observe fixed public markers,

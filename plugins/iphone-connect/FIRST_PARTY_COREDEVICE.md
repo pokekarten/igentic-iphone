@@ -5,6 +5,7 @@ This is an independent iGentic-owned transport and view-receipt protocol. It use
 ## Implemented functions
 
 - Discover the configured, paired *physical* iPhone through CoreDevice and report whether the current path is USB-C or local-network Wi-Fi.
+- Query only the allowed iGentic app's installation and running process through a first-party read-only MCP tool. Exact bundle and executable path are checked locally; only coarse booleans leave the Mac.
 - Request CoreDevice device details to reopen an on-demand, paired tunnel. A tunnel alone is not a successful app action.
 - Launch exactly the installed iGentic Diagnostics bundle with one allowlisted action: open-diagnostics or open-discovery.
 - Accept a fresh UUID nonce per launch and require an app-owned view-appearance receipt with that same nonce.
@@ -41,8 +42,13 @@ Fixture mode remains synthetic and never counts as hardware proof:
 
 ## Validation and outstanding acceptance
 
-38/38 Mac Node tests passed including the first-party session/proposal/receipt flow. The unsigned iOS simulator build succeeded. A real iOS 27.2 simulator independently observed both view-appearance receipts, for diagnostics and discovery, with the correct fresh nonce and fixed action. The Xcode-signed physical-device build for the owner's bundle was blocked by a missing local provisioning profile. No Apple account, certificate or provisioning settings were changed.
+40/40 Mac Node tests passed including first-party session/proposal/receipt and exact own-app status checks. The unsigned iOS simulator build succeeded. A real iOS 27.2 simulator independently observed both view-appearance receipts, for diagnostics and discovery, with the correct fresh nonce and fixed action. The Xcode-signed physical-device build for the owner's bundle was blocked by a missing local provisioning profile. No Apple account, certificate or provisioning settings were changed.
 
-CoreDevice's app-container copy operation also failed when attempted against that simulator; simulator tests verified the app's file through Apple's simctl app-container path instead. The physical iPhone receipt retrieval and full WLAN-only MCP smoke therefore still require an owner-provisioned app version plus a fresh physical acceptance test. The previously validated MobileCLI USB-C end-to-end test remains separate evidence.
+CoreDevice's app-container copy operation also failed when attempted against that simulator; simulator tests verified the app's file through Apple's simctl app-container path instead. The first-party read-only own-app status tool was separately tested on the
+real paired physical iPhone over WLAN: it returned installed=true,
+processRunning=true and connectionPath=network-coredevice using Apple
+CoreDevice only. This does not prove native UI navigation.
+
+The physical iPhone receipt retrieval and full WLAN-only MCP smoke therefore still require an owner-provisioned app version plus a fresh physical acceptance test. The previously validated MobileCLI USB-C end-to-end test remains separate evidence.
 
 Do not describe the new first-party path as physical WLAN-only E2E until a real device reads the app-owned receipt and verifies the action.

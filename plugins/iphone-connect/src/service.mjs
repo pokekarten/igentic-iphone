@@ -11,6 +11,12 @@ export class PhoneService {
     this.sessions = new Map(); this.results = new Map();
   }
   async list() { return { devices: await this.backend.list(), backend: this.backend.kind }; }
+  async nativeAppStatus() {
+    if (typeof this.backend.appStatus !== 'function') return {
+      supported: false, installed: 'not-verified', processRunning: 'not-verified'
+    };
+    return this.backend.appStatus();
+  }
   async connectionReport() {
     return makeConnectionReport({ backend: this.backend.kind, devices: await this.backend.list() });
   }
