@@ -31,20 +31,23 @@ named exactly:
 Add these actions **in this order**:
 
 1. **iGentic KI-Prompt lesen** — no input. Reads the current prepared request
-   only from the iGentic sandbox and returns the complete plain-text prompt.
-   The task does not appear in the launcher URL.
-2. **Modell verwenden / Use Model** — choose **Extension Model (ChatGPT)**.
-   Set the prompt input to the prior action's variable **KI-Prompt**.
-   Disable interactive Follow Up for this first deterministic test. Set the
-   output to **Text** where offered. The model action is the only external
-   step; Shortcuts/Apple may show a first-time provider consent prompt.
-   Alternatively choose **On-Device** as an API-free and network-free fallback.
-3. **iGentic KI-Antwort übernehmen** — feed the preceding **Model Response**
-   variable into the **Modellantwort** parameter. This app intent stores the
-   untrusted text in the protected iGentic app container. No model output
-   becomes a device action.
-4. **App öffnen / Open App** — select **iGentic Diagnostics**. In the app,
-   choose **iGentic Agent → KI-Antwort prüfen** to read, evaluate and delete.
+   from the iGentic sandbox and returns a small JSON ticket with three fields:
+   `schema` (1), `taskId` (local correlation UUID) and `prompt` (model input).
+   No task text or UUID is included in the launcher URL.
+2. **Wörterbuch aus Eingabe / Get Dictionary from Input** — parse the ticket.
+   Save **prompt** and **taskId** in two separate Shortcuts variables. Never
+   pass the whole JSON ticket to ChatGPT; the ID is only for local return matching.
+3. **Modell verwenden / Use Model** — choose **Extension Model (ChatGPT)**.
+   Set the model input to the saved **prompt** variable only. Disable interactive
+   Follow Up for the first deterministic test. Select **Text** output where
+   offered. First-run provider consent may still be required. **On-Device**
+   can be used as a separate network-free fallback when available.
+4. **iGentic KI-Antwort übernehmen** — supply both the **Model Response** as
+   **Modellantwort** and the saved **taskId** as **Auftragskennung**. iGentic
+   rejects a result intended for any older or different pending task. The
+   model response remains untrusted text and is never executed as a command.
+5. **App öffnen / Open App** — select **iGentic Diagnostics** and use
+   **iGentic Agent → KI-Antwort prüfen** to review and delete the local text.
 
 **Run from the iGentic app:** open iGentic Agent, type a task, tap
 **KI-Auftrag lokal vorbereiten**, then **iGentic KI Loop in Kurzbefehle
@@ -59,12 +62,12 @@ Create a second shortcut with a distinguishable name such as
 **iGentic Frage**, consisting of:
 
 1. **Eingabe abfragen / Ask for Input** (Text), or use dictated text.
-2. **iGentic KI-Auftrag starten** — insert the entered text in **Frage**;
-   its output is a complete model prompt and stores the pending exchange.
-3. **Modell verwenden → Extension Model (ChatGPT)**, with the previous
-   prompt as input.
-4. **iGentic KI-Antwort übernehmen**, with the Model Response as input.
-5. **App öffnen → iGentic Diagnostics**; review result manually.
+2. **iGentic KI-Auftrag starten** — insert the entered text in **Frage**.
+   It stores the pending exchange and returns the same JSON ticket format.
+3. **Wörterbuch aus Eingabe** — store **prompt** and **taskId** separately.
+4. **Modell verwenden → Extension Model (ChatGPT)**, using **prompt** only.
+5. **iGentic KI-Antwort übernehmen** — send Model Response plus **taskId**.
+6. **App öffnen → iGentic Diagnostics**; review result manually.
 
 Say **"Siri, iGentic Frage"** to invoke the shortcut if iOS exposes the
 chosen custom shortcut name. This is ordinary Siri → Shortcuts invocation,
@@ -81,7 +84,9 @@ not iGentic programmatically commanding Siri's dialogue system.
   phone patterns are blocked from this automatic model-prompt route. This is
   a heuristic, **not a guarantee that all private content is detected**.
 - One model answer, up to 8 KiB, must arrive within 30 minutes. Empty text,
-  control characters, duplicate results and expired results fail closed.
+  control characters, duplicate results, expired results and task-ID mismatches
+  fail closed. The task UUID protects against stale cross-task callbacks, but
+  is **not** a cryptographic provider authentication token.
 - Stores one local JSON file with iOS file protection and restricted filesystem
   permissions. No server, analytics, background polling, chat history import
   or transparent sync. The user can clear task and response from the app.
@@ -172,3 +177,14 @@ finish the actions in the Shortcuts editor and approve relevant prompts.
 Official Apple guides:
 - https://support.apple.com/de-de/guide/shortcuts/apda283236d7/ios
 - https://support.apple.com/guide/shortcuts/use-apple-intelligence-in-shortcuts-tpg3vrvwmclv/ios
+
+## Task-correlated callback hardening (2026-11-23 evening)
+
+The current branch now returns a structured JSON ticket from both native
+Shortcuts start/read actions. The callback requires that original ticket's
+`taskId` in addition to the model answer. This blocks a delayed response
+from an older Shortcut being stored under a newer task. It is still a local,
+owner-configured, one-task-at-a-time workflow; UUID correlation does not prove
+who wrote the answer or permit remote execution. The previously documented
+physical smoke was conducted before this ticket change and does not verify
+physical system-dispatch of the revised App Intents.
