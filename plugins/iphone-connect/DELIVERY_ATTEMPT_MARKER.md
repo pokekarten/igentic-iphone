@@ -97,3 +97,30 @@ marker reservations, corrupted/unsafe inputs, filesystem security,
 recovery classification, and absence of any transport action.
 Physical USB-C, WLAN, cellular, Siri, Shortcuts and live app acceptance
 remain open for future device-connected testing.
+
+
+## Stable local marker key – fail-closed rotation protection
+
+The draft marker store now binds every owner-private directory to the **exact
+32-byte marker HMAC key** on first valid markPrepared using one fixed
+.key-binding file. The 0600 file stores only a domain-separated HMAC
+commitment (32 bytes), not the raw key, owner data, device identifiers or
+task content. It is fsynced together with the parent directory before any
+prepared payload may be returned. A different key, missing key binding
+when attempt records exist, tampered commitment, symlink or unsafe file
+permissions now fail closed in both markPrepared and recover.
+
+Previously, a restarted adapter with a **new marker key** computed a
+different marker filename and could treat the *same previously prepared*
+request as never sent. This behavior was reproduced with a regression test
+before the fix and blocked afterward. This draft format intentionally does
+not perform an implicit migration from unbound marker files. A separately
+audited, explicit owner-led migration is required before any real deployment.
+
+This is still a single-host local crash guard, **not** a public owner relay
+or an iOS execution receipt. Protect the original marker key in secure
+storage, do not reuse the owner admission key or device receipt key, do not
+automatically reset/re-enroll on restart, and do not trust a rolled-back
+directory snapshot. Key rotation, backup/restore and owner-controlled
+revocation remain separate product requirements. No iPhone or OpenAI API
+is needed for the local tests.

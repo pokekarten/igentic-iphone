@@ -1,11 +1,15 @@
 // Optional offline-only write-ahead safety marker. A marker is persisted and
 // fsynced BEFORE prepareDelivery returns data to any possible transport.
 // It is not a queue, a receipt, a device command or a proof of delivery.
-import { createHmac } from 'node:crypto';
-import { constants, closeSync, fsyncSync, lstatSync, openSync } from 'node:fs';
+import { createHmac, timingSafeEqual } from 'node:crypto';
+import { constants, closeSync, fstatSync, fsyncSync, lstatSync,
+  openSync, readdirSync, readSync, writeSync } from 'node:fs';
 import { join, isAbsolute, resolve } from 'node:path';
 
 const DOMAIN = 'igentic-delivery-attempt-v1\n';
+const KEY_BINDING_DOMAIN = 'igentic-delivery-attempt-key-binding-v1\n';
+const BINDING_FILE = '.key-binding';
+const ATTEMPT_NAME = /^[a-f0-9]{64}\.attempt$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ROUTES = new Set([
   'cellular-foreground', 'coredevice-usb', 'coredevice-wifi', 'local-shortcuts'
@@ -53,12 +57,75 @@ export function createPrivateDeliveryAttemptMarker({ directory, key } = {}) {
         fail();
     } catch { fail(); }
   }
+
+  // A fixed filename with a keyed commitment prevents re-enrolling a new
+  // local HMAC key in a directory already holding possible sends. Using only
+  // a key-dependent marker filename would silently permit a second send
+  // after key rotation. This stores no raw key, task ID or task contents.
+  const bindingPath = join(directory, BINDING_FILE);
+  const expectedBinding = createHmac('sha256', privateKey)
+    .update(KEY_BINDING_DOMAIN).digest();
+
+  function verifyBinding({ create }) {
+    validateDirectory();
+    let names;
+    try { names = readdirSync(directory); } catch { fail(); }
+    if (!names.includes(BINDING_FILE)) {
+      // A missing binding with existing attempts is unsafe to migrate
+      // implicitly. Explicit migration must be implemented separately.
+      if (names.length !== 0) fail();
+      if (!create) return false;
+      let fd;
+      try {
+        // A fixed name + O_EXCL enforces one owner key, even when two
+        // independent processes race to provision the same private folder.
+        fd = openSync(bindingPath, constants.O_WRONLY | constants.O_CREAT
+          | constants.O_EXCL | NOFOLLOW, 0o600);
+        if (writeSync(fd, expectedBinding, 0, expectedBinding.length, 0)
+            !== expectedBinding.length) fail();
+        fsyncSync(fd);
+        const directoryFd = openSync(directory,
+          constants.O_RDONLY | constants.O_DIRECTORY | NOFOLLOW);
+        try { fsyncSync(directoryFd); }
+        finally { closeSync(directoryFd); }
+      } catch (error) {
+        if (error?.code !== 'EEXIST') fail();
+      } finally {
+        if (fd !== undefined) {
+          try { closeSync(fd); } catch { fail(); }
+        }
+      }
+    }
+    let fd;
+    try {
+      fd = openSync(bindingPath, constants.O_RDONLY | NOFOLLOW);
+      const st = fstatSync(fd);
+      if (!privateFile(st) || st.size !== expectedBinding.length) fail();
+      const actual = Buffer.alloc(expectedBinding.length);
+      if (readSync(fd, actual, 0, actual.length, 0) !== actual.length
+          || !timingSafeEqual(actual, expectedBinding)) fail();
+    } catch { fail(); }
+    finally {
+      if (fd !== undefined) {
+        try { closeSync(fd); } catch { fail(); }
+      }
+    }
+    // Fail closed on unexpected/tampered entries rather than clearing a
+    // marker or treating an old directory as an empty new key enrollment.
+    let refreshed;
+    try { refreshed = readdirSync(directory); } catch { fail(); }
+    if (!refreshed.includes(BINDING_FILE)
+        || refreshed.some(name => name !== BINDING_FILE
+          && !ATTEMPT_NAME.test(name))) fail();
+    validateDirectory();
+    return true;
+  }
   return Object.freeze({
     markPrepared({ requestId, receiptNonce, route } = {}) {
       validateRequest(requestId);
       if (typeof receiptNonce !== 'string' || !UUID.test(receiptNonce)
           || !ROUTES.has(route)) throw new Error('invalidDeliveryMarkerRequest');
-      validateDirectory();
+      verifyBinding({ create: true });
       const path = markerPath(requestId);
       let fd;
       try {
@@ -84,7 +151,7 @@ export function createPrivateDeliveryAttemptMarker({ directory, key } = {}) {
     },
     recover({ requestId } = {}) {
       validateRequest(requestId);
-      validateDirectory();
+      if (!verifyBinding({ create: false })) return null;
       try {
         const st = lstatSync(markerPath(requestId));
         if (!privateFile(st) || st.size !== 0) fail();

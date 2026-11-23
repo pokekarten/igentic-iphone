@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {randomBytes, randomUUID} from 'node:crypto';
 import {
-  mkdtempSync, rmSync, readdirSync, readFileSync, chmodSync, symlinkSync
+  mkdtempSync, rmSync, readdirSync, readFileSync, chmodSync, symlinkSync,
+  writeFileSync, unlinkSync
 } from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -73,10 +74,15 @@ test('marker filenames and empty bodies reveal no request ID, key or nonce',t=>{
   const f=fixture(t), id=randomUUID(), nonce=randomUUID();
   f.marker().markPrepared({requestId:id,receiptNonce:nonce,route:'local-shortcuts'});
   const files=readdirSync(f.directory);
-  assert.equal(files.length,1);
-  assert.match(files[0],/^[0-9a-f]{64}\.attempt$/);
-  assert.equal(files[0].includes(id),false);
-  const body=readFileSync(join(f.directory,files[0]));
+  assert.equal(files.length,2);
+  assert.ok(files.includes('.key-binding'));
+  const attempt=files.find(name=>/^[0-9a-f]{64}\.attempt$/.test(name));
+  assert.ok(attempt);
+  assert.equal(attempt.includes(id),false);
+  const binding=readFileSync(join(f.directory,'.key-binding'));
+  assert.equal(binding.length,32);
+  assert.equal(binding.equals(f.key),false);
+  const body=readFileSync(join(f.directory,attempt));
   assert.equal(body.length,0);
   assert.equal(body.includes(f.key),false);
   assert.equal(body.includes(Buffer.from(nonce)),false);
@@ -166,4 +172,72 @@ test('a prepared payload cannot be cancelled as definitively not sent', t=>{
   assert.equal(loop.snapshot().automaticRetryAllowed,false);
   loop.recordTransport({requestId:id,outcome:'definitely-not-sent'});
   assert.equal(loop.cancel({requestId:id}).state,'cancelled-local');
+});
+
+test('changed marker key cannot re-admit an earlier prepared task', t => {
+  const f = fixture(t);
+  const id = randomUUID(), nonce = randomUUID();
+  const original = f.marker();
+  original.markPrepared({ requestId: id, receiptNonce: nonce, route: 'cellular-foreground' });
+  const rotated = createPrivateDeliveryAttemptMarker({
+    directory: f.directory, key: randomBytes(32)
+  });
+  assert.throws(() => rotated.recover({ requestId: id }),
+    /deliveryMarkerUnavailable/);
+  assert.throws(() => rotated.markPrepared({
+    requestId: id, receiptNonce: nonce, route: 'cellular-foreground'
+  }), /deliveryMarkerUnavailable/);
+  assert.equal(original.recover({ requestId: id }).state, 'outcome-unknown');
+});
+
+
+test('tampered key binding never permits recovery or additional sends', t => {
+  const f = fixture(t), marker = f.marker();
+  const id = randomUUID();
+  marker.markPrepared({
+    requestId: id, receiptNonce: randomUUID(), route: 'coredevice-wifi'
+  });
+  writeFileSync(join(f.directory, '.key-binding'), Buffer.alloc(32, 0));
+  assert.throws(() => marker.recover({ requestId: id }),
+    /deliveryMarkerUnavailable/);
+  assert.throws(() => marker.markPrepared({
+    requestId: randomUUID(), receiptNonce: randomUUID(),
+    route: 'coredevice-usb'
+  }), /deliveryMarkerUnavailable/);
+});
+
+test('removed binding with existing attempts cannot be silently enrolled', t => {
+  const f = fixture(t), marker = f.marker(), id = randomUUID();
+  marker.markPrepared({ requestId: id, receiptNonce: randomUUID(),
+    route: 'cellular-foreground' });
+  unlinkSync(join(f.directory, '.key-binding'));
+  assert.throws(() => marker.recover({ requestId: id }),
+    /deliveryMarkerUnavailable/);
+  assert.throws(() => marker.markPrepared({requestId: randomUUID(),
+    receiptNonce: randomUUID(), route: 'cellular-foreground'}),
+    /deliveryMarkerUnavailable/);
+});
+
+test('world-readable or symlinked key binding fails closed', t => {
+  const f = fixture(t), marker = f.marker(), id = randomUUID();
+  marker.markPrepared({requestId:id,receiptNonce:randomUUID(),route:'local-shortcuts'});
+  const path=join(f.directory,'.key-binding');
+  chmodSync(path,0o644);
+  assert.throws(()=>marker.recover({requestId:id}), /deliveryMarkerUnavailable/);
+  chmodSync(path,0o600);
+  const saved=readFileSync(path);
+  unlinkSync(path);
+  const other=join(f.directory,'other-key');
+  writeFileSync(other,saved,{mode:0o600});
+  symlinkSync(other,path);
+  assert.throws(()=>marker.recover({requestId:id}), /deliveryMarkerUnavailable/);
+  assert.throws(()=>marker.markPrepared({requestId:randomUUID(),
+    receiptNonce:randomUUID(),route:'local-shortcuts'}),
+    /deliveryMarkerUnavailable/);
+});
+
+test('empty private store recovery is a no-op and never creates key material', t => {
+  const f=fixture(t);
+  assert.equal(f.marker().recover({requestId:randomUUID()}),null);
+  assert.equal(readdirSync(f.directory).length,0);
 });

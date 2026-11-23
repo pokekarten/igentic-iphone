@@ -114,9 +114,14 @@ test('complete offline control-plane fixture never claims real iPhone execution'
   assert.equal(prepared.status, 'prepared-not-sent');
   assert.equal(prepared.actionExecuted, false);
   assert.equal(prepared.iPhoneConnected, 'not-checked');
-  assert.equal(readdirSync(f.markerDirectory).length, 1);
-  assert.equal(readFileSync(join(f.markerDirectory,
-    readdirSync(f.markerDirectory)[0])).length, 0);
+  const markerFiles = readdirSync(f.markerDirectory);
+  assert.equal(markerFiles.length, 2);
+  const attemptName = markerFiles.find(name => /^[a-f0-9]{64}\.attempt$/.test(name));
+  assert.ok(attemptName);
+  assert.equal(readFileSync(join(f.markerDirectory, attemptName)).length, 0);
+  // A separate private keyed commitment prevents a changed HMAC key from
+  // silently reopening an earlier may-have-been-sent task after a restart.
+  assert.equal(readFileSync(join(f.markerDirectory, '.key-binding')).length, 32);
   assert.equal(f.marker().recover({ requestId: id }).state, 'outcome-unknown');
 
   // There is intentionally no network adapter. The fixture simulates a
