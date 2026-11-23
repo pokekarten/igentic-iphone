@@ -58,9 +58,11 @@ export async function probeOwnerCellularHost({
   return new Promise((resolve, reject) => {
     let settled = false;
     let timedOut = false;
+    let deadline;
     const finish = (status, result) => {
       if (settled) return;
       settled = true;
+      clearTimeout(deadline);
       if (status === 'success') resolve({
         status: 'authenticated-owner-host-readiness',
         proofVerified: true,
@@ -87,15 +89,15 @@ export async function probeOwnerCellularHost({
     };
     const req = httpsRequest(options, res => {
       if (res.statusCode !== 200) {
-        res.resume();
         finish('failure', 'ownerHostRejected');
+        res.destroy();
         return;
       }
       if (!['application/json', 'application/json; charset=utf-8'].includes(
         res.headers['content-type']
       )) {
-        res.resume();
         finish('failure', 'ownerHostResponseMalformed');
+        res.destroy();
         return;
       }
       const chunks = [];
@@ -126,11 +128,13 @@ export async function probeOwnerCellularHost({
       });
       res.on('error', () => finish('failure', 'ownerHostNetworkOrTLSFailed'));
     });
-    req.setTimeout(timeoutMs, () => {
+    // Absolute deadline rather than a socket idle timeout: a hostile host
+    // cannot evade it by trickling tiny chunks indefinitely.
+    deadline = setTimeout(() => {
       timedOut = true;
       finish('failure', 'ownerHostTimeout');
       req.destroy();
-    });
+    }, timeoutMs);
     req.on('error', () => finish('failure',
       timedOut ? 'ownerHostTimeout' : 'ownerHostNetworkOrTLSFailed'));
     req.end(HEARTBEAT_BODY);

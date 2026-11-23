@@ -100,6 +100,13 @@ test('reject authentic TLS if the JSON or request-bound response proof is false'
       res.writeHead(302,{location:'https://example.org/'+HEARTBEAT_PATH}).end();
       return;
     }
+    if (mode==='drip') {
+      res.writeHead(200,{'content-type':'application/json; charset=utf-8'});
+      res.flushHeaders();
+      const timer = setInterval(() => res.write(' '),25);
+      res.once('close',()=>clearInterval(timer));
+      return;
+    }
     const body=mode==='oversize'?'x'.repeat(700)
       : mode==='false-schema' ? JSON.stringify({ schema:1,status:'accepted',
           capability:'control',deviceControl:'enabled',backgroundExecution:'enabled' }) : fixed;
@@ -118,11 +125,13 @@ test('reject authentic TLS if the JSON or request-bound response proof is false'
     ['missing-proof','ownerHostProofInvalid'],
     ['false-schema','ownerHostResponseMalformed'],
     ['oversize','ownerHostResponseTooLarge'],
-    ['redirect','ownerHostRejected']
+    ['redirect','ownerHostRejected'],
+    ['drip','ownerHostTimeout']
   ]) {
     mode=next;
     await assert.rejects(
-      probeOwnerCellularHost({endpoint,sharedKey:key,ca:tls.ca}),
+      probeOwnerCellularHost({endpoint,sharedKey:key,ca:tls.ca,
+        timeoutMs:next==='drip'?1200:5000}),
       new RegExp(expected),next
     );
   }
@@ -144,8 +153,10 @@ test('key path must be a private regular file; symlink is not followed',async t=
 
 test('unconfigured CLI prints only fixed blocked status, never host or secrets', () => {
   const cli = fileURLToPath(new URL('../scripts/smoke-cellular-host.mjs',import.meta.url));
+  // Child process startup can be delayed substantially on a busy Mac.
+  // This is a test harness deadline, not a network or security timeout.
   const proc=spawnSync(process.execPath,[cli], {
-    env:{ PATH:process.env.PATH||'/usr/bin:/bin' },encoding:'utf8',timeout:5000
+    env:{ PATH:process.env.PATH||'/usr/bin:/bin' },encoding:'utf8',timeout:30000
   });
   assert.equal(proc.status,2);
   const report=JSON.parse(proc.stdout.trim());
