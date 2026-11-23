@@ -51,6 +51,29 @@ final class LocalWorkspaceStoreTests: XCTestCase {
         }
     }
 
+    func testHardlinkToExternalFileIsNotAWorkspaceNote() throws {
+        try withStore { store, dir in
+            _ = try store.listNames()
+            let outside = FileManager.default.temporaryDirectory
+                .appendingPathComponent("igentic-hardlink-fixture-\(UUID().uuidString)")
+            try Data("synthetic external content".utf8).write(to: outside)
+            defer { try? FileManager.default.removeItem(at: outside) }
+            try FileManager.default.linkItem(
+                at: outside, to: dir.appendingPathComponent("alias.txt")
+            )
+            XCTAssertThrowsError(try store.read(name: "alias")) {
+                XCTAssertEqual($0 as? LocalWorkspaceError, .unsafeEntry)
+            }
+            XCTAssertThrowsError(try store.listNames()) {
+                XCTAssertEqual($0 as? LocalWorkspaceError, .unsafeEntry)
+            }
+            XCTAssertEqual(
+                try String(contentsOf: outside, encoding: .utf8),
+                "synthetic external content"
+            )
+        }
+    }
+
     func testRejectsSymlinkAndInvalidUTF8WithoutReadingContent() throws {
         try withStore { store, dir in
             _ = try store.listNames()
