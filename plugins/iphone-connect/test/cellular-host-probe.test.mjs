@@ -3,13 +3,13 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { createServer as createHttpsServer } from 'node:https';
-import { mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import { chmod, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { HEARTBEAT_PATH, createCellularGateway } from '../src/cellular-gateway.mjs';
 import { parseOwnerHostEndpoint, probeOwnerCellularHost } from '../src/cellular-host-probe.mjs';
-import { checkConfiguredHost } from '../scripts/smoke-cellular-host.mjs';
+import { checkConfiguredHost, readPrivatePairingKey } from '../scripts/smoke-cellular-host.mjs';
 
 const key = Buffer.alloc(32, 1);
 const fixed = JSON.stringify({
@@ -143,6 +143,14 @@ test('key path must be a private regular file; symlink is not followed',async t=
   await writeFile(secret,key.toString('base64')+'\n',{mode:0o600});
   const alias=join(tls.dir,'alias.key');
   await symlink(secret,alias);
+  assert.deepEqual(await readPrivatePairingKey(secret),key);
+  await assert.rejects(readPrivatePairingKey(alias));
+  await writeFile(join(tls.dir,'oversized.key'),'x'.repeat(8192),{mode:0o600});
+  await assert.rejects(readPrivatePairingKey(join(tls.dir,'oversized.key')));
+  await chmod(secret,0o644);
+  await assert.rejects(readPrivatePairingKey(secret));
+  await chmod(secret,0o600);
+  assert.deepEqual(await readPrivatePairingKey(secret),key);
   const report=await checkConfiguredHost({
     IGENTIC_CELLULAR_ENDPOINT:'https://example.org'+HEARTBEAT_PATH,
     IGENTIC_CELLULAR_SHARED_KEY_FILE:alias

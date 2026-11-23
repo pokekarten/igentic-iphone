@@ -69,6 +69,9 @@ readiness JSON request to **only the explicitly configured HTTPS endpoint**.
 It uses normal system TLS trust, refuses redirects, checks the exact fixed
 response body, verifies the server's **request-bound HMAC response proof**,
 rejects malformed/oversized responses and checks private key-file permissions.
+The Mac probe opens its pairing key with `O_NOFOLLOW`, checks owner,
+file mode and exact key-file size through the same open descriptor,
+and rejects symlinks without a path-check/read race.
 The private key, URL, IP, host identity and request parameters are never
 printed. The production script offers **no** option to disable TLS
 verification. It does **not** create a service or expose a network port.

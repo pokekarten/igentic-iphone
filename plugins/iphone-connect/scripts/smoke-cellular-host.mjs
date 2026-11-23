@@ -1,7 +1,8 @@
 // Manual Mac-side acceptance step for an owner-operated HTTPS readiness host.
 // No network access until the owner explicitly sets both configuration values.
 // NEVER an iPhone / LTE / 5G transport acceptance test.
-import { lstat, readFile } from 'node:fs/promises';
+import { constants } from 'node:fs';
+import { open as openAsync } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { decodeSharedKey } from '../src/cellular-gateway.mjs';
 import { probeOwnerCellularHost } from '../src/cellular-host-probe.mjs';
@@ -12,6 +13,24 @@ const safeCodes = new Set([
   'ownerHostProofInvalid', 'ownerHostTimeout', 'ownerHostNetworkOrTLSFailed'
 ]);
 
+// Open with O_NOFOLLOW and inspect/read through the SAME file descriptor.
+// This prevents a symlink-swap between a path lstat() and later readFile().
+export async function readPrivatePairingKey(keyPath) {
+  if (typeof keyPath !== 'string' || keyPath.length === 0)
+    throw Error('privatePairingKeyRequired');
+  const file = await openAsync(keyPath, constants.O_RDONLY | constants.O_NOFOLLOW);
+  try {
+    const st = await file.stat();
+    if (!st.isFile() || (st.mode & 0o077) !== 0 ||
+        (typeof process.getuid === 'function' && st.uid !== process.getuid()) ||
+        st.size < 44 || st.size > 45)
+      throw Error('privatePairingKeyRequired');
+    return decodeSharedKey(await file.readFile('utf8'));
+  } finally {
+    await file.close();
+  }
+}
+
 export async function checkConfiguredHost(env = process.env) {
   if (!env.IGENTIC_CELLULAR_ENDPOINT || !env.IGENTIC_CELLULAR_SHARED_KEY_FILE) {
     return { status: 'blocked', reason: 'ownerHostConfigurationMissing',
@@ -19,10 +38,7 @@ export async function checkConfiguredHost(env = process.env) {
   }
   let key;
   try {
-    const st = await lstat(env.IGENTIC_CELLULAR_SHARED_KEY_FILE);
-    if (!st.isFile() || (st.mode & 0o077) !== 0)
-      throw Error('privatePairingKeyRequired');
-    key = decodeSharedKey(await readFile(env.IGENTIC_CELLULAR_SHARED_KEY_FILE, 'utf8'));
+    key = await readPrivatePairingKey(env.IGENTIC_CELLULAR_SHARED_KEY_FILE);
   } catch {
     return { status: 'blocked', reason: 'privatePairingKeyRequired',
       cellularVerified: false, iphoneAppVerified: false };
