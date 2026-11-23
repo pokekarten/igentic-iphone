@@ -107,3 +107,34 @@ No model/provider API was invoked, no API key was read or created, and no paid
 fallback or billing activation occurred. npm registry downloads and local tests
 were used. `.github/workflows/iphone-plugin.yml` adds repeatable plugin validation;
 new GitHub CI results must be checked on the published commit independently.
+
+
+## 2026-11-23: ChatGPT handoff API follow-up
+
+The separate draft [PR #406](https://github.com/pokekarten/igentic-iphone/pull/406)
+extends the **read-only, loopback** portable Streamable HTTP MCP server with
+`iphone_chatgpt_handoff`. Allowed values are exactly `diagnostics`,
+`discovery`, and `reminder-draft`. The response contains a fixed
+`igentic://handoff/v1/...` URL, `actionExecuted:false`,
+`iPhoneConnected:"not-checked"`, and `requiresOwnerTap:true`.
+No phone action is performed by the MCP server.
+
+The iOS app declares the custom URL scheme, checks exact paths and presents
+a **second local navigation choice**. This is not remote App Intents execution,
+authentication, connection evidence, a reminder save, or a successful
+ChatGPT mobile plugin installation.
+
+To reduce protocol drift, PR #406 now contains a Node contract test comparing
+the MCP action allowlist to the Swift route cases, the Xcode Info.plist URL
+scheme and the SwiftUI URL entry point. The plugin CI must verify the exact
+new head; earlier green runs do not prove later edits. The [ChatGPT handoff
+runbook](../../plugins/iphone-connect/CHATGPT_HANDOFF.md) documents owner setup,
+eligible ChatGPT account/workspace requirements, and separate physical-device
+acceptance. A locally installed developer skill is not a connected mobile MCP
+service.
+
+**Not accepted yet:** verified ChatGPT account invocation, app signing and
+installation at this exact revision, a real iPhone URL dispatch with independent
+observation, direct mobile network access, cellular control, background
+execution, and any cross-app actions. These must not be inferred from simulator
+or API-only tests.
