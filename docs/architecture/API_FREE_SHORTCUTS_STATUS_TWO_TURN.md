@@ -23,14 +23,14 @@ Das JSON enthält keine Fotos, Nachrichten, Kontakte, Credential, Listen von App
 
 - Genau **eine** lokale Statusabfrage und ein Abschluss; keine automatischen Wiederholungen, keine Schreibaktionen, kein Siri- oder Fremd-App-Zugriff.
 - Die beiden Systemaktionen sind lokale App-Intents; nicht über einen ChatGPT-Site-MCP-Endpunkt veröffentlicht.
-- Das iGentic-Journal wird mit atomarem Replace und iOS Complete Data Protection geschrieben (POSIX `0600`). Ein atomar erzeugtes `.claim`-Verzeichnis sperrt konkurrierende App-Intent-Prozesse. Ein Prozessabbruch während dieser Sperre hinterlässt **bewusst** eine Blockierung: noch kein sicherer automatischer Lock-Recovery-Pfad. Die separate Eigentümer-Recovery muss vor Produktionsfreigabe entworfen werden.
+- Das iGentic-Journal wird mit atomarem Replace und iOS Complete Data Protection geschrieben (POSIX `0600`). Eine OS-verwaltete, exklusive `flock`-Sperre auf einer stabilen, symlinkgeschützten `.lock`-Datei serialisiert teilnehmende App-Intent-Prozesse. Bei Prozessabbruch wird die Sperre durch das Betriebssystem frei; der getrennte `readAttempted`-Marker bleibt als Unsicherheitsgrenze erhalten. Vor Produktionsfreigabe sind reale Mehrprozess-/Absturztests nötig.
 - `readAttempted` wird vor der Statusabfrage persistiert; bleibt die Ausführung ungewiss, wird sie nicht spekulativ wiederholt. Nach regulärem Abschluss/Abbruch oder Ablauf kann eine neue zufällige Aufgaben-ID beginnen, **sofern keine zurückgebliebene Sperre existiert**.
 - Die JSON-Datei enthält keinen Eigentümer-Schlüssel und ist nicht gegen Manipulation durch einen lokalen Prozess mit demselben App-Sandbox-Zugriff kryptographisch versiegelt. Das Sicherheitsmodell setzt das isolierte, signierte iOS-App-Sandbox-Vertrauensniveau voraus; ein späterer Fernkanal muss die Replay-/Authentifizierungs-PRs #411–#420 gesondert integrieren.
 - Das erste Feld `observation` ist sichtbar in der Kurzbefehle-Rückgabe. Ob der Eigentümer diese an ChatGPT weiterleitet, entscheidet ausschließlich die von ihm eingerichtete Shortcut-Kette. **Local Only in PolicyEngine verhindert nicht, dass ein anschließend unabhängig konfigurierter Kurzbefehl dieselben Daten extern weitergibt.**
 
 ## Testmatrix ohne iPhone
 
-Swift-Tests prüfen über mehrere neue Store-Instanzen (simulierte Prozessgrenzen): Status lesen → Ende, erneuter Leseversuch, falsche Task-ID, ungültige und gefälschte Modellantworten, Zeitablauf, zukünftigen Zeitstempel, persistierten `readAttempted`-Marker, defekte oder übergroße JSON-Dateien, Symbolic Links und konkurrierenden `.claim`-Status. Xcode-27-Simulator-Build prüft die AppIntents-Kompilierung; er ersetzt **keine** reale Kurzbefehle-/Siri-/ChatGPT-Abnahme.
+Swift-Tests prüfen über mehrere neue Store-Instanzen (simulierte Prozessgrenzen): Status lesen → Ende, erneuter Leseversuch, falsche Task-ID, ungültige und gefälschte Modellantworten, Zeitablauf, zukünftigen Zeitstempel, persistierten `readAttempted`-Marker, defekte oder übergroße JSON-Dateien, Symbolic Links und konkurrierende beziehungsweise manipulierte `.lock`-Dateien. Xcode-27-Simulator-Build prüft die AppIntents-Kompilierung; er ersetzt **keine** reale Kurzbefehle-/Siri-/ChatGPT-Abnahme.
 
 ## Nächste Integration
 

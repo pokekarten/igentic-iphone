@@ -1,5 +1,10 @@
 import Foundation
 import AgentCore
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#endif
 
 public enum AgentLoopStatusShortcutError: Error, Equatable {
     case busy
@@ -63,17 +68,17 @@ private struct AgentLoopStatusShortcutResult: Encodable {
 
 /// Real, cross-invocation Shortcuts handoff. Persistent state only; no model,
 /// network, remote host or external tool invocation is performed in this type.
-/// A directory claim makes concurrent invocations fail closed. If the process
-/// dies while holding the claim, it deliberately remains blocked until a
-/// separate owner-recovery flow is provided (never auto-remove a stale claim).
+/// An OS-managed advisory file lock serializes participating App Intent
+/// processes and releases automatically on process exit. Independently, the
+/// durable readAttempted marker stops speculative re-execution after a crash.
 @MainActor
 public final class AgentLoopStatusShortcutStore {
     public static let ttl: TimeInterval = 300
     private let fileURL: URL
     private let clock: () -> Date
-    private var claimURL: URL {
+    private var lockURL: URL {
         fileURL.deletingLastPathComponent()
-            .appendingPathComponent("shortcuts-status-loop-v1.claim", isDirectory: true)
+            .appendingPathComponent("shortcuts-status-loop-v1.lock")
     }
 
     public init(fileURL: URL = defaultFileURL(), clock: @escaping () -> Date = Date.init) {
@@ -214,15 +219,18 @@ public final class AgentLoopStatusShortcutStore {
         let directory = fileURL.deletingLastPathComponent()
         try manager.createDirectory(at: directory, withIntermediateDirectories: true,
                                     attributes: [.posixPermissions: 0o700])
-        // A filesystem claim serializes even independent App Intent processes.
-        // Never override or auto-delete an unknown claim.
-        do {
-            try manager.createDirectory(at: claimURL, withIntermediateDirectories: false,
-                                        attributes: [.posixPermissions: 0o700])
-        } catch {
+        // Keep the lock inode stable: deleting a lock file after unlocking
+        // could let two processes lock different inodes under the same name.
+        // O_NOFOLLOW rejects a substituted symbolic link.
+        let fd = lockURL.path.withCString {
+            open($0, O_CREAT | O_RDWR | O_NOFOLLOW | O_CLOEXEC, mode_t(0o600))
+        }
+        guard fd >= 0 else { throw AgentLoopStatusShortcutError.busy }
+        defer { _ = close(fd) }
+        guard flock(fd, LOCK_EX | LOCK_NB) == 0 else {
             throw AgentLoopStatusShortcutError.busy
         }
-        defer { try? manager.removeItem(at: claimURL) }
+        defer { _ = flock(fd, LOCK_UN) }
         return try action()
     }
 

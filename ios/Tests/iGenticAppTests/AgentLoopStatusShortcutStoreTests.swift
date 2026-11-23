@@ -189,10 +189,12 @@ final class AgentLoopStatusShortcutStoreTests: XCTestCase {
             let path = dir.appendingPathComponent("journal.json")
             let store = AgentLoopStatusShortcutStore(fileURL: path)
             _ = try store.begin()
-            let lock = dir.appendingPathComponent(
-                "shortcuts-status-loop-v1.claim", isDirectory: true
-            )
-            try FileManager.default.createDirectory(at: lock, withIntermediateDirectories: false)
+            let lock = dir.appendingPathComponent("shortcuts-status-loop-v1.lock")
+            // An unlocked regular lock file left by a previous run is safe.
+            XCTAssertEqual(try store.stageForOwner(), .awaitingStatus)
+            // Symlink substitution is rejected by O_NOFOLLOW, not followed.
+            try FileManager.default.removeItem(at: lock)
+            try FileManager.default.createSymbolicLink(at: lock, withDestinationURL: path)
             XCTAssertThrowsError(try store.begin()) {
                 XCTAssertEqual($0 as? AgentLoopStatusShortcutError, .busy)
             }
