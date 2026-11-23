@@ -2,6 +2,28 @@ import XCTest
 @testable import iGenticApp
 
 final class AgentHomeCommandRouterTests: XCTestCase {
+    func testTypedFirstPartyNavigationCatalogHasExactlyFourReadOnlyTools() {
+        let tools = AgentHomeCapabilityCatalog.navigationTools()
+        XCTAssertEqual(tools.count, 4)
+        XCTAssertEqual(Set(tools.map(\.name)).count, 4)
+        XCTAssertTrue(tools.allSatisfy {
+            $0.actionRisk == .read && $0.requiredDataLevel == .publicData
+        })
+        XCTAssertTrue(tools.allSatisfy { $0.name.hasPrefix("igentic.own_app.navigate.") })
+    }
+
+    func testAllNavigableDestinationsPassLocalPolicyOnly() {
+        for destination: AgentHomeDestination in [
+            .offlineTools, .reminderDraft, .discovery, .diagnostics
+        ] {
+            XCTAssertNotNil(AgentHomeCapabilityCatalog.definition(for: destination))
+            XCTAssertTrue(AgentHomeCapabilityCatalog.canNavigate(to: destination))
+        }
+        XCTAssertNil(AgentHomeCapabilityCatalog.definition(for: .unsupported))
+        XCTAssertFalse(AgentHomeCapabilityCatalog.canNavigate(to: .unsupported))
+        XCTAssertFalse(AgentHomeCommandRouter.preview("Bitte WhatsApp öffnen").canOpenOwnedScreen)
+    }
+
     func testReminderIsOnlyNavigationProposal() {
         let p = AgentHomeCommandRouter.preview("Erinnere mich morgen an die Pflanze")
         XCTAssertEqual(p.destination, .reminderDraft)
