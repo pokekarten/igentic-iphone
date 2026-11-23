@@ -38,3 +38,14 @@ Swift-Tests prüfen über mehrere neue Store-Instanzen (simulierte Prozessgrenze
 Erst die Schnittstelle in einem **signierten iOS-27-Build** auf einem echten iPhone installieren und zwei reale Aufrufe der beiden App Intents in Kurzbefehle nachweisen. Getrennt testen: mit festem JSON, danach – optional und bewusst – mit der ChatGPT-Systemerweiterung. Anschließend native Beobachtungen und die signierten Remote-Receipt-Verträge aus #413–#420 in einem unabhängigen Integrations-PR verbinden. Niemals einen Modellvorschlag als Autorisierung oder eine lokale Test-Observation als Geräteattestation übernehmen.
 
 Referenzen: [Apple App Intents](https://developer.apple.com/documentation/appintents/appintent), [App Intent supportedModes](https://developer.apple.com/documentation/appintents/appintent/supportedmodes).
+
+### Ablauf während des lokalen Statuslesens
+
+Die private `readAttempted`-Vormerkung wird vor der Statusabfrage geschrieben.
+Da eine synchrone Statusabfrage länger dauern oder die Systemuhr verstellt
+werden kann, prüft die App die Fünf-Minuten-Frist **noch einmal vor der
+Rückgabe** an Kurzbefehle. Bei Überschreitung oder Zeitrücksprung wird die
+Sitzung auf `expired` gesetzt und keine Beobachtung ausgeliefert.
+Ein Absturz vor dem Abschluss bleibt durch die Vormerkung konservativ
+als möglicherweise bereits gelesen markiert. Diese Prüfung ist keine
+Hardware-Attestation und löst keine zusätzlichen iPhone-Funktionen aus.

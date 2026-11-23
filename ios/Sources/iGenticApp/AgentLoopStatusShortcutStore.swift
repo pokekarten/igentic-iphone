@@ -185,6 +185,18 @@ public final class AgentLoopStatusShortcutStore {
                 state.stage = .readAttempted
                 try save(state)
                 let summary = statusReader().shortcutSummary
+                // The native read may be slow or move the system clock.
+                // Never return a local observation to Shortcuts after the
+                // five-minute budget expires, even though the read itself
+                // was admitted before the deadline. The readAttempted
+                // journal was durably persisted before calling the reader.
+                let afterReadAge = clock().timeIntervalSince(state.createdAt)
+                guard afterReadAge.isFinite,
+                      afterReadAge >= 0, afterReadAge < Self.ttl else {
+                    state.stage = .expired
+                    try save(state)
+                    throw AgentLoopStatusShortcutError.expired
+                }
                 state.stage = .awaitingFinish
                 try save(state)
                 return try encode(AgentLoopStatusShortcutResult(

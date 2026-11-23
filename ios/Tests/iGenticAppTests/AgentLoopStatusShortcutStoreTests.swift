@@ -297,4 +297,61 @@ final class AgentLoopStatusShortcutStoreTests: XCTestCase {
             }
         }
     }
+
+    func testSlowStatusReaderCannotReturnExpiredObservationToShortcut() async throws {
+        try await MainActor.run {
+            let dir = FileManager.default.temporaryDirectory
+                .appendingPathComponent("igentic-status-post-read-\(UUID())")
+            defer { try? FileManager.default.removeItem(at: dir) }
+            var clock = Date(timeIntervalSince1970: 1_800_000_000)
+            let store = AgentLoopStatusShortcutStore(
+                fileURL: dir.appendingPathComponent("journal.json"), clock: { clock }
+            )
+            let id = try XCTUnwrap(jsonDictionary(store.begin())["taskId"] as? String)
+            var reads = 0
+            XCTAssertThrowsError(try store.advance(
+                taskID: id, modelReply: #"{"action":"status.read"}"#,
+                statusReader: {
+                    reads += 1
+                    clock = clock.addingTimeInterval(AgentLoopStatusShortcutStore.ttl)
+                    return demoShortcutsStatus()
+                }
+            )) {
+                XCTAssertEqual($0 as? AgentLoopStatusShortcutError, .expired)
+            }
+            XCTAssertEqual(reads, 1)
+            XCTAssertEqual(try store.stageForOwner(), .expired)
+            XCTAssertThrowsError(try store.advance(
+                taskID: id, modelReply: #"{"action":"finish"}"#,
+                statusReader: { reads += 1; return demoShortcutsStatus() }
+            ))
+            XCTAssertEqual(reads, 1)
+        }
+    }
+
+    func testClockRollbackDuringStatusReadNeverExportsObservation() async throws {
+        try await MainActor.run {
+            let dir = FileManager.default.temporaryDirectory
+                .appendingPathComponent("igentic-status-clock-rollback-\(UUID())")
+            defer { try? FileManager.default.removeItem(at: dir) }
+            var clock = Date(timeIntervalSince1970: 1_800_000_000)
+            let store = AgentLoopStatusShortcutStore(
+                fileURL: dir.appendingPathComponent("journal.json"), clock: { clock }
+            )
+            let id = try XCTUnwrap(jsonDictionary(store.begin())["taskId"] as? String)
+            var reads = 0
+            XCTAssertThrowsError(try store.advance(
+                taskID: id, modelReply: #"{"action":"status.read"}"#,
+                statusReader: {
+                    reads += 1
+                    clock = clock.addingTimeInterval(-1)
+                    return demoShortcutsStatus()
+                }
+            )) {
+                XCTAssertEqual($0 as? AgentLoopStatusShortcutError, .expired)
+            }
+            XCTAssertEqual(reads, 1)
+            XCTAssertEqual(try store.stageForOwner(), .expired)
+        }
+    }
 }
