@@ -85,6 +85,14 @@ on iPhone is not supported. A published Site and its associated plugin
 require separate owner actions; these source files do not create them.
 The Site reference makes no personal-data or device-connection claims.
 
+A separate draft source update adds two read-only Site MCP tools:
+- igentic_get_capabilities: truthful static capability discovery.
+- igentic_shortcuts_setup: owner-manual five-step Shortcuts guide for the
+  API-free ChatGPT reply loop with an unchanged task correlation ID.
+These are not part of the skills-only plugin and are not available from the
+currently deployed private Site until separately published by its owner.
+They never check or operate the phone; iphone_chatgpt_handoff remains unchanged.
+
 
 ## WebMCP browser experiment
 
