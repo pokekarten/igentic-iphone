@@ -49,6 +49,10 @@ iGentic app. It connects the existing authenticated read-only proposals, the
 sealed SQLite replay ledger and the read-only Site tool contract in *tests*.
 It never starts a server, executes a device action or treats an unknown
 delivery as success. A key-authenticated receipt is not hardware attestation.
+The optional [private write-ahead delivery marker](DELIVERY_ATTEMPT_MARKER.md)
+adds a crash-conservative on-disk preparation gate without storing private
+task text or creating a transport. It requires explicit owner provisioning
+and does not replace the authenticated replay ledger or hardware receipts.
 
 ## Requirements and setup
 

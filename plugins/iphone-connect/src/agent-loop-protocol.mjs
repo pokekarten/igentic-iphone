@@ -69,15 +69,22 @@ export function signReadOnlyDeviceKeyReceipt({ key, requestId, nonce, observedAt
  * verify that the receipt key lives on a real physical iPhone.
  */
 export function createTransportNeutralAgentLoop({
-  admission, receiptKey, nowSeconds = () => Math.floor(Date.now() / 1000)
+  admission, receiptKey, nowSeconds = () => Math.floor(Date.now() / 1000),
+  deliveryAttemptMarker
 } = {}) {
   if (!admission || typeof admission.admit !== 'function'
-      || typeof nowSeconds !== 'function') invalid();
+      || typeof nowSeconds !== 'function'
+      || (deliveryAttemptMarker !== undefined
+        && (!deliveryAttemptMarker
+          || typeof deliveryAttemptMarker.markPrepared !== 'function'))) invalid();
   requireKey(receiptKey);
   const trustedReceiptKey = Buffer.from(receiptKey);
   let state = 'empty', task = null, transport = null;
   let attemptCount = 0, authenticatedReceipt = false;
   let deliveryAttempted = false;
+  // A sent-but-unconfirmed attempt may later receive a valid key receipt.
+  // This flag never permits retry or a physical device-success claim.
+  let lateReceiptAllowed = false;
   const now = () => {
     const t = nowSeconds();
     if (!Number.isSafeInteger(t) || t < 0) throw Error('invalidAgentLoopClock');
@@ -103,9 +110,14 @@ export function createTransportNeutralAgentLoop({
   const expire = () => {
     if (!task) return false;
     if (now() < task.expiresAt) return false;
+    lateReceiptAllowed = false;
     if (!['receipt-key-authenticated', 'cancelled-local', 'outcome-unknown',
           'expired-before-send'].includes(state)) {
-      state = deliveryAttempted ? 'outcome-unknown' : 'expired-before-send';
+      // Once a payload was handed to an adapter, a crash or timeout may
+      // happen after a send but before recordTransport. Never turn that
+      // unobserved send into the stronger "expired-before-send" assertion.
+      state = (deliveryAttempted || state === 'delivery-prepared-not-sent')
+        ? 'outcome-unknown' : 'expired-before-send';
     }
     return true;
   };
@@ -141,7 +153,14 @@ export function createTransportNeutralAgentLoop({
       // Bind the eventual key-authenticated acknowledgement to this exact
       // delivery preparation, not merely a valid owner task ID. This
       // challenge is local protocol data, never owner approval or attestation.
-      task.receiptNonce = randomUUID();
+      const receiptNonce = randomUUID();
+      // An optional local crash guard MUST persist the may-have-been-sent
+      // marker before returning a payload that an adapter could dispatch.
+      // If persistence fails, leave the loop awaiting delivery and fail closed.
+      if (deliveryAttemptMarker !== undefined && deliveryAttemptMarker.markPrepared({
+        requestId: task.requestId, receiptNonce, route
+      }) !== true) invalid();
+      task.receiptNonce = receiptNonce;
       transport = route;
       attemptCount += 1;
       state = 'delivery-prepared-not-sent';
@@ -163,6 +182,7 @@ export function createTransportNeutralAgentLoop({
         state = 'not-sent'; // manual intervention; never automatic retry
       } else if (outcome === 'sent-unconfirmed') {
         deliveryAttempted = true;
+        lateReceiptAllowed = true;
         state = 'outcome-unknown'; // no speculative resend
       } else {
         deliveryAttempted = true;
@@ -171,7 +191,11 @@ export function createTransportNeutralAgentLoop({
       return snapshot();
     },
     acceptKeyReceipt(envelope) {
-      if (state !== 'awaiting-key-authenticated-receipt') invalid();
+      // An unknown delivery is not permission to retry, but an independently
+      // authenticated, nonce-matched late receipt may resolve the uncertainty
+      // while this exact attempt's TTL is still open.
+      if (state !== 'awaiting-key-authenticated-receipt'
+          && !(state === 'outcome-unknown' && lateReceiptAllowed)) invalid();
       if (expire()) return snapshot();
       if (!EXACT(envelope, ['body', 'signature'])
           || typeof envelope.signature !== 'string' || !MAC.test(envelope.signature))
@@ -186,14 +210,18 @@ export function createTransportNeutralAgentLoop({
       if (supplied.length !== expected.length
           || !timingSafeEqual(supplied, expected)) receiptInvalid();
       authenticatedReceipt = true;
+      lateReceiptAllowed = false;
       state = 'receipt-key-authenticated';
       // Still not "executed", "device verified", or a ChatGPT reply. The
       // independent physical device, policy and owner receipts are missing.
       return snapshot();
     },
     cancel({ requestId } = {}) {
+      // A prepared payload may already be at a transport adapter. Only
+      // cancel before preparation, or after an explicit definitely-not-sent
+      // report. Otherwise the outcome must remain uncertain, not cancelled.
       if (!match(requestId) || !['awaiting-manual-delivery',
-          'delivery-prepared-not-sent', 'not-sent'].includes(state)
+          'not-sent'].includes(state)
           || expire()) invalid();
       state = 'cancelled-local';
       return snapshot();

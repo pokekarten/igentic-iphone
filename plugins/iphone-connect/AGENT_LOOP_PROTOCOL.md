@@ -49,6 +49,36 @@ iPhone widerrufen. Es gibt keine automatische Wiederholung, insbesondere nicht
 nach unklarem Empfang. Ablauf vor einem Versand heißt expired-before-send,
 Ablauf nach einem möglichen Versand heißt outcome-unknown.
 
+**Verspäteter Rückkanal:** Nach `sent-unconfirmed` bleibt der Versandstatus
+unklar und eine erneute Zustellung verboten. Innerhalb der ursprünglichen
+Task-Gültigkeit kann aber ein exakt nonce- und auftragsgebundener, gültig
+signierter `read-only-device-key-ack` nachträglich eintreffen und den
+Protokollzustand nach `receipt-key-authenticated` ändern. Das ist **kein**
+Beweis für Gerätezustand, Besitzerzustimmung oder iOS-Ausführung. Falscher
+Schlüssel/Nonce, ein abgelaufenes Zeitfenster und Rückmeldungen nach
+einem bereits beobachteten Timeout werden verworfen. Eine spätere
+Systemzeit-Rückstellung darf ein einmal geschlossenes Fenster nicht öffnen.
+Der Zustand `outcome-unknown` nach tatsächlichem Ablauf bleibt unverändert.
+
+## Optionale absturzsichere Zustellvormerkung
+
+[DELIVERY_ATTEMPT_MARKER.md](DELIVERY_ATTEMPT_MARKER.md) beschreibt einen
+zusätzlichen lokalen Schreib-vor-Versand-Sicherheitsbaustein.
+`createPrivateDeliveryAttemptMarker({ directory, key })` wird optional als
+`deliveryAttemptMarker` an `createTransportNeutralAgentLoop` übergeben.
+Vor jeder `prepareDelivery`-Rückgabe muss ein privater, dauerhaft
+gesicherter Marker für die Aufgabe geschrieben sein. Scheitert das,
+wird **keine** Transportvorbereitung zurückgegeben.
+
+Der Marker enthält keine Nutzerdaten und darf nach einem Prozessabsturz
+ausschließlich als `outcome-unknown` ohne automatische Wiederholung
+interpretiert werden. Selbst wenn ein Absturz zwischen Vormerkung und
+tatsächlichem Versand erfolgt, ist diese konservative Bewertung korrekt.
+Das Modul ersetzt weder das separate Replay-Ledger, die spätere
+zustellende Komponente noch einen echten iPhone-Receipt. Ohne
+explizit konfigurierten Marker arbeitet die bestehende Zustandsmaschine
+weiter nur im Arbeitsspeicher und ist **nicht** restart-sicher.
+
 ## Device-Receipt ist mehr als ein HMAC
 
 Es gibt einen vom Owner-Auftrag getrennten HMAC-SHA256-Antwortvertrag mit
