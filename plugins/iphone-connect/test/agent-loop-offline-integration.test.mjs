@@ -114,9 +114,11 @@ test('complete offline control-plane fixture never claims real iPhone execution'
   assert.equal(prepared.status, 'prepared-not-sent');
   assert.equal(prepared.actionExecuted, false);
   assert.equal(prepared.iPhoneConnected, 'not-checked');
-  assert.equal(readdirSync(f.markerDirectory).length, 1);
-  assert.equal(readFileSync(join(f.markerDirectory,
-    readdirSync(f.markerDirectory)[0])).length, 0);
+  const attempts = readdirSync(f.markerDirectory)
+    .filter(name => name.endsWith('.attempt'));
+  assert.deepEqual(readdirSync(f.markerDirectory).includes('.delivery-key-seal'), true);
+  assert.equal(attempts.length, 1);
+  assert.equal(readFileSync(join(f.markerDirectory, attempts[0])).length, 0);
   assert.equal(f.marker().recover({ requestId: id }).state, 'outcome-unknown');
 
   // There is intentionally no network adapter. The fixture simulates a
@@ -166,7 +168,7 @@ test('fixture refuses model-injected writes, replay and untrusted MCP execution'
     entryPoint: 'chatgpt-site'
   }), /invalidTaskEnvelope/);
   assert.equal(loop.snapshot().state, 'empty');
-  assert.equal(readdirSync(f.markerDirectory).length, 0);
+  assert.equal(readdirSync(f.markerDirectory).filter(name => name.endsWith('.attempt')).length, 0);
   const unsupported = await siteCall('iphone_execute_action', {
     action: 'delete-contacts'
   });
@@ -248,7 +250,7 @@ test('degraded marker directory blocks delivery despite valid admission', t => {
     assert.equal(loop.snapshot().state, 'awaiting-manual-delivery');
     assert.equal(loop.snapshot().attemptCount, 0);
     assert.equal(loop.snapshot().actionExecuted, false);
-    assert.equal(readdirSync(f.markerDirectory).length, 0);
+    assert.equal(readdirSync(f.markerDirectory).filter(name => name.endsWith('.attempt')).length, 0);
     assert.throws(() => f.loop(), /deliveryMarkerUnavailable/);
   } finally {
     chmodSync(f.markerDirectory, 0o700);
