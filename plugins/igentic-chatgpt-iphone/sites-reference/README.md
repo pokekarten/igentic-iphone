@@ -226,3 +226,17 @@ available iPhone connection. This is a deployed-Site compatibility check,
 not proof of device access or actual task execution. Its code is still
 reference source until owner-authorized publication of the existing
 private Site.
+
+
+### Copying a safe Site compatibility summary into ChatGPT (manual)
+
+After the owner triggers successful `server/discover` and `tools/list` inspection,
+a separate button can copy a **fixed, sanitized textual summary**. It contains
+only the known protocol/server/tool names and explicitly *unverified* device,
+execution and ChatGPT Project statuses. Neither raw server payloads nor the
+browser URL, account identifiers, task bodies, secrets or device identifiers
+are transferred. Clipboard writes need an explicit owner click and a capable
+browser; permission rejection is non-executing. A failed recheck invalidates
+the previous report, and leaving the page disables the copy action. This is a
+manual ChatGPT context handoff, not automatic ChatGPT Project selection or a
+signed device receipt.

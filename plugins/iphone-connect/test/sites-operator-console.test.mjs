@@ -30,15 +30,17 @@ class FakeElement {
   set innerHTML(value) { throw Error('unsafeHTMLRendering:' + value); }
 }
 const names = [
-  'show-capabilities', 'verify-site-registry', 'site-registry-status',
+  'show-capabilities', 'verify-site-registry', 'site-registry-status', 'copy-site-check', 'copy-site-status',
   'show-shortcuts', 'prepare-handoff',
   'cancel-mcp-request', 'handoff-action', 'prepared-link', 'status',
   'capability-list', 'shortcuts-list', 'project-chat-status'
 ];
 function initialize(customFetch, timers = {}) {
+  const copied = [];
   const elements = new Map(names.map(name => [name, new FakeElement()]));
   elements.get('handoff-action').value = 'diagnostics';
   elements.get('cancel-mcp-request').disabled = true;
+  elements.get('copy-site-check').disabled = true;
   const calls = [];
   const listeners = new Map();
   const fetch = async (url, options) => {
@@ -58,6 +60,10 @@ function initialize(customFetch, timers = {}) {
       addEventListener: (name, handler) => listeners.set(name, handler)
     },
     fetch,
+    navigator: { clipboard: { async writeText(value) {
+      copied.push(value);
+      if (timers.rejectClipboard) throw Error('clipboardDenied');
+    } } },
     AbortController,
     setTimeout: timers.setTimeout ?? setTimeout,
     clearTimeout: timers.clearTimeout ?? clearTimeout
@@ -65,6 +71,7 @@ function initialize(customFetch, timers = {}) {
   return {
     get: id => elements.get(id),
     calls,
+    copied,
     close: () => listeners.get('pagehide')?.()
   };
 }
@@ -77,6 +84,7 @@ test('console HTML is static, same-origin-only and has no arbitrary task inputs'
   assert.match(html, /12 Sekunden/);
   assert.match(html, /id="project-chat-status"/);
   assert.match(html, /id="verify-site-registry"/);
+  assert.match(html, /id="copy-site-check"[^>]*disabled/);
   assert.match(html, /\[hidden\] \{ display: none !important; \}/);
   assert.doesNotMatch(html, /<form\b|<iframe\b|<textarea\b|http:\/\//i);
   assert.doesNotMatch(source, /localStorage|sessionStorage|document\.cookie|location\.href|window\.open/);
@@ -345,4 +353,53 @@ test('failed discovery stops before tool listing', async () => {
   await page.get('verify-site-registry').click();
   assert.equal(page.calls.length, 1);
   assert.match(page.get('site-registry-status').textContent, /nicht bestätigt/);
+});
+
+
+test('sanitized report can only be copied after an exact Site registry check and explicit click', async () => {
+  const page = initialize();
+  assert.equal(page.get('copy-site-check').disabled, true);
+  await page.get('copy-site-check').click();
+  assert.deepEqual(page.copied, []);
+  await page.get('verify-site-registry').click();
+  assert.equal(page.get('copy-site-check').disabled, false);
+  assert.deepEqual(page.copied, []);
+  await page.get('copy-site-check').click();
+  assert.equal(page.copied.length, 1);
+  assert.match(page.copied[0], /iGentic Site-MCP Kompatibilitätsprüfung/);
+  assert.match(page.copied[0], /iPhone: Verbindung nicht geprüft/);
+  assert.match(page.copied[0], /iPhone-Aktion: nicht ausgeführt/);
+  assert.match(page.copied[0], /ChatGPT-Projektkontext: nicht verifiziert/);
+  assert.doesNotMatch(page.copied[0], /https?:|igentic:\/\/|token|apikey|udid|PRIVATE_SENTINEL/i);
+  assert.equal(page.calls.length, 2);
+  assert.match(page.get('copy-site-status').textContent, /kopiert/);
+  page.close();
+  assert.equal(page.get('copy-site-check').disabled, true);
+});
+
+test('failed registry recheck revokes prior copy ability without leaking a report', async () => {
+  let invalid = false;
+  const page = initialize(async (url, options) => {
+    const request = JSON.parse(options.body);
+    const real = await handleSitesMcp(new Request('https://owner-site.invalid' + url, options));
+    const rpc = await real.json();
+    if (invalid && request.method === 'tools/list') rpc.result.tools = [];
+    return { ok: true, async json() { return rpc; } };
+  });
+  await page.get('verify-site-registry').click();
+  assert.equal(page.get('copy-site-check').disabled, false);
+  invalid = true;
+  await page.get('verify-site-registry').click();
+  assert.equal(page.get('copy-site-check').disabled, true);
+  await page.get('copy-site-check').click();
+  assert.equal(page.copied.length, 0);
+});
+
+test('clipboard permission failures keep copy path manual and non-executing', async () => {
+  const page = initialize(undefined, { rejectClipboard: true });
+  await page.get('verify-site-registry').click();
+  await page.get('copy-site-check').click();
+  assert.match(page.get('copy-site-status').textContent, /nicht verfügbar/);
+  assert.equal(page.calls.length, 2);
+  assert.equal(page.get('prepared-link').hidden, true);
 });

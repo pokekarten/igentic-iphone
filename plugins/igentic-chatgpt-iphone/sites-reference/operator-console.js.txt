@@ -10,6 +10,8 @@
   const capabilities = byId('show-capabilities');
   const verifyRegistry = byId('verify-site-registry');
   const registryStatus = byId('site-registry-status');
+  const copySiteCheck = byId('copy-site-check');
+  const copySiteStatus = byId('copy-site-status');
   const shortcuts = byId('show-shortcuts');
   const handoff = byId('prepare-handoff');
   const cancel = byId('cancel-mcp-request');
@@ -23,6 +25,20 @@
   let requestId = 0;
   let busy = false;
   let active = null;
+  let registryVerified = false;
+  // Static, privacy-safe text only: never copy raw MCP responses, origin,
+  // account identity, credentials, device identifiers, URLs or model prompts.
+  const sanitizedReport = [
+    'iGentic Site-MCP Kompatibilitätsprüfung (manuell im Browser)',
+    'Protokoll: 2026-07-28',
+    'Server: igentic-iphone-handoff 0.2.0',
+    'Werkzeugliste: iphone_chatgpt_handoff, igentic_get_capabilities, igentic_shortcuts_setup',
+    'Werkzeuge: 3 lesend, nicht destruktiv; Registrierung beim Klick geprüft',
+    'iPhone: Verbindung nicht geprüft',
+    'iPhone-Aktion: nicht ausgeführt',
+    'ChatGPT-Projektkontext: nicht verifiziert',
+    'Hinweis: Dies ist weder ein Gerätebeleg noch ein kryptografischer Nachweis.'
+  ].join('\n');
 
   const clearLink = () => {
     link.hidden = true;
@@ -42,6 +58,7 @@
     for (const button of buttons) button.disabled = value;
     action.disabled = value;
     cancel.disabled = !value;
+    copySiteCheck.disabled = value || !registryVerified;
   };
   const allowedData = data => data && typeof data === 'object'
     && data.schema === 1 && data.actionExecuted === false
@@ -150,18 +167,36 @@
   }
 
   verifyRegistry.addEventListener('click', () => run(async () => {
+    registryVerified = false;
+    copySiteCheck.disabled = true;
+    copySiteStatus.textContent = 'Vorheriges Prüfergebnis ungültig. Neue Prüfung läuft.';
     registryStatus.textContent = 'Prüfe Site-MCP-Version und Toolliste …';
     try {
       const total = await inspectSiteRegistry();
+      registryVerified = true;
       registryStatus.textContent = 'Site-MCP v0.2.0 bestätigt: ' + total
         + ' lesende Werkzeuge registriert. iPhone-Verbindung weiterhin nicht geprüft.';
+      copySiteStatus.textContent = 'Bereinigter Site-Status bereit. Nur nach Antippen kopieren.';
     } catch (error) {
+      registryVerified = false;
       registryStatus.textContent = 'Site-MCP-Kompatibilität nicht bestätigt. '
         + 'Die veröffentlichte Site könnte veraltet oder unerreichbar sein. '
         + 'Keine iPhone-Aktion ausgeführt.';
+      copySiteStatus.textContent = 'Kein gültiger Site-Status zum Kopieren.';
       throw error;
     }
   }));
+
+  copySiteCheck.addEventListener('click', async () => {
+    if (busy || !registryVerified) return;
+    try {
+      // Only an explicit owner gesture may transfer a bounded static summary.
+      await navigator.clipboard.writeText(sanitizedReport);
+      copySiteStatus.textContent = 'Bereinigter Site-Status kopiert. In ChatGPT selbst einfügen.';
+    } catch {
+      copySiteStatus.textContent = 'Kopieren nicht verfügbar. Kein Bericht übertragen.';
+    }
+  });
 
   capabilities.addEventListener('click', () => run(async () => {
     clearList(list);
@@ -214,6 +249,8 @@
 
   window.addEventListener('pagehide', () => {
     active?.abort();
+    registryVerified = false;
+    copySiteCheck.disabled = true;
     clearLink();
   });
 })();

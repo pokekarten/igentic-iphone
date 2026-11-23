@@ -46,14 +46,22 @@ try {
     }
   });
   const pageUrl = 'http://127.0.0.1:' + server.address().port + '/console';
+  await page.context().grantPermissions(['clipboard-read','clipboard-write'], { origin: new URL(pageUrl).origin });
   await page.goto(pageUrl, { waitUntil: 'networkidle', timeout: 20000 });
   assert.equal(await page.locator('#prepared-link').isVisible(), false);
+  assert.equal(await page.locator('#copy-site-check').isDisabled(), true);
   await page.locator('#verify-site-registry').click();
   await page.waitForFunction(() =>
     document.querySelector('#site-registry-status')?.textContent?.includes('v0.2.0 bestätigt'),
     { timeout: 20000 }
   );
   assert.match(await page.locator('#site-registry-status').innerText(), /iPhone-Verbindung weiterhin nicht geprüft/);
+  assert.equal(await page.locator('#copy-site-check').isEnabled(), true);
+  await page.locator('#copy-site-check').click();
+  const copied = await page.evaluate(() => navigator.clipboard.readText());
+  assert.match(copied, /iPhone-Aktion: nicht ausgeführt/);
+  assert.match(copied, /ChatGPT-Projektkontext: nicht verifiziert/);
+  assert.doesNotMatch(copied, /https?:|igentic:\/\/|apikey|udid|PRIVATE_SENTINEL/i);
   await page.locator('#show-capabilities').click();
   await page.locator('#capability-list li').first().waitFor({ state: 'visible', timeout: 20000 });
   assert.equal(await page.locator('#capability-list li').count(), 3);
@@ -78,7 +86,7 @@ try {
   ]);
   assert.deepEqual(errors, []);
   console.log(JSON.stringify({
-    realBrowser: true, sameOriginMcpCalls: mcpCalls.length, siteRegistryVerified: true,
+    realBrowser: true, sameOriginMcpCalls: mcpCalls.length, siteRegistryVerified: true, sanitizedReportCopied: true,
     capabilityEntries: 3, shortcutSteps: 5,
     manualLinkValidated: true, noAutoNavigation: true,
     noExternalRequests: true, deviceExecuted: false, success: true
