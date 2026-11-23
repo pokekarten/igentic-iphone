@@ -2,7 +2,7 @@
 // No phone control, arbitrary actions, device identifiers or IP logging.
 import { createServer as createHttpsServer } from 'node:https';
 import { createHmac, createHash, timingSafeEqual } from 'node:crypto';
-import { readFile, stat } from 'node:fs/promises';
+import { readFile, lstat } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 
 export const HEARTBEAT_PATH = '/v1/companion/readiness';
@@ -44,6 +44,9 @@ export function createHeartbeatVerifier({ key, nowSeconds = () => Math.floor(Dat
     if (!secure) return failure(403);
     if (url !== HEARTBEAT_PATH) return failure(404);
     if (method !== 'POST') return failure(405);
+    if (headers['content-type'] !== 'application/json') return failure(415);
+    if (headers['content-encoding'] && headers['content-encoding'] !== 'identity')
+      return failure(415);
     if (!Buffer.isBuffer(body) || body.length !== HEARTBEAT_BODY.length
         || !timingSafeEqual(body, HEARTBEAT_BODY)) return failure(400);
     const timestampText = headers['x-igentic-timestamp'];
@@ -83,7 +86,7 @@ export function createCellularGateway({ tlsKey, tlsCert, sharedKey, port = 0, ho
   const verify = createHeartbeatVerifier({ key: sharedKey });
   const server = createHttpsServer({
     key: tlsKey, cert: tlsCert, minVersion: 'TLSv1.2',
-    requestCert: false
+    requestCert: false, maxHeaderSize: 8192
   }, (req, res) => {
     const reply = (status, value) => {
       res.writeHead(status, {
@@ -94,16 +97,28 @@ export function createCellularGateway({ tlsKey, tlsCert, sharedKey, port = 0, ho
     };
     if (req.url !== HEARTBEAT_PATH) return reply(404, failure(404).body);
     if (req.method !== 'POST') return reply(405, failure(405).body);
+    if (req.headers['content-type'] !== 'application/json'
+        || (req.headers['content-encoding'] &&
+          req.headers['content-encoding'] !== 'identity'))
+      return reply(415, failure(415).body);
     if (Number(req.headers['content-length']) > MAX_BODY) return reply(413, failure(413).body);
     let len = 0;
+    let oversized = false;
     const chunks = [];
     req.on('data', chunk => {
+      if (oversized) return;
       len += chunk.length;
-      if (len > MAX_BODY) { req.destroy(); return; }
+      if (len > MAX_BODY) {
+        oversized = true;
+        reply(413, failure(413).body);
+        // Drain the rest without buffering or reaching authentication.
+        // Never count this as a valid heartbeat.
+        return;
+      }
       chunks.push(chunk);
     });
     req.on('end', () => {
-      if (len > MAX_BODY) return;
+      if (oversized) return;
       const result = verify({
         method: req.method, url: req.url, headers: req.headers,
         body: Buffer.concat(chunks), secure: req.socket.encrypted === true
@@ -112,6 +127,10 @@ export function createCellularGateway({ tlsKey, tlsCert, sharedKey, port = 0, ho
     });
     req.on('error', () => { if (!res.headersSent) res.destroy(); });
   });
+  // Bounded resource consumption even before an unauthenticated peer has
+  // proven possession of the pairing key. No remote client IP is logged.
+  server.maxConnections = 32;
+  server.maxRequestsPerSocket = 10;
   server.requestTimeout = 10000;
   server.headersTimeout = 7000;
   server.keepAliveTimeout = 1000;
@@ -136,9 +155,14 @@ export async function startFromEnvironment(env = process.env) {
     'IGENTIC_CELLULAR_SHARED_KEY_FILE'];
   if (required.some(name => !env[name])) throw Error('missingCellularConfig');
   const keyPath = env.IGENTIC_CELLULAR_SHARED_KEY_FILE;
-  const permissions = await stat(keyPath);
+  const permissions = await lstat(keyPath);
   if (!permissions.isFile() || (permissions.mode & 0o077) !== 0)
     throw Error('cellularKeyMustBePrivate');
+  // TLS *private* keys need the same private-file boundary. Public
+  // certificate chain files do not contain secret material.
+  const tlsKeyPermissions = await lstat(env.IGENTIC_CELLULAR_TLS_KEY_FILE);
+  if (!tlsKeyPermissions.isFile() || (tlsKeyPermissions.mode & 0o077) !== 0)
+    throw Error('cellularTLSKeyMustBePrivate');
   const host = env.IGENTIC_CELLULAR_LISTEN_HOST || '127.0.0.1';
   const port = Number(env.IGENTIC_CELLULAR_LISTEN_PORT || 37866);
   const gateway = createCellularGateway({

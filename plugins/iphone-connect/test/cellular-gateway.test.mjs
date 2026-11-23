@@ -1,19 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomBytes, randomUUID } from 'node:crypto';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { chmod, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { request } from 'node:https';
 import { HEARTBEAT_BODY, HEARTBEAT_PATH, createCellularGateway,
-  createHeartbeatVerifier, decodeSharedKey, signCellular } from '../src/cellular-gateway.mjs';
+  createHeartbeatVerifier, decodeSharedKey, signCellular, startFromEnvironment } from '../src/cellular-gateway.mjs';
 
 const key = Buffer.alloc(32, 0x01);
 const timestamp = 1795393200;
 const envelope = (nonce=randomUUID()) => ({
   method:'POST', url:HEARTBEAT_PATH, secure:true, body:HEARTBEAT_BODY,
-  headers: {'x-igentic-timestamp':String(timestamp),
+  headers: {'content-type':'application/json', 'x-igentic-timestamp':String(timestamp),
     'x-igentic-nonce':nonce, 'x-igentic-signature':signCellular({key,timestamp,nonce})}
 });
 
@@ -42,7 +42,11 @@ test('reject mismatched TLS, verb, route, timestamp, HMAC and unexpected body', 
   const check = e => createHeartbeatVerifier({key,nowSeconds:()=>timestamp})(e).status;
   const e=envelope();
   for(const patch of [
-    {secure:false},{method:'GET'},{url:'/admin'},{body:Buffer.from('{"schema":1,"kind":"readiness","action":"tap"}')},
+    {secure:false},{method:'GET'},{url:'/admin'},
+    {headers:{...e.headers, 'content-type':'text/plain'}},
+    {headers:{...e.headers, 'content-type':undefined}},
+    {headers:{...e.headers, 'content-encoding':'gzip'}},
+    {body:Buffer.from('{"schema":1,"kind":"readiness","action":"tap"}')},
     {body:Buffer.alloc(0)},{headers:{...e.headers,'x-igentic-timestamp':String(timestamp-61)}},
     {headers:{...e.headers,'x-igentic-timestamp':String(timestamp+61)}},
     {headers:{...e.headers,'x-igentic-signature':'0'.repeat(64)}},
@@ -71,6 +75,8 @@ test('real HTTPS listener accepts signed readiness, refuses replay and wrong aut
   assert.equal(r.status,0,'OpenSSL local throwaway TLS certificate for test');
   const gateway=createCellularGateway({tlsKey:await readFile(priv),tlsCert:await readFile(cert),
     sharedKey:key,port:0});
+  assert.equal(gateway.server.maxConnections, 32);
+  assert.equal(gateway.server.maxRequestsPerSocket, 10);
   const address=await gateway.listen();
   t.after(()=>gateway.close());
   assert.equal(address.host,'127.0.0.1');
@@ -85,7 +91,7 @@ test('real HTTPS listener accepts signed readiness, refuses replay and wrong aut
   // The test-only client uses rejectUnauthorized:false for its throwaway
   // self-signed localhost certificate; the production Swift client NEVER does.
   const now=Math.floor(Date.now()/1000);const nonce=randomUUID();
-  const headers={'x-igentic-timestamp':String(now),'x-igentic-nonce':nonce,
+  const headers={'content-type':'application/json','x-igentic-timestamp':String(now),'x-igentic-nonce':nonce,
     'x-igentic-signature':signCellular({key,timestamp:now,nonce})};
   const ok=await post(headers);
   assert.equal(ok.status,200);assert.equal(ok.json.deviceControl,'not-enabled');
@@ -93,4 +99,38 @@ test('real HTTPS listener accepts signed readiness, refuses replay and wrong aut
   assert.equal((await post({...headers,'x-igentic-signature':'a'.repeat(64)})).status,401);
   assert.equal((await post(headers,HEARTBEAT_BODY,'GET')).status,405);
   assert.equal((await post(headers,HEARTBEAT_BODY,'POST','/something-else')).status,404);
+  assert.equal((await post({...headers,'content-type':'text/plain'})).status,415);
+  assert.equal((await post({...headers,'content-encoding':'gzip'})).status,415);
+  assert.equal((await post(headers,Buffer.alloc(513))).status,413);
+  // Request body length greater than MAX_BODY cannot use a valid signature
+  // or enter the per-nonce cache, even when sent with chunked transfer.
+  assert.equal((await post({...headers,'transfer-encoding':'chunked'},Buffer.alloc(513))).status,413);
+});
+
+test('cellular host rejects group-readable TLS keys and symlinked secret files', async t => {
+  const dir = await mkdtemp(join(tmpdir(), 'igentic-cellular-priv-file-'));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const shared = join(dir, 'shared.key');
+  const tlsKey = join(dir, 'tls.key');
+  const cert = join(dir, 'tls.crt');
+  await writeFile(shared, key.toString('base64') + '\n', { mode: 0o600 });
+  await writeFile(tlsKey, 'dummy-key', { mode: 0o600 });
+  await writeFile(cert, 'dummy-cert', { mode: 0o600 });
+  const env = {
+    IGENTIC_CELLULAR_SHARED_KEY_FILE: shared,
+    IGENTIC_CELLULAR_TLS_KEY_FILE: tlsKey,
+    IGENTIC_CELLULAR_TLS_CERT_FILE: cert,
+    IGENTIC_CELLULAR_LISTEN_HOST: '127.0.0.1'
+  };
+  await chmod(tlsKey, 0o644);
+  await assert.rejects(startFromEnvironment(env), /cellularTLSKeyMustBePrivate/);
+  await chmod(tlsKey, 0o600);
+  await chmod(shared, 0o644);
+  await assert.rejects(startFromEnvironment(env), /cellularKeyMustBePrivate/);
+  await chmod(shared, 0o600);
+  const alias = join(dir, 'shared-link.key');
+  await symlink(shared, alias);
+  await assert.rejects(startFromEnvironment({
+    ...env, IGENTIC_CELLULAR_SHARED_KEY_FILE: alias
+  }), /cellularKeyMustBePrivate/);
 });

@@ -1,14 +1,14 @@
 // One-time setup for the iGentic-owned cellular readiness pairing secret.
 // Creates a single 0600 random key on the host; never prints it by default.
 import { randomBytes } from 'node:crypto';
-import { mkdir, open, readFile, stat } from 'node:fs/promises';
+import { mkdir, open, readFile, lstat } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export async function initCellularSecret({ root = join(homedir(), 'Library/Application Support/iGentic/iphone-cellular') } = {}) {
   await mkdir(root, { recursive: true, mode: 0o700 });
-  const info = await stat(root);
+  const info = await lstat(root);
   if (!info.isDirectory() || (info.mode & 0o077) !== 0)
     throw Error('cellularDirectoryMustBePrivate');
   const path = join(root, 'readiness.key');
@@ -24,8 +24,8 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const keyFile = join(root, 'readiness.key');
   if (process.argv.length === 3 && process.argv[2] === '--show-key' && process.stdout.isTTY) {
     try {
-      const info = await stat(keyFile);
-      if ((info.mode & 0o077) !== 0) throw Error('insecureSecretFile');
+      const info = await lstat(keyFile);
+      if (!info.isFile() || (info.mode & 0o077) !== 0) throw Error('insecureSecretFile');
       process.stdout.write(await readFile(keyFile, 'utf8'));
     } catch {
       console.error('localKeyUnavailable');

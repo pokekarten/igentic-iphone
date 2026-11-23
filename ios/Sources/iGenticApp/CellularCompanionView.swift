@@ -29,7 +29,14 @@ private enum CellularKeychain {
         var item = lookup
         item[kSecValueData as String] = data
         item[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
-        _ = SecItemDelete(lookup as CFDictionary)
+        // Never delete valid stored credentials before a replacement succeeds.
+        // SecItemUpdate is atomic; on unexpected errors retain the old item.
+        let replacement: [String: Any] = [kSecValueData as String: data]
+        let update = SecItemUpdate(
+            lookup as CFDictionary, replacement as CFDictionary
+        )
+        if update == errSecSuccess { return true }
+        guard update == errSecItemNotFound else { return false }
         return SecItemAdd(item as CFDictionary, nil) == errSecSuccess
     }
     static func load() -> CellularCredentials? {

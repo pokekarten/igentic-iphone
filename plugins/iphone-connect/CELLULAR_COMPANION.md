@@ -12,7 +12,7 @@ The iOS client uses Apple's URLSession and CryptoKit. It allows cellular data, r
 
 Request headers: `x-igentic-timestamp` (Unix seconds), `x-igentic-nonce` (fresh lowercase UUID), `x-igentic-signature` (HMAC-SHA256 hex over the exact versioned method, path, timestamp, nonce and SHA-256 body digest). No raw secret crosses the network.
 
-The Node HTTPS host, implemented **in this repository**, validates the exact method/body/path/signature, a 60-second timestamp window, and one-time nonce within a bounded in-memory cache. No remote action, arbitrary iOS command, UI tap, shell, persistent user-data write, session approval or third-party tool is included. A valid response explicitly says `deviceControl=not-enabled` and `backgroundExecution=not-guaranteed`. Replay cache is per running process, so it must not be mistaken for persistent protection across server restarts; only a harmless readiness check is implemented.
+The Node HTTPS host, implemented **in this repository**, validates the exact method/body/path/signature and content type, a 60-second timestamp window, and one-time nonce within a bounded in-memory cache. It limits header bytes, request bytes, simultaneous connections and requests per connection. No remote action, arbitrary iOS command, UI tap, shell, persistent user-data write, session approval or third-party tool is included. A valid response explicitly says `deviceControl=not-enabled` and `backgroundExecution=not-guaranteed`. Replay cache is per running process, so it must not be mistaken for persistent protection across server restarts; only a harmless readiness check is implemented.
 
 ## Owner-operated server deployment
 
@@ -29,6 +29,21 @@ The Node HTTPS host, implemented **in this repository**, validates the exact met
    - `npm run serve:cellular` in `plugins/iphone-connect`
 4. For an explicit public interface bind, the host refuses to start unless `IGENTIC_CELLULAR_PUBLIC_BIND_ACK=I_ACCEPT_PUBLIC_HTTPS_EXPOSURE` is set. Prefer a private reverse proxy and access rules. No cleartext HTTP mode or unauthenticated public listener exists.
 5. Reveal the key only from an **interactive private terminal** using `node plugins/iphone-connect/scripts/init-cellular.mjs --show-key`. Enter it into the native app's SecureField, then clear it from the field. Don't paste it into chats, GitHub PRs, logs or public screenshots.
+
+The shared secret proves possession of that secret, **not hardware attestation
+or the identity of a specific iPhone**. Rotate the secret if it may have been
+copied. While no user data, hardware identifier or raw GPS coordinate appears
+in the payload, normal network transport exposes connection metadata (such
+as an IP address) to the host and any configured reverse proxy. Our gateway
+does not deliberately print or persist that address. A hosting provider or
+proxy may have its own logs and retention policies.
+
+Both the iOS Keychain credential replacement and the Mac server key
+initialization preserve existing credentials if a write fails. The server
+requires privately readable (0600) files for the pairing secret and TLS private
+key; symlinked pairing-secret paths are rejected. If using a TLS certificate
+manager, supply the actual secure private-key file rather than a symlinked
+path. Private key files are never bundled or committed.
 
 Pairing remains **manual** in this version; there is no automatic credential enrollment, QR provisioning or hosted relay. Do not start public service without reviewing firewall, TLS certificate and key policies.
 
