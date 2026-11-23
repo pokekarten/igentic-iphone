@@ -4,13 +4,14 @@ import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
 import { NativeCoreDeviceBackend } from '../src/native-coredevice.mjs';
 import { loadConfig } from '../src/backend.mjs';
 import { run, decode } from '../src/process.mjs';
-import { verifyChatGPTHandoffPreviewReceipt } from '../src/chatgpt-handoff.mjs';
+import { HANDOFF_ACTIONS, verifyChatGPTHandoffPreviewReceipt } from '../src/chatgpt-handoff.mjs';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { startPortableGateway } from '../src/portable-gateway.mjs';
 
 // This is an owner-run acceptance on the *physical* iPhone and ONLY via Wi-Fi.
-// The actions are limited to two own-app navigation links. It is not a
+// The actions are limited to own-app previews and an invalid-link rejection.
+// It is not a
 // ChatGPT-account test or arbitrary mobile UI control.
 if (process.argv.length !== 2 ||
     process.env.IGENTIC_IPHONE_BACKEND === 'fixture' ||
@@ -48,7 +49,19 @@ const readReceipt = async () => {
     await rm(dir, { recursive: true, force: true });
   }
 };
-const observe = async (route, previousID = null) => {
+// Establish a previously observed event *before* any new dispatch. Without
+// this baseline, the first route could falsely pass against a stale receipt
+// from a prior test run. This owner-run hardware acceptance requires a
+// previously initialized iGentic install with a valid preview receipt.
+const snapshotBeforeDispatch = async () => {
+  const prior = await readReceipt();
+  if (!HANDOFF_ACTIONS.includes(prior?.route))
+    throw new Error('baselineHandoffPreviewNotVerified');
+  return verifyChatGPTHandoffPreviewReceipt(prior, prior.route);
+};
+const observe = async (route, previousID) => {
+  if (typeof previousID !== 'string')
+    throw new Error('missingPreDispatchReceiptBaseline');
   for (let retry = 0; retry < 9; retry++) {
     try {
       const eventID = verifyChatGPTHandoffPreviewReceipt(
@@ -102,19 +115,33 @@ try {
   await physicalWifi();
   const status = await backend.appStatus();
   if (status.installed !== true) throw new Error('ownAppNotInstalled');
+  const baselineID = await snapshotBeforeDispatch();
   const diagnosticsUrl = await prepareViaMcp('diagnostics');
   await dispatch('diagnostics', diagnosticsUrl);
-  const firstID = await observe('diagnostics');
+  const firstID = await observe('diagnostics', baselineID);
   const discoveryUrl = await prepareViaMcp('discovery');
   await dispatch('discovery', discoveryUrl);
-  await observe('discovery', firstID);
+  const discoveryID = await observe('discovery', firstID);
+
+  // Negative acceptance. Open an invalid first-party URL ONLY; never send
+  // an arbitrary scheme or a URL from an MCP tool. The app's strict parser
+  // must ignore the invalid route without creating a new sheet receipt.
+  const forbiddenRoute = 'igentic://handoff/v1/delete-contacts';
+  await core(['device', 'process', 'openURL', '--device', config.deviceId,
+    '--timeout', '18', forbiddenRoute]);
+  await new Promise(resolve => setTimeout(resolve, 850));
+  const afterInvalid = await readReceipt();
+  const afterID = verifyChatGPTHandoffPreviewReceipt(afterInvalid, 'discovery');
+  if (afterID !== discoveryID) throw new Error('invalidHandoffCreatedPreview');
   await physicalWifi();
   console.log(JSON.stringify({
     backend: 'physical', driver: 'coredevice-native',
     transport: 'network-coredevice', ownAppInstalled: true,
     mcpClient: 'local-sdk-test-client', mcpHandoffToolInvoked: true,
     urlOpenedBy: 'mac-acceptance-harness',
-    distinctFreshPreviewReceipts: true, routes: ['diagnostics', 'discovery'],
+    distinctFreshPreviewReceipts: true,
+    freshComparedWithPriorRun: true, invalidOwnAppRouteIgnored: true,
+    routes: ['diagnostics', 'discovery'],
     manualApprovalBypassed: false, crossAppControl: false,
     privateContentReturned: false
   }));

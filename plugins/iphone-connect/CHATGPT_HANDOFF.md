@@ -104,7 +104,10 @@ foreground-only on-device request inbox with owner-bound receipts.
       and independently verify fresh first-party sheet receipts on the phone.
       The reminder-draft physical route remains a separate acceptance task.
 - [ ] Verify the local second-tap confirmation; no route auto-executes.
-- [ ] Confirm an unknown route is ignored without navigating or approving.
+- [x] Confirm an unknown own-app route is rejected on the **physical**
+      phone without a new handoff-sheet receipt. This is negative evidence
+      against triggering an additional preview, not a touch/screenshot proof
+      of all internal navigation or permissions.
 - [ ] Verify a real ChatGPT tool invocation **only if account and remote MCP
       connection eligibility are confirmed**. Save a redacted receipt of the
       tool result, then separately verify that the phone handled the link.
@@ -166,13 +169,24 @@ uses a **real MCP SDK client** to call the allowlisted
 rejects any result that differs from the exact expected own-app URL or
 the read-only, unexecuted handoff contract. The **Mac test harness** then
 opens these two resulting links via Apple CoreDevice and independently
-verifies a fresh app-owned handoff-preview receipt for each, including
-a **different eventID** for the second receipt. Raw CoreDevice output,
-receipt contents and UUIDs stay local; the test console exposes only
-sanitized fixed fields. This is a complete **local MCP-test-client -> Mac
-CoreDevice -> own iPhone app** hardware acceptance, *not* an invocation
-from a connected ChatGPT account, a user tap, an owner approval, a reminder
-write, an App Intent execution, cellular operation, or cross-app control.
+verifies a fresh app-owned handoff-preview receipt for each **relative
+to a previously read, valid baseline event**, not only the preceding URL
+within this test. This blocks a stale first receipt from a past test run
+being misclassified as a successful new preview. The script deliberately
+requires a valid existing first-party receipt on the installed test app,
+so first-time installation needs its preview initialized separately.
+
+After those two legitimate navigation previews, the harness opens the
+fixed negative `igentic://handoff/v1/delete-contacts` URL in the **same
+signed app**, then verifies that the prior receipt is unchanged (no new
+handoff preview emitted). It does not request any contact access or
+other-app control, and cannot prove the screen contents from the receipt
+alone. Raw CoreDevice output, receipt contents and UUIDs stay local;
+the console exposes only sanitized fixed booleans. This is a complete
+**local MCP-test-client -> Mac CoreDevice -> own iPhone app** hardware
+acceptance, *not* an invocation from a connected ChatGPT account, a user
+tap, an owner approval, a reminder write, an App Intent execution,
+cellular operation, or cross-app control.
 
 
 ## OAuth resource-server boundary (staged, NOT yet publicly deployable)
