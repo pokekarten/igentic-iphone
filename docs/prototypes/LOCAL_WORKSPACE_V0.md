@@ -14,3 +14,13 @@ Research inspiration: OpenMinis, Pocket Agent, virtual workspace patterns. No up
 - Limit: file-content comparison is a local UI stale-preview safeguard, not a multi-process transaction or authorization capability. Third-party model output cannot call apply.
 
 Next: document import/export under explicit owner selection, cryptographic review receipts, crash journal and approval-bound app-specific actions. No generic cross-app UI permission is inferred.
+
+## Physical-device acceptance checklist (not yet executed)
+
+1. On the owner's signed iOS 27 build, open Offline-Werkzeuge and Notizen lokal verwalten with Wi-Fi disconnected and no Mac attached.
+2. Enter name `offline_test` and two lines of synthetic text. Verify that preview shows an empty previous version and that leaving the screen without saving creates no note.
+3. Return, preview again, tap the explicit save button, reopen and verify the exact saved text.
+4. Preview an edit, change the draft before saving, and ensure the stale preview is dismissed; separately verify oversize content and invalid filenames are rejected.
+5. Verify that the ChatGPT-facing MCP `iphone_prepare_local_task` response for `workspace-note` is a manual plan only, including `deviceActionExecuted=false`, and never includes note content or a device receipt.
+
+Record the exact GitHub head, app signing context, OS version and only redacted synthetic evidence; do not mark the feature as physically accepted based on the simulator build.
