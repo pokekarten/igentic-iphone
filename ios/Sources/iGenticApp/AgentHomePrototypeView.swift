@@ -7,6 +7,7 @@ public struct AgentHomePrototypeView: View {
     @State private var input = ""
     @State private var submitted = ""
     @State private var proposal: AgentHomeProposal?
+    @State private var statusText: String?
     @Environment(\.dismiss) private var dismiss
 
     public init() {}
@@ -29,9 +30,8 @@ public struct AgentHomePrototypeView: View {
                         .textFieldStyle(.roundedBorder)
                         .accessibilityIdentifier("igentic-agent-prompt")
                     Button("Lokalen Vorschlag prüfen") {
-                        let bounded = String(input.prefix(512))
-                        submitted = bounded
-                        proposal = AgentHomeCommandRouter.preview(bounded)
+                        submitted = input
+                        proposal = AgentLoopTaskBridge.preview(input)
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -54,13 +54,37 @@ public struct AgentHomePrototypeView: View {
                         if proposal.canOpenOwnedScreen {
                             destinationLink(for: proposal.destination)
                         } else {
-                            Label("Nicht ausgeführt", systemImage: "lock.shield")
+                            Label("Keine freigegebene iPhone-Aktion", systemImage: "lock.shield")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                        // Any bounded question may be *manually* shared for AI advice.
+                        // Unsupported device commands remain unsupported and cannot run.
+                        if let share = AgentLoopTaskBridge.shareText(submitted) {
+                            ShareLink(item: share) {
+                                Label("An ChatGPT oder andere KI-App weitergeben",
+                                      systemImage: "square.and.arrow.up")
+                            }
+                            .accessibilityIdentifier("igentic-agent-share")
+                            Text("Nur durch deine Auswahl im Teilen-Menü wird der angezeigte Auftrag weitergegeben. Keine automatische Cloud-Übertragung.")
                                 .font(.caption).foregroundStyle(.secondary)
                         }
                     }
                     .padding(14)
                     .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
                     .accessibilityIdentifier("igentic-agent-proposal")
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Button("iPhone-Status lokal lesen") {
+                        statusText = AgentLoopDeviceStatusReader.read().shortcutSummary
+                    }
+                    .accessibilityIdentifier("igentic-agent-local-status")
+                    if let statusText {
+                        Text(statusText).font(.footnote)
+                            .accessibilityIdentifier("igentic-agent-status-result")
+                    }
+                    Text("Akku, Stromsparmodus und iOS-Version werden nur auf diesem Gerät gelesen.")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
 
                 Text("Direkt öffnen").font(.headline)

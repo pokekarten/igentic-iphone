@@ -119,3 +119,42 @@ The production iGentic app retains its existing iOS 17 deployment target.
 The separate `AppIntentsTesting` test bundle requires iOS 27+. Use an
 installed matching simulator runtime; do not enable actual reminder writes.
 Official guide: <https://developer.apple.com/documentation/appintentstesting/testing-your-app-intents-code>.
+
+## iGentic agent loop: native Shortcuts and manual AI handoff (draft)
+
+The iOS 27 app target now registers these **app-owned** App Intents:
+
+- **Read iGentic iPhone Status:** reads battery percentage (if available),
+  Low Power Mode and the system's iOS version locally, after a policy check.
+  The returned string expressly says that ChatGPT connectivity is not tested.
+  It does not enumerate other apps, contacts, files, unique device identifiers,
+  or external accounts.
+- **Prepare iGentic Agent Task:** takes a bounded text parameter from the
+  Shortcuts system and returns a *read-only, local* classification of which
+  iGentic-owned view can handle the task. It never executes the task, creates
+  a reminder, invokes an arbitrary Shortcut or returns the original input.
+- **Check iGentic Diagnostics:** existing fixed synthetic diagnostic reply,
+  unchanged.
+
+Example *manual* on-device workflow:
+
+1. Install the newly signed build with owner-approved development signing.
+   In Apple's **Shortcuts** app, locate the iGentic actions by their titles.
+2. Add **Read iGentic iPhone Status** to a Shortcut. Feed its output into
+   another user-selected action or show it locally.
+3. If a compatible assistant is installed and supports an appropriate
+   Shortcuts action, pass the result to it **only with the owner's consent**.
+   That assistant may return a suggested task. Feed that task into
+   **Prepare iGentic Agent Task**, which returns only a proposal.
+4. Open the iGentic Agent screen to review the task and use an explicit
+   Share Sheet if the owner wants to hand the text to ChatGPT or another
+   supported app. The selected app must support that share type.
+5. For any reminder creation, use the existing dedicated iGentic approval UI
+   and EventKit permission checks. A returned model suggestion is not approval.
+
+There is **no guaranteed ChatGPT Shortcuts action, automatic callback,
+ChatGPT consumer-app API, remote iPhone plugin link, or always-on background
+execution** implied by these local App Intents. The private hosted Sites
+plugin remains an independent, manual-link-only workflow. Full architecture
+and the verified vs proposed capability boundaries are documented in
+[the native agent-loop design](../../docs/architecture/IGENTIC_CHATGPT_IPHONE_AGENT_LOOP.md).

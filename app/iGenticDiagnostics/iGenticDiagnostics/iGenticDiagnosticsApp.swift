@@ -1,5 +1,6 @@
 import SwiftUI
 import AppIntents
+import UIKit
 import AgentCore
 import iGenticApp
 
@@ -143,6 +144,70 @@ struct iGenticReadOnlyDiagnosticsIntent: AppIntent {
     }
 }
 
+// A real, owner-requested on-device status. It returns coarse runtime data to
+// Shortcuts, not to a remote plugin. No identifiers, photos, messages or
+// cross-app content; no background polling or external provider requests.
+@available(iOS 27.0, *)
+struct iGenticDeviceStatusIntent: AppIntent {
+    static let title: LocalizedStringResource = "Read iGentic iPhone Status"
+    static let description = IntentDescription(
+        "Read the battery, low-power mode and iOS version locally in Shortcuts."
+    )
+    static let supportedModes: IntentModes = .background
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ReturnsValue<String> {
+        let decision = PolicyEngine().decide(
+            PolicyRequest(
+                privacyMode: .localOnly,
+                dataClassification: DataClassification(
+                    level: .contextualPrivateData,
+                    reason: "Owner-requested local device runtime status."
+                ),
+                actionRisk: .read,
+                requestedDelegationTarget: .localDevice
+            )
+        )
+        guard decision.isAllowed, !decision.requiresApproval else {
+            throw iGenticDiagnosticsIntentError.policyDenied
+        }
+        return .result(value: AgentLoopDeviceStatusReader.read().shortcutSummary)
+    }
+}
+
+// A second Shortcuts entry: classify text on the iPhone, but NEVER execute the
+// result or automatically forward the user's input to ChatGPT or other apps.
+// The returned summary deliberately excludes the original instruction.
+@available(iOS 27.0, *)
+struct iGenticPrepareAgentTaskIntent: AppIntent {
+    static let title: LocalizedStringResource = "Prepare iGentic Agent Task"
+    static let description = IntentDescription(
+        "Create a read-only local task preview for iGentic; no iPhone command is executed."
+    )
+    static let supportedModes: IntentModes = .background
+
+    @Parameter(title: "Auftrag")
+    var instruction: String
+
+    func perform() async throws -> some IntentResult & ReturnsValue<String> {
+        let decision = PolicyEngine().decide(
+            PolicyRequest(
+                privacyMode: .localOnly,
+                dataClassification: DataClassification(
+                    level: .contextualPrivateData,
+                    reason: "User-entered Shortcuts task, processed locally."
+                ),
+                actionRisk: .prepare,
+                requestedDelegationTarget: .localDevice
+            )
+        )
+        guard decision.isAllowed, !decision.requiresApproval else {
+            throw iGenticDiagnosticsIntentError.policyDenied
+        }
+        return .result(value: AgentLoopTaskBridge.shortcutSummary(instruction))
+    }
+}
+
 @available(iOS 16.0, *)
 struct iGenticDiagnosticsShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
@@ -154,6 +219,23 @@ struct iGenticDiagnosticsShortcuts: AppShortcutsProvider {
                 ],
                 shortTitle: "Check Diagnostics",
             systemImageName: "checkmark.shield"
+        )
+        AppShortcut(
+            intent: iGenticDeviceStatusIntent(),
+            phrases: [
+                "Check iPhone status with \(.applicationName)",
+                "Read my battery with \(.applicationName)"
+            ],
+            shortTitle: "iPhone Status",
+            systemImageName: "battery.100percent"
+        )
+        AppShortcut(
+            intent: iGenticPrepareAgentTaskIntent(),
+            phrases: [
+                "Prepare a task with \(.applicationName)"
+            ],
+            shortTitle: "Agent Task Preview",
+            systemImageName: "checklist"
         )
     }
 }

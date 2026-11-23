@@ -5,6 +5,20 @@ import XCTest
 @available(iOS 27.0, *)
 final class iGenticAppIntentsTests: XCTestCase {
     @MainActor
+    func testReadOnlyDeviceStatusIntentRunsThroughSystem() async throws {
+        let app = XCUIApplication()
+        app.launch()
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15))
+        let definitions = IntentDefinitions(bundleIdentifier: "org.example.iGenticDiagnostics")
+        let status = definitions.intents["iGenticDeviceStatusIntent"]
+        let value = try await status.makeIntent().run().value.as(String.self)
+        XCTAssertTrue(value.contains("iGentic iPhone: Akku"))
+        XCTAssertTrue(value.contains("Stromsparmodus"))
+        XCTAssertTrue(value.contains("ChatGPT-Verbindung nicht geprüft"))
+        XCTAssertFalse(value.lowercased().contains("serial"))
+    }
+
+    @MainActor
     func testReadOnlyDiagnosticsIntentRunsThroughSystem() async throws {
         // Apple's AppIntentsTesting setup requires the owning app to have
         // launched before asking the system for its registered definitions.
