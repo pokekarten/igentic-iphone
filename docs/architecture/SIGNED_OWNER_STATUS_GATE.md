@@ -11,26 +11,14 @@
 3. `AgentLoopNativePolicyPreflight` bewertet eine mögliche **externe Statusweitergabe** ausdrücklich als `externalShare` und verlangt eine lokale Eigentümerprüfung. `localOnly` sperrt diesen Pfad, statt ihn über die separate rein lokale Leseerlaubnis zu umgehen.
 4. `AgentLoopLocalReplayJournal` reserviert den Request-Identifier dauerhaft vor jeder möglichen Folgeaktion. Ein erneuter Signatur-Envelope mit derselben ID wird auch nach neuer Instanziierung gesperrt. Es ist keine synchrone Remote-Transaktion oder bestätigte Zustellung.
 5. Die Sitzung wird `awaitingOwnerReview`. Der eigenständige Übergang `readAfterLocalReviewAction()` ist in der **isolierten nativen SwiftUI-Prüfansicht** `AgentLoopSignedOwnerReviewView` mit einem expliziten Button verbunden. Ein Modell, App Intent, Plugin oder Relay darf ihn **nicht** direkt auslösen. Noch fehlt die Anbindung der Ansicht an einen sicher provisionierten Eingang und Keychain-Schlüsselspeicher; die Ansicht ist somit nicht als Remote-Funktion nutzbar.
-6. Die read-only `PolicyEngine` erlaubt erst dann die begrenzte lokale Abfrage über den bestehenden `AgentLoopLocalStatus`-Leser. Nach der Statusabfrage werden Zeitfenster und Ausführungszustand nochmals geprüft. Eine verspätete Beobachtung wird verworfen.
+6. Die read-only `PolicyEngine` erlaubt erst dann die begrenzte lokale Abfrage über den bestehenden `AgentLoopLocalStatus`-Leser. Nach der Statusabfrage werden Zeitfenster und Ausführungszustand nochmals geprüft. Eine verspätete Beobachtung wird verworfen. Ein synchron verschachtelter zweiter Leseaufruf sperrt die gesamte erste Abfrage dauerhaft; auch sie darf kein positives lokales Abschlussergebnis zurückgeben.
 7. Das Ergebnis ist nur ein **lokales In-App-Objekt**. Es enthält den groben Status nach erfolgreicher lokaler Abfrage; ein externer Versand oder eine signierte, unabhängige Gerätebestätigung ist nicht implementiert.
 
 ## Wahrheitsgetreuer Beleg
 
 Alle Ausgaben melden `externalDataShared=false`, `ownerConsentAttested=false`, `remoteActionExecuted=false` und `independentDeviceReceipt="none"`. Selbst wenn ein synthetischer Test den Methodenübergang ausführt, ist das **kein Nachweis eines menschlichen Zustimmungstaps**, keiner realen Geräteausführung und keiner bestätigten Plugin-Antwort. Die HMAC-Signatur beweist nur Kenntnis des vorgegebenen Relay-Schlüssels, keine Identität eines physischen iPhones.
 
-Nach Ablauf der signierten Frist oder einer rückläufigen Uhr wird die
-`ownerAppObservation` bei der nächsten Gate-Rückgabe aus dem Sitzungszustand
-entfernt; der bereits erfolgte lokale Lesevorgang bleibt historisch korrekt
-als `localReadCompleted=true` markiert und wird nie wiederholt. Diese
-Sicherung verhindert neue Abfragen mit veralteten Daten, ist aber **keine
-Löschung bereits kopierter Receipt-Werte**. Die isolierte SwiftUI-Ansicht
-ruft bei sichtbarer Anzeige über einen periodischen Ein-Sekunden-Takt einen
-frischen Snapshot ab; ein überholtes in-memory Receipt wird dort nicht länger
-als dauerhaft anzeigbarer `@State`-Wert gespeichert. Die Aktualisierung kann
-vom System gedrosselt werden (insbesondere im Hintergrund), daher ist die
-Gate-seitige Verfallsprüfung die eigentliche Sicherheitsgrenze.
-
-Die `ownerAppObservation` verbleibt bis dahin ausschließlich in dieser Swift-Sitzung. Ein späterer Transport darf sie nicht ohne separate owner-spezifische externe Freigabe, echten Ergebnisbeleg, Schlüsselschutz und Replay-/Timeout-Abnahme übertragen. Der Benutzer kann eigene Kurzbefehle gesondert zum Teilen anleiten, aber dieser Gate-Typ führt sie nicht aus.
+Die `ownerAppObservation` verbleibt in dieser Swift-Sitzung. Ein späterer Transport darf sie nicht ohne separate owner-spezifische externe Freigabe, echten Ergebnisbeleg, Schlüsselschutz und Replay-/Timeout-Abnahme übertragen. Der Benutzer kann eigene Kurzbefehle gesondert zum Teilen anleiten, aber dieser Gate-Typ führt sie nicht aus.
 
 ## Offline-Sicherheitstests
 
@@ -39,3 +27,33 @@ Die Swift-XCTest-Suite `AgentLoopSignedOwnerStatusGateTests` prüft: signierter/
 **Offene P0-Abnahme:** Sicheres Geräte-/Keychain-Enrolment, die vorhandene SwiftUI-Owner-Review auf dem signierten physischen Gerät mit echter Besitzerinteraktion testen, getrennte echte Eigentümerbestätigung, freigabegesteuerte Antwort/Rückgabe an das Plugin, unabhängig überprüfbare signierte Device Receipts mit Nonce-Challenge, tatsächliches iPhone im WLAN/Mobilfunk/USB-C und iOS 27 Kurzbefehle-/Siri-Tests. Bis dahin kein Remote-Execution-Flag auf `true` setzen.
 
 Stacking: Ausgangszweig PR #422 + Merge der nicht gemergten PR-#416-Entwicklung, separate Draft-Integration. Kein Merge nach `main` und keine Veröffentlichung der privaten ChatGPT-Site.
+
+
+## Zeitgebundene lokale Beobachtung
+
+Der erfolgreiche lokale Lesevorgang kann eine Akku-/iOS-Momentaufnahme
+innerhalb der eigenen App anzeigen. Diese Beobachtung ist keine dauerhaft
+aktuelle Telemetrie: Bei einer späteren snapshot-Abfrage nach Ablauf der
+signierten Task-TTL oder nach einem Rücksprung der Uhr wird sie aus der
+Sitzung gelöscht. locallyReadExpired unterscheidet dabei einen früher
+tatsächlich erfolgten lokalen Lesevorgang von einem ohne Ausführung
+abgelaufenen Auftrag. localReadCompleted bleibt für den historischen
+lokalen Vorgang true, während ownerAppObservation danach nil ist;
+alle Fern-/Eigentümerattestierungsflags bleiben false.
+
+Der Übergang readAfterLocalReviewAction() ist zusätzlich nur noch
+innerhalb des nativen iGenticApp-Moduls sichtbar, statt als öffentliche
+API auch von anderen Modulen direkt aufrufbar zu sein. Das ersetzt keine
+echte Bestätigung des Eigentümertaps und ist kein Remote-Zugriff.
+
+Auch bei einem **erneuten Besitzer-Button-Aufruf ohne vorherigen Snapshot**
+wird dieselbe Ablauf-/Uhr-Rücksprungprüfung angewendet. Andernfalls konnte
+dieser Rückgabepfad die alte Beobachtung nach Fristende noch freigeben.
+Die isolierte SwiftUI-Prüfansicht verwendet während der Anzeige periodisch
+frische Gate-Snapshots statt einer dauerhaft kopierten Receipt-Struktur im
+`@State`. iOS darf diese UI-Aktualisierung im Hintergrund drosseln; die
+Gate-seitige Prüfung ist die eigentliche Sicherheitsgrenze. Bereits
+extern kopierte, ältere Receipt-Werte können nicht zurückgerufen werden.
+Zwei neue Regressionen prüfen TTL und Uhrzeitrücksprung nach einer
+erfolgreichen Statusabfrage; vor dem Fix waren beide wegen offengelegter
+veralteter Daten rot.
