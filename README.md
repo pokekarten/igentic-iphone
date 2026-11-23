@@ -19,6 +19,16 @@ provides a local MCP server, typed diagnostics tools and an MCP Apps dashboard
 for ChatGPT/Codex-compatible hosts. See its [implementation and acceptance evidence](docs/reports/chatgpt-iphone-plugin-2026-11-22.md)
 for the exact tested scope and outstanding physical-device/web-connection gates.
 
+The [optional first-party Mobilfunk Companion](plugins/iphone-connect/CELLULAR_COMPANION.md)
+adds a foreground-only, HMAC-authenticated HTTPS **readiness** check to an
+owner-operated server, independently of ChatGPT and the Mac. Its Swift client
+can identify whether the actual HTTPS transaction used a cellular network
+interface once Apple's metrics arrive; missing metrics remain unverified.
+This is **not** remote iOS control, a continuous background service, or proof
+of real-world 4G/5G connectivity: deployment still needs a signed new iPhone
+app, trusted HTTPS host and explicit physical mobile-data acceptance. USB-C
+and Wi-Fi remain independent connection options.
+
 This repository is intentionally small and controller-friendly. It is designed for a workflow where ChatGPT acts as the project controller through the GitHub Connector, Codex creates narrow Draft PRs, and real iPhone testing decides what is actually usable.
 
 ## Mission
