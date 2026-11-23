@@ -1,6 +1,6 @@
 # ChatGPT → iGentic iPhone: tiny API-only plugin prototype
 
-**Status:** draft source prototype; not installed in a ChatGPT account or on a physical iPhone.
+**Status:** draft source prototype; a signed test app is installed on the physical iPhone Air, but no ChatGPT account is connected.
 **Scope:** one read-only MCP tool and three fixed user-tapped routes to **our own app**.
 
 ## Availability gates: web, mobile, and account
@@ -97,7 +97,7 @@ remotely: an MCP tool result cannot directly bypass iOS app sandbox or execute
 another app's Shortcut. The next experiment may add an authenticated,
 foreground-only on-device request inbox with owner-bound receipts.
 
-## Physical-device acceptance still outstanding
+## Physical-device acceptance and remaining gates
 
 - [x] Build, sign and install PR #406 on the physical iPhone Air over Wi-Fi.
 - [x] Dispatch the allowlisted diagnostics/discovery links via CoreDevice
@@ -111,8 +111,10 @@ foreground-only on-device request inbox with owner-bound receipts.
 - [ ] Repeat over cellular without a Mac **only after** a separate on-device
       or hosted transport design is implemented and authorized.
 
-The Node tests and simulator CI prove code contracts and simulator UI only;
-they are not evidence that the ChatGPT account or physical phone is connected.
+Node tests and simulator CI alone prove only code contracts and simulator UI.
+Separate Apple CoreDevice WLAN tests have now independently verified the first-party
+signed app and handoff sheet on the physical iPhone; an actual ChatGPT-account
+invocation remains untested.
 
 ## Do not call this remote iPhone control
 
@@ -158,13 +160,19 @@ npm run smoke:handoff:wifi
 
 The script requires the existing private iGentic pairing/policy configuration,
 rejects fixture and MobileCLI modes and fails if the active tunnel is not
-`network-coredevice`. It opens two fixed own-app URLs for `diagnostics`
-and `discovery` and verifies that the second app-owned preview receipt has
-a **different eventID** from the first. All raw CoreDevice output and receipt
-contents remain local; the console prints only sanitized fixed booleans.
-Do not treat the test as a ChatGPT-account invocation, a screen capture,
-an owner approval, a reminder write, an App Intent execution or general
-cross-app UI control.
+`network-coredevice`. It starts a local-only Streamable HTTP MCP server,
+uses a **real MCP SDK client** to call the allowlisted
+`iphone_chatgpt_handoff` tool for `diagnostics` and `discovery`, and
+rejects any result that differs from the exact expected own-app URL or
+the read-only, unexecuted handoff contract. The **Mac test harness** then
+opens these two resulting links via Apple CoreDevice and independently
+verifies a fresh app-owned handoff-preview receipt for each, including
+a **different eventID** for the second receipt. Raw CoreDevice output,
+receipt contents and UUIDs stay local; the test console exposes only
+sanitized fixed fields. This is a complete **local MCP-test-client -> Mac
+CoreDevice -> own iPhone app** hardware acceptance, *not* an invocation
+from a connected ChatGPT account, a user tap, an owner approval, a reminder
+write, an App Intent execution, cellular operation, or cross-app control.
 
 
 ## OAuth resource-server boundary (staged, NOT yet publicly deployable)

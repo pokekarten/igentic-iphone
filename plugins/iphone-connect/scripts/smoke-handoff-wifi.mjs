@@ -5,6 +5,9 @@ import { NativeCoreDeviceBackend } from '../src/native-coredevice.mjs';
 import { loadConfig } from '../src/backend.mjs';
 import { run, decode } from '../src/process.mjs';
 import { verifyChatGPTHandoffPreviewReceipt } from '../src/chatgpt-handoff.mjs';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import { startPortableGateway } from '../src/portable-gateway.mjs';
 
 // This is an owner-run acceptance on the *physical* iPhone and ONLY via Wi-Fi.
 // The actions are limited to two own-app navigation links. It is not a
@@ -57,28 +60,65 @@ const observe = async (route, previousID = null) => {
     }
   }
 };
-const dispatch = async route => {
+const dispatch = async (route, fixedMcpHandoffUrl) => {
+  // Fail closed if the MCP tool returned a different URL or embedded text.
+  if (fixedMcpHandoffUrl !== 'igentic://handoff/v1/' + route)
+    throw new Error('untrustedHandoffUrl');
   // An exact, owned app process restart gives the next URL a clean sheet
   // lifecycle. Never activate another app or enumerate private data.
   await backend.policy(route === 'discovery' ? 'open-discovery' : 'open-diagnostics');
   await core(['device', 'process', 'launch', '--device', config.deviceId,
     '--terminate-existing', '--timeout', '18', expectedBundle]);
   await core(['device', 'process', 'openURL', '--device', config.deviceId,
-    '--timeout', '18', 'igentic://handoff/v1/' + route]);
+    '--timeout', '18', fixedMcpHandoffUrl]);
 };
 
-await physicalWifi();
-const status = await backend.appStatus();
-if (status.installed !== true) throw new Error('ownAppNotInstalled');
-await dispatch('diagnostics');
-const firstID = await observe('diagnostics');
-await dispatch('discovery');
-await observe('discovery', firstID);
-await physicalWifi();
-console.log(JSON.stringify({
-  backend: 'physical', driver: 'coredevice-native',
-  transport: 'network-coredevice', ownAppInstalled: true,
-  distinctFreshPreviewReceipts: true, routes: ['diagnostics', 'discovery'],
-  manualApprovalBypassed: false, crossAppControl: false,
-  privateContentReturned: false
-}));
+// A real SDK MCP client requests the same read-only tool ChatGPT would use.
+// The local test harness (not ChatGPT or a user tap) opens the returned
+// allowlisted link using Apple's CoreDevice, then independently reads only
+// the own-app privacy-safe view receipts.
+const gateway = await startPortableGateway();
+const client = new Client({ name: 'igentic-physical-mcp-acceptance', version: '0.1.0' });
+try {
+  await client.connect(new StreamableHTTPClientTransport(
+    new URL('http://127.0.0.1:' + gateway.port + '/mcp')
+  ));
+  const tools = (await client.listTools()).tools;
+  const tool = tools.find(t => t.name === 'iphone_chatgpt_handoff');
+  if (!tool || tool.annotations?.readOnlyHint !== true ||
+      tool.annotations?.destructiveHint !== false)
+    throw new Error('readOnlyMcpToolUnavailable');
+  const prepareViaMcp = async action => {
+    const reply = await client.callTool({
+      name: 'iphone_chatgpt_handoff', arguments: { action }
+    });
+    const data = reply.structuredContent?.data;
+    if (reply.isError || data?.launchUrl !== 'igentic://handoff/v1/' + action
+        || data?.action !== action || data?.requiresOwnerTap !== true
+        || data?.actionExecuted !== false || data?.iPhoneConnected !== 'not-checked'
+        || data?.dataSentToIPhone !== 'none') throw new Error('unsafeMcpHandoff');
+    return data.launchUrl;
+  };
+  await physicalWifi();
+  const status = await backend.appStatus();
+  if (status.installed !== true) throw new Error('ownAppNotInstalled');
+  const diagnosticsUrl = await prepareViaMcp('diagnostics');
+  await dispatch('diagnostics', diagnosticsUrl);
+  const firstID = await observe('diagnostics');
+  const discoveryUrl = await prepareViaMcp('discovery');
+  await dispatch('discovery', discoveryUrl);
+  await observe('discovery', firstID);
+  await physicalWifi();
+  console.log(JSON.stringify({
+    backend: 'physical', driver: 'coredevice-native',
+    transport: 'network-coredevice', ownAppInstalled: true,
+    mcpClient: 'local-sdk-test-client', mcpHandoffToolInvoked: true,
+    urlOpenedBy: 'mac-acceptance-harness',
+    distinctFreshPreviewReceipts: true, routes: ['diagnostics', 'discovery'],
+    manualApprovalBypassed: false, crossAppControl: false,
+    privateContentReturned: false
+  }));
+} finally {
+  await client.close();
+  await gateway.close();
+}
