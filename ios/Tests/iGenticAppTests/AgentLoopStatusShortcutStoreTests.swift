@@ -266,6 +266,25 @@ final class AgentLoopStatusShortcutStoreTests: XCTestCase {
         }
     }
 
+    func testHardlinkedStatusJournalCannotReuseOutsideFile() async throws {
+        try await MainActor.run {
+            let dir = FileManager.default.temporaryDirectory
+                .appendingPathComponent("igentic-status-\(UUID())")
+            defer { try? FileManager.default.removeItem(at: dir) }
+            let path = dir.appendingPathComponent("journal.json")
+            let store = AgentLoopStatusShortcutStore(fileURL: path)
+            _ = try store.begin()
+            let outside = FileManager.default.temporaryDirectory
+                .appendingPathComponent("igentic-status-external-\(UUID().uuidString)")
+            defer { try? FileManager.default.removeItem(at: outside) }
+            try FileManager.default.moveItem(at: path, to: outside)
+            try FileManager.default.linkItem(at: outside, to: path)
+            XCTAssertThrowsError(try store.stageForOwner()) {
+                XCTAssertEqual($0 as? AgentLoopStatusShortcutError, .invalidStoredTask)
+            }
+        }
+    }
+
     func testCorruptOrSymlinkedJournalAndBusyClaimFailClosed() async throws {
         try await MainActor.run {
             let dir = FileManager.default.temporaryDirectory

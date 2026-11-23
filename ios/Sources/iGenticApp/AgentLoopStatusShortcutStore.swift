@@ -251,14 +251,37 @@ public final class AgentLoopStatusShortcutStore {
     }
 
     private func load() throws -> AgentLoopStatusShortcutJournal? {
-        let manager = FileManager.default
-        guard manager.fileExists(atPath: fileURL.path) else { return nil }
-        guard (try? manager.destinationOfSymbolicLink(atPath: fileURL.path)) == nil,
-              let attrs = try? manager.attributesOfItem(atPath: fileURL.path),
-              attrs[.type] as? FileAttributeType == .typeRegular,
-              let size = attrs[.size] as? NSNumber, size.intValue <= 4096,
-              let bytes = try? Data(contentsOf: fileURL),
-              bytes.count <= 4096,
+        #if canImport(Darwin) || canImport(Glibc)
+        // The journal is read from a pinned inode. Path-based metadata checks
+        // followed by Data(contentsOf:) allow substituted symlinks/hardlinks.
+        let fd = fileURL.path.withCString {
+            open($0, O_RDONLY | O_NOFOLLOW | O_CLOEXEC)
+        }
+        guard fd >= 0 else {
+            if errno == ENOENT { return nil }
+            throw AgentLoopStatusShortcutError.invalidStoredTask
+        }
+        defer { _ = close(fd) }
+        var metadata = stat()
+        guard fstat(fd, &metadata) == 0,
+              (metadata.st_mode & mode_t(S_IFMT)) == mode_t(S_IFREG),
+              (metadata.st_mode & 0o077) == 0,
+              metadata.st_uid == geteuid(),
+              metadata.st_nlink == 1,
+              metadata.st_size >= 0,
+              metadata.st_size <= 4096 else {
+            throw AgentLoopStatusShortcutError.invalidStoredTask
+        }
+        let bytes: Data
+        do {
+            // Limit the read itself, not merely the bytes after allocation.
+            let handle = FileHandle(fileDescriptor: fd, closeOnDealloc: false)
+            bytes = try handle.read(upToCount: 4097) ?? Data()
+        } catch {
+            throw AgentLoopStatusShortcutError.invalidStoredTask
+        }
+        guard bytes.count <= 4096,
+              bytes.count == Int(metadata.st_size),
               let payload = try? JSONSerialization.jsonObject(with: bytes) as? [String: Any],
               Set(payload.keys) == Set(["schema", "id", "createdAt", "stage"]),
               let state = try? JSONDecoder().decode(AgentLoopStatusShortcutJournal.self, from: bytes),
@@ -267,6 +290,9 @@ public final class AgentLoopStatusShortcutStore {
             throw AgentLoopStatusShortcutError.invalidStoredTask
         }
         return state
+        #else
+        throw AgentLoopStatusShortcutError.invalidStoredTask
+        #endif
     }
 
     private func save(_ state: AgentLoopStatusShortcutJournal) throws {
