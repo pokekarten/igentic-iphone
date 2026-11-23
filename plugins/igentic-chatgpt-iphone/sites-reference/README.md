@@ -57,11 +57,20 @@ Official sources (verified November 23, 2026):
 
 ## Local Sites Worker and deployment boundary
 
-The Worker implements the Sites MCP `2026-07-28` contract from the installed
-Sites integration reference: `server/discover`, `tools/list`, and `tools/call`.
-It exposes exactly one read-only tool and returns both text content and
-`structuredContent.data`, preserving the existing portable handoff contract.
-It does not implement a legacy MCP initialization/session/SSE transport.
+The Worker implements the stateless MCP `2026-07-28` contract:
+`server/discover`, `tools/list`, and `tools/call`. Each request must carry
+the version and client capabilities in `params._meta`, plus matching
+`MCP-Protocol-Version` and `Mcp-Method` headers. Tool calls additionally
+require an exact `Mcp-Name` header. Mismatched or missing headers return
+HTTP 400 / JSON-RPC `-32020`; unsupported versions return HTTP 400 /
+`-32022` with the supported version.
+
+All successful MCP responses contain `resultType: "complete"` and fixed
+`_meta["io.modelcontextprotocol/serverInfo"]` identity. Exactly one
+read-only tool is advertised, returning both text content and
+`structuredContent.data` with the original handoff contract.
+This adapter does not implement a legacy MCP `initialize` handshake,
+sessions, or SSE. Do not assume compatibility with legacy-only clients.
 
 Requests are limited to 4 KiB (including streamed bodies without a declared
 length). Unsupported HTTP methods, malformed JSON-RPC, batches, notifications,
