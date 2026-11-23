@@ -11,6 +11,7 @@ import { join, isAbsolute, resolve } from 'node:path';
 const DOMAIN = 'igentic-delivery-attempt-v1\n';
 const SEAL_DOMAIN = 'igentic-delivery-marker-directory-key-v1\n';
 const SEAL_NAME = '.delivery-key-seal';
+const ATTEMPT_NAME = /^[a-f0-9]{64}\.attempt$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ROUTES = new Set([
   'cellular-foreground', 'coredevice-usb', 'coredevice-wifi', 'local-shortcuts'
@@ -74,6 +75,11 @@ export function createPrivateDeliveryAttemptMarker({ directory, key } = {}) {
       const stored = readFileSync(fd);
       if (stored.length !== sealDigest.length
           || !timingSafeEqual(stored, sealDigest)) fail();
+      // Key binding must live alongside only canonical empty attempt names.
+      // Unknown entries could mask an unsafe replay-store migration.
+      const entries = readdirSync(directory);
+      if (!entries.includes(SEAL_NAME) || entries.some(name =>
+          name !== SEAL_NAME && !ATTEMPT_NAME.test(name))) fail();
     } catch { fail(); }
     finally { if (fd !== undefined) closeSync(fd); }
   }
@@ -121,6 +127,9 @@ export function createPrivateDeliveryAttemptMarker({ directory, key } = {}) {
         // atomic. The empty marker exposes no task data, signature or key.
         fd = openSync(path, constants.O_WRONLY | constants.O_CREAT
           | constants.O_EXCL | NOFOLLOW, 0o600);
+        const created = fstatSync(fd);
+        if (!privateFile(created) || created.nlink !== 1 || created.size !== 0)
+          fail();
         fsyncSync(fd);
         const directoryFd = openSync(directory,
           constants.O_RDONLY | constants.O_DIRECTORY | NOFOLLOW);
@@ -142,7 +151,8 @@ export function createPrivateDeliveryAttemptMarker({ directory, key } = {}) {
       validateSeal();
       try {
         const st = lstatSync(markerPath(requestId));
-        if (!privateFile(st) || st.size !== 0) fail();
+        // A hardlink alias can expose or mutate a marker outside this store.
+        if (!privateFile(st) || st.nlink !== 1 || st.size !== 0) fail();
         return Object.freeze({
           state: 'outcome-unknown',
           actionExecuted: false,
