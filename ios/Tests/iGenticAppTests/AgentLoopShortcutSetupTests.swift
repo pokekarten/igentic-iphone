@@ -21,15 +21,17 @@ final class AgentLoopShortcutSetupTests: XCTestCase {
     }
 
     func testStepsRequireActualModelAndNativeReturn() {
-        XCTAssertEqual(AgentLoopShortcutSetup.actions.count, 4)
+        XCTAssertEqual(AgentLoopShortcutSetup.actions.count, 5)
         XCTAssertTrue(AgentLoopShortcutSetup.actions[0].contains("KI-Prompt lesen"))
-        XCTAssertTrue(AgentLoopShortcutSetup.actions[1].contains("ChatGPT"))
-        XCTAssertTrue(AgentLoopShortcutSetup.actions[2].contains("KI-Antwort übernehmen"))
-        XCTAssertTrue(AgentLoopShortcutSetup.actions[3].contains("App öffnen"))
+        XCTAssertTrue(AgentLoopShortcutSetup.actions[1].contains("taskId"))
+        XCTAssertTrue(AgentLoopShortcutSetup.actions[2].contains("ChatGPT"))
+        XCTAssertTrue(AgentLoopShortcutSetup.actions[3].contains("KI-Antwort übernehmen"))
+        XCTAssertTrue(AgentLoopShortcutSetup.actions[3].contains("Auftragskennung"))
+        XCTAssertTrue(AgentLoopShortcutSetup.actions[4].contains("App öffnen"))
     }
 
-    @MainActor
-    func testLocalStageDoesNotClaimModelConnected() {
+    func testLocalStageDoesNotClaimModelConnected() async {
+        await MainActor.run {
         let now = Date(timeIntervalSince1970: 1_700_000_000)
         let waiting = AgentLoopExchange(
             id: UUID(), createdAt: now, task: "Demo", answer: nil, answeredAt: nil
@@ -55,5 +57,6 @@ final class AgentLoopShortcutSetupTests: XCTestCase {
                 answered, now: now.addingTimeInterval(1)
             ), .answerAvailable
         )
+        }
     }
 }
