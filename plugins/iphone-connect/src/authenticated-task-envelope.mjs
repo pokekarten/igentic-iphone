@@ -80,6 +80,9 @@ export function createOwnerProposalAdmission({
   assertKey(key);
   if (typeof nowSeconds !== 'function' || !Number.isSafeInteger(maxInflight)
     || maxInflight < 1 || maxInflight > 1024) throw new Error('invalidOwnerRelayConfig');
+  // Pin the owner key at admission construction. The caller retains its Buffer
+  // and must not be able to change which secret this verifier trusts later.
+  const relayKey = Buffer.from(key);
   const seen = new Map();
   return {
     admit(envelope) {
@@ -91,7 +94,7 @@ export function createOwnerProposalAdmission({
       if (!Number.isSafeInteger(now) || now < 0) throw new Error('invalidOwnerRelayClock');
       if (body.issuedAt > now + FUTURE_CLOCK_SKEW || body.expiresAt <= now)
         throw new Error('expiredOrFutureTaskEnvelope');
-      const expected = Buffer.from(mac(key, body), 'hex');
+      const expected = Buffer.from(mac(relayKey, body), 'hex');
       const received = Buffer.from(envelope.signature, 'hex');
       if (received.length !== expected.length || !timingSafeEqual(received, expected))
         throw new Error('unauthenticatedTaskEnvelope');
