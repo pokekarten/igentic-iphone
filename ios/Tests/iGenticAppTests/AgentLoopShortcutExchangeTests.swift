@@ -153,6 +153,43 @@ final class AgentLoopShortcutExchangeTests: XCTestCase {
         }
     }
 
+    func testTicketIncludesTaskIDAndPromptAsSeparateFields() async throws {
+        try await MainActor.run {
+            let (store, path) = Self.makeStore()
+            defer { try? FileManager.default.removeItem(at: path.deletingLastPathComponent()) }
+            let json = try store.beginTicket(task: "Plane den Tag")
+            let decoded = try XCTUnwrap(JSONSerialization.jsonObject(
+                with: Data(json.utf8)) as? [String: Any])
+            XCTAssertEqual(decoded["schema"] as? Int, 1)
+            let taskID = try XCTUnwrap(decoded["taskId"] as? String)
+            XCTAssertEqual(UUID(uuidString: taskID), try store.snapshot()?.id)
+            XCTAssertEqual(decoded["prompt"] as? String, try store.pendingPrompt())
+            XCTAssertFalse((decoded["prompt"] as? String ?? "").contains(taskID))
+            XCTAssertEqual(try store.pendingTicket(), json)
+        }
+    }
+
+    func testLateReplyCannotOverwriteNewTask() async throws {
+        try await MainActor.run {
+            let (store, path) = Self.makeStore()
+            defer { try? FileManager.default.removeItem(at: path.deletingLastPathComponent()) }
+            _ = try store.beginTicket(task: "Erster Auftrag")
+            let oldID = try XCTUnwrap(store.snapshot()).id.uuidString
+            try store.clear()
+            let freshTicket = try store.beginTicket(task: "Neuer Auftrag")
+            XCTAssertNotNil(freshTicket.data(using: .utf8))
+            XCTAssertThrowsError(try store.receive(answer: "Verspätet", taskID: oldID)) {
+                XCTAssertEqual($0 as? AgentLoopExchangeError, .mismatchedTaskID)
+            }
+            XCTAssertThrowsError(try store.receive(answer: "Manipuliert", taskID: "bad-id")) {
+                XCTAssertEqual($0 as? AgentLoopExchangeError, .mismatchedTaskID)
+            }
+            XCTAssertNil(try store.snapshot()?.answer)
+            let currentID = try XCTUnwrap(store.snapshot()).id.uuidString
+            XCTAssertNoThrow(try store.receive(answer: "Korrekte Antwort", taskID: currentID))
+        }
+    }
+
     func testTruncatedOrMalformedDiskStateFailsClosed() async throws {
         try await MainActor.run {
             let (store, path) = Self.makeStore()
