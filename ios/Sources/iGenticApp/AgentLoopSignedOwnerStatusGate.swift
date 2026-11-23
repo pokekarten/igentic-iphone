@@ -43,6 +43,7 @@ public final class AgentLoopSignedOwnerStatusGate {
     private var pending: AgentLoopRemoteTaskPreview?
     private var trackedRequestID: String?
     private var admittedAtSeconds: Int?
+    private var expiresAtSeconds: Int?
     private var observed: String?
 
     public init(
@@ -80,6 +81,7 @@ public final class AgentLoopSignedOwnerStatusGate {
                 pending = verified
                 trackedRequestID = verified.requestID
                 admittedAtSeconds = admittedAt
+                expiresAtSeconds = verified.expiresAt
                 stage = .awaitingOwnerReview
             case .invalidSignedProposal, .blockedByNativePolicy:
                 stage = .denied
@@ -159,6 +161,22 @@ public final class AgentLoopSignedOwnerStatusGate {
     }
 
     private func receipt() -> AgentLoopSignedStatusGateReceipt {
+        // A completed local read stays historically true. Its in-memory
+        // observation must not be repeatedly disclosed by later snapshots
+        // after the signed task's deadline or a backwards clock adjustment.
+        // Clearing is terminal, including if the wall clock later recovers.
+        if stage == .locallyRead, observed != nil {
+            let now = clockSeconds()
+            guard let admittedAtSeconds, let expiresAtSeconds,
+                  now >= admittedAtSeconds, now < expiresAtSeconds else {
+                observed = nil
+                return rawReceipt()
+            }
+        }
+        return rawReceipt()
+    }
+
+    private func rawReceipt() -> AgentLoopSignedStatusGateReceipt {
         AgentLoopSignedStatusGateReceipt(
             stage: stage,
             requestID: trackedRequestID,

@@ -7,15 +7,19 @@ import SwiftUI
 @MainActor
 public struct AgentLoopSignedOwnerReviewView: View {
     private let gate: AgentLoopSignedOwnerStatusGate
-    @State private var receipt: AgentLoopSignedStatusGateReceipt
+    @State private var refreshCounter = 0
 
     public init(gate: AgentLoopSignedOwnerStatusGate) {
         self.gate = gate
-        _receipt = State(initialValue: gate.snapshot())
     }
 
     public var body: some View {
-        ScrollView {
+        // Refresh only the visible owner review while it is on screen. A
+        // cached SwiftUI @State receipt must not continue displaying a
+        // coarse observation after the signed task's 60-second deadline.
+        TimelineView(.periodic(from: .now, by: 1)) { _ in
+            let receipt = gate.snapshot()
+            ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 Label("Signierte Statusanfrage", systemImage: "checkmark.shield")
                     .font(.title3.bold())
@@ -36,7 +40,8 @@ public struct AgentLoopSignedOwnerReviewView: View {
                     .foregroundStyle(.secondary)
 
                 Button {
-                    receipt = gate.readAfterLocalReviewAction()
+                    _ = gate.readAfterLocalReviewAction()
+                    refreshCounter &+= 1
                 } label: {
                     Label("Einmalig nur lokal lesen", systemImage: "iphone.gen3")
                 }
@@ -60,8 +65,9 @@ public struct AgentLoopSignedOwnerReviewView: View {
             }
             .padding()
         }
-        .navigationTitle("Anfrage lokal prüfen")
-        .onAppear { receipt = gate.snapshot() }
+            .navigationTitle("Anfrage lokal prüfen")
+            .id(refreshCounter)
+        }
     }
 }
 #endif

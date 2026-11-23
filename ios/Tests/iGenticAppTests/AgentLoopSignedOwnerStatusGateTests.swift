@@ -199,6 +199,64 @@ final class AgentLoopSignedOwnerStatusGateTests: XCTestCase {
         }
     }
 
+    func testSignedTaskLocalObservationIsClearedAfterExpiryWithoutClaimingNoRead() async throws {
+        try await MainActor.run {
+            let dir = try newPrivateReplayDirectory()
+            defer { try? FileManager.default.removeItem(at: dir) }
+            let journal = try AgentLoopLocalReplayJournal(directory: dir, key: signedTaskKey())
+            var time = 2_000_000_000
+            var reads = 0
+            let gate = AgentLoopSignedOwnerStatusGate(
+                replayJournal: journal, clockSeconds: { time },
+                statusReader: { reads += 1; return syntheticSignedStatus() }
+            )
+            XCTAssertEqual(gate.stageSignedTaskForOwnerReview(
+                Data(signedTaskFixture.utf8), relayKey: signedTaskKey(),
+                privacyMode: .externalAI, statusClassification: .publicDefault
+            ).stage, .awaitingOwnerReview)
+            let observed = gate.readAfterLocalReviewAction()
+            XCTAssertEqual(observed.stage, .locallyRead)
+            XCTAssertNotNil(observed.ownerAppObservation)
+            XCTAssertEqual(reads, 1)
+
+            time = 2_000_000_060
+            let expired = gate.snapshot()
+            XCTAssertEqual(expired.stage, .locallyRead)
+            XCTAssertTrue(expired.localReadCompleted)
+            XCTAssertNil(expired.ownerAppObservation)
+            XCTAssertFalse(expired.externalDataShared)
+            XCTAssertFalse(expired.remoteActionExecuted)
+            XCTAssertNil(gate.readAfterLocalReviewAction().ownerAppObservation)
+            XCTAssertEqual(reads, 1)
+        }
+    }
+
+    func testSignedTaskLocalObservationIsClearedAfterBackwardsClock() async throws {
+        try await MainActor.run {
+            let dir = try newPrivateReplayDirectory()
+            defer { try? FileManager.default.removeItem(at: dir) }
+            let journal = try AgentLoopLocalReplayJournal(directory: dir, key: signedTaskKey())
+            var time = 2_000_000_000
+            var reads = 0
+            let gate = AgentLoopSignedOwnerStatusGate(
+                replayJournal: journal, clockSeconds: { time },
+                statusReader: { reads += 1; return syntheticSignedStatus() }
+            )
+            XCTAssertEqual(gate.stageSignedTaskForOwnerReview(
+                Data(signedTaskFixture.utf8), relayKey: signedTaskKey(),
+                privacyMode: .externalAI, statusClassification: .publicDefault
+            ).stage, .awaitingOwnerReview)
+            XCTAssertNotNil(gate.readAfterLocalReviewAction().ownerAppObservation)
+            time -= 1
+            let rollback = gate.readAfterLocalReviewAction()
+            XCTAssertEqual(rollback.stage, .locallyRead)
+            XCTAssertTrue(rollback.localReadCompleted)
+            XCTAssertNil(rollback.ownerAppObservation)
+            XCTAssertNil(gate.snapshot().ownerAppObservation)
+            XCTAssertEqual(reads, 1)
+        }
+    }
+
     func testSynchronousReaderReentrancyCannotCauseSecondRead() async throws {
         try await MainActor.run {
             let dir = try newPrivateReplayDirectory()

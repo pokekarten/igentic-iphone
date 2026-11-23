@@ -18,7 +18,19 @@
 
 Alle Ausgaben melden `externalDataShared=false`, `ownerConsentAttested=false`, `remoteActionExecuted=false` und `independentDeviceReceipt="none"`. Selbst wenn ein synthetischer Test den Methodenübergang ausführt, ist das **kein Nachweis eines menschlichen Zustimmungstaps**, keiner realen Geräteausführung und keiner bestätigten Plugin-Antwort. Die HMAC-Signatur beweist nur Kenntnis des vorgegebenen Relay-Schlüssels, keine Identität eines physischen iPhones.
 
-Die `ownerAppObservation` verbleibt in dieser Swift-Sitzung. Ein späterer Transport darf sie nicht ohne separate owner-spezifische externe Freigabe, echten Ergebnisbeleg, Schlüsselschutz und Replay-/Timeout-Abnahme übertragen. Der Benutzer kann eigene Kurzbefehle gesondert zum Teilen anleiten, aber dieser Gate-Typ führt sie nicht aus.
+Nach Ablauf der signierten Frist oder einer rückläufigen Uhr wird die
+`ownerAppObservation` bei der nächsten Gate-Rückgabe aus dem Sitzungszustand
+entfernt; der bereits erfolgte lokale Lesevorgang bleibt historisch korrekt
+als `localReadCompleted=true` markiert und wird nie wiederholt. Diese
+Sicherung verhindert neue Abfragen mit veralteten Daten, ist aber **keine
+Löschung bereits kopierter Receipt-Werte**. Die isolierte SwiftUI-Ansicht
+ruft bei sichtbarer Anzeige über einen periodischen Ein-Sekunden-Takt einen
+frischen Snapshot ab; ein überholtes in-memory Receipt wird dort nicht länger
+als dauerhaft anzeigbarer `@State`-Wert gespeichert. Die Aktualisierung kann
+vom System gedrosselt werden (insbesondere im Hintergrund), daher ist die
+Gate-seitige Verfallsprüfung die eigentliche Sicherheitsgrenze.
+
+Die `ownerAppObservation` verbleibt bis dahin ausschließlich in dieser Swift-Sitzung. Ein späterer Transport darf sie nicht ohne separate owner-spezifische externe Freigabe, echten Ergebnisbeleg, Schlüsselschutz und Replay-/Timeout-Abnahme übertragen. Der Benutzer kann eigene Kurzbefehle gesondert zum Teilen anleiten, aber dieser Gate-Typ führt sie nicht aus.
 
 ## Offline-Sicherheitstests
 
