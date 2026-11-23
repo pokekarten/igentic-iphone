@@ -86,6 +86,69 @@ public final class AgentLoopLocalReplayJournal {
             throw AgentLoopLocalReplayJournalError.unavailable
         }
 
+        // A new local HMAC key would otherwise change every filename and
+        // silently re-admit already consumed requests. Bind the store to a
+        // stable key, never silently reprovision it after a crash or reset.
+        let bindingDigest = HMAC<SHA256>.authenticationCode(
+            for: Data("igentic-ios-local-replay-key-binding-v1\n".utf8),
+            using: SymmetricKey(data: key)
+        ).map { String(format: "%02x", $0) }.joined()
+        let binding = ".key." + bindingDigest
+        let entries: [String]
+        do {
+            entries = try FileManager.default.contentsOfDirectory(
+                atPath: directory.path
+            )
+        } catch {
+            throw AgentLoopLocalReplayJournalError.unavailable
+        }
+        let bindings = entries.filter { $0.hasPrefix(".key.") }
+        guard bindings.isEmpty || bindings == [binding] else {
+            throw AgentLoopLocalReplayJournalError.unavailable
+        }
+        if bindings.isEmpty {
+            // Existing attempt markers without a binding cannot be safely
+            // assigned to this key. Draft-format migration must be explicit.
+            guard entries.isEmpty else {
+                throw AgentLoopLocalReplayJournalError.unavailable
+            }
+            let bindingFD = openat(
+                directoryFD, binding, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW,
+                0o600
+            )
+            if bindingFD < 0 && errno != EEXIST {
+                throw AgentLoopLocalReplayJournalError.unavailable
+            }
+            if bindingFD >= 0 {
+                let flushed = fsync(bindingFD) == 0
+                let closed = close(bindingFD) == 0
+                guard flushed, closed, fsync(directoryFD) == 0 else {
+                    throw AgentLoopLocalReplayJournalError.unavailable
+                }
+            }
+        }
+        // A concurrent process may have provisioned a different binding
+        // after our first scan. Never send a payload with two key identities.
+        let refreshed: [String]
+        do {
+            refreshed = try FileManager.default.contentsOfDirectory(
+                atPath: directory.path
+            )
+        } catch {
+            throw AgentLoopLocalReplayJournalError.unavailable
+        }
+        guard refreshed.filter({ $0.hasPrefix(".key.") }) == [binding] else {
+            throw AgentLoopLocalReplayJournalError.unavailable
+        }
+        var bindingMetadata = stat()
+        guard fstatat(directoryFD, binding, &bindingMetadata, AT_SYMLINK_NOFOLLOW) == 0,
+              (bindingMetadata.st_mode & mode_t(S_IFMT)) == mode_t(S_IFREG),
+              (bindingMetadata.st_mode & 0o077) == 0,
+              bindingMetadata.st_uid == geteuid(),
+              bindingMetadata.st_size == 0 else {
+            throw AgentLoopLocalReplayJournalError.unavailable
+        }
+
         let fileFD = openat(
             directoryFD, name, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW, 0o600
         )

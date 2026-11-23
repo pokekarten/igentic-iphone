@@ -50,8 +50,9 @@ final class AgentLoopLocalReplayJournalTests: XCTestCase {
         let signed = try preview()
         try journal.reserveVerifiedPreview(signed, nowSeconds: now)
         let names = try FileManager.default.contentsOfDirectory(atPath: directory.path)
-        XCTAssertEqual(names.count, 1)
-        let name = try XCTUnwrap(names.first)
+        XCTAssertEqual(names.count, 2)
+        let name = try XCTUnwrap(names.first { $0.hasSuffix(".attempt") })
+        XCTAssertEqual(names.filter { $0.hasPrefix(".key.") }.count, 1)
         XCTAssertEqual(name.count, 72)
         XCTAssertTrue(name.hasSuffix(".attempt"))
         XCTAssertFalse(name.contains(signed.requestID))
@@ -86,6 +87,42 @@ final class AgentLoopLocalReplayJournalTests: XCTestCase {
         XCTAssertThrowsError(try AgentLoopLocalReplayJournal(
             directory: directory, key: key
         ))
+    }
+
+    func testKeyRotationCannotReopenAlreadyRecordedTask() throws {
+        let directory = try createDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let verified = try preview()
+        let original = try AgentLoopLocalReplayJournal(directory: directory, key: key)
+        try original.reserveVerifiedPreview(verified, nowSeconds: now)
+        // A second 32-byte local key must not silently start a new ledger.
+        let rotated = try AgentLoopLocalReplayJournal(
+            directory: directory,
+            key: Data((32..<64).map(UInt8.init))
+        )
+        XCTAssertThrowsError(
+            try rotated.reserveVerifiedPreview(verified, nowSeconds: now)
+        ) {
+            XCTAssertEqual($0 as? AgentLoopLocalReplayJournalError, .unavailable)
+        }
+    }
+
+    func testMissingBindingCannotReopenEarlierTask() throws {
+        let directory = try createDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let journal = try AgentLoopLocalReplayJournal(directory: directory, key: key)
+        let signed = try preview()
+        try journal.reserveVerifiedPreview(signed, nowSeconds: now)
+        let names = try FileManager.default.contentsOfDirectory(atPath: directory.path)
+        let bound = try XCTUnwrap(names.first { $0.hasPrefix(".key.") })
+        try FileManager.default.removeItem(
+            at: directory.appendingPathComponent(bound)
+        )
+        XCTAssertThrowsError(
+            try journal.reserveVerifiedPreview(signed, nowSeconds: now)
+        ) {
+            XCTAssertEqual($0 as? AgentLoopLocalReplayJournalError, .unavailable)
+        }
     }
 
     func testInvalidKeyAndSymlinkDirectoryAreRejected() throws {
