@@ -16,6 +16,21 @@ Neither a ChatGPT plugin nor App Intents intrinsically gives generic iOS shell
 access, unrestricted taps, other apps' private data, or control of Shortcuts
 without the relevant iOS/user permissions.
 
+## Acceptance of one complete turn
+
+Trace one request from the originating client through owner review, the local
+adapter and the returned receipt. Correlate each observation with the same
+request ID. A preview receipt establishes that the app displayed the request.
+A local status read establishes that the app sampled device status. Returning
+that sample to a client requires a separate disclosure decision. Closing the
+turn in ChatGPT also requires observing the corresponding result in that chat.
+
+For the signed local status flow, all entry points returning a cached receipt
+must recheck its freshness, including repeated submissions. If the clock
+precedes completion of the sample or reaches the signed deadline, clear the
+sample and retain the historical fact that the read completed. A repeated
+submission must never start a second read.
+
 ## Three distinct integration paths
 
 | Route | Runtime | Exists today | Main limitation |
