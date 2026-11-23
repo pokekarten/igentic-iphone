@@ -8,6 +8,8 @@ import { createOwnerProposalAdmission } from './authenticated-task-envelope.mjs'
 
 const REPLAY_DOMAIN = 'igentic-local-replay-ledger-v1\n';
 const SEAL_DOMAIN = 'igentic-local-replay-seal-v1\n';
+const ROWSET_DOMAIN = 'igentic-local-replay-rowset-v1\n';
+const DIGEST_RE = /^[0-9a-f]{64}$/;
 const NOFOLLOW = constants.O_NOFOLLOW;
 
 function privateEntry(stat, expected) {
@@ -43,6 +45,32 @@ function privateSeal(key) {
 function sqliteSettings(db) {
   db.exec('PRAGMA journal_mode = DELETE; PRAGMA synchronous = FULL; PRAGMA busy_timeout = 2000;');
 }
+// The original key seal only proves the database belongs to a particular
+// owner key. A separate HMAC over all rows prevents untrusted local edits or
+// deletes from resetting a previously accepted request.
+function rowsetMAC(db, key) {
+  const rows = db.prepare(
+    'SELECT request_digest, expires_at FROM admitted ORDER BY request_digest'
+  ).all();
+  const canonical = rows.map(row => {
+    if (typeof row.request_digest !== 'string' || !DIGEST_RE.test(row.request_digest)
+        || !Number.isSafeInteger(row.expires_at) || row.expires_at < 0)
+      throw new Error('replayDatabaseRowsInvalid');
+    return [row.request_digest, row.expires_at];
+  });
+  return createHmac('sha256', key)
+    .update(ROWSET_DOMAIN + JSON.stringify(canonical)).digest('hex');
+}
+function assertRowsetIntegrity(db, key) {
+  const recorded = db.prepare('SELECT rows_mac FROM ledger_seal WHERE slot = 1')
+    .get()?.rows_mac;
+  if (typeof recorded !== 'string' || !DIGEST_RE.test(recorded))
+    throw new Error('replayDatabaseRowsInvalid');
+  const actual = Buffer.from(recorded, 'hex');
+  const expected = Buffer.from(rowsetMAC(db, key), 'hex');
+  if (!timingSafeEqual(actual, expected))
+    throw new Error('replayDatabaseRowsInvalid');
+}
 
 /**
  * Explicit one-time, offline provisioning. Never call automatically at relay
@@ -63,14 +91,15 @@ export function provisionPrivateReplayLedger({ key, databasePath } = {}) {
     sqliteSettings(db);
     db.exec(`CREATE TABLE ledger_seal (
       slot INTEGER PRIMARY KEY CHECK (slot = 1),
-      seal TEXT NOT NULL
+      seal TEXT NOT NULL,
+      rows_mac TEXT NOT NULL
     );
     CREATE TABLE admitted (
       request_digest TEXT PRIMARY KEY NOT NULL,
       expires_at INTEGER NOT NULL
     ) WITHOUT ROWID;`);
-    db.prepare('INSERT INTO ledger_seal(slot, seal) VALUES (1, ?)')
-      .run(privateSeal(key));
+    db.prepare('INSERT INTO ledger_seal(slot, seal, rows_mac) VALUES (1, ?, ?)')
+      .run(privateSeal(key), rowsetMAC(db, key));
   } finally { db.close(); }
 }
 
@@ -107,6 +136,7 @@ export function createDurableOwnerProposalAdmission({
     if (result.length !== 1 || result[0].integrity_check !== 'ok')
       throw new Error('replayDatabaseIntegrityFailed');
     db.prepare('SELECT request_digest, expires_at FROM admitted LIMIT 0').all();
+    assertRowsetIntegrity(db, pinnedKey);
   } catch (error) {
     db.close();
     throw error;
@@ -116,6 +146,7 @@ export function createDurableOwnerProposalAdmission({
   const lookup = db.prepare('SELECT 1 AS seen FROM admitted WHERE request_digest = ?');
   const count = db.prepare('SELECT count(*) AS count FROM admitted');
   const insert = db.prepare('INSERT INTO admitted(request_digest, expires_at) VALUES (?, ?)');
+  const updateRowset = db.prepare('UPDATE ledger_seal SET rows_mac = ? WHERE slot = 1');
 
   return Object.freeze({
     admit(envelope) {
@@ -133,11 +164,17 @@ export function createDurableOwnerProposalAdmission({
       // BEGIN IMMEDIATE serializes writers across processes on one disk.
       db.exec('BEGIN IMMEDIATE');
       try {
+        // Verify the latest rowset under the write lock. This catches
+        // tampering after another verifier handle was opened and avoids
+        // staleness when a second legitimate process recently committed.
+        assertRowsetIntegrity(db, pinnedKey);
         prune.run(now);
         if (lookup.get(digest)) throw new Error('replayedTaskEnvelope');
         if (count.get().count >= maxRecords)
           throw new Error('ownerRelayCapacityReached');
         insert.run(digest, accepted.expiresAt);
+        if (updateRowset.run(rowsetMAC(db, pinnedKey)).changes !== 1)
+          throw new Error('replayDatabaseRowsInvalid');
         db.exec('COMMIT');
       } catch (error) {
         try { db.exec('ROLLBACK'); } catch { /* fail closed */ }

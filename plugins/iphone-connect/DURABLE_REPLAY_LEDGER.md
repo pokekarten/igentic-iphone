@@ -72,11 +72,24 @@ limits active rows (default 256, configurable up to 1024). Only keyed digests
 and expiry times are stored, never tasks, credentials, private text,
 signatures or raw device IDs.
 
+**Row integrity hardening:** The original key seal establishes ownership of
+the database key but cannot detect deletion or modification of replay rows.
+The new `rows_mac` field is a separate HMAC over all typed records in a
+canonical sorted order. It is created during provisioning, verified at open,
+rechecked **inside the SQLite write transaction** before admitting each new
+proposal, and updated in that same transaction after insertion or expiry
+pruning. Unauthorized deletion or expiry edits without the key now fail
+closed, even when a SQLite `integrity_check` would still return `ok`.
+Normal admissions from two valid local processes continue to work. The
+new offline tests reproduce all three prior failure cases before the fix.
+
 ## Explicit limitations / next security gates
 
 This is **single-host** durability, not global replay defense across Mac,
 iPhone, multiple cloud instances, shared network filesystems or restored
-backups. There is no distributed consensus, secure boot, anti-rollback
+backups. The keyed rowset seal is **not** anti-rollback protection: a
+previously valid, entirely restored database snapshot may also carry a valid
+seal. There is no distributed consensus, secure boot, anti-rollback
 attestation, transport authentication, revocation, account enrollment,
 external authorization or device receipt. File deletion/replacement by
 someone who controls the OS account and has access to a live key is beyond
