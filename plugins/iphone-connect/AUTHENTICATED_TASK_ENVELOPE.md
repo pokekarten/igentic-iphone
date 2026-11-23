@@ -14,7 +14,10 @@ used. The phone can be disconnected during every test in this PR.
 a UUID request ID, integer issued/expiry times, a <= 60-second lifetime and
 empty parameters. The signature is domain-separated from the existing cellular
 readiness HMAC. Secrets must never be stored in Git, source, URLs, or ChatGPT
-prompts. No key is included in the plugin tool output.
+prompts. No key is included in the plugin tool output. Keys must be
+generated using a cryptographically secure random source and separately
+provisioned. The code rejects uniform-byte keys (including all-zero defaults)
+but cannot measure or guarantee the entropy of an otherwise 32-byte key.
 
 `createOwnerProposalAdmission` validates this request with constant-time
 MAC comparison, bounded skew, expiry, exact schema, strictly one read-only
