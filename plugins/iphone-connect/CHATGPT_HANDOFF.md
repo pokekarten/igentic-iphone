@@ -102,7 +102,10 @@ foreground-only on-device request inbox with owner-bound receipts.
 - [x] Build, sign and install PR #406 on the physical iPhone Air over Wi-Fi.
 - [x] Dispatch the allowlisted diagnostics/discovery links via CoreDevice
       and independently verify fresh first-party sheet receipts on the phone.
-      The reminder-draft physical route remains a separate acceptance task.
+- [x] Separately run the opt-in `--reminder-preview` mode and prove that
+      the signed app also displays a fresh `reminder-draft` handoff preview,
+      with **no EventKit write or automatic reminder creation**. This is
+      not the separate local approval/navigation-tap acceptance.
 - [ ] Verify the local second-tap confirmation; no route auto-executes.
 - [x] Confirm an unknown own-app route is rejected on the **physical**
       phone without a new handoff-sheet receipt. This is negative evidence
@@ -159,6 +162,9 @@ installed signed current app, run:
 ```sh
 cd plugins/iphone-connect
 npm run smoke:handoff:wifi
+
+# Optional: also verify the reminder-draft *preview*, never create an entry
+npm run smoke:handoff:wifi -- --reminder-preview
 ```
 
 The script requires the existing private iGentic pairing/policy configuration,
@@ -176,7 +182,14 @@ being misclassified as a successful new preview. The script deliberately
 requires a valid existing first-party receipt on the installed test app,
 so first-time installation needs its preview initialized separately.
 
-After those two legitimate navigation previews, the harness opens the
+In the optional `--reminder-preview` variant, the Mac harness invokes
+the third fixed MCP action and opens only its own-app navigation link;
+it checks another fresh view receipt. It does **not** call EventKit,
+create a reminder, authorize an iOS action, or simulate a user tap.
+It uses direct first-party app launch rather than widening the native
+CoreDevice driver's policy action list.
+
+After those legitimate navigation previews, the harness opens the
 fixed negative `igentic://handoff/v1/delete-contacts` URL in the **same
 signed app**, then verifies that the prior receipt is unchanged (no new
 handoff preview emitted). It does not request any contact access or

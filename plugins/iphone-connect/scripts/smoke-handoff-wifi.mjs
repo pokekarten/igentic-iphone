@@ -13,7 +13,9 @@ import { startPortableGateway } from '../src/portable-gateway.mjs';
 // The actions are limited to own-app previews and an invalid-link rejection.
 // It is not a
 // ChatGPT-account test or arbitrary mobile UI control.
-if (process.argv.length !== 2 ||
+const includeReminderPreview = process.argv.length === 3 &&
+  process.argv[2] === '--reminder-preview';
+if ((process.argv.length !== 2 && !includeReminderPreview) ||
     process.env.IGENTIC_IPHONE_BACKEND === 'fixture' ||
     process.env.IGENTIC_IPHONE_DRIVER === 'mobilecli') {
   console.error('physicalFirstPartyWifiOnly');
@@ -122,6 +124,22 @@ try {
   const discoveryUrl = await prepareViaMcp('discovery');
   await dispatch('discovery', discoveryUrl);
   const discoveryID = await observe('discovery', firstID);
+  let finalID = discoveryID;
+  let finalRoute = 'discovery';
+
+  if (includeReminderPreview) {
+    // Optional third *navigation preview* only. This is deliberately NOT
+    // a native policy operation (the native driver has no reminder-write
+    // capability). The signed first-party app merely shows a sheet with
+    // another manual in-app navigation step; no EventKit API is invoked.
+    const reminderUrl = await prepareViaMcp('reminder-draft');
+    await core(['device', 'process', 'launch', '--device', config.deviceId,
+      '--terminate-existing', '--timeout', '18', expectedBundle]);
+    await core(['device', 'process', 'openURL', '--device', config.deviceId,
+      '--timeout', '18', reminderUrl]);
+    finalID = await observe('reminder-draft', finalID);
+    finalRoute = 'reminder-draft';
+  }
 
   // Negative acceptance. Open an invalid first-party URL ONLY; never send
   // an arbitrary scheme or a URL from an MCP tool. The app's strict parser
@@ -131,8 +149,8 @@ try {
     '--timeout', '18', forbiddenRoute]);
   await new Promise(resolve => setTimeout(resolve, 850));
   const afterInvalid = await readReceipt();
-  const afterID = verifyChatGPTHandoffPreviewReceipt(afterInvalid, 'discovery');
-  if (afterID !== discoveryID) throw new Error('invalidHandoffCreatedPreview');
+  const afterID = verifyChatGPTHandoffPreviewReceipt(afterInvalid, finalRoute);
+  if (afterID !== finalID) throw new Error('invalidHandoffCreatedPreview');
   await physicalWifi();
   console.log(JSON.stringify({
     backend: 'physical', driver: 'coredevice-native',
@@ -141,7 +159,10 @@ try {
     urlOpenedBy: 'mac-acceptance-harness',
     distinctFreshPreviewReceipts: true,
     freshComparedWithPriorRun: true, invalidOwnAppRouteIgnored: true,
-    routes: ['diagnostics', 'discovery'],
+    routes: includeReminderPreview
+      ? ['diagnostics', 'discovery', 'reminder-draft']
+      : ['diagnostics', 'discovery'],
+    reminderCreationAttempted: false,
     manualApprovalBypassed: false, crossAppControl: false,
     privateContentReturned: false
   }));
