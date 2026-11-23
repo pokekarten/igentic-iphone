@@ -1,7 +1,7 @@
 # iGentic iPhone — comparative capability gap audit
 **Date:** 2026-11-23
 **Project source reviewed:** `pokekarten/igentic-iphone`, development HEAD `372e50a` (draft PR #403, stacked on #402); **not** current `main`.
-**Research input:** [Atlas PR #379](https://github.com/pokekarten/igentic-iphone/pull/379), `docs/research/IPHONE_AGENT_PROJECT_ATLAS.md` from its branch, assembled on 2026-11-21/22.
+**Research input:** [Atlas PR #379](https://github.com/pokekarten/igentic-iphone/pull/379) (the atlas file is on that PR's branch, not in this stacked PR), assembled on 2026-11-21/22.
 **Corpus:** 99 GitHub URL identities explicitly in the atlas (**98 external upstreams + iGentic**), plus **9 additional external projects in its cross-reference inventory** = **107 external references total**. Entries may be prior README claims, not new individual source-code audits or real-device tests. Selected high-priority upstreams were separately rechecked via current GitHub README and official product documentation on 2026-11-23.
 
 ## Executive conclusion
@@ -60,7 +60,7 @@ mobile-data remote control, or ChatGPT iOS plugin registration.
 
 - `plugins/iphone-connect/src/server.mjs`: 15 MCP tools on PR #403; tool catalog is *declarative*, not a real third-party installation checker.
 - `plugins/iphone-connect/src/portable-gateway.mjs`: four read-only MCP tools, localhost only, no device session.
-- `ios/Sources/AgentCore/{AgentKernel,MemoryStore,ToolRegistry}.swift`: governance/routing scaffolding but no durable agent task loop or persistent memory.
+- `ios/Sources/AgentCore/AgentKernel.swift`, `ios/Sources/AgentCore/MemoryStore.swift`, and `ios/Sources/AgentCore/ToolRegistry.swift`: governance/routing scaffolding but no durable agent task loop or persistent memory.
 - `ios/Sources/iGenticApp/OfflineToolsView.swift`: user-triggered TTS, editor and photo OCR; not yet physically accepted.
 - `app/iGenticDiagnostics/iGenticDiagnostics/iGenticDiagnosticsApp.swift`: a fixed demonstration App Intent, not a general system-action surface.
 - PRs [#378](https://github.com/pokekarten/igentic-iphone/pull/378), [#379](https://github.com/pokekarten/igentic-iphone/pull/379), [#394](https://github.com/pokekarten/igentic-iphone/pull/394), [#400](https://github.com/pokekarten/igentic-iphone/pull/400), [#401](https://github.com/pokekarten/igentic-iphone/pull/401), [#402](https://github.com/pokekarten/igentic-iphone/pull/402), [#403](https://github.com/pokekarten/igentic-iphone/pull/403) remain separately reviewable. Stacked code is **not yet released on main**.
