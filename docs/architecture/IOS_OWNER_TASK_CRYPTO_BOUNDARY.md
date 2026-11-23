@@ -120,3 +120,41 @@ genuine iOS execution evidence. Build and test that in its own reviewed PR.
    owner relay → iPhone foreground poll → verified result. No API key is
    required for either **model** route if the supported ChatGPT app/Shortcut
    integration is available on-device. That availability requires a real test.
+
+## Local iOS replay reservation (offline draft)
+
+`AgentLoopLocalReplayJournal` is a separate, opt-in Swift primitive for a
+**previously cryptographically verified** `AgentLoopRemoteTaskPreview`.
+It is not yet connected to an iPhone transport, Site tool or App Intent.
+The caller must explicitly supply a pre-provisioned, owner-private directory
+(mode 0700) and a separate, stable 32-byte local marker key. No key material
+or user task text may be put in Git, model prompts or logs.
+
+The journal atomically creates one zero-byte, owner-private marker per task ID
+using `openat(O_EXCL | O_NOFOLLOW)`, with an HMAC-derived filename and
+file/directory `fsync` before it returns. Duplicate reservations, disk errors,
+directory replacement or unsafe permissions fail closed. Expired and
+unsupported capability previews cannot reserve markers. A crashed process
+cannot silently reserve that same ID a second time **while it uses the same
+intact directory and marker key**.
+
+This is a reservation marker, **not** a proof that a task was sent, that
+an iPhone was connected, that a model ran, or that any action was executed.
+In particular, the `AgentLoopRemoteTaskPreview` continues to report
+`replayAdmitted=false`, `ownerApproved=false`, `actionExecuted=false`.
+There is no automatic retry or garbage collection of unknown outcomes.
+
+**Unresolved before live usage:** owner/device enrollment, protected stable-key
+provisioning in Keychain, key rotation and revocation, marker directory
+rollback/deletion protection, process and multi-device coordination, iOS data
+protection policy, native `PolicyEngine` gating, app foreground lifecycle,
+the independent receipt challenge, and end-to-end iPhone testing. Changing
+the local marker key or restoring an older directory would bypass this
+same-key reservation history; the caller must not use this draft as a
+complete replay-admission solution. The owner-relay SQLite ledger from
+PR #412/#414 remains an independent requirement.
+
+Tests: `swift test --package-path ios --filter AgentLoopLocalReplayJournalTests`
+verifies restart duplicate rejection, empty/private markers, expiry,
+directory permission failure and symlink rejection on macOS. These tests
+do not verify iOS Shortcuts, a phone network connection or physical actions.
