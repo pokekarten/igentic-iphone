@@ -18,6 +18,7 @@ public enum AgentLoopExchangeError: Error, Equatable {
     case sensitiveTask
     case exchangeAlreadyExists
     case noPendingExchange
+    case taskIDMismatch
     case expired
     case invalidAnswer
     case alreadyAnswered
@@ -35,6 +36,8 @@ extension AgentLoopExchangeError: LocalizedError {
             return "Zuerst die vorhandene KI-Aufgabe in iGentic prüfen und löschen."
         case .noPendingExchange:
             return "Kein vorher vorbereiteter KI-Auftrag vorhanden."
+        case .taskIDMismatch:
+            return "KI-Antwort gehört nicht zum aktuell vorbereiteten Auftrag."
         case .expired:
             return "Die KI-Aufgabe ist abgelaufen. Bitte lokal löschen und neu beginnen."
         case .invalidAnswer:
@@ -111,6 +114,32 @@ public final class AgentLoopShortcutExchangeStore {
         return Self.modelPrompt(for: state.task)
     }
 
+    /// Structured handoff for Shortcuts: save taskId separately and send only
+    /// prompt to Apple's "Use Model" action. The ID is correlation, not auth.
+    private struct ShortcutTicket: Encodable {
+        let schema = 1
+        let taskId: String
+        let prompt: String
+    }
+
+    public func beginTicket(task: String) throws -> String {
+        _ = try begin(task: task)
+        return try pendingTicket()
+    }
+
+    public func pendingTicket() throws -> String {
+        let prompt = try pendingPrompt()
+        guard let current = try snapshot() else {
+            throw AgentLoopExchangeError.noPendingExchange
+        }
+        let ticket = ShortcutTicket(
+            taskId: current.id.uuidString.lowercased(), prompt: prompt
+        )
+        guard let serialized = String(data: try JSONEncoder().encode(ticket), encoding: .utf8)
+        else { throw AgentLoopExchangeError.invalidStoredExchange }
+        return serialized
+    }
+
     private static func modelPrompt(for task: String) -> String {
         """
         Du beantwortest eine Frage aus einem iGentic-Kurzbefehl.
@@ -127,13 +156,18 @@ public final class AgentLoopShortcutExchangeStore {
     /// The Shortcuts output of "Use Model" is untrusted input. It becomes a
     /// *review-only* local reply, never a command, approval or Shortcut name.
     @discardableResult
-    public func receive(answer: String) throws -> String {
+    public func receive(answer: String, taskID: String) throws -> String {
         let trimmed = answer.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, trimmed.utf8.count <= Self.maximumAnswerBytes,
               !containsUnsafeControl(trimmed)
         else { throw AgentLoopExchangeError.invalidAnswer }
         guard var exchange = try snapshot() else {
             throw AgentLoopExchangeError.noPendingExchange
+        }
+        // A stale Shortcut must not attach its answer to a newer pending task.
+        guard let submitted = UUID(uuidString: taskID),
+              submitted == exchange.id else {
+            throw AgentLoopExchangeError.taskIDMismatch
         }
         let age = clock().timeIntervalSince(exchange.createdAt)
         guard age >= 0, age <= Self.expiration else {
