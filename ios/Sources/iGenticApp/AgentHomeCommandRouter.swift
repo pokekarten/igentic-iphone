@@ -17,6 +17,14 @@ public struct AgentHomeProposal: Sendable, Equatable {
     public var canOpenOwnedScreen: Bool { destination != .unsupported }
 }
 
+/// One immutable, non-executing UI preview of the *entire* entered command.
+/// A rejected oversized request never becomes a seemingly valid truncated
+/// instruction in the chat-shaped interface.
+public struct AgentHomeDisplayPreview: Equatable, Sendable {
+    public let displayText: String
+    public let proposal: AgentHomeProposal
+}
+
 /// A deterministic, offline-first demo router. This never invokes a model,
 /// App Intent, system permission, device adapter, or external service.
 ///
@@ -24,6 +32,23 @@ public struct AgentHomeProposal: Sendable, Equatable {
 /// an action-looking navigation suggestion. This is *not* an authorization
 /// mechanism; actual work remains gated in the destination screens.
 public enum AgentHomeCommandRouter {
+    public static let maximumInputCharacters = 512
+    public static let maximumInputBytes = 2048
+
+    /// Match display and routing semantics. Do not trim a request before the
+    /// complete instruction has been checked for unsupported operations.
+    public static func previewForDisplay(_ input: String) -> AgentHomeDisplayPreview {
+        let proposal = preview(input)
+        let overLimit = input.count > maximumInputCharacters
+            || input.utf8.count > maximumInputBytes
+        return AgentHomeDisplayPreview(
+            displayText: overLimit
+                ? "Eingabe zu lang – nicht verarbeitet."
+                : input,
+            proposal: proposal
+        )
+    }
+
     private static let unsupportedActionTerms = [
         "losch", "entfern", "delete", "remove", "schick", "sende", "send ",
         "versend", "verschick", "weiterleit", "forward", "share ",
@@ -37,7 +62,8 @@ public enum AgentHomeCommandRouter {
     public static func preview(_ input: String) -> AgentHomeProposal {
         // Do not silently preview only a harmless prefix of an overlong
         // command while hiding a later unsupported/unsafe instruction.
-        guard !input.isEmpty, input.count <= 512, input.utf8.count <= 2048,
+        guard !input.isEmpty, input.count <= maximumInputCharacters,
+              input.utf8.count <= maximumInputBytes,
               !input.unicodeScalars.contains(where: { $0.value == 0 }) else {
             return unsupported()
         }
