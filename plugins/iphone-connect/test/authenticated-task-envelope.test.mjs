@@ -75,6 +75,19 @@ test('MAC authenticates a separate owner key, and exact replay is rejected', () 
   assert.throws(() => admission.admit({ ...sign(a), signature: 'abc' }), /invalidTaskEnvelope/);
 });
 
+test('admission key is pinned even if the caller mutates its Buffer', () => {
+  const supplied = key();
+  const original = Buffer.from(supplied);
+  const admission = createOwnerProposalAdmission({
+    key: supplied, nowSeconds: () => clock.value
+  });
+  const authenticEnvelope = sign(original);
+  supplied.fill(0);
+  assert.equal(admission.admit(authenticEnvelope).state, 'authenticated-proposal-only');
+  assert.throws(() => admission.admit(sign(supplied)),
+    /unauthenticatedTaskEnvelope/);
+});
+
 test('short TTL, future/expired timestamps, and malformed IDs fail closed', () => {
   const secret = key();
   let now = clock.value;
