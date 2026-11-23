@@ -22,6 +22,7 @@ Das JSON enthält keine Fotos, Nachrichten, Kontakte, Credential, Listen von App
 ## Fail-closed-Regeln
 
 - Genau **eine** lokale Statusabfrage und ein Abschluss; keine automatischen Wiederholungen, keine Schreibaktionen, kein Siri- oder Fremd-App-Zugriff.
+- Die lokale Einstellungsansicht wertet `stageForOwner()` inklusive Ablaufzeit aus: nach fünf Minuten oder bei rückwärts laufender Uhr wird eine noch offene Aufgabe persistent auf `expired` gesetzt. Die Abfrage startet keinen neuen Status-Lesevorgang. Nur ein neuer Auftrag mit frischer ID kann erneut begonnen werden.
 - Die beiden Systemaktionen sind lokale App-Intents; nicht über einen ChatGPT-Site-MCP-Endpunkt veröffentlicht.
 - Das iGentic-Journal wird mit atomarem Replace und iOS Complete Data Protection geschrieben (POSIX `0600`). Eine OS-verwaltete, exklusive `flock`-Sperre auf einer stabilen, symlinkgeschützten `.lock`-Datei serialisiert teilnehmende App-Intent-Prozesse. Bei Prozessabbruch wird die Sperre durch das Betriebssystem frei; der getrennte `readAttempted`-Marker bleibt als Unsicherheitsgrenze erhalten. Vor Produktionsfreigabe sind reale Mehrprozess-/Absturztests nötig.
 - `readAttempted` wird vor der Statusabfrage persistiert; bleibt die Ausführung ungewiss, wird sie nicht spekulativ wiederholt. Nach regulärem Abschluss/Abbruch oder Ablauf kann eine neue zufällige Aufgaben-ID beginnen, **sofern keine zurückgebliebene Sperre existiert**.

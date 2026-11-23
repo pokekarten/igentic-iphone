@@ -1,5 +1,10 @@
 import Foundation
 import XCTest
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#endif
 @testable import iGenticApp
 
 // No XCTestCase object escapes across the MainActor boundary.
@@ -178,6 +183,86 @@ final class AgentLoopStatusShortcutStoreTests: XCTestCase {
                 XCTAssertEqual($0 as? AgentLoopStatusShortcutError, .uncertainRead)
             }
             XCTAssertEqual(reads, 0)
+        }
+    }
+
+    func testOwnerStatusSnapshotMarksIdleExpirationOnDisk() async throws {
+        try await MainActor.run {
+            let dir = FileManager.default.temporaryDirectory
+                .appendingPathComponent("igentic-status-\(UUID())")
+            defer { try? FileManager.default.removeItem(at: dir) }
+            let path = dir.appendingPathComponent("journal.json")
+            var current = Date(timeIntervalSince1970: 1_800_000_000)
+            let store = AgentLoopStatusShortcutStore(fileURL: path, clock: { current })
+            let ticket = try jsonDictionary(store.begin())
+            let id = try XCTUnwrap(ticket["taskId"] as? String)
+            XCTAssertEqual(try store.stageForOwner(), .awaitingStatus)
+            current = current.addingTimeInterval(AgentLoopStatusShortcutStore.ttl)
+            XCTAssertEqual(try store.stageForOwner(), .expired)
+            XCTAssertEqual(try AgentLoopStatusShortcutStore(
+                fileURL: path, clock: { current }
+            ).stageForOwner(), .expired)
+            var reads = 0
+            XCTAssertThrowsError(try store.advance(
+                taskID: id, modelReply: #"{"action":"status.read"}"#,
+                statusReader: { reads += 1; return demoShortcutsStatus() }
+            )) {
+                XCTAssertEqual($0 as? AgentLoopStatusShortcutError, .expired)
+            }
+            XCTAssertEqual(reads, 0)
+            // Fresh tickets replace expired ones, never reuse the same ID.
+            XCTAssertNotEqual(try jsonDictionary(store.begin())["taskId"] as? String, id)
+        }
+    }
+
+    func testOwnerStatusSnapshotExpiresPendingFinishWithoutRetriedRead() async throws {
+        try await MainActor.run {
+            let dir = FileManager.default.temporaryDirectory
+                .appendingPathComponent("igentic-status-\(UUID())")
+            defer { try? FileManager.default.removeItem(at: dir) }
+            let path = dir.appendingPathComponent("journal.json")
+            var current = Date(timeIntervalSince1970: 1_800_000_000)
+            let store = AgentLoopStatusShortcutStore(fileURL: path, clock: { current })
+            let id = try XCTUnwrap(jsonDictionary(store.begin())["taskId"] as? String)
+            var reads = 0
+            _ = try store.advance(
+                taskID: id, modelReply: #"{"action":"status.read"}"#,
+                statusReader: { reads += 1; return demoShortcutsStatus() }
+            )
+            XCTAssertEqual(reads, 1)
+            current = current.addingTimeInterval(AgentLoopStatusShortcutStore.ttl + 1)
+            XCTAssertEqual(try store.stageForOwner(), .expired)
+            XCTAssertThrowsError(try store.advance(
+                taskID: id, modelReply: #"{"action":"finish"}"#,
+                statusReader: { reads += 1; return demoShortcutsStatus() }
+            )) {
+                XCTAssertEqual($0 as? AgentLoopStatusShortcutError, .expired)
+            }
+            XCTAssertEqual(reads, 1)
+        }
+    }
+
+    func testKernelAdvisoryLockRejectsSeparateFileDescriptorAndRecovers() async throws {
+        try await MainActor.run {
+            let dir = FileManager.default.temporaryDirectory
+                .appendingPathComponent("igentic-status-\(UUID())")
+            defer { try? FileManager.default.removeItem(at: dir) }
+            let path = dir.appendingPathComponent("journal.json")
+            let store = AgentLoopStatusShortcutStore(fileURL: path)
+            _ = try store.begin()
+            let lockPath = dir.appendingPathComponent("shortcuts-status-loop-v1.lock")
+            let fd = lockPath.path.withCString { open($0, O_RDWR | O_NOFOLLOW | O_CLOEXEC) }
+            guard fd >= 0 else { return XCTFail("Expected a private regular lock file") }
+            defer { _ = close(fd) }
+            XCTAssertEqual(flock(fd, LOCK_EX | LOCK_NB), 0)
+            XCTAssertThrowsError(try store.stageForOwner()) {
+                XCTAssertEqual($0 as? AgentLoopStatusShortcutError, .busy)
+            }
+            XCTAssertThrowsError(try store.begin()) {
+                XCTAssertEqual($0 as? AgentLoopStatusShortcutError, .busy)
+            }
+            XCTAssertEqual(flock(fd, LOCK_UN), 0)
+            XCTAssertEqual(try store.stageForOwner(), .awaitingStatus)
         }
     }
 

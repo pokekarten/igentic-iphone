@@ -26,6 +26,7 @@ public enum AgentLoopStatusShortcutStage: String, Codable, Sendable {
     case awaitingFinish
     case finished
     case rejected
+    case expired
 }
 
 private struct AgentLoopStatusShortcutJournal: Codable {
@@ -134,12 +135,15 @@ public final class AgentLoopStatusShortcutStore {
             }
             let age = clock().timeIntervalSince(state.createdAt)
             guard age >= 0, age < Self.ttl else {
+                state.stage = .expired
+                try save(state)
                 throw AgentLoopStatusShortcutError.expired
             }
             switch state.stage {
             case .readAttempted: throw AgentLoopStatusShortcutError.uncertainRead
             case .finished: throw AgentLoopStatusShortcutError.alreadyFinished
             case .rejected: throw AgentLoopStatusShortcutError.rejected
+            case .expired: throw AgentLoopStatusShortcutError.expired
             case .awaitingStatus, .awaitingFinish: break
             }
 
@@ -210,8 +214,20 @@ public final class AgentLoopStatusShortcutStore {
         }
     }
 
+    /// Owner-visible, truthful state, including timeouts while idle. A read
+    /// never creates a status observation or retries an uncertain read.
     public func stageForOwner() throws -> AgentLoopStatusShortcutStage? {
-        try withClaim { try load()?.stage }
+        try withClaim {
+            guard var state = try load() else { return nil }
+            if [.awaitingStatus, .readAttempted, .awaitingFinish].contains(state.stage) {
+                let age = clock().timeIntervalSince(state.createdAt)
+                if !age.isFinite || age < 0 || age >= Self.ttl {
+                    state.stage = .expired
+                    try save(state)
+                }
+            }
+            return state.stage
+        }
     }
 
     private func withClaim<T>(_ action: () throws -> T) throws -> T {
