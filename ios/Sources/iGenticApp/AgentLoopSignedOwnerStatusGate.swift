@@ -10,6 +10,8 @@ public enum AgentLoopSignedStatusGateStage: String, Equatable, Sendable {
     case awaitingOwnerReview
     case localReadInProgress
     case locallyRead
+    /// Historical local read, but its battery/OS snapshot is now stale.
+    case locallyReadExpired
     case denied
     case expired
 }
@@ -43,6 +45,7 @@ public final class AgentLoopSignedOwnerStatusGate {
     private var pending: AgentLoopRemoteTaskPreview?
     private var trackedRequestID: String?
     private var admittedAtSeconds: Int?
+    private var lastReadExpiresAt: Int?
     private var observed: String?
 
     public init(
@@ -94,8 +97,11 @@ public final class AgentLoopSignedOwnerStatusGate {
     /// Reserved for a future owner-tapped SwiftUI button (NOT a model tool).
     /// The status stays local; sharing it externally requires another
     /// explicitly approved path and device receipt protocol.
+    // Only the native iGenticApp review screen should wire this transition.
+    // Keeping it module-internal reduces accidental App Intents/relay use;
+    // it does not attest a real owner tap.
     @discardableResult
-    public func readAfterLocalReviewAction() -> AgentLoopSignedStatusGateReceipt {
+    func readAfterLocalReviewAction() -> AgentLoopSignedStatusGateReceipt {
         guard stage == .awaitingOwnerReview, let task = pending else {
             // A synchronous statusReader may re-enter this method while the
             // first read is still executing. Reject the *whole* operation:
@@ -151,6 +157,7 @@ public final class AgentLoopSignedOwnerStatusGate {
             return receipt()
         }
         observed = coarseStatus
+        lastReadExpiresAt = task.expiresAt
         pending = nil
         stage = .locallyRead
         return receipt()
@@ -163,6 +170,16 @@ public final class AgentLoopSignedOwnerStatusGate {
                 pending = nil
                 stage = .expired
             }
+        } else if stage == .locallyRead, let deadline = lastReadExpiresAt {
+            // Battery/OS data is a moment-in-time local observation.
+            // A snapshot after the signed request TTL (or a rollback)
+            // must not expose it as current telemetry. The read still
+            // happened; preserve that fact without retaining its value.
+            let now = clockSeconds()
+            if now < (admittedAtSeconds ?? Int.max) || now >= deadline {
+                observed = nil
+                stage = .locallyReadExpired
+            }
         }
         return receipt()
     }
@@ -172,7 +189,9 @@ public final class AgentLoopSignedOwnerStatusGate {
             stage: stage,
             requestID: trackedRequestID,
             ownerAppObservation: observed,
-            localReadCompleted: stage == .locallyRead,
+            // Expiring a displayed observation must not erase an actual
+            // past local read or misstate it as a verified device receipt.
+            localReadCompleted: stage == .locallyRead || stage == .locallyReadExpired,
             externalDataShared: false,
             ownerConsentAttested: false,
             remoteActionExecuted: false,

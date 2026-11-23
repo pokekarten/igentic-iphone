@@ -27,3 +27,24 @@ Die Swift-XCTest-Suite `AgentLoopSignedOwnerStatusGateTests` prüft: signierter/
 **Offene P0-Abnahme:** Sicheres Geräte-/Keychain-Enrolment, die vorhandene SwiftUI-Owner-Review auf dem signierten physischen Gerät mit echter Besitzerinteraktion testen, getrennte echte Eigentümerbestätigung, freigabegesteuerte Antwort/Rückgabe an das Plugin, unabhängig überprüfbare signierte Device Receipts mit Nonce-Challenge, tatsächliches iPhone im WLAN/Mobilfunk/USB-C und iOS 27 Kurzbefehle-/Siri-Tests. Bis dahin kein Remote-Execution-Flag auf `true` setzen.
 
 Stacking: Ausgangszweig PR #422 + Merge der nicht gemergten PR-#416-Entwicklung, separate Draft-Integration. Kein Merge nach `main` und keine Veröffentlichung der privaten ChatGPT-Site.
+
+
+## Zeitgebundene lokale Beobachtung
+
+Der erfolgreiche lokale Lesevorgang kann eine Akku-/iOS-Momentaufnahme
+innerhalb der eigenen App anzeigen. Diese Beobachtung ist keine dauerhaft
+aktuelle Telemetrie: Bei einer späteren snapshot-Abfrage nach Ablauf der
+signierten Task-TTL oder nach einem Rücksprung der Uhr wird sie aus der
+Sitzung gelöscht. locallyReadExpired unterscheidet dabei einen früher
+tatsächlich erfolgten lokalen Lesevorgang von einem ohne Ausführung
+abgelaufenen Auftrag. localReadCompleted bleibt für den historischen
+lokalen Vorgang true, während ownerAppObservation danach nil ist;
+alle Fern-/Eigentümerattestierungsflags bleiben false.
+
+Der Übergang readAfterLocalReviewAction() ist zusätzlich nur noch
+innerhalb des nativen iGenticApp-Moduls sichtbar, statt als öffentliche
+API auch von anderen Modulen direkt aufrufbar zu sein. Das ersetzt keine
+echte Bestätigung des Eigentümertaps und ist kein Remote-Zugriff.
+Zwei neue Regressionen prüfen TTL und Uhrzeitrücksprung nach einer
+erfolgreichen Statusabfrage; vor dem Fix waren beide wegen offengelegter
+veralteter Daten rot.
