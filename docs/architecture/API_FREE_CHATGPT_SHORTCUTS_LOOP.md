@@ -23,6 +23,8 @@ share a context, a plugin inventory or live execution privileges.
 
 - Read iGentic iPhone Status: locally read coarse battery and OS state.
 - Prepare iGentic Agent Task: local, no-execution task preview.
+- Create iGentic Loop Token: generates a fresh anonymous correlation UUID
+  locally; not a login/session credential and not persisted.
 - Review iGentic Model Reply: accepts correlation UUID and untrusted JSON model
   output; only three exact action proposals are allowed (status.read,
   reminder.draft and finish).
@@ -40,8 +42,8 @@ Shortcuts; Apple Intelligence ChatGPT extension and any required consent enabled
 Availability is determined on device, not inferred from iOS version or account.
 
 1. Create a Shortcuts workflow named "iGentic ChatGPT Loop Test".
-2. Set a fresh correlation UUID in a Shortcuts variable. This is a correlation
-   value only; do not include account keys or private identifiers.
+2. Run the iGentic action "Create iGentic Loop Token" and store its result
+   in a Shortcuts variable. This is correlation only, not authorization.
 3. Use Model (select ChatGPT extension). Request *only* a single JSON object:
       {"action":"status.read"}
    Ensure follow-up/interactivity settings do not create an unexpected pause.
