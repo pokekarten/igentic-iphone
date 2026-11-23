@@ -95,7 +95,13 @@ public enum AgentLoopModelHandoff {
                            reason: "invalidTaskId")
         }
         let canonicalID = identifier.uuidString.lowercased()
+        // Require one literal action key and one simple string value. The
+        // Foundation JSON parser accepts duplicate object keys, so decoding
+        // alone would permit ambiguous model instructions. The shortcut
+        // contract intentionally excludes escaped keys/values and extra data.
+        let singleActionPattern = #"\A[ \t\r\n]*\{[ \t\r\n]*"action"[ \t\r\n]*:[ \t\r\n]*"[^"\\]*"[ \t\r\n]*\}[ \t\r\n]*\z"#
         guard !modelReply.isEmpty, modelReply.utf8.count <= 1024,
+              modelReply.range(of: singleActionPattern, options: .regularExpression) != nil,
               let data = modelReply.data(using: .utf8),
               let candidate = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               Set(candidate.keys) == Set(["action"]),

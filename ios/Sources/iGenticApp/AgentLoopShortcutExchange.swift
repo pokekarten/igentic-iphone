@@ -151,7 +151,11 @@ public final class AgentLoopShortcutExchangeStore {
         let ticket = ShortcutTicket(
             taskId: current.id.uuidString.lowercased(), prompt: prompt
         )
-        guard let serialized = String(data: try JSONEncoder().encode(ticket), encoding: .utf8)
+        // Stable key order prevents nondeterministic Shortcuts ticket text
+        // when the same pending task is read in successive model turns.
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        guard let serialized = String(data: try encoder.encode(ticket), encoding: .utf8)
         else { throw AgentLoopExchangeError.invalidStoredExchange }
         return serialized
     }

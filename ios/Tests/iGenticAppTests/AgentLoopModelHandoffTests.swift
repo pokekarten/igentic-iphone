@@ -96,6 +96,26 @@ final class AgentLoopModelHandoffTests: XCTestCase {
         }
     }
 
+    func testAmbiguousDuplicateKeysAndEscapedKeysAreRejected() {
+        // JSONSerialization accepts duplicate keys; a later Shortcut or
+        // model could resolve them differently. Reject the whole message.
+        for reply in [
+            #"{"action":"finish","action":"status.read"}"#,
+            #"{"action":"status.read","action":"finish"}"#,
+            #"{"act\u0069on":"finish"}"#,
+            #"{"action":"fin\u0069sh"}"#,
+            #"{"action":"finish"} garbage"#,
+        ] {
+            let result = review(reply)
+            XCTAssertEqual(result["decision"] as? String, "rejected", reply)
+            XCTAssertEqual(result["nextAction"] as? String, "none", reply)
+            XCTAssertEqual(result["executed"] as? Bool, false, reply)
+        }
+        let spaced = review(" \n  { \"action\" : \"status.read\" } \t")
+        XCTAssertEqual(spaced["decision"] as? String, "previewOnly")
+        XCTAssertEqual(spaced["nextAction"] as? String, "status.read")
+    }
+
     func testMalformedOversizedAndIncorrectTaskIDsRejectWithoutEcho() {
         let secret = "PRIVATE_MESSAGE_NOT_TO_ECHO"
         let responses = [
