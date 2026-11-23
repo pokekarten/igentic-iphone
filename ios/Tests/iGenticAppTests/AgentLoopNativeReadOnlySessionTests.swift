@@ -110,6 +110,46 @@ final class AgentLoopNativeReadOnlySessionTests: XCTestCase {
         }
     }
 
+    func testSlowStatusReaderCannotReturnObservationAfterExpiry() async {
+        await MainActor.run {
+            var clock = Date(timeIntervalSince1970: 1_800_000_000)
+            var reads = 0
+            let session = AgentLoopNativeReadOnlySession(statusReader: {
+                reads += 1
+                // A synchronous native read can finish after the five-minute
+                // budget. Its result must not be surfaced as a valid turn.
+                clock = clock.addingTimeInterval(
+                    AgentLoopNativeReadOnlySession.timeLimit
+                )
+                return syntheticLoopStatus()
+            }, now: { clock })
+            let result = session.accept(modelReply: #"{"action":"status.read"}"#)
+            XCTAssertEqual(reads, 1)
+            XCTAssertEqual(result.stage, .expired)
+            XCTAssertNil(result.localObservation)
+            XCTAssertEqual(result.turnCount, 1)
+            XCTAssertFalse(result.remoteActionExecuted)
+            XCTAssertFalse(result.ownerApprovalGranted)
+            XCTAssertEqual(
+                session.accept(modelReply: #"{"action":"finish"}"#).stage,
+                .expired
+            )
+        }
+    }
+
+    func testClockRollbackDuringStatusReadDoesNotExposeObservation() async {
+        await MainActor.run {
+            var clock = Date(timeIntervalSince1970: 1_800_000_000)
+            let session = AgentLoopNativeReadOnlySession(statusReader: {
+                clock = clock.addingTimeInterval(-1)
+                return syntheticLoopStatus()
+            }, now: { clock })
+            let result = session.accept(modelReply: #"{"action":"status.read"}"#)
+            XCTAssertEqual(result.stage, .expired)
+            XCTAssertNil(result.localObservation)
+        }
+    }
+
     func testOversizedResponseDoesNotLeakIntoReceipt() async {
         await MainActor.run {
             let secret = "PRIVATE_PROMPT_TO_AVOID"
@@ -118,6 +158,91 @@ final class AgentLoopNativeReadOnlySessionTests: XCTestCase {
             XCTAssertEqual(output.stage, .rejected)
             XCTAssertFalse(output.reason.contains(secret))
             XCTAssertNil(output.localObservation)
+        }
+    }
+
+    func testSnapshotExpiresIdleSessionWithoutWaitingForModelReply() async {
+        await MainActor.run {
+            var clock = Date(timeIntervalSince1970: 1_800_000_000)
+            var readCount = 0
+            let session = AgentLoopNativeReadOnlySession(
+                statusReader: {
+                    readCount += 1
+                    return syntheticLoopStatus()
+                },
+                now: { clock }
+            )
+            XCTAssertEqual(session.snapshot().stage, .awaitingStatusProposal)
+            clock = clock.addingTimeInterval(AgentLoopNativeReadOnlySession.timeLimit)
+            let expired = session.snapshot()
+            XCTAssertEqual(expired.stage, .expired)
+            XCTAssertEqual(expired.reason, "invalid-or-expired-clock")
+            XCTAssertNil(expired.localObservation)
+            XCTAssertEqual(readCount, 0)
+            // A backwards clock must not reopen a terminal expired session.
+            clock = clock.addingTimeInterval(-10)
+            XCTAssertEqual(session.accept(modelReply: #"{"action":"status.read"}"#).stage, .expired)
+            XCTAssertEqual(readCount, 0)
+        }
+    }
+
+    func testSnapshotDropsUnexportedObservationAfterExpiry() async {
+        await MainActor.run {
+            var clock = Date(timeIntervalSince1970: 1_800_000_000)
+            let session = AgentLoopNativeReadOnlySession(
+                statusReader: { syntheticLoopStatus() },
+                now: { clock }
+            )
+            XCTAssertEqual(session.accept(modelReply: #"{"action":"status.read"}"#).stage,
+                           .awaitingFinish)
+            XCTAssertNotNil(session.snapshot().localObservation)
+            clock = clock.addingTimeInterval(AgentLoopNativeReadOnlySession.timeLimit + 1)
+            let expired = session.snapshot()
+            XCTAssertEqual(expired.stage, .expired)
+            XCTAssertNil(expired.localObservation)
+            XCTAssertEqual(expired.ownerApprovalGranted, false)
+            XCTAssertEqual(expired.remoteActionExecuted, false)
+            XCTAssertEqual(session.accept(modelReply: #"{"action":"finish"}"#).stage, .expired)
+            XCTAssertNil(session.snapshot().localObservation)
+        }
+    }
+
+    func testNestedFinishCannotCompleteWhileStatusReadIsInProgress() async {
+        await MainActor.run {
+            var reads = 0
+            var session: AgentLoopNativeReadOnlySession!
+            session = AgentLoopNativeReadOnlySession(statusReader: {
+                reads += 1
+                _ = session.accept(modelReply: #"{"action":"finish"}"#)
+                return syntheticLoopStatus()
+            })
+            let result = session.accept(modelReply: #"{"action":"status.read"}"#)
+            XCTAssertEqual(reads, 1)
+            XCTAssertEqual(result.stage, .rejected)
+            XCTAssertNil(result.localObservation)
+            XCTAssertEqual(session.accept(modelReply: #"{"action":"finish"}"#).stage,
+                           .rejected)
+        }
+    }
+
+    func testReentrantStatusReaderCannotReadTwiceOrResetRejection() async {
+        await MainActor.run {
+            var reads = 0
+            var session: AgentLoopNativeReadOnlySession!
+            session = AgentLoopNativeReadOnlySession(statusReader: {
+                reads += 1
+                if reads == 1 {
+                    // A native callback can synchronously re-enter the public
+                    // accept method before the original read returns.
+                    _ = session.accept(modelReply: #"{"action":"status.read"}"#)
+                }
+                return syntheticLoopStatus()
+            })
+            let result = session.accept(modelReply: #"{"action":"status.read"}"#)
+            XCTAssertEqual(reads, 1, "Only one own-app read is permitted")
+            XCTAssertEqual(result.stage, .rejected)
+            XCTAssertEqual(session.snapshot().stage, .rejected)
+            XCTAssertFalse(result.remoteActionExecuted)
         }
     }
 }
