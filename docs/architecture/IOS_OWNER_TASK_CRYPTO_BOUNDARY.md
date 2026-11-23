@@ -205,3 +205,26 @@ tasks before creating replay files, then persists a one-shot marker only for
 a manually reviewed candidate. This does not obtain owner approval or send
 any result. Regression tests cover mode-denied tasks not consuming markers
 and duplicate rejection across restarted journal instances.
+
+### Owner-enrolled replay key in native Keychain (offline-only)
+
+AgentLoopReplayKeyVault keeps the independent 32-byte local HMAC replay-marker
+key in a nonsynchronizing device-only, When Unlocked Keychain item. Reading
+never creates a replacement. Only a future **explicit owner setup flow** may
+call enrollExplicitly after provisioning an empty owner-private 0700 directory.
+The Keychain operation is create-once (no update, delete or key rotation).
+If a Keychain item is missing while replay markers or a prior binding remain,
+enrollment fails closed instead of silently resetting replay history. Invalid
+stored keys and Keychain I/O failures also fail closed. Targeted unit tests
+use an isolated fake backend; they do not alter the Mac or iPhone Keychain.
+
+**Not yet integrated:** the owner setup UI, protected relay-signing key
+enrollment, persistent trust policy, directory protection against a privileged
+rollback, and the foreground transport/independent device receipts. This code
+does not touch the existing Cellular Companion Keychain or add network access.
+
+The openExistingJournal(directory:) path loads an existing protected key
+without provisioning anything and constructs the durable local journal.
+A restart regression verifies that duplicate signed, policy-reviewed tasks
+remain blocked even when reopened through the vault. Keychain enrollment is a
+distinct explicit owner setup action, never automatic on task receipt.
