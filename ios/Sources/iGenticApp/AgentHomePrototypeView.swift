@@ -29,9 +29,9 @@ public struct AgentHomePrototypeView: View {
                         .textFieldStyle(.roundedBorder)
                         .accessibilityIdentifier("igentic-agent-prompt")
                     Button("Lokalen Vorschlag prüfen") {
-                        let bounded = String(input.prefix(512))
-                        submitted = bounded
-                        proposal = AgentHomeCommandRouter.preview(bounded)
+                        let result = AgentHomeCommandRouter.previewForDisplay(input)
+                        submitted = result.displayText
+                        proposal = result.proposal
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
