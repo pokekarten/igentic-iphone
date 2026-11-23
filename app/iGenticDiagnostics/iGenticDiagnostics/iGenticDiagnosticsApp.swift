@@ -122,7 +122,8 @@ struct iGenticDiagnosticsApp: App {
                 } else {
                     defer { try? store.clear() }
                     let prompt = try store.begin(task: "Nenne eine Demo-Zimmerpflanze")
-                    _ = try store.receive(answer: "Demoantwort: Basilikum")
+                    let taskID = try store.pendingTaskID()
+                    _ = try store.receive(answer: "Demoantwort: Basilikum", taskID: taskID)
                     let observed = try store.snapshot()
                     if prompt.contains("Demo-Zimmerpflanze"),
                        observed?.task == "Nenne eine Demo-Zimmerpflanze",
@@ -318,6 +319,35 @@ struct iGenticReadAILoopPromptIntent: AppIntent {
     }
 }
 
+// Request binding prevents a stale or out-of-order Shortcuts reply from
+// attaching to a subsequent task. The ID is correlation, never authorization.
+@available(iOS 27.0, *)
+struct iGenticReadAILoopTaskIDIntent: AppIntent {
+    static let title: LocalizedStringResource = "iGentic KI-Auftrags-ID lesen"
+    static let description = IntentDescription(
+        "Reads the current local task correlation ID for a later Shortcuts result."
+    )
+    static let supportedModes: IntentModes = .background
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ReturnsValue<String> {
+        let decision = PolicyEngine().decide(
+            PolicyRequest(
+                privacyMode: .localOnly,
+                dataClassification: DataClassification(
+                    level: .contextualPrivateData,
+                    reason: "Owner-triggered Shortcuts task correlation read."
+                ),
+                actionRisk: .read, requestedDelegationTarget: .localDevice
+            )
+        )
+        guard decision.isAllowed, !decision.requiresApproval else {
+            throw iGenticDiagnosticsIntentError.policyDenied
+        }
+        return .result(value: try AgentLoopShortcutExchangeStore().pendingTaskID())
+    }
+}
+
 @available(iOS 27.0, *)
 struct iGenticReceiveAILoopAnswerIntent: AppIntent {
     static let title: LocalizedStringResource = "iGentic KI-Antwort übernehmen"
@@ -328,6 +358,9 @@ struct iGenticReceiveAILoopAnswerIntent: AppIntent {
 
     @Parameter(title: "Modellantwort")
     var answer: String
+
+    @Parameter(title: "Auftrags-ID")
+    var taskID: String
 
     @MainActor
     func perform() async throws -> some IntentResult & ReturnsValue<String> {
@@ -343,7 +376,7 @@ struct iGenticReceiveAILoopAnswerIntent: AppIntent {
         guard decision.isAllowed, !decision.requiresApproval else {
             throw iGenticDiagnosticsIntentError.policyDenied
         }
-        return .result(value: try AgentLoopShortcutExchangeStore().receive(answer: answer))
+        return .result(value: try AgentLoopShortcutExchangeStore().receive(answer: answer, taskID: taskID))
     }
 }
 
@@ -449,6 +482,12 @@ struct iGenticDiagnosticsShortcuts: AppShortcutsProvider {
             phrases: ["Read AI prompt with \(.applicationName)"],
             shortTitle: "KI-Prompt lesen",
             systemImageName: "text.bubble"
+        )
+        AppShortcut(
+            intent: iGenticReadAILoopTaskIDIntent(),
+            phrases: ["Read AI task ID with \(.applicationName)"],
+            shortTitle: "KI-Auftrags-ID",
+            systemImageName: "number"
         )
         AppShortcut(
             intent: iGenticReceiveAILoopAnswerIntent(),

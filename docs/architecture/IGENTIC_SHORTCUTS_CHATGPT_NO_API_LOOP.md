@@ -30,21 +30,25 @@ named exactly:
 
 Add these actions **in this order**:
 
-1. **iGentic KI-Prompt lesen** — no input. Reads the current prepared request
+1. **iGentic KI-Auftrags-ID lesen** — save the output in a Shortcuts variable
+   named **Auftrags-ID**. This is a local correlation UUID, **not** a credential;
+   keep it in Shortcuts and do not include it in the AI prompt.
+2. **iGentic KI-Prompt lesen** — no input. Reads the current prepared request
    only from the iGentic sandbox and returns the complete plain-text prompt.
-   The task does not appear in the launcher URL.
-2. **Modell verwenden / Use Model** — choose **Extension Model (ChatGPT)**.
-   Set the prompt input to the prior action's variable **KI-Prompt**.
-   Disable interactive Follow Up for this first deterministic test. Set the
+   The task and correlation ID do not appear in the launcher URL.
+3. **Modell verwenden / Use Model** — choose **Extension Model (ChatGPT)**.
+   Set the prompt input to the previous **KI-Prompt** result.
+   Disable interactive Follow Up for this deterministic test. Set the
    output to **Text** where offered. The model action is the only external
    step; Shortcuts/Apple may show a first-time provider consent prompt.
-   Alternatively choose **On-Device** as an API-free and network-free fallback.
-3. **iGentic KI-Antwort übernehmen** — feed the preceding **Model Response**
-   variable into the **Modellantwort** parameter. This app intent stores the
-   untrusted text in the protected iGentic app container. No model output
-   becomes a device action.
-4. **App öffnen / Open App** — select **iGentic Diagnostics**. In the app,
-   choose **iGentic Agent → KI-Antwort prüfen** to read, evaluate and delete.
+   Alternatively select **On-Device** where available.
+4. **iGentic KI-Antwort übernehmen** — feed the **Model Response** from step
+   3 into **Modellantwort**, and the saved **Auftrags-ID** from step 1 into
+   the separate **Auftrags-ID** parameter. If the ID is missing, belongs to
+   a canceled/older task, is malformed, or the task expired, the app refuses
+   the result. The response remains untrusted review-only text.
+5. **App öffnen / Open App** — select **iGentic Diagnostics**. In the app,
+   choose **iGentic Agent → KI-Antwort prüfen** to read or delete it.
 
 **Run from the iGentic app:** open iGentic Agent, type a task, tap
 **KI-Auftrag lokal vorbereiten**, then **iGentic KI Loop in Kurzbefehle
@@ -60,11 +64,14 @@ Create a second shortcut with a distinguishable name such as
 
 1. **Eingabe abfragen / Ask for Input** (Text), or use dictated text.
 2. **iGentic KI-Auftrag starten** — insert the entered text in **Frage**;
-   its output is a complete model prompt and stores the pending exchange.
-3. **Modell verwenden → Extension Model (ChatGPT)**, with the previous
-   prompt as input.
-4. **iGentic KI-Antwort übernehmen**, with the Model Response as input.
-5. **App öffnen → iGentic Diagnostics**; review result manually.
+   the action stores the pending exchange and returns a model prompt.
+3. **iGentic KI-Auftrags-ID lesen** — save the correlation UUID to a Shortcuts
+   variable named **Auftrags-ID**.
+4. **Modell verwenden → Extension Model (ChatGPT)**, with the saved **model
+   prompt from step 2** as input (not the UUID from step 3).
+5. **iGentic KI-Antwort übernehmen**, with both **Model Response** and the
+   saved **Auftrags-ID** as separate parameters.
+6. **App öffnen → iGentic Diagnostics**; review result manually.
 
 Say **"Siri, iGentic Frage"** to invoke the shortcut if iOS exposes the
 chosen custom shortcut name. This is ordinary Siri → Shortcuts invocation,
@@ -81,7 +88,9 @@ not iGentic programmatically commanding Siri's dialogue system.
   phone patterns are blocked from this automatic model-prompt route. This is
   a heuristic, **not a guarantee that all private content is detected**.
 - One model answer, up to 8 KiB, must arrive within 30 minutes. Empty text,
-  control characters, duplicate results and expired results fail closed.
+  control characters, duplicate results, stale or mismatched correlation UUIDs,
+  and expired results fail closed. Shortcuts must pass the UUID as a separate
+  variable; the UUID is not authentication and is never sent to the model.
 - Stores one local JSON file with iOS file protection and restricted filesystem
   permissions. No server, analytics, background polling, chat history import
   or transparent sync. The user can clear task and response from the app.
@@ -156,7 +165,7 @@ on-device setup guide. It uses Apple's documented
 shortcuts://create-shortcut URL to open a **blank** Shortcuts editor, and
 a fixed, single-query-item shortcuts://run-shortcut?name=... URL to start
 the installed workflow. Neither URL contains the user's prompt, answer,
-credentials or a callback. The app displays the four action names and
+credentials or a callback. The app displays the five required steps and
 the state of its local pending exchange, and links to its review inbox.
 
 The separate older experimental **iGentic ChatGPT Loop Test** is explicitly
@@ -172,3 +181,18 @@ finish the actions in the Shortcuts editor and approve relevant prompts.
 Official Apple guides:
 - https://support.apple.com/de-de/guide/shortcuts/apda283236d7/ios
 - https://support.apple.com/guide/shortcuts/use-apple-intelligence-in-shortcuts-tpg3vrvwmclv/ios
+
+
+## Stale-answer defense (2026-11-23)
+
+The first implementation accepted any answer while a pending exchange existed.
+This could assign a delayed response from a canceled Shortcut to a newer task.
+Now the read-only iGentic KI-Auftrags-ID lesen App Intent provides the actual
+pending exchange UUID. iGentic KI-Antwort übernehmen requires that same UUID
+in a separate Shortcuts parameter, and compares it against the protected local
+record before storing any text. Tests cover canceled-then-restarted tasks,
+malformed UUIDs, expiration and replay. This is correlation and replay
+prevention, **not** a cryptographic proof that ChatGPT created the response.
+
+Any previously configured Shortcut using the old three-step return sequence
+must be updated to supply the new separate ID parameter.

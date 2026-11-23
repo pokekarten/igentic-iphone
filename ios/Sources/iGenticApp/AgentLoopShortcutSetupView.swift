@@ -34,7 +34,7 @@ public struct AgentLoopShortcutSetupView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("2. Diese vier Aktionen verbinden").font(.headline)
+                    Text("2. Diese fünf Schritte verbinden").font(.headline)
                     ForEach(AgentLoopShortcutSetup.actions.indices, id: \.self) { index in
                         Text(AgentLoopShortcutSetup.actions[index])
                             .font(.subheadline)

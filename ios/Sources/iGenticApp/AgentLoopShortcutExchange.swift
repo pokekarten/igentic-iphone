@@ -22,6 +22,7 @@ public enum AgentLoopExchangeError: Error, Equatable {
     case invalidAnswer
     case alreadyAnswered
     case invalidStoredExchange
+    case mismatchedTaskID
 }
 
 extension AgentLoopExchangeError: LocalizedError {
@@ -43,6 +44,8 @@ extension AgentLoopExchangeError: LocalizedError {
             return "Die KI-Antwort wurde bereits übernommen. Kein zweiter Aufruf möglich."
         case .invalidStoredExchange:
             return "Gespeicherter KI-Auftrag ist beschädigt. Keine Aktion ausgeführt."
+        case .mismatchedTaskID:
+            return "KI-Antwort gehört nicht zum aktuell offenen Auftrag. Nichts übernommen."
         }
     }
 }
@@ -111,6 +114,22 @@ public final class AgentLoopShortcutExchangeStore {
         return Self.modelPrompt(for: state.task)
     }
 
+    /// Returns the correlation ID as a separate Shortcuts variable, never
+    /// embedded in the ChatGPT prompt or a launch URL. This is not an auth token.
+    public func pendingTaskID() throws -> String {
+        guard let state = try snapshot() else {
+            throw AgentLoopExchangeError.noPendingExchange
+        }
+        let age = clock().timeIntervalSince(state.createdAt)
+        guard age >= 0, age <= Self.expiration else {
+            throw AgentLoopExchangeError.expired
+        }
+        guard state.answer == nil else {
+            throw AgentLoopExchangeError.alreadyAnswered
+        }
+        return state.id.uuidString.lowercased()
+    }
+
     private static func modelPrompt(for task: String) -> String {
         """
         Du beantwortest eine Frage aus einem iGentic-Kurzbefehl.
@@ -127,13 +146,18 @@ public final class AgentLoopShortcutExchangeStore {
     /// The Shortcuts output of "Use Model" is untrusted input. It becomes a
     /// *review-only* local reply, never a command, approval or Shortcut name.
     @discardableResult
-    public func receive(answer: String) throws -> String {
+    public func receive(answer: String, taskID: String) throws -> String {
         let trimmed = answer.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, trimmed.utf8.count <= Self.maximumAnswerBytes,
               !containsUnsafeControl(trimmed)
         else { throw AgentLoopExchangeError.invalidAnswer }
         guard var exchange = try snapshot() else {
             throw AgentLoopExchangeError.noPendingExchange
+        }
+        guard let expectedID = UUID(uuidString: taskID),
+              expectedID.uuidString.lowercased() == taskID.lowercased(),
+              exchange.id == expectedID else {
+            throw AgentLoopExchangeError.mismatchedTaskID
         }
         let age = clock().timeIntervalSince(exchange.createdAt)
         guard age >= 0, age <= Self.expiration else {
