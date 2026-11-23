@@ -275,6 +275,55 @@ final class AgentLoopShortcutExchangeTests: XCTestCase {
         }
     }
 
+    func testSymlinkedValidExchangeNeverReadsOutsideJournal() async throws {
+        try await MainActor.run {
+            let (store, path) = Self.makeStore()
+            let directory = path.deletingLastPathComponent()
+            defer { try? FileManager.default.removeItem(at: directory) }
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            let external = FileManager.default.temporaryDirectory
+                .appendingPathComponent("igentic-exchange-external-\(UUID().uuidString)")
+            defer { try? FileManager.default.removeItem(at: external) }
+            let canary = AgentLoopExchange(
+                id: UUID(), createdAt: Date(timeIntervalSince1970: 1_700_000_000),
+                task: "synthetic outside task", answer: nil, answeredAt: nil
+            )
+            try JSONEncoder().encode(canary).write(to: external)
+            try FileManager.default.setAttributes(
+                [.posixPermissions: 0o600], ofItemAtPath: external.path
+            )
+            try FileManager.default.createSymbolicLink(at: path, withDestinationURL: external)
+            XCTAssertThrowsError(try store.snapshot()) {
+                XCTAssertEqual($0 as? AgentLoopExchangeError, .invalidStoredExchange)
+            }
+            XCTAssertTrue(FileManager.default.fileExists(atPath: external.path))
+        }
+    }
+
+    func testHardlinkedValidExchangeNeverReadsExternalJournal() async throws {
+        try await MainActor.run {
+            let (store, path) = Self.makeStore()
+            let directory = path.deletingLastPathComponent()
+            defer { try? FileManager.default.removeItem(at: directory) }
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            let external = FileManager.default.temporaryDirectory
+                .appendingPathComponent("igentic-exchange-linked-\(UUID().uuidString)")
+            defer { try? FileManager.default.removeItem(at: external) }
+            let canary = AgentLoopExchange(
+                id: UUID(), createdAt: Date(timeIntervalSince1970: 1_700_000_000),
+                task: "synthetic linked task", answer: nil, answeredAt: nil
+            )
+            try JSONEncoder().encode(canary).write(to: external)
+            try FileManager.default.setAttributes(
+                [.posixPermissions: 0o600], ofItemAtPath: external.path
+            )
+            try FileManager.default.linkItem(at: external, to: path)
+            XCTAssertThrowsError(try store.snapshot()) {
+                XCTAssertEqual($0 as? AgentLoopExchangeError, .invalidStoredExchange)
+            }
+        }
+    }
+
     func testTruncatedOrMalformedDiskStateFailsClosed() async throws {
         try await MainActor.run {
             let (store, path) = Self.makeStore()

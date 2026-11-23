@@ -275,10 +275,45 @@ public final class AgentLoopShortcutExchangeStore {
     /// Read-only snapshot for the owner's iGentic screen.
     /// The file never leaves the sandbox through an MCP tool or remote endpoint.
     public func snapshot() throws -> AgentLoopExchange? {
-        guard FileManager.default.fileExists(atPath: fileURL.path) else { return nil }
-        let bytes = try Data(contentsOf: fileURL)
+        #if canImport(Darwin) || canImport(Glibc)
+        // Keep the opened inode fixed while inspecting it: checking a path
+        // and subsequently calling Data(contentsOf:) would follow a symlink
+        // or race with a replaced filesystem entry.
+        let fd = fileURL.path.withCString {
+            open($0, O_RDONLY | O_NOFOLLOW | O_CLOEXEC)
+        }
+        guard fd >= 0 else {
+            if errno == ENOENT { return nil }
+            throw AgentLoopExchangeError.invalidStoredExchange
+        }
+        defer { _ = close(fd) }
+        var metadata = stat()
+        guard fstat(fd, &metadata) == 0,
+              (metadata.st_mode & mode_t(S_IFMT)) == mode_t(S_IFREG),
+              (metadata.st_mode & 0o077) == 0,
+              metadata.st_uid == geteuid(),
+              metadata.st_nlink == 1,
+              metadata.st_size >= 0,
+              metadata.st_size <= 16_384 else {
+            throw AgentLoopExchangeError.invalidStoredExchange
+        }
+        let bytes: Data
+        do {
+            // Read at most one byte beyond the limit; an inode that grows
+            // after fstat cannot trigger an unbounded allocation.
+            let handle = FileHandle(fileDescriptor: fd, closeOnDealloc: false)
+            bytes = try handle.read(upToCount: 16_385) ?? Data()
+        } catch {
+            throw AgentLoopExchangeError.invalidStoredExchange
+        }
         guard bytes.count <= 16_384,
-              let state = try? JSONDecoder().decode(AgentLoopExchange.self, from: bytes),
+              bytes.count == Int(metadata.st_size) else {
+            throw AgentLoopExchangeError.invalidStoredExchange
+        }
+        #else
+        throw AgentLoopExchangeError.invalidStoredExchange
+        #endif
+        guard let state = try? JSONDecoder().decode(AgentLoopExchange.self, from: bytes),
               state.task.count <= 512,
               state.task.utf8.count <= Self.maximumTaskBytes,
               !state.task.isEmpty,
