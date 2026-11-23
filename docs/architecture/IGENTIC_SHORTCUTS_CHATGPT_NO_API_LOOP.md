@@ -246,3 +246,57 @@ Apple:
 - https://developer.apple.com/documentation/appintents/app-shortcuts
 - https://developer.apple.com/documentation/appintents/shortcutslink
 - https://developer.apple.com/documentation/appintents/acceleratingappinteractionswithappintents
+
+
+## Project-specific ChatGPT launch via native Shortcuts (2026-11-23)
+
+The installed ChatGPT iOS app also exposes a **Start chat in project**
+Shortcuts action. This is a **third, independent entry route**: it can start
+an interactive ChatGPT conversation in a project selected by the owner in
+the Shortcuts editor, preserving that project's instructions and context.
+It is not Apple's **Use Model → ChatGPT Extension Model** action, and it is
+not the owner-private MCP/Sites plugin. Do not conflate these interfaces.
+
+Owner setup (requires ChatGPT app, account and accessible project):
+
+1. Create or choose the intended project inside ChatGPT; configure project
+   instructions and sources there, with sensitive content handled privately.
+2. In Apple Shortcuts, create a shortcut and search under ChatGPT for
+   **Start chat in project** (the visible label may be localized).
+3. Select the destination ChatGPT project **in the native action**. Name the
+   shortcut for its role, for example **iGentic Projekt**; optionally add it
+   to the Home Screen or invoke that shortcut by name through Siri.
+4. Run it, then confirm in the ChatGPT UI that a **new chat belongs to the
+   selected project**. Test each project binding independently.
+
+Recommended organization: one owner-configured launcher per stable project
+(e.g. iGentic, FFBK, OpenCatastrophe), plus optional manual project chooser.
+Do not infer a general dynamic project-routing API or project CRUD API from
+this action; each action must use the destination actually exposed by the
+installed ChatGPT app. Never fabricate a project ID or a chat URL.
+
+**Boundary:** This action opens an interactive project chat; it does **not**
+prove that Shortcuts can inject an arbitrary first message, automatically
+receive the model response, change project instructions/files, or remotely
+execute an iPhone action. The current iGentic Shortcuts response loop still
+uses the separate **Use Model** route and correlation-checked receive Intent.
+For project chat → iGentic return, only a reviewed share/export or a separately
+verified native callback/transport may be used. Do not pretend the existing
+private Site/MCP handoff provides that callback.
+
+Independent physical-iPhone acceptance when available:
+- verify action presence and project list under the installed ChatGPT version;
+- verify launch into the exact chosen project, not a generic/new default chat;
+- verify correct project-context behavior without exporting private project
+  data into logs or the public repository;
+- verify user-facing Siri and Home Screen launch separately;
+- verify absence of automatic iGentic receipt or device execution, and fail
+  closed if a project is missing or account/workspace differs.
+
+Public references and evidence (not physical acceptance):
+- https://chaocode.co/en/articles/ (Aug 19, 2026: practical setup of
+  ChatGPT's **Start chat in project** Shortcuts action)
+- https://appleintelligence.substack.com/p/shortcuts-is-s-tier-the-definitive
+  (Oct 19, 2026: project-specific action discovery)
+- https://help.openai.com/en/articles/10169521-projects-in-chatgpt
+  (project contexts, instructions and sources)
