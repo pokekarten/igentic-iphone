@@ -122,7 +122,8 @@ struct iGenticDiagnosticsApp: App {
                 } else {
                     defer { try? store.clear() }
                     let prompt = try store.begin(task: "Nenne eine Demo-Zimmerpflanze")
-                    _ = try store.receive(answer: "Demoantwort: Basilikum")
+                    _ = try store.receive(answer: "Demoantwort: Basilikum",
+                                          taskID: try store.snapshot().map { $0.id.uuidString } ?? "")
                     let observed = try store.snapshot()
                     if prompt.contains("Demo-Zimmerpflanze"),
                        observed?.task == "Nenne eine Demo-Zimmerpflanze",
@@ -288,7 +289,7 @@ struct iGenticStartAILoopIntent: AppIntent {
         guard decision.isAllowed, !decision.requiresApproval else {
             throw iGenticDiagnosticsIntentError.policyDenied
         }
-        return .result(value: try AgentLoopShortcutExchangeStore().begin(task: instruction))
+        return .result(value: try AgentLoopShortcutExchangeStore().beginTicket(task: instruction))
     }
 }
 
@@ -314,7 +315,7 @@ struct iGenticReadAILoopPromptIntent: AppIntent {
         guard decision.isAllowed, !decision.requiresApproval else {
             throw iGenticDiagnosticsIntentError.policyDenied
         }
-        return .result(value: try AgentLoopShortcutExchangeStore().pendingPrompt())
+        return .result(value: try AgentLoopShortcutExchangeStore().pendingTicket())
     }
 }
 
@@ -328,6 +329,9 @@ struct iGenticReceiveAILoopAnswerIntent: AppIntent {
 
     @Parameter(title: "Modellantwort")
     var answer: String
+
+    @Parameter(title: "Auftragskennung")
+    var taskID: String
 
     @MainActor
     func perform() async throws -> some IntentResult & ReturnsValue<String> {
@@ -343,7 +347,7 @@ struct iGenticReceiveAILoopAnswerIntent: AppIntent {
         guard decision.isAllowed, !decision.requiresApproval else {
             throw iGenticDiagnosticsIntentError.policyDenied
         }
-        return .result(value: try AgentLoopShortcutExchangeStore().receive(answer: answer))
+        return .result(value: try AgentLoopShortcutExchangeStore().receive(answer: answer, taskID: taskID))
     }
 }
 
