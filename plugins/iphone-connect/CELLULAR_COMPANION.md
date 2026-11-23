@@ -12,7 +12,14 @@ The iOS client uses Apple's URLSession and CryptoKit. It allows cellular data, r
 
 Request headers: `x-igentic-timestamp` (Unix seconds), `x-igentic-nonce` (fresh lowercase UUID), `x-igentic-signature` (HMAC-SHA256 hex over the exact versioned method, path, timestamp, nonce and SHA-256 body digest). No raw secret crosses the network.
 
-The Node HTTPS host, implemented **in this repository**, validates the exact method/body/path/signature and content type, a 60-second timestamp window, and one-time nonce within a bounded in-memory cache. It limits header bytes, request bytes, simultaneous connections and requests per connection. No remote action, arbitrary iOS command, UI tap, shell, persistent user-data write, session approval or third-party tool is included. A valid response explicitly says `deviceControl=not-enabled` and `backgroundExecution=not-guaranteed`. Replay cache is per running process, so it must not be mistaken for persistent protection across server restarts; only a harmless readiness check is implemented.
+The Node HTTPS host, implemented **in this repository**, validates the exact method/body/path/signature and content type, a 60-second timestamp window, and one-time nonce within a bounded in-memory cache. It limits header bytes, request bytes, simultaneous connections and requests per connection. No remote action, arbitrary iOS command, UI tap, shell, persistent user-data write, session approval or third-party tool is included. A valid response explicitly says `deviceControl=not-enabled` and `backgroundExecution=not-guaranteed`. On a successful authenticated request the server additionally returns an
+`x-igentic-response-proof` HMAC-SHA256 header bound to the request timestamp,
+nonce and the fixed readiness response fields. The signed iPhone client must
+verify this proof before showing a confirmed response. A missing, altered or
+replayed acknowledgment is rejected. The proof does not grant a device-control
+permission or identify a physical device. Older readiness hosts without this
+header must be updated together with the signed client; there is no insecure
+fallback. Replay cache is per running process, so it must not be mistaken for persistent protection across server restarts; only a harmless readiness check is implemented.
 
 ## Owner-operated server deployment
 

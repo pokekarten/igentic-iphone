@@ -62,6 +62,37 @@ public enum CellularHeartbeatProtocol {
         )
         return signed.map { String(format: "%02x", $0) }.joined()
     }
+    /// Acknowledgment bound to the current timestamp and fresh nonce.
+    /// It proves knowledge of the pairing key, not physical iPhone identity.
+    public static func responseProof(secret: Data, timestamp: Int, nonce: String) -> String? {
+        guard signature(secret: secret, timestamp: timestamp, nonce: nonce) != nil else {
+            return nil
+        }
+        let message = [
+            "igentic-cellular-response-v1", String(timestamp), nonce,
+            "accepted", "readiness-only", "not-enabled", "not-guaranteed"
+        ].joined(separator: "\n")
+        let code = HMAC<SHA256>.authenticationCode(
+            for: Data(message.utf8), using: SymmetricKey(data: secret)
+        )
+        return code.map { String(format: "%02x", $0) }.joined()
+    }
+
+    /// Constant-work comparison for a fixed-length HMAC rendered as hex.
+    /// Missing, malformed, stale or cross-request proofs fail closed.
+    public static func verifyResponseProof(
+        secret: Data, timestamp: Int, nonce: String, header: String?
+    ) -> Bool {
+        guard let expected = responseProof(secret: secret, timestamp: timestamp, nonce: nonce),
+              let header, header.utf8.count == expected.utf8.count,
+              header.utf8.allSatisfy({ (48...57).contains($0) || (97...102).contains($0) })
+        else { return false }
+        var mismatch: UInt8 = 0
+        for (left, right) in zip(expected.utf8, header.utf8) {
+            mismatch |= left ^ right
+        }
+        return mismatch == 0
+    }
     #endif
 }
 
