@@ -347,6 +347,68 @@ struct iGenticReceiveAILoopAnswerIntent: AppIntent {
     }
 }
 
+// Shortcuts asks iGentic for a new anonymous correlation token before asking
+// ChatGPT. No user content is stored, and this token is NOT authentication.
+@available(iOS 27.0, *)
+struct iGenticCreateLoopTokenIntent: AppIntent {
+    static let title: LocalizedStringResource = "Create iGentic Loop Token"
+    static let description = IntentDescription(
+        "Create a correlation token for a finite Shortcuts workflow; no cloud or phone action."
+    )
+    static let supportedModes: IntentModes = .background
+
+    func perform() async throws -> some IntentResult & ReturnsValue<String> {
+        let decision = PolicyEngine().decide(
+            PolicyRequest(
+                privacyMode: .localOnly, dataClassification: .publicDefault,
+                actionRisk: .read, requestedDelegationTarget: .localDevice
+            )
+        )
+        guard decision.isAllowed, !decision.requiresApproval else {
+            throw iGenticDiagnosticsIntentError.policyDenied
+        }
+        return .result(value: AgentLoopModelHandoff.newCorrelationID())
+    }
+}
+
+// This is the second half of an API-free Shortcuts model handoff.
+// Shortcuts calls ChatGPT's Use Model action; this app-owned Intent validates
+// the *returned model text*. It never invokes ChatGPT or performs a phone action.
+@available(iOS 27.0, *)
+struct iGenticReviewModelReplyIntent: AppIntent {
+    static let title: LocalizedStringResource = "Review iGentic Model Reply"
+    static let description = IntentDescription(
+        "Validate a ChatGPT reply locally and return a non-executing JSON receipt."
+    )
+    static let supportedModes: IntentModes = .background
+
+    @Parameter(title: "Task ID")
+    var taskID: String
+
+    @Parameter(title: "Model Reply")
+    var modelReply: String
+
+    func perform() async throws -> some IntentResult & ReturnsValue<String> {
+        let decision = PolicyEngine().decide(
+            PolicyRequest(
+                privacyMode: .localOnly,
+                dataClassification: DataClassification(
+                    level: .contextualPrivateData,
+                    reason: "Explicit Shortcuts model output reviewed on device."
+                ),
+                actionRisk: .prepare,
+                requestedDelegationTarget: .localDevice
+            )
+        )
+        guard decision.isAllowed, !decision.requiresApproval else {
+            throw iGenticDiagnosticsIntentError.policyDenied
+        }
+        return .result(value: AgentLoopModelHandoff.review(
+            taskID: taskID, modelReply: modelReply
+        ))
+    }
+}
+
 @available(iOS 16.0, *)
 struct iGenticDiagnosticsShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
@@ -393,6 +455,22 @@ struct iGenticDiagnosticsShortcuts: AppShortcutsProvider {
             phrases: ["Receive AI answer with \(.applicationName)"],
             shortTitle: "KI-Antwort übernehmen",
             systemImageName: "tray.and.arrow.down"
+        )
+        AppShortcut(
+            intent: iGenticCreateLoopTokenIntent(),
+            phrases: [
+                "Create a loop token with \(.applicationName)"
+            ],
+            shortTitle: "Loop Token",
+            systemImageName: "number"
+        )
+        AppShortcut(
+            intent: iGenticReviewModelReplyIntent(),
+            phrases: [
+                "Review a model reply with \(.applicationName)"
+            ],
+            shortTitle: "Review Model Reply",
+            systemImageName: "checkmark.shield"
         )
     }
 }

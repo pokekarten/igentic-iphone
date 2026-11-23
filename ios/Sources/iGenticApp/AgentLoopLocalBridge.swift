@@ -60,6 +60,82 @@ public enum AgentLoopTaskBridge {
     }
 }
 
+
+/// An explicit, owner-tapped deep link to a fixed Shortcut by name.
+/// No private prompt or user data is ever placed into a URL query.
+public enum AgentLoopShortcutLaunch {
+    public static let shortcutName = "iGentic ChatGPT Loop Test"
+
+    public static var url: URL? {
+        var components = URLComponents()
+        components.scheme = "shortcuts"
+        components.host = "run-shortcut"
+        components.queryItems = [URLQueryItem(name: "name", value: shortcutName)]
+        return components.url
+    }
+}
+
+/// Validates one untrusted ChatGPT/Shortcuts model reply. This does NOT call
+/// a model, execute a device operation, persist private text or grant approval.
+/// Shortcuts may use the returned JSON to choose its next *explicit* action.
+public enum AgentLoopModelHandoff {
+    /// Correlates two Shortcuts turns; NOT authentication, a session or a task queue.
+    public static func newCorrelationID() -> String {
+        UUID().uuidString.lowercased()
+    }
+
+    private static let permittedActions: Set<String> = [
+        "status.read", "reminder.draft", "finish"
+    ]
+
+    public static func review(taskID: String, modelReply: String) -> String {
+        guard let identifier = UUID(uuidString: taskID),
+              identifier.uuidString.caseInsensitiveCompare(taskID) == .orderedSame else {
+            return receipt(id: nil, decision: "rejected", nextAction: "none",
+                           reason: "invalidTaskId")
+        }
+        let canonicalID = identifier.uuidString.lowercased()
+        guard !modelReply.isEmpty, modelReply.utf8.count <= 1024,
+              let data = modelReply.data(using: .utf8),
+              let candidate = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              Set(candidate.keys) == Set(["action"]),
+              let action = candidate["action"] as? String else {
+            return receipt(id: canonicalID, decision: "rejected", nextAction: "none",
+                           reason: "invalidModelReply")
+        }
+        guard permittedActions.contains(action) else {
+            return receipt(id: canonicalID, decision: "rejected", nextAction: "none",
+                           reason: "unsupportedAction")
+        }
+        if action == "finish" {
+            return receipt(id: canonicalID, decision: "stopped", nextAction: "none",
+                           reason: "modelSuggestedFinish")
+        }
+        return receipt(id: canonicalID, decision: "previewOnly", nextAction: action,
+                       reason: "requiresSeparateShortcutAction")
+    }
+
+    private static func receipt(id: String?, decision: String, nextAction: String,
+                                reason: String) -> String {
+        // An untrusted model cannot set "approved", "executed", or the device ID.
+        // Correlation ID is not authentication or replay prevention.
+        let object: [String: Any] = [
+            "schema": 1,
+            "taskId": id as Any? ?? NSNull(),
+            "decision": decision,
+            "nextAction": nextAction,
+            "reason": reason,
+            "executed": false,
+            "approved": false
+        ]
+        guard let data = try? JSONSerialization.data(withJSONObject: object, options: [.sortedKeys]),
+              let text = String(data: data, encoding: .utf8) else {
+            return #"{"schema":1,"decision":"rejected","nextAction":"none","executed":false,"approved":false}"#
+        }
+        return text
+    }
+}
+
 #if os(iOS) && canImport(UIKit)
 import UIKit
 

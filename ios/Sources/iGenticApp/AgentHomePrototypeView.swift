@@ -126,6 +126,18 @@ public struct AgentHomePrototypeView: View {
                         .font(.caption).foregroundStyle(.secondary)
                 }
 
+                VStack(alignment: .leading, spacing: 8) {
+                    if let launchURL = AgentLoopShortcutLaunch.url {
+                        Link(destination: launchURL) {
+                            Label("iGentic ChatGPT Loop in Kurzbefehle starten",
+                                  systemImage: "arrow.up.right.square")
+                        }
+                        .accessibilityIdentifier("igentic-agent-start-shortcut")
+                    }
+                    Text("Nur nach deinem Tippen. Der Kurzbefehl muss vorher eingerichtet sein. Kein privater Auftrag wird über die URL übertragen; ChatGPT-Antworten werden separat durch den iGentic App Intent geprüft.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+
                 Text("Direkt öffnen").font(.headline)
                 VStack(alignment: .leading, spacing: 12) {
                     NavigationLink("Offline-Werkzeuge") { OfflineToolsView() }
