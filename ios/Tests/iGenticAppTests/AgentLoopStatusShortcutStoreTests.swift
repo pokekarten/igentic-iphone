@@ -382,6 +382,11 @@ final class AgentLoopStatusShortcutStoreTests: XCTestCase {
             contents = contents.replacingOccurrences(of: "awaitingStatus",
                                                       with: "readAttempted")
             try contents.write(to: path, atomically: true, encoding: .utf8)
+            // Linux can recreate this synthetic journal as 0644. Restore the
+            // production 0600 file mode to test uncertainty, not bad metadata.
+            try FileManager.default.setAttributes(
+                [.posixPermissions: 0o600], ofItemAtPath: path.path
+            )
             now = now.addingTimeInterval(AgentLoopStatusShortcutStore.ttl + 1)
             // An interrupted statusReader could already have read the iPhone.
             // A timeout must not erase the explicit uncertainty marker.
