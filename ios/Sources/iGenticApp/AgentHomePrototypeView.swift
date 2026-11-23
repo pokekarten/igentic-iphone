@@ -51,7 +51,8 @@ public struct AgentHomePrototypeView: View {
                         .accessibilityIdentifier("igentic-agent-prompt")
                     Button("Lokalen Vorschlag prüfen") {
                         isPromptFocused = false
-                        submitted = input
+                        let result = AgentHomeCommandRouter.previewForDisplay(input)
+                        submitted = result.displayText
                         proposal = AgentLoopTaskBridge.preview(input)
                     }
                     .buttonStyle(.borderedProminent)
