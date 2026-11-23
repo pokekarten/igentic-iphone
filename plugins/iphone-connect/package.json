@@ -18,7 +18,8 @@
     "smoke:wifi": "node scripts/smoke-native-transport.mjs --wifi",
     "package": "node scripts/package.mjs",
     "serve:portable": "node src/portable-gateway.mjs",
-    "serve:cellular": "node src/cellular-gateway.mjs"
+    "serve:cellular": "node src/cellular-gateway.mjs",
+    "smoke:handoff:wifi": "node scripts/smoke-handoff-wifi.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/ext-apps": "2.0.4",

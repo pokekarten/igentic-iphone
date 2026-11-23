@@ -8,6 +8,7 @@ public struct DiagnosticView: View {
     private let setupConfirmationStore: AppActionApprovalPolicySetupConfirmationStore?
     private let nativeBridgeOpenDiscovery: Bool
     private let nativeBridgeScreenObserved: ((String) -> Void)?
+    private let handoffPreviewObserved: ((ChatGPTHandoffRoute) -> Void)?
     @State private var approvalPolicy: AppActionApprovalPolicy
     @State private var isInitialSetupPresented: Bool
     @State private var nativeBridgeDiscoveryPresented = false
@@ -23,13 +24,15 @@ public struct DiagnosticView: View {
         setupConfirmationStore: AppActionApprovalPolicySetupConfirmationStore? = nil,
         requiresInitialSetupConfirmation: Bool = false,
         nativeBridgeOpenDiscovery: Bool = false,
-        nativeBridgeScreenObserved: ((String) -> Void)? = nil
+        nativeBridgeScreenObserved: ((String) -> Void)? = nil,
+        handoffPreviewObserved: ((ChatGPTHandoffRoute) -> Void)? = nil
     ) {
         self.state = state
         self.approvalPolicyStore = approvalPolicyStore
         self.setupConfirmationStore = setupConfirmationStore
         self.nativeBridgeOpenDiscovery = nativeBridgeOpenDiscovery
         self.nativeBridgeScreenObserved = nativeBridgeScreenObserved
+        self.handoffPreviewObserved = handoffPreviewObserved
         self._approvalPolicy = State(initialValue: approvalPolicy)
         self._isInitialSetupPresented = State(
             initialValue: requiresInitialSetupConfirmation
@@ -253,6 +256,9 @@ public struct DiagnosticView: View {
                     }
                 }
             }
+            // A link alone is not a UI result. Only the actual SwiftUI sheet
+            // lifecycle emits this tiny, independently readable observation.
+            .onAppear { handoffPreviewObserved?(route) }
         }
     }
 }

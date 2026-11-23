@@ -1,0 +1,84 @@
+import { homedir, tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
+import { NativeCoreDeviceBackend } from '../src/native-coredevice.mjs';
+import { loadConfig } from '../src/backend.mjs';
+import { run, decode } from '../src/process.mjs';
+import { verifyChatGPTHandoffPreviewReceipt } from '../src/chatgpt-handoff.mjs';
+
+// This is an owner-run acceptance on the *physical* iPhone and ONLY via Wi-Fi.
+// The actions are limited to two own-app navigation links. It is not a
+// ChatGPT-account test or arbitrary mobile UI control.
+if (process.argv.length !== 2 ||
+    process.env.IGENTIC_IPHONE_BACKEND === 'fixture' ||
+    process.env.IGENTIC_IPHONE_DRIVER === 'mobilecli') {
+  console.error('physicalFirstPartyWifiOnly');
+  process.exit(2);
+}
+const configPath = process.env.IGENTIC_IPHONE_CONFIG
+  ?? join(homedir(), 'Library/Application Support/iGentic/iphone-connect/config.json');
+const expectedBundle = 'de.bos.neoagent.igenticdiagnostics';
+const receiptPath = 'Documents/igentic-chatgpt-preview-receipt.json';
+const config = await loadConfig(configPath);
+if (config?.bundleId !== expectedBundle) throw new Error('expectedOwnAppOnly');
+
+const backend = new NativeCoreDeviceBackend(config);
+const physicalWifi = async () => {
+  const devices = await backend.list();
+  const owned = devices.find(d => d.id === 'iphone-1');
+  if (owned?.available !== true || owned.connectionPath !== 'network-coredevice')
+    throw new Error('wifiPhysicalTunnelNotVerified');
+};
+const core = async args => run('/usr/bin/xcrun', ['devicectl', ...args], { timeout: 25000 });
+const readReceipt = async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'igentic-handoff-observed-'));
+  try {
+    const dest = join(dir, 'receipt.json');
+    await core(['device', 'copy', 'from', '--device', config.deviceId,
+      '--source', receiptPath, '--domain-type', 'appDataContainer',
+      '--domain-identifier', expectedBundle, '--destination', dest,
+      '--timeout', '15']);
+    const info = await stat(dest);
+    if (!info.isFile() || info.size > 512) throw new Error('receiptInvalid');
+    return decode(await readFile(dest, 'utf8'));
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+};
+const observe = async (route, previousID = null) => {
+  for (let retry = 0; retry < 9; retry++) {
+    try {
+      const eventID = verifyChatGPTHandoffPreviewReceipt(
+        await readReceipt(), route, previousID);
+      return eventID;
+    } catch {
+      if (retry === 8) throw new Error('freshOwnAppHandoffPreviewNotVerified');
+      await new Promise(resolve => setTimeout(resolve, 450));
+    }
+  }
+};
+const dispatch = async route => {
+  // An exact, owned app process restart gives the next URL a clean sheet
+  // lifecycle. Never activate another app or enumerate private data.
+  await backend.policy(route === 'discovery' ? 'open-discovery' : 'open-diagnostics');
+  await core(['device', 'process', 'launch', '--device', config.deviceId,
+    '--terminate-existing', '--timeout', '18', expectedBundle]);
+  await core(['device', 'process', 'openURL', '--device', config.deviceId,
+    '--timeout', '18', 'igentic://handoff/v1/' + route]);
+};
+
+await physicalWifi();
+const status = await backend.appStatus();
+if (status.installed !== true) throw new Error('ownAppNotInstalled');
+await dispatch('diagnostics');
+const firstID = await observe('diagnostics');
+await dispatch('discovery');
+await observe('discovery', firstID);
+await physicalWifi();
+console.log(JSON.stringify({
+  backend: 'physical', driver: 'coredevice-native',
+  transport: 'network-coredevice', ownAppInstalled: true,
+  distinctFreshPreviewReceipts: true, routes: ['diagnostics', 'discovery'],
+  manualApprovalBypassed: false, crossAppControl: false,
+  privateContentReturned: false
+}));

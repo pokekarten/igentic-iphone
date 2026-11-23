@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { HANDOFF_ACTIONS, prepareChatGPTHandoff } from '../src/chatgpt-handoff.mjs';
+import { HANDOFF_ACTIONS, prepareChatGPTHandoff, verifyChatGPTHandoffPreviewReceipt } from '../src/chatgpt-handoff.mjs';
 
 test('ChatGPT generates only fixed user-tapped own-app handoffs', () => {
   assert.deepEqual(HANDOFF_ACTIONS, ['diagnostics', 'discovery', 'reminder-draft']);
@@ -39,4 +39,36 @@ test('ChatGPT handoff routes stay aligned with the signed iOS target', () => {
   assert.match(plist, /<key>CFBundleURLSchemes<\/key>[\s\S]*?<string>igentic<\/string>/);
   assert.match(view, /\.onOpenURL\s*\{\s*url\s+in[\s\S]*?ChatGPTHandoffRoute\.parse\(url\)/);
   assert.match(view, /\.sheet\(item:\s*\$chatGPTHandoff\)/);
+});
+
+
+test('physical preview receipt proves only a fresh allowlisted own-app sheet, not authorization', () => {
+  const first = Object.freeze({
+    schema: 1, eventID: 'c13b1b76-1000-4000-8000-123456789abc',
+    route: 'diagnostics', view: 'handoff-preview', status: 'observed'
+  });
+  const next = Object.freeze({
+    ...first, eventID: 'c13b1b76-1000-4000-8000-abcdef123456', route: 'discovery'
+  });
+  const firstID = verifyChatGPTHandoffPreviewReceipt(first, 'diagnostics');
+  assert.equal(verifyChatGPTHandoffPreviewReceipt(next, 'discovery', firstID), next.eventID);
+  const invalid = [
+    { ...next, eventID: firstID }, // stale
+    { ...next, schema: 2 },
+    { ...next, view: 'permissions' },
+    { ...next, status: 'approved' },
+    { ...next, title: 'sensitive data' },
+    { ...next, privateContent: 'secret' },
+    { ...next, eventID: '0'.repeat(36) },
+    { ...next, eventID: 'C13B1B76-1000-4000-8000-ABCDEF123456' },
+    { ...next, route: 'delete-contacts' },
+    null, [], 'untrusted'
+  ];
+  for (const value of invalid) {
+    assert.throws(
+      () => verifyChatGPTHandoffPreviewReceipt(value, 'discovery', firstID),
+      /handoffReceiptInvalid/
+    );
+  }
+  assert.throws(() => verifyChatGPTHandoffPreviewReceipt(next, 'delete-contacts'), /handoffReceiptInvalid/);
 });

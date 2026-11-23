@@ -27,3 +27,22 @@ public enum ChatGPTHandoffRoute: String, CaseIterable, Identifiable {
         return route
     }
 }
+
+
+// App-owned *observation* only: a fresh, fixed-schema receipt after the
+// handoff sheet appears. This is never an approval or control capability.
+public struct ChatGPTHandoffPreviewReceipt: Codable, Equatable {
+    public let schema: Int
+    public let eventID: String
+    public let route: String
+    public let view: String
+    public let status: String
+
+    public init(route: ChatGPTHandoffRoute, eventID: UUID = UUID()) {
+        self.schema = 1
+        self.eventID = eventID.uuidString.lowercased()
+        self.route = route.rawValue
+        self.view = "handoff-preview"
+        self.status = "observed"
+    }
+}

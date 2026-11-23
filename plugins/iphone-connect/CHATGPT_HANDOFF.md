@@ -136,3 +136,30 @@ data or write action crosses the public MCP boundary.
 - https://developer.apple.com/documentation/xcode/defining-a-custom-url-scheme-for-your-app
 - https://developer.apple.com/documentation/swiftui/view/onopenurl(perform:)
 - https://developer.apple.com/documentation/appintents
+
+
+## Physical preview-receipt acceptance (iOS 27 / first-party WLAN)
+
+The signed iGentic app emits a five-field `igentic-chatgpt-preview-receipt.json`
+only when its native **handoff preview sheet** appears. It contains
+`schema`, fresh random `eventID`, allowlisted `route`, fixed `view`
+and fixed `status`; no text from the request, account info, authorization
+or phone identity is stored. This is observational **not** an action receipt.
+
+On the owner-paired physical iPhone with a live Wi-Fi CoreDevice tunnel and
+installed signed current app, run:
+
+```sh
+cd plugins/iphone-connect
+npm run smoke:handoff:wifi
+```
+
+The script requires the existing private iGentic pairing/policy configuration,
+rejects fixture and MobileCLI modes and fails if the active tunnel is not
+`network-coredevice`. It opens two fixed own-app URLs for `diagnostics`
+and `discovery` and verifies that the second app-owned preview receipt has
+a **different eventID** from the first. All raw CoreDevice output and receipt
+contents remain local; the console prints only sanitized fixed booleans.
+Do not treat the test as a ChatGPT-account invocation, a screen capture,
+an owner approval, a reminder write, an App Intent execution or general
+cross-app UI control.

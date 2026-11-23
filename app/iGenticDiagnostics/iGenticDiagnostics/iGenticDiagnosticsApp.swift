@@ -41,6 +41,9 @@ struct iGenticDiagnosticsApp: App {
                 nativeBridgeOpenDiscovery: pluginBridge?.action == "open-discovery",
                 nativeBridgeScreenObserved: { [pluginBridge] view in
                     pluginBridge?.writeObservedReceipt(view: view)
+                },
+                handoffPreviewObserved: { route in
+                    iGenticChatGPTHandoffPreviewReceiptWriter.writeObserved(route: route)
                 }
             )
             .overlay(alignment: .top) {
@@ -193,6 +196,24 @@ private struct iGenticNativeBridgeLaunch {
         else { return }
         try? bytes.write(
             to: directory.appendingPathComponent("igentic-plugin-receipt.json"),
+            options: [.atomic, .completeFileProtectionUnlessOpen]
+        )
+    }
+}
+
+
+// The preview is an in-app navigation gate, never permission. A fresh UUID
+// is generated on-device only after the native sheet appears. We store only
+// five fixed-schema fields; no URL, prompt, person, token or device ID.
+private enum iGenticChatGPTHandoffPreviewReceiptWriter {
+    static func writeObserved(route: ChatGPTHandoffRoute) {
+        guard let directory = FileManager.default.urls(
+            for: .documentDirectory, in: .userDomainMask
+        ).first,
+        let bytes = try? JSONEncoder().encode(ChatGPTHandoffPreviewReceipt(route: route))
+        else { return }
+        try? bytes.write(
+            to: directory.appendingPathComponent("igentic-chatgpt-preview-receipt.json"),
             options: [.atomic, .completeFileProtectionUnlessOpen]
         )
     }

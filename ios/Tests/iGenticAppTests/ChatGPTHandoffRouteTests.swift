@@ -10,6 +10,30 @@ final class ChatGPTHandoffRouteTests: XCTestCase {
         }
     }
 
+    func testPreviewReceiptContainsOnlyFixedFieldsAndFreshEvent() throws {
+        let first = ChatGPTHandoffPreviewReceipt(
+            route: .discovery,
+            eventID: UUID(uuidString: "C13B1B76-1000-4000-8000-123456789ABC")!
+        )
+        let second = ChatGPTHandoffPreviewReceipt(
+            route: .discovery,
+            eventID: UUID(uuidString: "C13B1B76-1000-4000-8000-ABCDEF123456")!
+        )
+        XCTAssertNotEqual(first.eventID, second.eventID)
+        XCTAssertEqual(first.schema, 1)
+        XCTAssertEqual(first.route, "discovery")
+        XCTAssertEqual(first.view, "handoff-preview")
+        XCTAssertEqual(first.status, "observed")
+        let json = try JSONSerialization.jsonObject(
+            with: JSONEncoder().encode(first)
+        ) as! [String: Any]
+        XCTAssertEqual(Set(json.keys),
+                       Set(["schema", "eventID", "route", "view", "status"]))
+        XCTAssertEqual(json["eventID"] as? String, first.eventID)
+        XCTAssertNil(json["approved"])
+        XCTAssertNil(json["title"])
+    }
+
     func testArbitraryActionsQueriesAndRemotePermissionsFailClosed() {
         let invalid = [
             "igentic://handoff/v1/delete-contacts",
