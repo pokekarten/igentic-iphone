@@ -138,3 +138,73 @@ installation at this exact revision, a real iPhone URL dispatch with independent
 observation, direct mobile network access, cellular control, background
 execution, and any cross-app actions. These must not be inferred from simulator
 or API-only tests.
+
+## 2026-11-23 Work continuation: Sites Worker and current acceptance
+
+The remote PR #406 head was independently verified as
+`06986bfbe21e0f37ac18b6ac6f85cf9c58a16414` on
+`feat/chatgpt-handoff-api-prototype-20261123`. The PR is still a draft, based
+on `feat/optional-capability-core-20261123`; no merge or base change was made.
+
+### Current CI at the starting remote head
+
+- [Phase 0 CI Validation](https://github.com/pokekarten/igentic-iphone/actions/runs/45166627845): completed, success.
+- [iOS App Wrapper](https://github.com/pokekarten/igentic-iphone/actions/runs/45166627885): completed, success. Build, install/launch and both system-level simulator UI acceptance tests succeeded.
+- iPhone Plugin, Repo Audit, Docs Consistency, PR Change Scope, Pull Request
+  Quality and Commit Email Privacy were also successful. These results apply
+  to the starting remote head, not to the new local Worker change.
+
+### Implemented and tested locally
+
+The existing pure handoff reference now has a stateless Sites JSON-RPC Fetch
+handler and bundled Worker entry point. It serves the existing fixed HTML and
+exactly one read-only tool using the canonical three-action contract.
+Discovery, listing, calls, bounded streamed input and sanitized failures are
+covered by tests. The deployed access boundary must be owner-private Sites
+authentication; the handler does not implement standalone authentication.
+
+The iPhone Plugin workflow now also triggers for changes under
+`plugins/igentic-chatgpt-iphone/**`, which previously could bypass this suite
+when no other matching paths changed.
+
+- Focused Sites endpoint + bundled Worker tests: **5 passed**.
+- Complete Node/MCP suite: **75 passed, 1 skipped, 0 failures**. The optional
+  actual Swift-policy-helper test is skipped when its executable is not supplied.
+- Repository structure and `git diff --check`: passed.
+- Real isolated local Chrome WebMCP smoke: passed; one native read-only tool,
+  all three links, unknown-action rejection, no automatic navigation and no
+  external page requests/errors. This is browser WebMCP, not hosted Sites MCP.
+- Physical iPhone via CoreDevice Wi-Fi: `smoke:handoff:wifi --reminder-preview`
+  passed. A local SDK MCP client generated all three links, the Mac harness
+  opened them in the installed first-party app, and independent app-owned
+  receipts confirmed fresh previews compared with the pre-dispatch baseline.
+  The invalid own-app route produced no new receipt. No reminder creation,
+  personal content return, cross-app control or approval bypass occurred.
+- The first attempt through the currently installed desktop `iphone_*`
+  connector returned `backendFailed` on `iphone_open_diagnostics`. Its session
+  was explicitly stopped. Subsequent read-only CoreDevice inspection confirmed
+  the own app installed/running over Wi-Fi before the separate repository
+  acceptance above. The native harness success does not repair or prove that
+  failed installed-connector path; its failure cause remains unresolved.
+
+### Publication and account limits
+
+The Sites connector is available, but its complete owner-Site inventory had no
+iGentic Site. No unrelated Site was changed. No Site was created or deployed,
+and no generated plugin was installed. Creating a separate Sites source
+repository would exceed this task's restriction to publishing commits only
+on the existing PR branch. A future owner-private deployment needs its own
+authorized source/publication step and an actual connected-plugin invocation.
+
+GitHub independently reports this repository as **public** (`private:false`,
+`visibility:public`), whereas the current task described it as private.
+The new change is therefore prepared locally pending clarification before
+publishing it. Repository visibility was not changed. Remote CI cannot validate
+an unpublished local commit.
+
+The physical test proves app-owned preview appearance, not a human tap in
+ChatGPT on iPhone, subsequent manual in-app navigation, or an active ChatGPT
+plugin connection. No new iOS build/signing/install was needed for this
+JavaScript-only slice. Existing GitHub CI and the preinstalled signed iPhone
+app were used; no paid service, model API, account, credential or billing
+configuration was activated. No additional CI run was requested.

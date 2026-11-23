@@ -1,6 +1,6 @@
 # iGentic ChatGPT Sites — optional, owner-hosted reference
 
-This directory holds a **read-only reference**, NOT a running Site or a
+This directory holds a **locally tested read-only Worker**, NOT a running Site or a
 registered ChatGPT plugin. It does not contain a credential, API key,
 device pairing, user data, or an independent connection to an iPhone.
 
@@ -15,9 +15,9 @@ device pairing, user data, or an independent connection to an iPhone.
    ChatGPT Site with a tool named `iphone_chatgpt_handoff`. The sample
    `handoff-site.mjs` defines the desired input/output contract and
    imports the **same canonical** `prepareChatGPTHandoff` function used
-   by the local plugin. In the ChatGPT Sites builder, adapt this pure
-   function to the Site's supported MCP-tool registration API, without
-   adding any external device API, app installation, or arbitrary URL.
+   by the local plugin. `mcp-handler.mjs` implements the documented Sites
+   JSON-RPC endpoint; `worker.mjs` serves it at `POST /mcp` and the fixed
+   HTML page at `/`, without an external device API or arbitrary URL.
    `index.html` is an optional self-contained, accessible UI mockup for
    the three fixed navigation links. It makes **no network calls**.
 
@@ -54,6 +54,51 @@ Official sources (verified November 23, 2026):
 - https://help.openai.com/en/articles/20001547-hosting-a-plugin-with-chatgpt-sites
 - https://help.openai.com/en/articles/12584461-connecting-custom-mcp-servers-in-chatgpt
 - https://developers.openai.com/plugins/deploy/connect-chatgpt
+
+## Local Sites Worker and deployment boundary
+
+The Worker implements the Sites MCP `2026-07-28` contract from the installed
+Sites integration reference: `server/discover`, `tools/list`, and `tools/call`.
+It exposes exactly one read-only tool and returns both text content and
+`structuredContent.data`, preserving the existing portable handoff contract.
+It does not implement a legacy MCP initialization/session/SSE transport.
+
+Requests are limited to 4 KiB (including streamed bodies without a declared
+length). Unsupported HTTP methods, malformed JSON-RPC, batches, notifications,
+additional tool arguments, write tools and arbitrary links are rejected. Error
+responses do not echo arguments or caller identity. JSON-RPC IDs are echoed
+as required by the protocol and must not contain personal information.
+The Worker does not read authentication headers, store state, make outbound
+requests, or import any device driver or credential-handling module.
+
+**Hosting security prerequisite:** Sites authenticates callers and checks Site
+access before forwarding `/mcp`. This adapter relies on that trusted boundary;
+it is not a standalone authenticated server. Keep an eventual Site owner-only.
+Do not expose this Worker through another host without equivalent access control.
+No Site identity, production credential, connection, or deployment is included.
+
+From the repository root, after the existing plugin dependencies are installed:
+
+```sh
+node --test plugins/iphone-connect/test/sites-mcp.test.mjs
+plugins/iphone-connect/node_modules/.bin/esbuild \
+  plugins/igentic-chatgpt-iphone/sites-reference/worker.mjs \
+  --bundle --format=esm --platform=browser --loader:.html=text \
+  --outfile=plugins/iphone-connect/dist/sites-handoff/server/index.js
+```
+
+The test builds the actual Worker in memory, invokes its Fetch handler, and
+checks the HTML and all three MCP routes. It also checks negative inputs and
+stream cancellation. This is local runtime evidence, **not hosted ChatGPT E2E**.
+
+For an authorized future Site, use the returned real `project_id` in
+`.openai/hosting.json`, declare `capabilities: ["mcp"]`, omit `static`, and put
+the bundle at `dist/server/index.js` in that Site's source checkout. The current
+task permits publishing commits only to PR #406's existing branch, so no second
+Sites source repository has been created or pushed. Site publication and plugin
+installation remain separate from these repository tests. After approved private
+publication, verify the generated plugin with an actual tool call, then verify
+the link and manual confirmation in the actual ChatGPT iPhone client.
 
 
 ## Optional WebMCP browser-site tools (experimental, not Site-hosted MCP)
