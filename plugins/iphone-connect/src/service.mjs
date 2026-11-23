@@ -32,7 +32,7 @@ export class PhoneService {
       connectionPaths: [
         { id: 'usb-c', status: 'coredevice-requires-active-tunnel', macRequired: true },
         { id: 'wifi', status: 'coredevice-requires-active-tunnel', macRequired: true },
-        { id: 'cellular', status: 'companion-not-implemented', macRequired: false },
+        { id: 'cellular', status: 'companion-readiness-not-verified', macRequired: false },
         { id: 'on-device', status: 'separate-native-app', macRequired: false },
         { id: 'simulator', status: 'test-only-not-physical-evidence', macRequired: true }
       ] };

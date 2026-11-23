@@ -19,7 +19,13 @@ This directory contains the smallest installable iOS application wrapper for the
   (open-diagnostics and open-discovery) plus a UUID nonce. The corresponding
   SwiftUI view writes a fixed receipt only after appearing. There is no
   arbitrary device command, external listener or user-data disclosure.
-- No networking or external providers.
+- A separate, **optional**, manual cellular readiness screen can send exactly one
+  fixed HMAC-signed HTTPS request to the owner's configured server after
+  explicit local Keychain pairing and button tap. It does not receive remote
+  commands, write user data, guarantee background execution or control iOS
+  settings. No endpoint/secret ships in the app; there is no network request
+  during ordinary app launch.
+- No third-party mobile runtime or model provider.
 - No personal-data persistence. A fixed, nonpersonal iGentic bridge receipt is atomically replaced.
 - One **read-only, fixed-output App Intent** and discoverable App Shortcuts are included; no live diagnostic data, user data, model-driven calls, or privileged tool execution.
 - No model calls or model weights.

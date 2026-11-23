@@ -9,7 +9,7 @@ const stage = await mkdtemp(join(tmpdir(), 'igentic-package-'));
 try {
   const folder = join(stage, 'igentic-iphone-connect'); await mkdir(folder);
   for (const file of ['src', 'ui', 'skills', 'scripts', 'plugin.json', 'mcp.json', 'package.json',
-    'package-lock.json', 'README.md', 'PORTABLE_MCP.md', 'FIRST_PARTY_COREDEVICE.md', 'PRIVACY.md', 'THIRD_PARTY_NOTICES.md']) {
+    'package-lock.json', 'README.md', 'PORTABLE_MCP.md', 'FIRST_PARTY_COREDEVICE.md', 'CELLULAR_COMPANION.md', 'PRIVACY.md', 'THIRD_PARTY_NOTICES.md']) {
     await cp(join(ROOT, file), join(folder, file), { recursive: true });
   }
   await copyFile(resolve(ROOT, '../../LICENSE'), join(folder, 'LICENSE'));

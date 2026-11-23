@@ -50,6 +50,13 @@ public struct DiagnosticView: View {
                     }
                     .accessibilityIdentifier("igentic-open-local-discovery")
 
+                    #if os(iOS)
+                    NavigationLink("Mobilfunk Companion (optional)") {
+                        CellularCompanionView()
+                    }
+                    .accessibilityIdentifier("igentic-cellular-companion")
+                    #endif
+
                     Text("Bundled sample content only. No network or model execution.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)

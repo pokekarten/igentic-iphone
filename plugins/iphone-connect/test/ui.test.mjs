@@ -18,7 +18,7 @@ test('MCP Apps browser handshake, refresh and stop controls', { skip: !chrome },
       p.name==='iphone_stop_session'?{stopped:true}:p.name==='iphone_connection_report'
       ?{backend:'fixture',deviceStatus:'synthetic-only',actionReadiness:'not-verified',
         routes:[{id:'usb-c',state:'not-verified'},{id:'wifi',state:'not-verified'},
-          {id:'cellular',state:'companion-not-implemented'},
+          {id:'cellular',state:'companion-readiness-not-verified'},
           {id:'on-device',state:'separate-native-app'},{id:'simulator',state:'fixture-only'}]}
       :{backend:'fixture',markers:['Explore']}}};};
     bridge.oninitialized=async()=>{

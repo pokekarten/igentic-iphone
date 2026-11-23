@@ -17,7 +17,8 @@
     "smoke:usb": "node scripts/smoke-native-transport.mjs --usb",
     "smoke:wifi": "node scripts/smoke-native-transport.mjs --wifi",
     "package": "node scripts/package.mjs",
-    "serve:portable": "node src/portable-gateway.mjs"
+    "serve:portable": "node src/portable-gateway.mjs",
+    "serve:cellular": "node src/cellular-gateway.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/ext-apps": "2.0.4",

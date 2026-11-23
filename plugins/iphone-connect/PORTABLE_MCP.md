@@ -8,7 +8,7 @@ ChatGPT is one optional client. The long-term host is a native iPhone agent, not
 - App Intents, Siri and Shortcuts: local approved actions and automation.
 - MCP interface: generic protocol for ChatGPT and other compatible AI clients.
 - USB-C and Wi-Fi: existing physical-device development via Xcode/CoreDevice and MobileCLI.
-- Mobile data (4G/5G): future authenticated outbound companion-to-service connection.
+- Mobile data (4G/5G): opt-in first-party HTTPS readiness companion in source; not yet deployed or physically 4G/5G tested, no remote control.
 - Simulator: isolated acceptance tests, not physical-device evidence.
 
 ## Implemented today (not an iPhone installation)
@@ -26,7 +26,10 @@ An external ChatGPT iPhone app, another mobile AI client or an MCP service canno
 
 ## Separate, future iPhone installation
 
-The iOS companion itself must be signed and installed on the phone. It will expose only user-approved, app-owned operations through App Intents/Shortcuts. An MCP client or VPN alone cannot run a general iOS shell or change unrestricted device settings.
+The iOS companion itself must be signed and installed on the phone. An
+optional foreground-only mobile-data readiness screen and owner-operated,
+HMAC-authenticated HTTPS service are included in source, separate from this
+loopback MCP preview. See CELLULAR_COMPANION.md for the hard limits. It will expose only user-approved, app-owned operations through App Intents/Shortcuts. An MCP client or VPN alone cannot run a general iOS shell or change unrestricted device settings.
 
 Until mobile setup, app installation, app permissions and physical cellular tests have succeeded, report the iPhone runtime as NOT VERIFIED. Background execution may be suspended by iOS; measure the real lifecycle before claiming continuous connectivity.
 

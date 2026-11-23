@@ -27,7 +27,7 @@ export function makeConnectionReport({ backend, devices }) {
     const state = id === 'usb-c' && active && transport === 'usb-coredevice'
       || id === 'wifi' && active && transport === 'network-coredevice'
       ? 'transport-observed'
-      : id === 'cellular' ? 'companion-not-implemented'
+      : id === 'cellular' ? 'companion-readiness-not-verified'
       : id === 'on-device' ? 'separate-native-app'
       : id === 'simulator' ? kind === 'fixture' ? 'fixture-only' : 'test-only'
       : 'not-verified';

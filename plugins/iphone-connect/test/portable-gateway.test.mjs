@@ -24,7 +24,7 @@ test('portable Streamable HTTP MCP works for generic clients read-only', async t
   assert.equal(result.structuredContent.data.deviceStatus, 'not-observed');
   assert.equal(result.structuredContent.data.actionReadiness, 'not-verified');
   assert.equal(result.structuredContent.data.routes.length, 5);
-  assert.equal(result.structuredContent.data.routes[2].state, 'companion-not-implemented');
+  assert.equal(result.structuredContent.data.routes[2].state, 'companion-readiness-not-verified');
   assert.doesNotMatch(JSON.stringify(result), /udid|serial|privateNetwork/i);
   const caps = await client.callTool({ name: 'iphone_get_capabilities', arguments: {} });
   assert.deepEqual(caps.structuredContent.data.actions, []);

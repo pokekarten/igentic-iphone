@@ -167,6 +167,6 @@ test('capabilities retain every future route without inventing phone readiness',
     assert.match(route.status, /^[a-z-]+$/);
     assert.equal(typeof route.macRequired, 'boolean');
   }
-  assert.equal(snapshot.connectionPaths.find(x => x.id === 'cellular').status, 'companion-not-implemented');
+  assert.equal(snapshot.connectionPaths.find(x => x.id === 'cellular').status, 'companion-readiness-not-verified');
   assert.equal(snapshot.connectionPaths.find(x => x.id === 'simulator').status, 'test-only-not-physical-evidence');
 });

@@ -58,7 +58,7 @@ test('fixture is never represented as a reachable physical iPhone', () => {
   assert.equal(r.deviceStatus,'synthetic-only');
   assert.equal(r.transport,'none');
   assert.equal(byPath(r,'simulator').state,'fixture-only');
-  assert.equal(byPath(r,'cellular').state,'companion-not-implemented');
+  assert.equal(byPath(r,'cellular').state,'companion-readiness-not-verified');
   assert.equal(byPath(r,'on-device').state,'separate-native-app');
 });
 

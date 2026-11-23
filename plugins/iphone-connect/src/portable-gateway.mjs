@@ -34,7 +34,7 @@ export function createPortableMcp() {
     backend: 'portable-preview',
     clientInterfaces: ['mcp', 'native-ios-app-intents-planned'],
     deviceControl: 'not-connected',
-    cellularCompanion: 'not-implemented',
+    cellularCompanion: 'readiness-only-not-verified',
     actions: [],
     transport: 'loopback-streamable-http'
   }));

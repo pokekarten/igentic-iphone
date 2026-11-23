@@ -1,7 +1,7 @@
 # iGentic iPhone Connect
 
 Version 0.1.0 is a **local desktop developer plugin** for ChatGPT/Codex-compatible
-MCP hosts. It includes twelve typed tools, one skill, an MCP Apps dashboard with live route checks, a
+MCP hosts. It includes thirteen typed tools, one skill, an MCP Apps dashboard with live route checks, a
 physical-iPhone adapter, a separate fixture backend, and a Swift bridge to the
 existing iGentic `PolicyEngine` and `AuditLog`.
 
@@ -44,7 +44,7 @@ remain CoreDevice-available; that does not establish whether it is USB or Wi-Fi.
 | --- | --- | --- |
 | USB-C | First-party Apple CoreDevice adapter | Fresh tunnel and own-app UUID receipt |
 | Wi-Fi | First-party CoreDevice adapter, no MobileCLI dependency | Fresh network tunnel and own-app UUID receipt on real iPhone |
-| Cellular | Separate authenticated outbound companion **not yet implemented** | Real 4G/5G iPhone app lifecycle and approved app-owned action receipt |
+| Cellular | Optional native HTTPS readiness-only companion, code not deployed or hardware-verified | New signed iPhone app, owner-hosted HTTPS server and genuine mobile-data test |
 | On-device | Native App Intents and Shortcuts, outside this Mac plugin | iPhone-local execution and owner permission |
 | Simulator | Explicit fixture/native simulator tests, **not physical-device evidence** | Simulator-specific acceptance only |
 
@@ -65,10 +65,12 @@ discovery rejects simulators, remembered-only pairings and stale USB transport
 metadata whenever the reported tunnel is unavailable or disconnected.
 
 Do not claim a 5G remote-control test from Tailscale login, an IP address or VPN
-connectivity alone. A future cellular-native companion must expose only explicitly
-approved app-owned actions, use authenticated outbound communication with bounded
-lifetimes and demonstrate its actual foreground/background lifecycle on the
-physical phone. No public listener, generic iOS shell, cross-app automation or
+connectivity alone. The first-party cellular **readiness-only** companion has now been
+implemented as a separate opt-in HTTPS client/server, but is not a remote
+device-control transport. Its signed ping has no action execution. It
+requires manual owner configuration of an HTTPS host and newly signed app;
+no physical 4G/5G acceptance has happened. Any future device actions require
+separate approval, scope and physical evidence. No public listener, generic iOS shell, cross-app automation or
 unattended system-setting control is provided by this release.
 
 From this directory:
@@ -111,6 +113,16 @@ The backend never substitutes the synthetic backend. Fixture mode is explicit:
 ```sh
 IGENTIC_IPHONE_BACKEND=fixture npm run smoke
 ```
+
+## Optional first-party mobile data (4G/5G)
+
+Use [CELLULAR_COMPANION.md](CELLULAR_COMPANION.md) to set up an **owner-hosted**
+authenticated HTTPS readiness gateway with no third-party mobile automation
+software. It is a **separate route**, not an automatic CoreDevice fallback.
+Use npm run serve:cellular only after explicit private-key/TLS configuration.
+A manual tap in the newly installed iPhone app sends a fixed signed readiness
+ping with no remote-control commands. The host code and simulator build are
+not proof that the physical iPhone used cellular data.
 
 ## Portable iGentic plugin (ChatGPT is optional)
 
