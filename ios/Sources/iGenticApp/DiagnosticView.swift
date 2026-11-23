@@ -41,16 +41,6 @@ public struct DiagnosticView: View {
     public var body: some View {
         NavigationStack {
             List {
-                // Local-first agent entry point; navigation only, no tool execution.
-                Section("iGentic Agent") {
-                    NavigationLink("Agenten-Prototyp öffnen") {
-                        AgentHomePrototypeView()
-                    }
-                    .accessibilityIdentifier("igentic-open-agent-home")
-                    Text("Chat-ähnliche, regelbasierte Vorschau mit Links zu eigenen sicheren Funktionen.")
-                        .font(.footnote)
-                }
-
                 // Keep the fixed, read-only discovery entry visible for both
                 // the first-screen UI test and the bounded iPhone Connect adapter.
                 // The adapter intentionally cannot scroll arbitrary UI content.
@@ -70,6 +60,16 @@ public struct DiagnosticView: View {
                     Text("Bundled sample content only. No network or model execution.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
+                }
+
+                // Local-first agent entry point; navigation only, no tool execution.
+                Section("iGentic Agent") {
+                    NavigationLink("Agenten-Prototyp öffnen") {
+                        AgentHomePrototypeView()
+                    }
+                    .accessibilityIdentifier("igentic-open-agent-home")
+                    Text("Chat-ähnliche, regelbasierte Vorschau mit Links zu eigenen sicheren Funktionen.")
+                        .font(.footnote)
                 }
 
                 #if os(iOS)
