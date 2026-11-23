@@ -343,6 +343,47 @@ final class AgentLoopStatusShortcutStoreTests: XCTestCase {
         }
     }
 
+    func testExpiredUncertainReadMustNotBeRelabelledAsNeverRun() async throws {
+        try await MainActor.run {
+            let dir = FileManager.default.temporaryDirectory
+                .appendingPathComponent("igentic-uncertain-status-\(UUID())")
+            defer { try? FileManager.default.removeItem(at: dir) }
+            let path = dir.appendingPathComponent("journal.json")
+            var now = Date(timeIntervalSince1970: 1_800_000_000)
+            let store = AgentLoopStatusShortcutStore(fileURL: path, clock: { now })
+            let id = try XCTUnwrap(jsonDictionary(store.begin())["taskId"] as? String)
+            var contents = try String(contentsOf: path, encoding: .utf8)
+            contents = contents.replacingOccurrences(of: "awaitingStatus",
+                                                      with: "readAttempted")
+            try contents.write(to: path, atomically: true, encoding: .utf8)
+            now = now.addingTimeInterval(AgentLoopStatusShortcutStore.ttl + 1)
+            // An interrupted statusReader could already have read the iPhone.
+            // A timeout must not erase the explicit uncertainty marker.
+            XCTAssertEqual(try store.stageForOwner(), .readAttempted)
+            XCTAssertEqual(try AgentLoopStatusShortcutStore(
+                fileURL: path, clock: { now }).stageForOwner(), .readAttempted)
+            XCTAssertThrowsError(try store.advance(
+                taskID: id, modelReply: #"{ "action": "status.read" }"#,
+                statusReader: { demoShortcutsStatus() }
+            )) {
+                XCTAssertEqual($0 as? AgentLoopStatusShortcutError, .uncertainRead)
+            }
+        }
+    }
+
+    func testOwnerStatusTextNeverReportsUncertainReadAsCompleted() async {
+        await MainActor.run {
+            XCTAssertTrue(AgentLoopStatusShortcutStage.readAttempted.ownerStatusText
+                .contains("ungewiss"))
+            XCTAssertFalse(AgentLoopStatusShortcutStage.readAttempted.ownerStatusText
+                .contains("abgeschlossen"))
+            XCTAssertTrue(AgentLoopStatusShortcutStage.expired.ownerStatusText
+                .contains("abgelaufen"))
+            XCTAssertTrue(AgentLoopStatusShortcutStage.finished.ownerStatusText
+                .contains("Keine Fernaktion"))
+        }
+    }
+
     func testCorruptOrSymlinkedJournalAndBusyClaimFailClosed() async throws {
         try await MainActor.run {
             let dir = FileManager.default.temporaryDirectory

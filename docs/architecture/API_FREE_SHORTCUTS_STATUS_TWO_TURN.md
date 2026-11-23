@@ -29,6 +29,24 @@ Das JSON enthält keine Fotos, Nachrichten, Kontakte, Credential, Listen von App
 - Die JSON-Datei enthält keinen Eigentümer-Schlüssel und ist nicht gegen Manipulation durch einen lokalen Prozess mit demselben App-Sandbox-Zugriff kryptographisch versiegelt. Das Sicherheitsmodell setzt das isolierte, signierte iOS-App-Sandbox-Vertrauensniveau voraus; ein späterer Fernkanal muss die Replay-/Authentifizierungs-PRs #411–#420 gesondert integrieren.
 - Das erste Feld `observation` ist sichtbar in der Kurzbefehle-Rückgabe. Ob der Eigentümer diese an ChatGPT weiterleitet, entscheidet ausschließlich die von ihm eingerichtete Shortcut-Kette. **Local Only in PolicyEngine verhindert nicht, dass ein anschließend unabhängig konfigurierter Kurzbefehl dieselben Daten extern weitergibt.**
 
+## Ungewisser Statusleseversuch bleibt ungewiss
+
+Die fünfminütige Ablaufgrenze gilt für noch nicht ausgeführte lokale
+Statusvorschläge und den ausstehenden Abschluss. Wenn dagegen vor dem
+nativen Lesen bereits der persistierte Marker readAttempted gesetzt wurde,
+kann die App nach einem Prozessabsturz nicht wissen, ob der Status schon
+gelesen wurde. Ein Ablauf oder eine bloße Owner-Zustandsabfrage darf
+diesen Marker deshalb **nicht** als expired umetikettieren. Auch
+advance() meldet dann explizit uncertainRead statt lediglich expired.
+Ein neuer Auftrag erfordert weiterhin ein separates owner-gestartetes
+begin() nach Ablauf, nie einen automatischen Wiederholungsversuch derselben
+Auftrags-ID.
+
+Die Einrichtungsansicht benutzt deutsche Statusbeschreibungen. Besonders
+readAttempted wird als **Ausführung ungewiss** und nicht als Erfolg
+dargestellt; der fertige Zustand bestätigt ausdrücklich keine Fernaktion.
+Das ist keine Geräteattestation und ruft keinen Modellanbieter auf.
+
 ## Testmatrix ohne iPhone
 
 Swift-Tests prüfen über mehrere neue Store-Instanzen (simulierte Prozessgrenzen): Status lesen → Ende, erneuter Leseversuch, falsche Task-ID, ungültige und gefälschte Modellantworten, Zeitablauf, zukünftigen Zeitstempel, persistierten `readAttempted`-Marker, defekte oder übergroße JSON-Dateien, Symbolic Links und konkurrierende beziehungsweise manipulierte `.lock`-Dateien. Xcode-27-Simulator-Build prüft die AppIntents-Kompilierung; er ersetzt **keine** reale Kurzbefehle-/Siri-/ChatGPT-Abnahme.

@@ -27,6 +27,25 @@ public enum AgentLoopStatusShortcutStage: String, Codable, Sendable {
     case finished
     case rejected
     case expired
+
+    /// Human-facing text keeps an uncertain read distinct from an expired
+    /// untouched proposal, and never asserts a physical device receipt.
+    public var ownerStatusText: String {
+        switch self {
+        case .awaitingStatus:
+            return "Wartet auf einen Statusvorschlag (nur lokal)."
+        case .readAttempted:
+            return "Statusabfrage ungewiss: möglicherweise bereits gelesen. Nicht automatisch wiederholen."
+        case .awaitingFinish:
+            return "Lokaler Status gelesen; Kurzbefehle-Abschluss noch offen."
+        case .finished:
+            return "Lokaler Status-Loop abgeschlossen. Keine Fernaktion bestätigt."
+        case .rejected:
+            return "Modellvorschlag abgelehnt; keine neue Ausführung."
+        case .expired:
+            return "Auftrag abgelaufen; der bisherige Status-Loop ist nicht mehr fortsetzbar."
+        }
+    }
 }
 
 private struct AgentLoopStatusShortcutJournal: Codable {
@@ -133,6 +152,12 @@ public final class AgentLoopStatusShortcutStore {
             guard taskID == state.id.uuidString.lowercased() else {
                 throw AgentLoopStatusShortcutError.taskMismatch
             }
+            // A crash may occur after readAttempted was persisted and after
+            // the status reader observed a real device. Its uncertainty takes
+            // priority over TTL, and must not be rewritten as simple expiry.
+            if state.stage == .readAttempted {
+                throw AgentLoopStatusShortcutError.uncertainRead
+            }
             let age = clock().timeIntervalSince(state.createdAt)
             guard age >= 0, age < Self.ttl else {
                 state.stage = .expired
@@ -227,7 +252,9 @@ public final class AgentLoopStatusShortcutStore {
     public func stageForOwner() throws -> AgentLoopStatusShortcutStage? {
         try withClaim {
             guard var state = try load() else { return nil }
-            if [.awaitingStatus, .readAttempted, .awaitingFinish].contains(state.stage) {
+            // An uncertain read is a durable safety marker, not an idle
+            // unstarted proposal. Its outcome remains unknown past TTL.
+            if [.awaitingStatus, .awaitingFinish].contains(state.stage) {
                 let age = clock().timeIntervalSince(state.createdAt)
                 if !age.isFinite || age < 0 || age >= Self.ttl {
                     state.stage = .expired

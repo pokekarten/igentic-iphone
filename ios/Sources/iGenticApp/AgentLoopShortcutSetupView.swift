@@ -151,7 +151,7 @@ public struct AgentLoopShortcutSetupView: View {
     private func refreshStatusLoop() {
         do {
             let stage = try AgentLoopStatusShortcutStore().stageForOwner()
-            statusLoopStageText = "Lokaler Status-Loop: " + (stage?.rawValue ?? "kein Auftrag")
+            statusLoopStageText = "Lokaler Status-Loop: " + (stage?.ownerStatusText ?? "kein Auftrag")
         } catch {
             statusLoopStageText = "Lokaler Status-Loop nicht lesbar oder gesperrt. Keine Wiederholung starten."
         }
