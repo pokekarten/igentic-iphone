@@ -54,6 +54,33 @@ path. Private key files are never bundled or committed.
 
 Pairing remains **manual** in this version; there is no automatic credential enrollment, QR provisioning or hosted relay. Do not start public service without reviewing firewall, TLS certificate and key policies.
 
+## Read-only physical iPhone signing preflight
+
+Before attempting a signed physical iPhone installation, run on the Mac
+from the repository's plugin folder:
+
+    cd plugins/iphone-connect
+    npm run preflight:cellular-physical
+
+This *read-only* diagnostic inspects the iOS app's committed Xcode settings,
+checks only the existence of locally available Apple code-signing identities
+and candidate provisioning profiles, and asks the existing iGentic doctor for
+a live CoreDevice tunnel status. It does **not** create or select an Apple
+Developer Team, change bundle identifiers, inspect certificate contents,
+reveal identifiers, print paths, install an app or start a public server.
+Candidate profiles are **not** verified to match the specific app.
+Presence of a developer identity does not prove that the current app can
+be signed. Every report explicitly sets the profile-match, physical-install
+and cellular-transport evidence flags to false.
+
+With default source settings, the app still has an empty
+DEVELOPMENT_TEAM and placeholder org.example.iGenticDiagnostics identifier.
+The owner must configure their own development team and app identifier
+privately in Xcode before physical signing. The report never prints their team,
+certificate, device ID, host name or pairing secret. Physical network
+reachability is separate from HTTPS owner-host readiness and from a
+successful 4G/5G task transaction.
+
 ## Mac-only readiness verification of an owner HTTPS server
 
 After the owner has explicitly provisioned a trusted HTTPS hostname,

@@ -114,6 +114,15 @@ The backend never substitutes the synthetic backend. Fixture mode is explicit:
 IGENTIC_IPHONE_BACKEND=fixture npm run smoke
 ```
 
+## Physical installation prerequisites (read-only)
+
+Run npm run preflight:cellular-physical for a sanitized, **read-only**
+report on iGentic's Xcode team/bundle settings, local signing identity,
+local candidate provisioning profiles and the existing live CoreDevice
+connection. No signing, Apple account mutation, app installation, data
+transfer, Internet request or real mobile-network proof is performed.
+See [CELLULAR_COMPANION.md](CELLULAR_COMPANION.md).
+
 ## Owner-hosted cellular HTTPS preflight (Mac-only)
 
 The separate `npm run smoke:cellular-host` command verifies a

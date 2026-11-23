@@ -30,7 +30,10 @@ app, trusted HTTPS host and explicit physical mobile-data acceptance. USB-C
 and Wi-Fi remain independent connection options. The optional
 `npm run smoke:cellular-host` preflight checks an explicitly configured
 owner-operated HTTPS server **from the Mac only** and never claims a cellular
-or iPhone-device connection.
+or iPhone-device connection. For physical-install prerequisites, use the
+separate read-only npm run preflight:cellular-physical command in the
+iPhone Connect plugin. It reports only sanitized statuses and never
+installs an app or changes Apple account settings.
 
 This repository is intentionally small and controller-friendly. It is designed for a workflow where ChatGPT acts as the project controller through the GitHub Connector, Codex creates narrow Draft PRs, and real iPhone testing decides what is actually usable.
 

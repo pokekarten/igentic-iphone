@@ -19,7 +19,8 @@
     "package": "node scripts/package.mjs",
     "serve:portable": "node src/portable-gateway.mjs",
     "serve:cellular": "node src/cellular-gateway.mjs",
-    "smoke:cellular-host": "node scripts/smoke-cellular-host.mjs"
+    "smoke:cellular-host": "node scripts/smoke-cellular-host.mjs",
+    "preflight:cellular-physical": "node scripts/physical-cellular-preflight.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/ext-apps": "2.0.4",
