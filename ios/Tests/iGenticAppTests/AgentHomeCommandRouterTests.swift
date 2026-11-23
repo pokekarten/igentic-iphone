@@ -13,9 +13,10 @@ final class AgentHomeCommandRouterTests: XCTestCase {
     }
 
     func testAllNavigableDestinationsPassLocalPolicyOnly() {
-        for destination: AgentHomeDestination in [
+        let destinations: [AgentHomeDestination] = [
             .offlineTools, .reminderDraft, .discovery, .diagnostics
-        ] {
+        ]
+        for destination in destinations {
             XCTAssertNotNil(AgentHomeCapabilityCatalog.definition(for: destination))
             XCTAssertTrue(AgentHomeCapabilityCatalog.canNavigate(to: destination))
         }
