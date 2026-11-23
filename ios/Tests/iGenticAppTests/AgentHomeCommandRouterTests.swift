@@ -25,6 +25,49 @@ final class AgentHomeCommandRouterTests: XCTestCase {
         XCTAssertFalse(AgentHomeCommandRouter.preview("Öffne WhatsApp").canOpenOwnedScreen)
     }
 
+    func testNoSilentPrefixTruncationOrEmbeddedNull() {
+        let long = "Erinnere mich morgen an die Pflanze "
+            + String(repeating: "x", count: 510)
+            + " und schicke eine Nachricht"
+        XCTAssertEqual(AgentHomeCommandRouter.preview(long).destination, .unsupported)
+        XCTAssertEqual(AgentHomeCommandRouter.preview("Status\\u{0000} lesen").destination, .unsupported)
+    }
+
+    func testMixedLocalDestinationsAreNotGuessed() {
+        let examples = [
+            "Erinnerung und Status",
+            "Erinnere mich und öffne offline Text",
+            "Offline Text und Diagnose",
+            "Status und Explore"
+        ]
+        for example in examples {
+            XCTAssertEqual(AgentHomeCommandRouter.preview(example).destination, .unsupported,
+                           "unexpected route for \\(example)")
+        }
+    }
+
+    func testUnsupportedMessagingAndSystemActionsTakePrecedence() {
+        let examples = [
+            "Schicke die Erinnerung an alle Kontakte",
+            "Bitte verschicke meinen Status per Nachricht",
+            "Teile eine Offline-Notiz",
+            "Erinnerung per Mail verschicken",
+            "Installiere eine App und prüfe Status",
+            "Ändere die iPhone Einstellungen und lies Status"
+        ]
+        for example in examples {
+            XCTAssertEqual(AgentHomeCommandRouter.preview(example).destination, .unsupported,
+                           "unexpected route for \\(example)")
+        }
+    }
+
+    func testSimpleGermanAndEnglishDestinationsRemainUsable() {
+        XCTAssertEqual(AgentHomeCommandRouter.preview("Remind me tomorrow").destination, .reminderDraft)
+        XCTAssertEqual(AgentHomeCommandRouter.preview("Vorlesen").destination, .offlineTools)
+        XCTAssertEqual(AgentHomeCommandRouter.preview("ENTDECKEN").destination, .discovery)
+        XCTAssertEqual(AgentHomeCommandRouter.preview("Verbindung prüfen").destination, .diagnostics)
+    }
+
     func testSensitiveMutationCommandsCannotBeReclassifiedAsReminder() {
         XCTAssertEqual(AgentHomeCommandRouter.preview("Lösche alle Erinnerungen").destination, .unsupported)
         XCTAssertEqual(AgentHomeCommandRouter.preview("Sende meine Erinnerung als SMS").destination, .unsupported)
