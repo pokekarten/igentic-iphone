@@ -69,9 +69,12 @@ Availability is determined on device, not inferred from iOS version or account.
 
 - Siri -> predefined iGentic Shortcut -> Use Model -> iGentic review -> separate
   explicit iGentic action -> Siri/show result.
-- iGentic -> user-initiated Shortcut (via documented URL/open action where
-  supported) -> Use Model -> own Review Intent. Foreground transitions and
-  callbacks require actual iPhone testing; no arbitrary programmatic Siri wake.
+- iGentic -> explicit tap on "iGentic ChatGPT Loop in Kurzbefehle starten"
+  in Agent Home -> fixed shortcuts://run-shortcut?name=... link -> Use Model ->
+  own Review Intent. The URL carries ONLY the fixed Shortcut name; no private
+  task text or token. User must first create the named Shortcut on this phone.
+  Foreground transitions and callbacks require actual iPhone testing; no
+  arbitrary programmatic Siri wake.
 - User-selected iOS Share Sheet -> ChatGPT app is manual export only and carries
   no guaranteed return callback.
 - x-callback-url is a *separate optional* route. An x-success result may
