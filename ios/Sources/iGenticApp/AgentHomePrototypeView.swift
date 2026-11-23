@@ -40,7 +40,7 @@ public struct AgentHomePrototypeView: View {
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 .padding(14)
-                .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 16))
+                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
 
                 if let proposal {
                     VStack(alignment: .leading, spacing: 12) {
