@@ -164,6 +164,42 @@ final class AgentLoopNativeReadOnlySessionTests: XCTestCase {
             XCTAssertEqual(expired.remoteActionExecuted, false)
             XCTAssertEqual(session.accept(modelReply: #"{"action":"finish"}"#).stage, .expired)
             XCTAssertNil(session.snapshot().localObservation)
+    func testNestedFinishCannotCompleteWhileStatusReadIsInProgress() async {
+        await MainActor.run {
+            var reads = 0
+            var session: AgentLoopNativeReadOnlySession!
+            session = AgentLoopNativeReadOnlySession(statusReader: {
+                reads += 1
+                _ = session.accept(modelReply: #"{"action":"finish"}"#)
+                return syntheticLoopStatus()
+            })
+            let result = session.accept(modelReply: #"{"action":"status.read"}"#)
+            XCTAssertEqual(reads, 1)
+            XCTAssertEqual(result.stage, .rejected)
+            XCTAssertNil(result.localObservation)
+            XCTAssertEqual(session.accept(modelReply: #"{"action":"finish"}"#).stage,
+                           .rejected)
+        }
+    }
+
+    func testReentrantStatusReaderCannotReadTwiceOrResetRejection() async {
+        await MainActor.run {
+            var reads = 0
+            var session: AgentLoopNativeReadOnlySession!
+            session = AgentLoopNativeReadOnlySession(statusReader: {
+                reads += 1
+                if reads == 1 {
+                    // A native callback can synchronously re-enter the public
+                    // accept method before the original read returns.
+                    _ = session.accept(modelReply: #"{"action":"status.read"}"#)
+                }
+                return syntheticLoopStatus()
+            })
+            let result = session.accept(modelReply: #"{"action":"status.read"}"#)
+            XCTAssertEqual(reads, 1, "Only one own-app read is permitted")
+            XCTAssertEqual(result.stage, .rejected)
+            XCTAssertEqual(session.snapshot().stage, .rejected)
+            XCTAssertFalse(result.remoteActionExecuted)
         }
     }
 }

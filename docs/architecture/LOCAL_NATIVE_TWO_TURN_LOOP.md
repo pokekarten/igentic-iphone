@@ -10,6 +10,7 @@ This does **not** prove Siri, ChatGPT, physical iPhone, remote transport or mode
 - The only observable result is a bounded status summary held in memory; **no automatic export or disclosure to the model**.
 - A final state, invalid order, malformed output, duplicate JSON key, unsupported action, spoofed approval, timeout or replay cannot invoke further status reads.
 - Both model replies **and status snapshots** enforce the five-minute bound. If an unfinished session expires or its clock moves backwards, it irreversibly becomes `expired` and clears any local observation; polling does not keep the session or observation alive.
+- The status-reader callback has an in-flight reentrancy guard. A nested proposal (including an early `finish`) permanently rejects the session, never reads twice, and cannot reset rejection after the outer callback returns. Covered by an independent red-before/green-after regression.
 - The app exposes a visible, explicitly owner-tapped *synthetic test* with these two fixed proposals; it reads the local status. It never invokes ChatGPT, another model, an App Intent, MCP or another app.
 - Every receipt states `remoteActionExecuted=false` and `ownerApprovalGranted=false`. Observing a local read is **not** physical device attestation.
 - This is a safe reusable native harness, **not** a general-purpose executor. Do not add write tools without capability-specific approvals, durable replay and verified read-back.
