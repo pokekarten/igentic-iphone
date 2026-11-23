@@ -37,6 +37,15 @@ test('portable Streamable HTTP MCP works for generic clients read-only', async t
   assert.equal(offline.structuredContent.data.status, 'manual-handoff-only');
   assert.equal(offline.structuredContent.data.deviceActionExecuted, false);
   assert.equal(offline.structuredContent.data.appInstalled, 'not-checked');
+  const workspace = await client.callTool({ name: 'iphone_prepare_local_task',
+    arguments: { task: 'workspace-note' } });
+  assert.equal(workspace.structuredContent.data.task, 'workspace-note');
+  assert.equal(workspace.structuredContent.data.deviceActionExecuted, false);
+  assert.equal(workspace.structuredContent.data.appInstalled, 'not-checked');
+  assert.equal(Object.hasOwn(workspace.structuredContent.data, 'copyableDraft'), false);
+  const privateText = await client.callTool({ name: 'iphone_prepare_local_task',
+    arguments: { task: 'workspace-note', text: 'secret local note' } });
+  assert.equal(privateText.isError, true);
   const unavailable = await client.callTool({ name: 'iphone_execute_action', arguments: {} });
   assert.equal(unavailable.isError, true);
 });

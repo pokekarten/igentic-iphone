@@ -19,6 +19,15 @@ public struct OfflineToolsView: View {
 
     public var body: some View {
         Form {
+            Section("Lokaler Arbeitsbereich") {
+                NavigationLink("Notizen lokal verwalten") {
+                    LocalWorkspaceView()
+                }
+                .accessibilityIdentifier("igentic-local-workspace")
+                Text("Textdateien nur im App-Sandbox speichern, mit Vorschau und ausdrücklicher Bestätigung.")
+                    .font(.footnote)
+            }
+
             Section("Text ohne KI-Dienst") {
                 TextEditor(text: $draft)
                     .frame(minHeight: 110)

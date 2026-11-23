@@ -21,6 +21,7 @@ export function optionalToolCatalog() {
       { id: 'diagnostics', implemented: 'native-ios-app', entry: 'iGentic Diagnostics', noMacRequired: true },
       { id: 'discovery', implemented: 'native-ios-app', entry: 'Open local discovery', noMacRequired: true },
       { id: 'text-draft', implemented: 'native-ios-app', entry: 'Offline-Werkzeuge', noMacRequired: true },
+      { id: 'workspace-note', implemented: 'native-ios-app-owner-confirmation', entry: 'Offline-Werkzeuge > Notizen lokal verwalten', noMacRequired: true },
       { id: 'speak-text', implemented: 'native-ios-app', entry: 'Offline-Werkzeuge', noMacRequired: true },
       { id: 'read-image-text', implemented: 'native-ios-app', entry: 'Offline-Werkzeuge', noMacRequired: true },
       { id: 'reminder', implemented: 'native-ios-app-owner-approval', entry: 'Erinnerung erstellen', noMacRequired: true },
@@ -42,6 +43,10 @@ const TASKS = Object.freeze({
   discovery: { entry: 'iGentic Diagnostics > Open local discovery', steps: [
     'Open the signed iGentic app and choose Open local discovery.',
     'The bundled discovery content is available without a network connection.' ] },
+  'workspace-note': { entry: 'iGentic Diagnostics > Offline-Werkzeuge > Notizen lokal verwalten', steps: [
+    'Open the signed iGentic app and select Notizen lokal verwalten.',
+    'Enter an ASCII note name and draft; tap Änderung prüfen to inspect both versions.',
+    'Only an explicit tap on Diese Version lokal speichern writes into the app sandbox. MCP does not read or write notes.' ] },
   'text-draft': { entry: 'iGentic Diagnostics > Offline-Werkzeuge', steps: [
     'Open Offline-Werkzeuge, enter or paste text locally.',
     'Copy it only if you choose the explicit copy button. No remote write is performed.' ] },
