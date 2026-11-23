@@ -15,11 +15,14 @@ merging different code, it stopped with a **pin mismatch**.
 
 The standard-library-only verifier pins exact heads in the JSON manifest
 at scripts/agent_loop_stack_manifest.json. Its isolated temporary clone
-starts with #420 and folds in, in order, #414 (ledger integrity), #416 (Swift
-crypto/replay boundary), #410 (read-only ChatGPT Site/MCP controls), and #421
-(native two-turn loop on the #409 Shortcuts/Agent Home foundation). Parent
-branches are included by ancestry. The manifest is deliberately NOT rewritten
-to latest: new heads require review and manual SHA repinning.
+starts with #420 (signed delivery marker and #417 lineage) and folds in,
+in order, #414 (SQLite replay integrity), #416 (Swift cryptographic
+verification), #410 (read-only ChatGPT Site/MCP controls), #421 (native
+two-turn read-only loop), #423 (in-memory status expiry), #422 (persisted
+Shortcuts two-turn App Intents) and #424 (cross-invocation locking for
+Shortcuts AI exchange). Parent PRs, including #409, are included by
+Git ancestry. The manifest is deliberately NOT rewritten to latest:
+new heads require review and manual SHA repinning.
 
 The verifier checks exact branch heads before merging, reports conflicting
 file paths if a merge fails, validates repository structure, runs selected
@@ -35,12 +38,15 @@ From a clone with authenticated read-only access to the private repository:
     python3 scripts/verify_agent_loop_stack.py --mode merge
     python3 scripts/verify_agent_loop_stack.py --mode quick
     python3 scripts/verify_agent_loop_stack.py --mode full
+    python3 scripts/verify_agent_loop_stack.py --mode full-ios
 
-Merge mode verifies heads and structure. Quick mode also executes selected
-cross-PR Node tests. Full mode installs existing plugin dependencies, runs
-the complete serial Node suite and all Swift package unit tests. Full mode
-may fetch npm dependencies but uses NO paid or model OpenAI API. It never
-runs an iOS UI test or attempts to contact a real iPhone.
+Merge mode verifies heads and structure. Quick mode additionally executes
+cross-PR Node security tests. Full mode installs the existing plugin
+dependencies and runs all serial Node and Swift package unit tests.
+Full-ios adds an unsigned generic **iOS Simulator app build of the same
+integrated source** (Xcode required, no simulator launch or App Intents
+system dispatch). Full and full-ios may fetch standard npm dependencies
+but use NO paid or model OpenAI API. They do not contact a real iPhone.
 
 This test tool belongs only to existing Draft integration PR #395.
 Source conflicts, missing branches and stale SHAs are real failures;
@@ -58,3 +64,20 @@ The iPhone was unavailable via both Wi-Fi and USB-C during this work.
 Actual hardware and private-Site acceptance remain distinct release gates
 tracked in GitHub issue #418. Never promote offline test success to
 actionExecuted=true or an automatic retry after uncertain delivery.
+
+## Concurrency, coverage and governance
+
+A passing run means exactly the pinned immutable commits passed, **not**
+that each moving upstream branch is still at that head later. GitHub
+updates during the initial fetch/merge phase are rejected; new heads must
+be reviewed and repinned, then the combined tests rerun.
+
+The eight-way check exercises the owner's native two-turn status logic
+and persistent, crash-conservative App Intent journal as Swift package
+code. The Node checks cover MCP contract, signed admission, durable
+replay, write-ahead marker and simulated receipt parity. Native iOS
+signing/Keychain provisioning, separately configured Siri/Shortcuts
+execution, ChatGPT Project-chat continuity, a genuine authenticated
+Site-to-device transport and physical-device attestation remain
+**unverified**. Keep all PRs Draft; never promote synthetic receipts
+to confirmed physical execution.

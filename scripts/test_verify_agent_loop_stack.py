@@ -3,7 +3,9 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
-from verify_agent_loop_stack import OfflineStackError, manifest_entries
+from verify_agent_loop_stack import (
+    OfflineStackError, manifest_entries, unsigned_ios_simulator_build_command
+)
 
 
 def sample():
@@ -68,6 +70,22 @@ class PinnedStackManifestTests(unittest.TestCase):
         m["branches"][0]["pr"] = True
         with self.assertRaises(OfflineStackError):
             self.parse(m)
+
+    def test_simulator_build_cannot_sign_or_select_physical_iphone(self):
+        argv = unsigned_ios_simulator_build_command(
+            Path("/tmp/isolated-build-placeholder")
+        )
+        self.assertEqual(argv[0], "xcodebuild")
+        self.assertEqual(argv[-1], "build")
+        self.assertIn("iphonesimulator", argv)
+        self.assertIn("generic/platform=iOS Simulator", argv)
+        self.assertIn("CODE_SIGNING_ALLOWED=NO", argv)
+        self.assertNotIn("iphoneos", argv)
+        self.assertNotIn("test", argv)
+        self.assertNotIn("install", argv)
+        self.assertNotIn("run", argv)
+        self.assertEqual(argv[argv.index("-derivedDataPath") + 1],
+                         "/tmp/isolated-build-placeholder")
 
     def test_deny_missing_manifest(self):
         with self.assertRaises(OfflineStackError):

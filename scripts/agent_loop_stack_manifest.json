@@ -15,17 +15,32 @@
     {
       "pr": 416,
       "ref": "feat/ios-agent-loop-owner-task-verifier-20261123",
-      "sha": "5b07dcc5f084afabc2d24cf1b25b2828b792047e"
+      "sha": "90a9e2198e80e6f4da6a4015c44962f9ced16659"
     },
     {
       "pr": 410,
       "ref": "feat/plugin-capability-guide-20261123",
-      "sha": "e25ac78c4b91761b96ca54a03758a1d6d3f096a6"
+      "sha": "1419986ca079565d14e9caad4c54faa94cfb76c9"
     },
     {
       "pr": 421,
       "ref": "feat/native-readonly-loop-20261123",
-      "sha": "360220d36688e0a20bef8b7a460d02f0d49ca358"
+      "sha": "9f2f57652de2ae162268c50e2356117ad0e09ee5"
+    },
+    {
+      "pr": 423,
+      "ref": "fix/native-loop-snapshot-expiry-20261123",
+      "sha": "ab50302723ac31e5a91081cd2b19c83a344f6e63"
+    },
+    {
+      "pr": 422,
+      "ref": "feat/shortcuts-status-receipt-20261123",
+      "sha": "57bfd1f7a1fcdad067f63b9339173e3c613f3680"
+    },
+    {
+      "pr": 424,
+      "ref": "fix/shortcut-loop-atomic-store-20261123",
+      "sha": "763a296984c3e2171910d12d93269ce3509d319b"
     }
   ]
 }

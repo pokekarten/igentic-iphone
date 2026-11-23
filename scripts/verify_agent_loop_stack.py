@@ -132,6 +132,19 @@ def compose(entries: list[dict], destination: Path, *, url: str) -> str:
     return final
 
 
+def unsigned_ios_simulator_build_command(derived_data: Path) -> list[str]:
+    """Compile-only, never a simulator launch or an iPhoneOS device build."""
+    return [
+        "xcodebuild", "-project",
+        "app/iGenticDiagnostics/iGenticDiagnostics.xcodeproj",
+        "-scheme", "iGenticDiagnostics", "-configuration", "Debug",
+        "-sdk", "iphonesimulator",
+        "-destination", "generic/platform=iOS Simulator",
+        "-derivedDataPath", str(derived_data),
+        "-jobs", "2", "CODE_SIGNING_ALLOWED=NO", "build"
+    ]
+
+
 def verify(work: Path, mode: str) -> None:
     checked(["python3", "scripts/validate_repo_structure.py"], cwd=work)
     print("Repository structure PASS", flush=True)
@@ -149,10 +162,10 @@ def verify(work: Path, mode: str) -> None:
     checked(["node", "--test", *scripts], cwd=work / "plugins/iphone-connect")
     print("Focused cross-PR Node admission, marker, receipt and Site PASS",
           flush=True)
-    if mode != "full":
+    if mode not in ("full", "full-ios"):
         return
-    # Serial runs avoid overloading an 8GB Mac. No simulator or physical
-    # iPhone command; Swift package unit tests use local synthetic keys.
+    # Serial runs avoid overloading a low-RAM Mac. No physical device
+    # command; Swift package unit tests use synthetic test keys.
     checked(["npm", "ci", "--ignore-scripts", "--no-audit", "--no-fund"],
             cwd=work / "plugins/iphone-connect", timeout_seconds=180)
     test_files = sorted(str(p.relative_to(work / "plugins/iphone-connect"))
@@ -166,12 +179,21 @@ def verify(work: Path, mode: str) -> None:
              str(work.parent / "swift-build"), "-j", "1"], cwd=work,
             timeout_seconds=300)
     print("Full Swift package tests PASS", flush=True)
+    if mode != "full-ios":
+        return
+    # Compile the actual iOS app integration target without signing,
+    # launching the simulator, installing Shortcuts or contacting hardware.
+    checked(unsigned_ios_simulator_build_command(
+        work.parent / "xcode-build"
+    ), cwd=work, timeout_seconds=420)
+    print("Combined unsigned iOS Simulator application BUILD PASS",
+          flush=True)
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
-    parser.add_argument("--mode", choices=("merge", "quick", "full"),
+    parser.add_argument("--mode", choices=("merge", "quick", "full", "full-ios"),
                         default="quick")
     args = parser.parse_args()
     try:
