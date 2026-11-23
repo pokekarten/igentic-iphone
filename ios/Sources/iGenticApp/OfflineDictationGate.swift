@@ -9,6 +9,20 @@ public enum OfflineDictationGateDecision: String, Equatable, Sendable {
 }
 
 public enum OfflineDictationGate {
+    /// Avoid mutating the shared AVAudioSession when this dictation view has
+    /// never owned a microphone session. A pending permission request must
+    /// still be cancellable without activating an unrelated audio session.
+    public static func requiresStop(
+        recording: Bool,
+        starting: Bool,
+        hasEngine: Bool,
+        hasRecognitionTask: Bool,
+        hasRequest: Bool,
+        ownsAudioSession: Bool
+    ) -> Bool {
+        recording || starting || hasEngine || hasRecognitionTask || hasRequest || ownsAudioSession
+    }
+
     public static func decide(
         supportsOnDevice: Bool,
         recognizerAvailable: Bool,

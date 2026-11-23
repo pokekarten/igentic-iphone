@@ -18,6 +18,14 @@ private final class OfflineDictationController: ObservableObject {
     private var recognitionTask: SFSpeechRecognitionTask?
     private var timeoutTask: Task<Void, Never>?
     private var generation = UUID()
+    // Deactivate the shared app audio session only when our own capture
+    // actually activated it. Visiting a screen must not disturb other audio.
+    private var audioSessionActivated = false
+    private var previousAudioConfiguration: (
+        category: AVAudioSession.Category,
+        mode: AVAudioSession.Mode,
+        options: AVAudioSession.CategoryOptions
+    )?
 
     func start() async {
         guard !recording, !starting else { return }
@@ -74,8 +82,15 @@ private final class OfflineDictationController: ObservableObject {
         transcript = ""
         status = "Mikrofon wird gestartet."
         do {
+            let previous = (
+                category: session.category,
+                mode: session.mode,
+                options: session.categoryOptions
+            )
             try session.setCategory(.record, mode: .measurement, options: .duckOthers)
+            previousAudioConfiguration = previous
             try session.setActive(true)
+            audioSessionActivated = true
             let input = newEngine.inputNode
             let format = input.outputFormat(forBus: 0)
             guard format.sampleRate > 0, format.channelCount > 0 else {
@@ -127,14 +142,29 @@ private final class OfflineDictationController: ObservableObject {
     /// Stop the microphone even if the view is still retained in the stack.
     /// Do not deactivate an unrelated idle audio session.
     func stopOnBackground() {
-        guard recording || starting || engine != nil || recognitionTask != nil else {
-            return
-        }
+        guard OfflineDictationGate.requiresStop(
+            recording: recording,
+            starting: starting,
+            hasEngine: engine != nil,
+            hasRecognitionTask: recognitionTask != nil,
+            hasRequest: speechRequest != nil,
+            ownsAudioSession: audioSessionActivated
+        ) else { return }
         stop()
-        status = "Aufnahme beim Wechsel in den Hintergrund beendet."
+        status = "Aufnahme bei Unterbrechung der App beendet."
     }
 
     func stop() {
+        // A view dismissal, idle stop button or SwiftUI navigation can occur
+        // without our microphone ever having been started.
+        guard OfflineDictationGate.requiresStop(
+            recording: recording,
+            starting: starting,
+            hasEngine: engine != nil,
+            hasRecognitionTask: recognitionTask != nil,
+            hasRequest: speechRequest != nil,
+            ownsAudioSession: audioSessionActivated
+        ) else { return }
         // Invalidate late recognition callbacks, including post-stop final text.
         generation = UUID()
         timeoutTask?.cancel()
@@ -150,9 +180,22 @@ private final class OfflineDictationController: ObservableObject {
         engine = nil
         recording = false
         starting = false
-        try? AVAudioSession.sharedInstance().setActive(
-            false, options: .notifyOthersOnDeactivation
-        )
+        let session = AVAudioSession.sharedInstance()
+        if audioSessionActivated {
+            audioSessionActivated = false
+            try? session.setActive(false, options: .notifyOthersOnDeactivation)
+        }
+        // AVAudioSession category is app-global and remains .record even
+        // after deactivation. Restore the former configuration so the
+        // adjacent native text-to-speech and other audio are not broken.
+        // Do not overwrite configuration replaced by another component.
+        if let previous = previousAudioConfiguration,
+           session.category == .record, session.mode == .measurement {
+            try? session.setCategory(
+                previous.category, mode: previous.mode, options: previous.options
+            )
+        }
+        previousAudioConfiguration = nil
         status = transcript.isEmpty ? "Aufnahme beendet – kein Text erkannt." : "Aufnahme beendet. Text kann kopiert werden."
     }
 
@@ -206,9 +249,12 @@ public struct OfflineDictationView: View {
         .navigationTitle("Sprache offline")
         .onDisappear { dictation.stop() }
         .onChange(of: scenePhase) { _, next in
-            // A permission alert can temporarily set .inactive; only a
-            // genuine background transition should cancel that consent flow.
-            if next == .background { dictation.stopOnBackground() }
+            // Permission alerts can temporarily set .inactive; don't abort
+            // a pending consent flow. But a recording must stop immediately
+            // on inactivity (lock/Control Center), before backgrounding.
+            if next == .background || (next == .inactive && dictation.recording) {
+                dictation.stopOnBackground()
+            }
         }
     }
 }

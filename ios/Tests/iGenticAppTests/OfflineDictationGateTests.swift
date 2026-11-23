@@ -2,6 +2,31 @@ import XCTest
 @testable import iGenticApp
 
 final class OfflineDictationGateTests: XCTestCase {
+    func testIdleDismissalDoesNotStopOrDeactivateSharedAudioSession() {
+        XCTAssertFalse(OfflineDictationGate.requiresStop(
+            recording: false, starting: false, hasEngine: false,
+            hasRecognitionTask: false, hasRequest: false, ownsAudioSession: false
+        ))
+    }
+
+    func testEveryOwnedOrPendingCaptureCanBeStopped() {
+        let ownedStates: [[Bool]] = [
+            [true, false, false, false, false, false],
+            [false, true, false, false, false, false],
+            [false, false, true, false, false, false],
+            [false, false, false, true, false, false],
+            [false, false, false, false, true, false],
+            [false, false, false, false, false, true]
+        ]
+        for state in ownedStates {
+            XCTAssertTrue(OfflineDictationGate.requiresStop(
+                recording: state[0], starting: state[1], hasEngine: state[2],
+                hasRecognitionTask: state[3], hasRequest: state[4],
+                ownsAudioSession: state[5]
+            ))
+        }
+    }
+
     func testOnlyLocalAvailableAuthorizedIdleRecognitionIsAdmitted() {
         let result = OfflineDictationGate.decide(
             supportsOnDevice: true,

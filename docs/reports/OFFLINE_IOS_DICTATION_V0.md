@@ -9,7 +9,10 @@
 - `SFSpeechAudioBufferRecognitionRequest.requiresOnDeviceRecognition = true`, with **no** network recognizer/provider fallback.
 - Microphone and speech-recognition authorization are requested only after an explicit button tap. Denial never starts capture.
 - `AVAudioEngine` streams audio in-memory into Apple's local recognizer; **no audio file, server or device listener** is created.
-- The user can stop immediately; recording auto-stops after 30 seconds or on screen exit. Captured text stays in transient view state, capped at 3,000 characters, and reaches the iOS clipboard only via a separate user tap.
+- The user can stop immediately; recording auto-stops after 30 seconds, on screen exit, on entering background, or when a running capture becomes inactive (e.g. screen lock or Control Center). A permission sheet can temporarily make the app inactive without cancelling a pending authorization flow.
+- `stop()` is intentionally a no-op when neither capture nor permission request was started. In particular, viewing and dismissing the page without recording must not deactivate another use of the process-wide audio session. Only a session activated by this dictation controller is deactivated.
+- Successful category change records the previous app-global audio category, mode and options and restores them on cleanup **only if** the dictation-specific `.record/.measurement` configuration is still current. This prevents later text-to-speech from inheriting a recording-only audio category, without overwriting a newer component's configuration. Audio-session ownership and live TTS playback still require physical acceptance.
+- Captured text stays in transient view state, capped at 3,000 characters, and reaches the iOS clipboard only via a separate user tap.
 - Session UUID invalidation rejects late transcript callbacks and async permissions completed after cancellation. `OfflineDictationGate` deterministically validates all five prerequisites.
 - Both iOS Debug and Release targets declare `NSMicrophoneUsageDescription` and `NSSpeechRecognitionUsageDescription`; no background recording entitlement.
 - The optional MCP `dictate-text` handoff returns **instructions only**, never an executed-action or microphone/device attestation. No transcript travels through it.
