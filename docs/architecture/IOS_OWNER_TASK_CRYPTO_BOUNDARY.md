@@ -73,6 +73,38 @@ A source-compatible macOS test is **not** the physical iPhone acceptance:
 the signed iOS app must independently prove a real 4G/5G HTTPS request,
 the actual native read and a device-bound, independently verified receipt.
 
+## Bidirectional key-receipt format parity (debug fixture only)
+
+The read-only agent loop has a second cryptographic schema for a returned
+key-holder acknowledgement, separate from the owner-task HMAC domain:
+
+- domain: igentic-device-receipt-key-proof-v1 plus a trailing newline;
+- exact canonical body order: schema, kind, requestId, capability, nonce,
+  observedAt, status; then a lowercase 64-character HMAC signature;
+- capability remains exclusively igentic.own_app.status.read;
+- status is exactly key-holder-reports-read.
+
+The Swift source AgentLoopReadOnlyReceiptFixture.swift provides a
+**DEBUG + CryptoKit only** protocol signer. It is unavailable in Release
+builds and cannot be reached from a production iOS App Intent, a ChatGPT
+Site/MCP tool or an untrusted model instruction. Its only purpose is to test
+byte-exact parity with the existing Node signReadOnlyDeviceKeyReceipt
+fixture. A synthetic test key and request ID prove only that the two
+runtimes use the same wire format, not that the iPhone was contacted
+or that an actual read occurred.
+
+Swift and Node tests ensure the key, nonce, correlation ID and observed
+time change the proof; invalid keys, malformed identifiers and
+JavaScript-unsafe timestamps fail closed. The fixture contains no
+actionExecuted, ownerApproved, user text, hostname or device identity.
+
+For real mobile-device receipts, **do not promote this DEBUG function into
+a production signing endpoint**. Independently verify a policy-allowed
+native read, bind the signed challenge to a one-time delivery and device
+identity, provision a separate protected device key with revocation, and
+return a status that explicitly distinguishes key authentication from
+genuine iOS execution evidence. Build and test that in its own reviewed PR.
+
 ## Next implementation gates
 
 1. Review and consolidate the two replay approaches on PR #411 / #412,
