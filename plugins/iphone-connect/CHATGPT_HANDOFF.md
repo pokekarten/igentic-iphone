@@ -3,6 +3,29 @@
 **Status:** draft source prototype; not installed in a ChatGPT account or on a physical iPhone.
 **Scope:** one read-only MCP tool and three fixed user-tapped routes to **our own app**.
 
+## Availability gates: web, mobile, and account
+
+As of 2026-11-23, the official OpenAI Help Center describes direct custom
+MCP-server connection and full MCP support on **ChatGPT web** for eligible
+**Business and Enterprise/Edu organizations**. Do not promise that an
+individual account has the **Add custom MCP server** control. Mobile cannot
+*set up* a custom MCP server connection, and a locally saved plugin with
+local-only apps does not automatically make those tools available on web
+or mobile. The actual target ChatGPT client must be tested separately.
+
+Alternative deployment paths described by OpenAI include hosting an MCP app
+with **ChatGPT Sites** where available, or preparing a stable authenticated
+public HTTPS MCP endpoint for plugin submission. Neither path unlocks iOS
+sandbox permissions, installs a signed iGentic app, or proves mobile client
+tool execution. The current service binds only to `127.0.0.1`; keep it
+there until a separately reviewed HTTPS/authentication architecture exists.
+
+Platform references:
+- https://help.openai.com/en/articles/12584461-connecting-custom-mcp-servers-in-chatgpt
+- https://help.openai.com/en/articles/20001256-plugins-in-chatgpt
+- https://help.openai.com/en/articles/20001547-hosting-a-plugin-with-chatgpt-sites
+- https://developers.openai.com/plugins/deploy/connect-chatgpt
+
 ## The real ChatGPT plugin connection
 
 ChatGPT is the intended client. A generic MCP client is useful only for protocol
@@ -51,10 +74,12 @@ are rejected. Existing `iphone_get_capabilities`, `iphone_tool_catalog`,
 1. Start the MCP service on a trusted host. For a personal private test use an
    approved **Secure MCP Tunnel**; do not expose the unauthenticated loopback
    preview directly to the Internet.
-2. On **ChatGPT web**, open **Plugins** → **+** → **Add custom MCP server**.
-   Configure the tunnel connection, acknowledge the risk, and create the plugin.
-   Account/workspace permissions apply. This test server is read-only and does
-   not require ChatGPT write-tool privileges.
+2. **Only if the account/workspace supports custom MCP connections**, on
+   **ChatGPT web** open **Plugins** → **+** → **Add custom MCP server**.
+   Configure the trusted HTTPS/tunnel connection, acknowledge the risk, and
+   create the plugin. If the control is absent, stop here and check eligibility
+   or a supported ChatGPT Sites hosting path; do not treat local installation
+   as a working mobile connection. This test server is read-only.
 3. Discover the five read-only tools, and invoke
    `iphone_chatgpt_handoff` with `action:"discovery"`.
 4. Transfer/open the returned URL on the iPhone **manually**. A signed iGentic
@@ -71,6 +96,21 @@ in the app. This prototype intentionally does **not** call an App Intent
 remotely: an MCP tool result cannot directly bypass iOS app sandbox or execute
 another app's Shortcut. The next experiment may add an authenticated,
 foreground-only on-device request inbox with owner-bound receipts.
+
+## Physical-device acceptance still outstanding
+
+- [ ] Build, sign and install the exact PR app on the owner's iPhone.
+- [ ] Open each fixed `igentic://handoff/v1/...` route from the actual iPhone.
+- [ ] Verify the local second-tap confirmation; no route auto-executes.
+- [ ] Confirm an unknown route is ignored without navigating or approving.
+- [ ] Verify a real ChatGPT tool invocation **only if account and remote MCP
+      connection eligibility are confirmed**. Save a redacted receipt of the
+      tool result, then separately verify that the phone handled the link.
+- [ ] Repeat over cellular without a Mac **only after** a separate on-device
+      or hosted transport design is implemented and authorized.
+
+The Node tests and simulator CI prove code contracts and simulator UI only;
+they are not evidence that the ChatGPT account or physical phone is connected.
 
 ## Do not call this remote iPhone control
 
