@@ -19,6 +19,27 @@ final class CellularHeartbeatProtocolTests: XCTestCase {
         }
     }
 
+    func testActualTransactionMetricsFailClosedOnMissingOrMixedNetworkRoutes() {
+        XCTAssertEqual(
+            CellularHeartbeatProtocol.classifyTransport(transactionCellularFlags: []),
+            "transport-not-verified")
+        XCTAssertEqual(
+            CellularHeartbeatProtocol.classifyTransport(transactionCellularFlags: [true]),
+            "cellular-transport-observed")
+        XCTAssertEqual(
+            CellularHeartbeatProtocol.classifyTransport(transactionCellularFlags: [true, true]),
+            "cellular-transport-observed")
+        XCTAssertEqual(
+            CellularHeartbeatProtocol.classifyTransport(transactionCellularFlags: [false]),
+            "other-transport-observed")
+        XCTAssertEqual(
+            CellularHeartbeatProtocol.classifyTransport(transactionCellularFlags: [false, false]),
+            "other-transport-observed")
+        XCTAssertEqual(
+            CellularHeartbeatProtocol.classifyTransport(transactionCellularFlags: [true, false]),
+            "mixed-transport-not-verified")
+    }
+
     func testFixedBodyMatchesHostProtocolAndRejectsWeakKeys() {
         XCTAssertEqual(
             String(data: CellularHeartbeatProtocol.body, encoding: .utf8),

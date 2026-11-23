@@ -22,6 +22,16 @@ public enum CellularHeartbeatProtocol {
         return url
     }
 
+    /// Classifies ONLY URLSession's observed transaction-level isCellular
+    /// flags, not network reachability or the available radio. Empty or
+    /// mixed metrics never constitute cellular evidence.
+    public static func classifyTransport(transactionCellularFlags flags: [Bool]) -> String {
+        guard !flags.isEmpty else { return "transport-not-verified" }
+        if flags.allSatisfy({ $0 }) { return "cellular-transport-observed" }
+        if flags.allSatisfy({ !$0 }) { return "other-transport-observed" }
+        return "mixed-transport-not-verified"
+    }
+
     public static func decodedSecret(_ encoded: String) -> Data? {
         let normalized = encoded.trimmingCharacters(in: .whitespacesAndNewlines)
         guard normalized.count == 44,

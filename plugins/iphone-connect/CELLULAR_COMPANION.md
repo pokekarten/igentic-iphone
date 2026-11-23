@@ -47,6 +47,31 @@ path. Private key files are never bundled or committed.
 
 Pairing remains **manual** in this version; there is no automatic credential enrollment, QR provisioning or hosted relay. Do not start public service without reviewing firewall, TLS certificate and key policies.
 
+## Per-request physical transport evidence
+
+The native client now observes Apple's
+\`URLSessionTaskDelegate.urlSession(_:task:didFinishCollecting:)\` for the
+**actual signed HTTPS request**, and uses
+\`URLSessionTaskTransactionMetrics.isCellular\`, not a Wi-Fi toggle, default
+network reachability, IP address, or guess based on enabled radios.
+
+- **All** recorded transactions cellular: UI reports that the HTTPS request
+  used a cellular interface.
+- **All** recorded transactions non-cellular: UI reports a non-cellular route,
+  even if mobile data is enabled.
+- Mixed or missing metrics: UI **does not claim** cellular transport.
+- A valid HTTPS server response can still be confirmed independently of
+  the route's observed interface.
+
+This result describes only the **observed HTTP transaction(s)**, not an
+ongoing connection guarantee, a specific 4G-versus-5G radio generation,
+identity/attestation of the phone, guaranteed service availability, or
+approval for remote device actions. The native app collects only booleans
+and never transmits or logs IP addresses, network interface names,
+hardware identifiers or detailed timing. A simulator is not a physical
+cellular proof. See Apple's
+\`URLSessionTaskTransactionMetrics.isCellular\` interface documentation.
+
 ## Reality checks
 
 - A unit/loopback HTTPS success is **not proof of physical cellular connectivity**. A simulator request also is not a 4G/5G test.
@@ -57,4 +82,6 @@ Pairing remains **manual** in this version; there is no automatic credential enr
 
 ## Tests
 
-The first-party Node protocol has unit and live **TLS loopback** tests for signature verification, invalid methods/body/path, timestamp expiry, wrong key, nonce replay, public-bind guard and exact fixed response. Swift tests include an exact Node/Swift HMAC test vector. iOS simulator build tests ensure the optional UI compiles. A physical mobile-data test cannot be completed until the newly signed app can be installed and a trusted reachable HTTPS endpoint is configured.
+The first-party Node protocol has unit and live **TLS loopback** tests for signature verification, invalid methods/body/path, timestamp expiry, wrong key, nonce replay, public-bind guard and exact fixed response. Swift tests include an exact Node/Swift HMAC test vector and
+fail-closed per-transaction interface classification tests (empty, all
+cellular, all non-cellular, and mixed). iOS simulator build tests ensure the optional UI compiles. A physical mobile-data test cannot be completed until the newly signed app can be installed and a trusted reachable HTTPS endpoint is configured.

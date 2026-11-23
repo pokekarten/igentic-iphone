@@ -57,12 +57,35 @@ private enum CellularKeychain {
     }
 }
 
-private final class NoCellularRedirect: NSObject, URLSessionTaskDelegate {
+// Observe the ACTUAL HTTPS task's connection metrics, not a guess from
+// reachability or which radios are enabled. Never retain IPs, interface
+// addresses, hosts, identifiers or per-request timing.
+private final class CellularTransactionInspector:
+    NSObject, URLSessionTaskDelegate, @unchecked Sendable {
+
+    private let lock = NSLock()
+    private var cellularFlags: [Bool] = []
+
     func urlSession(_ session: URLSession, task: URLSessionTask,
                     willPerformHTTPRedirection response: HTTPURLResponse,
                     newRequest request: URLRequest,
                     completionHandler: @escaping (URLRequest?) -> Void) {
         completionHandler(nil)
+    }
+
+    func urlSession(_ session: URLSession, task: URLSessionTask,
+                    didFinishCollecting metrics: URLSessionTaskMetrics) {
+        lock.lock()
+        cellularFlags = metrics.transactionMetrics.map(\.isCellular)
+        lock.unlock()
+    }
+
+    func routeEvidence() -> String {
+        lock.lock()
+        defer { lock.unlock() }
+        return CellularHeartbeatProtocol.classifyTransport(
+            transactionCellularFlags: cellularFlags
+        )
     }
 }
 
@@ -98,8 +121,9 @@ private enum CellularReadinessClient {
         config.timeoutIntervalForResource = 15
         config.requestCachePolicy = .reloadIgnoringLocalCacheData
 
+        let inspector = CellularTransactionInspector()
         let session = URLSession(
-            configuration: config, delegate: NoCellularRedirect(), delegateQueue: nil
+            configuration: config, delegate: inspector, delegateQueue: nil
         )
         defer { session.invalidateAndCancel() }
         do {
@@ -115,7 +139,16 @@ private enum CellularReadinessClient {
                   json["deviceControl"] as? String == "not-enabled",
                   json["backgroundExecution"] as? String == "not-guaranteed"
             else { return "Serverbestätigung nicht gültig" }
-            return "Bestätigt: sicherer Bereitschaftscheck. Netzwerkroute nicht verifiziert."
+            switch inspector.routeEvidence() {
+            case "cellular-transport-observed":
+                return "Bestätigt: HTTPS-Anfrage tatsächlich über Mobilfunk übertragen."
+            case "other-transport-observed":
+                return "Bestätigt: HTTPS-Anfrage über Nicht-Mobilfunk-Verbindung."
+            case "mixed-transport-not-verified":
+                return "Bestätigt: gemischte Netzwege, Mobilfunk nicht eindeutig."
+            default:
+                return "Bestätigt: Netzwerkroute nicht messbar."
+            }
         } catch {
             // Deliberately never display URLs, network diagnostics or tokens.
             return "Verbindung oder TLS nicht bestätigt"
@@ -135,7 +168,7 @@ public struct CellularCompanionView: View {
         Form {
             Section("Optionaler Mobilfunk-Begleiter") {
                 Text("Funktioniert über mobile Daten, wenn eine eigene erreichbare HTTPS-Adresse konfiguriert ist. Kein Mac, USB-C oder ChatGPT ist für den iPhone-Client nötig.")
-                Text("Nur nach Antippen. Kein Hintergrunddienst und keine Fernsteuerung anderer Apps. Für einen echten 4G/5G-Nachweis WLAN ausschalten.")
+                Text("Nur nach Antippen. Kein Hintergrunddienst und keine Fernsteuerung anderer Apps. iGentic misst den tatsächlich verwendeten HTTPS-Transport. Mobilfunk bedeutet nicht automatisch 4G oder 5G.")
             }
             Section("Eigener iGentic-HTTPS-Server") {
                 TextField("https://example.com/v1/companion/readiness", text: $endpoint)

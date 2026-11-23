@@ -121,7 +121,10 @@ authenticated HTTPS readiness gateway with no third-party mobile automation
 software. It is a **separate route**, not an automatic CoreDevice fallback.
 Use npm run serve:cellular only after explicit private-key/TLS configuration.
 A manual tap in the newly installed iPhone app sends a fixed signed readiness
-ping with no remote-control commands. The host code and simulator build are
+ping with no remote-control commands. Afterward, Apple URLSession
+transaction metrics distinguish observed cellular transport from
+non-cellular or unverified connections; they do not identify a 4G/5G
+generation. The client never asserts a route from a Wi-Fi setting alone. The host code and simulator build are
 not proof that the physical iPhone used cellular data.
 
 ## Portable iGentic plugin (ChatGPT is optional)
