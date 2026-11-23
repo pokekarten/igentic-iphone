@@ -113,7 +113,11 @@ export function createTransportNeutralAgentLoop({
     lateReceiptAllowed = false;
     if (!['receipt-key-authenticated', 'cancelled-local', 'outcome-unknown',
           'expired-before-send'].includes(state)) {
-      state = deliveryAttempted ? 'outcome-unknown' : 'expired-before-send';
+      // Once a payload was handed to an adapter, a crash or timeout may
+      // happen after a send but before recordTransport. Never turn that
+      // unobserved send into the stronger "expired-before-send" assertion.
+      state = (deliveryAttempted || state === 'delivery-prepared-not-sent')
+        ? 'outcome-unknown' : 'expired-before-send';
     }
     return true;
   };
@@ -213,8 +217,11 @@ export function createTransportNeutralAgentLoop({
       return snapshot();
     },
     cancel({ requestId } = {}) {
+      // A prepared payload may already be at a transport adapter. Only
+      // cancel before preparation, or after an explicit definitely-not-sent
+      // report. Otherwise the outcome must remain uncertain, not cancelled.
       if (!match(requestId) || !['awaiting-manual-delivery',
-          'delivery-prepared-not-sent', 'not-sent'].includes(state)
+          'not-sent'].includes(state)
           || expire()) invalid();
       state = 'cancelled-local';
       return snapshot();

@@ -22,9 +22,9 @@ function fixture(t) {
   const marker = () => createPrivateDeliveryAttemptMarker({directory,key});
   const ownerKey = randomBytes(32), receiptKey = randomBytes(32);
   const proposal = () => prepareSignedReadOnlyProposal({key:ownerKey,issuedAt:NOW});
-  const loop = (guard = marker()) => createTransportNeutralAgentLoop({
+  const loop = (guard = marker(), nowSeconds = () => NOW) => createTransportNeutralAgentLoop({
     admission:createOwnerProposalAdmission({key:ownerKey,nowSeconds:()=>NOW}),
-    receiptKey,nowSeconds:()=>NOW,deliveryAttemptMarker:guard
+    receiptKey,nowSeconds,deliveryAttemptMarker:guard
   });
   return {directory,key,marker,proposal,loop};
 }
@@ -134,4 +134,36 @@ test('unconfigured or falsifying persistence interfaces fail closed',t=>{
     requestId:id,route:'local-shortcuts'
   }),/invalidAgentLoopTransition/);
   assert.equal(loop.snapshot().state,'awaiting-manual-delivery');
+});
+
+
+test('an expired prepared payload has unknown delivery, not before-send certainty', t=>{
+  const f=fixture(t), envelope=f.proposal(), id=envelope.body.requestId;
+  let clock=NOW;
+  const loop=f.loop(f.marker(),()=>clock);
+  loop.start({envelope,entryPoint:'chatgpt-site'});
+  const prepared=loop.prepareDelivery({requestId:id,route:'cellular-foreground'});
+  assert.equal(prepared.status,'prepared-not-sent');
+  // The prepared payload already escaped to its adapter. The process can
+  // crash or fail to record delivery even after the adapter sends it.
+  clock=NOW+61;
+  const expired=loop.timeout();
+  assert.equal(expired.state,'outcome-unknown');
+  assert.equal(expired.actionExecuted,false);
+  assert.equal(expired.automaticRetryAllowed,false);
+  assert.equal(f.marker().recover({requestId:id}).state,'outcome-unknown');
+});
+
+test('a prepared payload cannot be cancelled as definitively not sent', t=>{
+  const f=fixture(t), envelope=f.proposal(), id=envelope.body.requestId;
+  const loop=f.loop();
+  loop.start({envelope,entryPoint:'manual-client'});
+  loop.prepareDelivery({requestId:id,route:'coredevice-usb'});
+  // Cancellation is safe before payload creation, or after a transport
+  // explicitly certifies definitely-not-sent, but not in this gap.
+  assert.throws(()=>loop.cancel({requestId:id}),/invalidAgentLoopTransition/);
+  assert.equal(loop.snapshot().state,'delivery-prepared-not-sent');
+  assert.equal(loop.snapshot().automaticRetryAllowed,false);
+  loop.recordTransport({requestId:id,outcome:'definitely-not-sent'});
+  assert.equal(loop.cancel({requestId:id}).state,'cancelled-local');
 });

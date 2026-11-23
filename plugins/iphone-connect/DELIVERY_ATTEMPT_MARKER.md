@@ -68,6 +68,14 @@ receive the delivery preparation.
   checked. An owner/OS attacker who can delete or roll back both
   marker directory and replay ledger is outside this local prototype's
   trust boundary.
+- Once `prepareDelivery` returns a payload, its local
+  `prepared-not-sent` label is **not** proof that the adapter did not send
+  it. If the task expires before `recordTransport`, state changes to
+  `outcome-unknown` rather than the misleading
+  `expired-before-send`. The payload cannot be cancelled as
+  `cancelled-local` in this interval. A cancellation is permitted only
+  before preparation or following an explicit `definitely-not-sent`
+  transport report. This is tested without a real transport or iPhone.
 - Markers deliberately are not automatically expired, deleted or
   released. A manual, audited reconciliation workflow is required.
   No automatic resend after timeout, stop or restart.
