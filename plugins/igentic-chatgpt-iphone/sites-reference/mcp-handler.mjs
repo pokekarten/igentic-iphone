@@ -1,10 +1,10 @@
-import { SITES_HANDOFF_TOOL, callSitesHandoffTool } from './handoff-site.mjs';
+import { SITES_TOOLS, callSitesTool } from './handoff-site.mjs';
 
 // Stateless, owner-private Sites adapter. This endpoint is not an identity
 // provider or a remotely authorized device driver.
 const MAX_BYTES = 4096;
 const VERSION = '2026-07-28';
-const SERVER_INFO = Object.freeze({ name: 'igentic-iphone-handoff', version: '0.1.0' });
+const SERVER_INFO = Object.freeze({ name: 'igentic-iphone-handoff', version: '0.2.0' });
 const SERVER_META = Object.freeze({ 'io.modelcontextprotocol/serverInfo': SERVER_INFO });
 const headers = { 'content-type': 'application/json; charset=utf-8',
   'cache-control': 'no-store', 'x-content-type-options': 'nosniff' };
@@ -88,12 +88,12 @@ export async function handleSitesMcp(request) {
     case 'tools/list':
       if (Object.keys(params).some(k=>k !== '_meta'))
         return failure(id,-32602,'Invalid params');
-      return success(id,{ tools:[SITES_HANDOFF_TOOL] });
+      return success(id,{ tools:SITES_TOOLS });
     case 'tools/call':
       if (Object.keys(params).some(k=>!['name','arguments','_meta'].includes(k)))
         return failure(id,-32602,'Invalid params');
       try {
-        const data = callSitesHandoffTool(params.name,params.arguments);
+        const data = callSitesTool(params.name,params.arguments);
         return success(id,{content:[{type:'text',text:JSON.stringify(data)}],
           structuredContent:{data},isError:false});
       } catch {

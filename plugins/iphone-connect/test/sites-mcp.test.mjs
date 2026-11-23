@@ -27,15 +27,19 @@ const request = (rpc, options = {}) => {
   });
 };
 
-test('Sites wire protocol discovers one read-only tool and returns all canonical handoffs', async () => {
+test('Sites wire protocol discovers three read-only tools and returns all canonical handoffs', async () => {
   const discovery = await (await handleSitesMcp(request(call('server/discover')))).json();
   assert.equal(discovery.result.resultType, 'complete');
   assert.deepEqual(discovery.result.supportedVersions, [version]);
   assert.deepEqual(discovery.result.capabilities, { tools: {} });
   assert.deepEqual(discovery.result._meta['io.modelcontextprotocol/serverInfo'],
-    { name: 'igentic-iphone-handoff', version: '0.1.0' });
+    { name: 'igentic-iphone-handoff', version: '0.2.0' });
   const listing = await (await handleSitesMcp(request(call('tools/list')))).json();
-  assert.equal(listing.result.tools.length, 1);
+  assert.equal(listing.result.tools.length, 3);
+  assert.deepEqual(listing.result.tools.map(t => t.name), [
+    'iphone_chatgpt_handoff', 'igentic_get_capabilities', 'igentic_shortcuts_setup'
+  ]);
+  assert.ok(listing.result.tools.every(t => t.annotations.readOnlyHint && !t.annotations.destructiveHint));
   const tool = listing.result.tools[0];
   assert.equal(tool.annotations.readOnlyHint, true);
   assert.equal(tool.annotations.destructiveHint, false);

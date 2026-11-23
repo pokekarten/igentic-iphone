@@ -12,7 +12,8 @@ device pairing, user data, or an independent connection to an iPhone.
    *manual navigation*, not evidence of a tool call. The owner opens the
    link from the iPhone and chooses the in-app destination.
 2. **ChatGPT Sites (where available):** The owner creates a private
-   ChatGPT Site with a tool named `iphone_chatgpt_handoff`. The sample
+   ChatGPT Site with the read-only tools `iphone_chatgpt_handoff`,
+   `igentic_get_capabilities` and `igentic_shortcuts_setup`. The sample
    `handoff-site.mjs` defines the desired input/output contract and
    imports the **same canonical** `prepareChatGPTHandoff` function used
    by the local plugin. `mcp-handler.mjs` implements the documented Sites
@@ -66,9 +67,10 @@ HTTP 400 / JSON-RPC `-32020`; unsupported versions return HTTP 400 /
 `-32022` with the supported version.
 
 All successful MCP responses contain `resultType: "complete"` and fixed
-`_meta["io.modelcontextprotocol/serverInfo"]` identity. Exactly one
-read-only tool is advertised, returning both text content and
-`structuredContent.data` with the original handoff contract.
+`_meta["io.modelcontextprotocol/serverInfo"]` identity. Three read-only tools are advertised: the original handoff tool, a static
+capability catalog and an owner-manual setup guide for the API-free iOS Shortcuts
+ChatGPT loop. All return text content and `structuredContent.data`. The added
+tools never claim device connectivity, shortcut creation or action execution.
 This adapter does not implement a legacy MCP `initialize` handshake,
 sessions, or SSE. Do not assume compatibility with legacy-only clients.
 
