@@ -31,6 +31,11 @@ no memory of private conversations and no command/shell invocation. No Site
 MCP tool is added by this change. In-memory replay defense is sufficient
 only for local protocol tests, **not** real multi-process distributed security.
 
+An optional standalone follow-up, [DURABLE_REPLAY_LEDGER.md](DURABLE_REPLAY_LEDGER.md),
+adds explicit one-time provisioning and a sealed local SQLite ledger with
+multi-process transactional replay protection on the same Mac. It is
+not a network gateway, a device receipt, or global replay consensus.
+
 ## Next implementation gates — not included or claimed here
 
 1. Enroll a real owner and explicitly bound device identity over a trusted
