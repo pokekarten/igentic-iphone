@@ -55,6 +55,7 @@ public struct DiagnosticView: View {
                     NavigationLink("Open local discovery") {
                         ExploreView()
                     }
+                    .accessibilityIdentifier("igentic-open-local-discovery")
 
                     Text("Bundled sample content only. No network or model execution.")
                         .font(.footnote)
@@ -65,6 +66,7 @@ public struct DiagnosticView: View {
                     Button("Review synthetic reminder") {
                         isReminderApprovalPresented = true
                     }
+                    .accessibilityIdentifier("igentic-review-synthetic-reminder")
 
                     LabeledContent("Last decision", value: reminderApprovalOutcome)
 
