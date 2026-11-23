@@ -219,7 +219,10 @@ The `/console` button **Site-MCP-Werkzeuge prüfen** performs two
 same-origin, manually triggered read-only MCP calls, `server/discover`
 and `tools/list`, using the exact mirrored method/version headers.
 It checks the supported protocol, server identity, **exactly three**
-allowlisted read-only tools and their non-destructive annotations.
+allowlisted read-only tools, their non-destructive annotations and their
+**exact, closed argument schemas** (empty arguments for discovery/setup; the
+three fixed handoff actions for the navigation tool). Extra capabilities or
+parameter names fail closed rather than being misreported as compatible.
 Missing/stale registration, unexpected write authority, a failed request
 or a forged response is reported as **not confirmed**, never as an
 available iPhone connection. This is a deployed-Site compatibility check,

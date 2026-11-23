@@ -403,3 +403,63 @@ test('clipboard permission failures keep copy path manual and non-executing', as
   assert.equal(page.calls.length, 2);
   assert.equal(page.get('prepared-link').hidden, true);
 });
+
+
+test('registry rejects drifted or expanded tool input schemas before allowing compatibility report', async () => {
+  const alteredDescriptors = [
+    { name: 'capability tool allows unexpected write argument', change(t) {
+      const tool = t.find(x => x.name === 'igentic_get_capabilities');
+      tool.inputSchema.properties.execute = { type: 'boolean' };
+    } },
+    { name: 'Shortcut tool requires an unexpected command', change(t) {
+      const tool = t.find(x => x.name === 'igentic_shortcuts_setup');
+      tool.inputSchema.properties.command = { type: 'string' };
+      tool.inputSchema.required = ['command'];
+    } },
+    { name: 'handoff tool allows a fourth action', change(t) {
+      const tool = t.find(x => x.name === 'iphone_chatgpt_handoff');
+      tool.inputSchema.properties.action.enum.push('delete-contacts');
+    } },
+    { name: 'handoff tool omits action requirement', change(t) {
+      const tool = t.find(x => x.name === 'iphone_chatgpt_handoff');
+      tool.inputSchema.required = [];
+    } },
+    { name: 'handoff tool accepts a numeric action', change(t) {
+      const tool = t.find(x => x.name === 'iphone_chatgpt_handoff');
+      tool.inputSchema.properties.action.type = 'number';
+    } },
+    { name: 'tool descriptor asserts additional authority', change(t) {
+      const tool = t.find(x => x.name === 'igentic_get_capabilities');
+      tool.annotations.grantsDeviceWrite = true;
+    } }
+  ];
+  for (const { name, change } of alteredDescriptors) {
+    const page = initialize(async (url, options) => {
+      const req = JSON.parse(options.body);
+      const real = await handleSitesMcp(new Request('https://owner-site.invalid' + url, options));
+      const rpc = await real.json();
+      if (req.method === 'tools/list') change(rpc.result.tools);
+      return { ok: true, async json() { return rpc; } };
+    });
+    await page.get('verify-site-registry').click();
+    assert.match(page.get('site-registry-status').textContent, /nicht bestätigt/, name);
+    assert.equal(page.get('copy-site-check').disabled, true, name);
+    assert.equal(page.get('prepared-link').hidden, true, name);
+  }
+});
+
+test('discovery rejecting extra remote authority prevents a false Site compatibility report', async () => {
+  const page = initialize(async (url, options) => {
+    const req = JSON.parse(options.body);
+    const real = await handleSitesMcp(new Request('https://owner-site.invalid' + url, options));
+    const rpc = await real.json();
+    if (req.method === 'server/discover') {
+      rpc.result.capabilities.resources = {listChanged:true};
+    }
+    return { ok: true, async json() { return rpc; } };
+  });
+  await page.get('verify-site-registry').click();
+  assert.equal(page.calls.length, 1);
+  assert.match(page.get('site-registry-status').textContent, /nicht bestätigt/);
+  assert.equal(page.get('copy-site-check').disabled, true);
+});

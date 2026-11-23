@@ -121,6 +121,35 @@
   }
 
   const expectedRegistry = ['igentic_get_capabilities', 'igentic_shortcuts_setup', 'iphone_chatgpt_handoff'];
+  const exactKeys = (value, keys) => value && typeof value === 'object'
+    && !Array.isArray(value) && Object.keys(value).length === keys.length
+    && keys.every(key => Object.hasOwn(value, key));
+  const exactValues = (value, expected) => Array.isArray(value)
+    && value.length === expected.length
+    && value.every(item => typeof item === 'string')
+    && value.slice().sort().every((item, index) => item === expected.slice().sort()[index]);
+  const safeReadOnlyDescriptor = tool => {
+    if (!tool || typeof tool.name !== 'string'
+        || !exactKeys(tool.annotations, ['readOnlyHint', 'destructiveHint', 'openWorldHint'])
+        || tool.annotations.readOnlyHint !== true
+        || tool.annotations.destructiveHint !== false
+        || tool.annotations.openWorldHint !== false
+        || !exactKeys(tool.inputSchema, ['type', 'additionalProperties', 'properties', 'required'])
+        || tool.inputSchema.type !== 'object'
+        || tool.inputSchema.additionalProperties !== false)
+      return false;
+    const {properties, required} = tool.inputSchema;
+    if (tool.name === 'iphone_chatgpt_handoff') {
+      return exactKeys(properties, ['action'])
+        && exactKeys(properties.action, ['type','enum'])
+        && properties.action.type === 'string'
+        && exactValues(properties.action.enum, ACTIONS)
+        && exactValues(required, ['action']);
+    }
+    return ['igentic_get_capabilities', 'igentic_shortcuts_setup'].includes(tool.name)
+      && exactKeys(properties, [])
+      && exactValues(required, []);
+  };
   const validServer = result => {
     const server = result?._meta?.['io.modelcontextprotocol/serverInfo'];
     return server?.name === 'igentic-iphone-handoff' && server.version === '0.2.0';
@@ -131,19 +160,15 @@
         || !Array.isArray(discovery.supportedVersions)
         || discovery.supportedVersions.length !== 1
         || discovery.supportedVersions[0] !== VERSION
-        || !discovery.capabilities?.tools
-        || typeof discovery.capabilities.tools !== 'object')
+        || !exactKeys(discovery.capabilities, ['tools'])
+        || !exactKeys(discovery.capabilities.tools, []))
       throw Error('invalidSiteDiscovery');
     const listing = await callRpc('tools/list');
     if (!validServer(listing)
         || !Array.isArray(listing.tools)
         || listing.tools.length !== expectedRegistry.length
-        || listing.tools.some(t => !t || !expectedRegistry.includes(t.name)
-          || t.annotations?.readOnlyHint !== true
-          || t.annotations?.destructiveHint !== false
-          || t.annotations?.openWorldHint !== false
-          || t.inputSchema?.additionalProperties !== false)
-        || listing.tools.map(t=>t.name).sort().join('|') !== expectedRegistry.slice().sort().join('|'))
+        || listing.tools.some(t => !safeReadOnlyDescriptor(t))
+        || !exactValues(listing.tools.map(t=>t.name), expectedRegistry))
       throw Error('siteToolsNotReady');
     return listing.tools.length;
   }
