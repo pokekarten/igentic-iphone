@@ -61,6 +61,20 @@ public enum AgentLoopTaskBridge {
 }
 
 
+/// An explicit, owner-tapped deep link to a fixed Shortcut by name.
+/// No private prompt or user data is ever placed into a URL query.
+public enum AgentLoopShortcutLaunch {
+    public static let shortcutName = "iGentic ChatGPT Loop Test"
+
+    public static var url: URL? {
+        var components = URLComponents()
+        components.scheme = "shortcuts"
+        components.host = "run-shortcut"
+        components.queryItems = [URLQueryItem(name: "name", value: shortcutName)]
+        return components.url
+    }
+}
+
 /// Validates one untrusted ChatGPT/Shortcuts model reply. This does NOT call
 /// a model, execute a device operation, persist private text or grant approval.
 /// Shortcuts may use the returned JSON to choose its next *explicit* action.
