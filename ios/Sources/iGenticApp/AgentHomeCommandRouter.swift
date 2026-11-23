@@ -14,7 +14,9 @@ public struct AgentHomeProposal: Sendable, Equatable {
     public let title: String
     public let explanation: String
 
-    public var canOpenOwnedScreen: Bool { destination != .unsupported }
+    public var canOpenOwnedScreen: Bool {
+        AgentHomeCapabilityCatalog.canNavigate(to: destination)
+    }
 }
 
 /// One immutable, non-executing UI preview of the *entire* entered command.
