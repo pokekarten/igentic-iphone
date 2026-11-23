@@ -175,6 +175,13 @@ final class AgentLoopStatusShortcutStoreTests: XCTestCase {
             var contents = try String(contentsOf: path, encoding: .utf8)
             contents = contents.replacingOccurrences(of: "awaitingStatus", with: "readAttempted")
             try contents.write(to: path, atomically: true, encoding: .utf8)
+            // An atomic test write can recreate the file as 0644 on Linux.
+            // Restore the 0600 mode used by the production journal, so this
+            // assertion tests crash-uncertain state rather than rejecting
+            // an insecure file before decoding the recorded stage.
+            try FileManager.default.setAttributes(
+                [.posixPermissions: 0o600], ofItemAtPath: path.path
+            )
             var reads = 0
             XCTAssertThrowsError(try store.advance(
                 taskID: id, modelReply: #"{"action":"status.read"}"#,
@@ -263,6 +270,25 @@ final class AgentLoopStatusShortcutStoreTests: XCTestCase {
             }
             XCTAssertEqual(flock(fd, LOCK_UN), 0)
             XCTAssertEqual(try store.stageForOwner(), .awaitingStatus)
+        }
+    }
+
+    func testHardlinkedStatusJournalCannotReuseOutsideFile() async throws {
+        try await MainActor.run {
+            let dir = FileManager.default.temporaryDirectory
+                .appendingPathComponent("igentic-status-\(UUID())")
+            defer { try? FileManager.default.removeItem(at: dir) }
+            let path = dir.appendingPathComponent("journal.json")
+            let store = AgentLoopStatusShortcutStore(fileURL: path)
+            _ = try store.begin()
+            let outside = FileManager.default.temporaryDirectory
+                .appendingPathComponent("igentic-status-external-\(UUID().uuidString)")
+            defer { try? FileManager.default.removeItem(at: outside) }
+            try FileManager.default.moveItem(at: path, to: outside)
+            try FileManager.default.linkItem(at: outside, to: path)
+            XCTAssertThrowsError(try store.stageForOwner()) {
+                XCTAssertEqual($0 as? AgentLoopStatusShortcutError, .invalidStoredTask)
+            }
         }
     }
 
