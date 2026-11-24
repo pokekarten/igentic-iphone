@@ -76,3 +76,18 @@ button or receipt signer. The Swift tests use an independent Node-generated
 wire fixture, not a live native TLS request. No system trust settings are
 changed. The native client still needs actual TLS/owner-device enrollment,
 a production endpoint and owner-reviewed execution before physical use.
+
+## Owner-gated synthetic receipt fixture
+
+In DEBUG builds only, the native signed owner status gate can bind a decoded
+claim to its receipt nonce and independently recheck the signed proposal.
+The existing durable replay reservation and separate local read transition
+still apply. A second explicit local review transition may prepare a single
+synthetic key proof, with a different receipt key, current external-sharing
+policy and an unexpired read. No status observation is included. Replacing
+the nonce, reusing the proof transition, rolling the clock back after expiry,
+or using Local Only mode cannot issue a new proof. The fixture is not wired
+to the UI, a network sender, App Intents or a production key vault; neither
+a physical iPhone nor a human consent attestation follows from it. Release
+builds contain no such proof-generation method. A Node-generated independent
+synthetic HMAC vector is checked by the native regression tests.
