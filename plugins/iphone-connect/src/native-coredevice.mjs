@@ -15,6 +15,15 @@ const VIEWS = Object.freeze({
 });
 export const NATIVE_DRIVER = 'coredevice-native';
 
+// Return only the terminal fact for the caller's exact Shortcuts ticket.
+export function shortcutCompletion(journal, taskId) {
+  if (!journal || Object.keys(journal).sort().join('|') !== 'createdAt|id|schema|stage'
+      || journal.schema !== 1 || !Number.isFinite(journal.createdAt)
+      || typeof journal.id !== 'string' || journal.id.toLowerCase() !== taskId
+      || journal.stage !== 'finished') throw new PluginError('shortcutCompletionUnverified');
+  return { taskId, stage: 'finished', evidence: 'physical-own-app-journal' };
+}
+
 export function verifiedNativeReceipt(value, { action, nonce }) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new PluginError('nativeReceiptInvalid');
   const keys = Object.keys(value).sort();
@@ -89,6 +98,22 @@ export class NativeCoreDeviceBackend extends MobileBackend {
       return verifiedNativeReceipt(decode(await readFile(path, 'utf8')), { action, nonce });
     } finally {
       await rm(dir, { recursive: true, force: true });
+    }
+  }
+  async shortcutResult(taskId, signal) {
+    await this.policy('observe-diagnostics', signal);
+    const directory = await mkdtemp(join(tmpdir(), 'igentic-shortcut-result-'));
+    try {
+      const destination = join(directory, 'journal.json');
+      await this.core(['device', 'copy', 'from', '--device', this.config.deviceId,
+        '--source', 'Library/Application Support/iGentic/shortcuts-status-loop-v1.json',
+        '--domain-type', 'appDataContainer', '--domain-identifier', this.config.bundleId,
+        '--destination', destination, '--timeout', '12'], signal, 17000);
+      const info = await stat(destination);
+      if (!info.isFile() || info.size > 512) throw new PluginError('shortcutCompletionUnverified');
+      return shortcutCompletion(decode(await readFile(destination, 'utf8')), taskId);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
     }
   }
   async appStatus(signal) {

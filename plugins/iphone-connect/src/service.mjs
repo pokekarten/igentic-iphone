@@ -11,6 +11,10 @@ export class PhoneService {
     this.sessions = new Map(); this.results = new Map();
   }
   async list() { return { devices: await this.backend.list(), backend: this.backend.kind }; }
+  async shortcutResult(taskId) {
+    if (!this.backend.shortcutResult) throw new PluginError('shortcutResultUnavailable');
+    return this.backend.shortcutResult(taskId.toLowerCase());
+  }
   async nativeAppStatus() {
     if (typeof this.backend.appStatus !== 'function') return {
       supported: false, installed: 'not-verified', processRunning: 'not-verified'

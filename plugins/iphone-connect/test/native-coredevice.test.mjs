@@ -192,3 +192,14 @@ test('first-party own-app launch refuses false process confirmation and bad laun
   b.running=true;b.outcome='failed';
   await assert.rejects(b.launchOwnApp(),/nativeProcessUnverified/);
 });
+
+test('Shortcut completion is scoped to the requested task and omits journal contents', async () => {
+  const { shortcutCompletion } = await import('../src/native-coredevice.mjs');
+  const taskId = '5fd452bc-6815-48da-9a5b-02f555553d05';
+  const row = { schema: 1, id: taskId.toUpperCase(), createdAt: 123, stage: 'finished' };
+  assert.deepEqual(shortcutCompletion(row, taskId), {
+    taskId, stage: 'finished', evidence: 'physical-own-app-journal'
+  });
+  for (const change of [{ stage: 'readAttempted' }, { id: 'other' }, { extra: true }, { createdAt: null }])
+    assert.throws(() => shortcutCompletion({ ...row, ...change }, taskId), /shortcutCompletionUnverified/);
+});
