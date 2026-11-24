@@ -72,8 +72,8 @@ the exact response shape, nonce syntax, signed canonical wire, request ID,
 expiration and issuance time using the existing native verifier. A failed
 transport is uncertain, never a reason for automatic retry. The parsed
 claim is a preview only; it is not wired to an App Intent, owner approval
-button or receipt signer. The Swift tests use an independent Node-generated
-wire fixture, not a live native TLS request. No system trust settings are
+button or receipt signer. Swift package tests use an independent Node-generated
+wire fixture. The macOS HTTPS integration test below exercises the live relay. No system trust settings are
 changed. The native client still needs actual TLS/owner-device enrollment,
 a production endpoint and owner-reviewed execution before physical use.
 
@@ -91,3 +91,23 @@ to the UI, a network sender, App Intents or a production key vault; neither
 a physical iPhone nor a human consent attestation follows from it. Release
 builds contain no such proof-generation method. A Node-generated independent
 synthetic HMAC vector is checked by the native regression tests.
+
+## macOS native HTTPS interoperability
+
+On a Mac with Xcode command-line tools, run
+`node --test plugins/iphone-connect/test/owner-device-relay-https.test.mjs`.
+The native test compiles the current Swift request builder, claim parser and
+client. The ordinary client sees an untrusted, newly generated certificate
+and consumes its attempt. A separate test-only URLSession explicitly trusts
+that certificate for this process, requests the pending claim over HTTPS and
+verifies the live Node response with the Swift parser against the owner's
+fresh request ID. A second device claim is empty. The owner still sees
+`outcome-unknown` and `actionExecuted=false`. The adjacent Node test covers
+receipt submission and owner lookup. Neither test changes Keychain trust.
+
+For a product roundtrip, bind one owner and foreground app installation to
+the same task, obtain an owner-reviewed app read, then return a minimal result
+through an authenticated plugin lookup for that task. Verify it from the
+originating ChatGPT conversation. Exercise the reverse Shortcuts/Siri entry
+separately on a physical iPhone, including whether it opens the intended
+conversation or starts a new one.

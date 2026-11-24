@@ -1,17 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {randomBytes,randomUUID} from 'node:crypto';
+import {randomBytes,randomUUID,X509Certificate} from 'node:crypto';
 import {mkdtempSync,mkdirSync,readFileSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {spawnSync} from 'node:child_process';
+import {execFile,spawnSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
 import {request} from 'node:https';
 import {createOwnerDeviceRelay} from '../src/owner-device-relay.mjs';
 import {createLoopbackOwnerDeviceHTTPS} from '../src/owner-device-relay-https.mjs';
 import {provisionPrivateReplayLedger} from '../src/durable-task-admission.mjs';
 import {signReadOnlyDeviceKeyReceipt} from '../src/agent-loop-protocol.mjs';
 
-test('real loopback TLS: strict owner/device roles, one claim, nonce receipt and denied malformed requests',async t=>{
+async function startTestRelay(t) {
   const root=mkdtempSync(join(tmpdir(),'igentic-relay-https-'));
   t.after(()=>rmSync(root,{recursive:true,force:true}));
   const databasePath=join(root,'replay.sqlite'),markerDirectory=join(root,'attempts');
@@ -26,7 +27,8 @@ test('real loopback TLS: strict owner/device roles, one claim, nonce receipt and
   const keyPath=join(root,'tls.key'),certPath=join(root,'tls.crt');
   assert.equal(spawnSync('openssl',['req','-x509','-newkey','rsa:2048','-nodes','-days','1',
     '-keyout',keyPath,'-out',certPath,'-subj','/CN=localhost','-addext',
-    'subjectAltName=IP:127.0.0.1'],{timeout:15000,stdio:'ignore'}).status,0);
+    'subjectAltName=IP:127.0.0.1','-addext','extendedKeyUsage=serverAuth',
+    '-addext','basicConstraints=critical,CA:FALSE','-addext','keyUsage=critical,digitalSignature,keyEncipherment'],{timeout:15000,stdio:'ignore'}).status,0);
   const cert=readFileSync(certPath);
   const gateway=createLoopbackOwnerDeviceHTTPS({relay,tlsKey:readFileSync(keyPath),tlsCert:cert});
   const address=await gateway.listen();
@@ -43,7 +45,12 @@ test('real loopback TLS: strict owner/device roles, one claim, nonce receipt and
     });
     req.on('error',reject);req.end(wire);
   });
-  const owner=ownerAccessKey,device=deviceAccessKey,id=randomUUID();
+  return {root, address, cert, post, owner:ownerAccessKey, device:deviceAccessKey, proposalKey, receiptKey, now};
+}
+
+test('real loopback TLS: strict owner/device roles, one claim, nonce receipt and denied malformed requests',async t=>{
+  const {post, owner, device, receiptKey, now} = await startTestRelay(t);
+  const id = randomUUID();
   assert.equal((await post('/v1/owner/status',device)).status,403);
   assert.equal((await post('/v1/owner/status',randomBytes(32))).status,403);
   assert.equal((await post('/v1/owner/status',owner,{}, {headers:{origin:'https://example.invalid'}})).status,403);
@@ -86,3 +93,31 @@ test('real loopback TLS: strict owner/device roles, one claim, nonce receipt and
   assert.equal((await post('/v1/device/receipt',device,{proof})).status,409);
   assert.equal((await post('/v1/owner/recover',owner,{requestId:id})).body.result.state,'outcome-unknown');
 });
+
+test('macOS native client refuses untrusted TLS and the Swift protocol accepts a live, test-trusted claim',
+  {skip: process.platform !== 'darwin'}, async t => {
+    const {root, address, cert, post, owner, device, proposalKey, now} = await startTestRelay(t);
+    const binary = join(root, 'native-claim-smoke');
+    const source = path => fileURLToPath(new URL(path, import.meta.url));
+    const compile = spawnSync('xcrun', ['swiftc', '-parse-as-library',
+      source('../../../ios/Sources/iGenticApp/AgentLoopRemoteTaskVerifier.swift'),
+      source('../../../ios/Sources/iGenticApp/AgentLoopRelayClaimClient.swift'),
+      source('./fixtures/NativeRelayClaimSmoke.swift'), '-o', binary],
+      {encoding: 'utf8', timeout: 120000});
+    assert.equal(compile.status, 0, compile.stderr || compile.error?.message);
+    const requestID = randomUUID();
+    assert.equal((await post('/v1/owner/submit', owner, {requestId:requestID})).status, 200);
+    // Keep synthetic role credentials in an anonymous pipe, out of command arguments and logs.
+    const input = {requestID, now, port:address.port, certificate:new X509Certificate(cert).raw.toString('base64'),
+      deviceKey:device.toString('base64'), proposalKey:proposalKey.toString('base64')};
+    await new Promise((resolve, reject) => {
+      const child = execFile(binary, [], {timeout: 25000}, error => error ? reject(error) : resolve());
+      child.stdin.on('error', reject);
+      child.stdin.end(JSON.stringify(input));
+    });
+    const status = (await post('/v1/owner/status', owner)).body.result;
+    assert.equal(status.requestId, requestID);
+    assert.equal(status.state, 'outcome-unknown');
+    assert.equal(status.actionExecuted, false);
+    assert.equal((await post('/v1/device/claim', device)).body.result, null);
+  });
