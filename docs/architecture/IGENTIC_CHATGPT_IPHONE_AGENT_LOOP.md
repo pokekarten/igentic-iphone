@@ -187,3 +187,11 @@ One run from the integration checkout timed out; the completed harness run
 used the handoff acceptance checkout. This evidence covers Mac-mediated
 navigation. Mobile ChatGPT invocation, Shortcut completion and an authenticated
 receipt in the originating chat still require independent observation.
+
+A follow-up hardware check obtained the diagnostics URL from the installed
+ChatGPT plugin, opened that route via CoreDevice on the physical Wi-Fi phone,
+and compared the app's preview event before and after. The fresh diagnostics
+event confirmed the preview. The integration smoke command separately timed
+out. The physical build's extracted metadata listed 12 iGentic App Intents.
+The local Shortcut signing command required an iCloud sign-in. Installation
+of the personal Shortcut and selection of the ChatGPT extension remain open.
