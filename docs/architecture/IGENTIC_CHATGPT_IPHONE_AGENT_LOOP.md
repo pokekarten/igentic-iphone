@@ -195,3 +195,15 @@ event confirmed the preview. The integration smoke command separately timed
 out. The physical build's extracted metadata listed 12 iGentic App Intents.
 The local Shortcut signing command required an iCloud sign-in. Installation
 of the personal Shortcut and selection of the ChatGPT extension remain open.
+
+### Physical iPhone creates a follow-up through ChatGPT Web
+
+On 24 November 2026 the Mac opened an HTTPS ChatGPT query over CoreDevice
+on the physical Wi-Fi iPhone Air. The synthetic prompt requested a list-test
+task and the sum of 137 and 246. The iPhone screen showed the submitted
+prompt and a distinct reply starting with WOLKENFALKE 383. ChatGPT proposed
+adding three cases to an empty list and checking non-emptiness, length three
+and individual reads. The Mac executed all three assertions successfully.
+The mobile browser showed the sign-in button. The source was a Mac-issued
+URL and the result was observed on screen; no signed-in project context,
+scheduled ChatGPT Task or automatic callback to the original chat was tested.
