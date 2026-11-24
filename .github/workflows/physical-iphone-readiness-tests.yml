@@ -6,7 +6,6 @@ on:
       - "scripts/check-physical-iphone-readiness.py"
       - "tests/test_physical_iphone_readiness.py"
       - ".github/workflows/physical-iphone-readiness-tests.yml"
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -23,13 +22,12 @@ jobs:
           set -euo pipefail
           git init .
           git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
-          if git fetch --no-tags --depth=1 origin "${GITHUB_SHA}"; then
-            echo "Fetched exact head"
-          elif [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
-            git fetch --no-tags --depth=1 origin "pull/${{ github.event.pull_request.number }}/merge"
-          else
-            exit 1
-          fi
+          case "${GITHUB_EVENT_NAME}:${GITHUB_REF}" in
+            pull_request:refs/pull/*/merge) ;;
+            *) exit 1 ;;
+          esac
+          git fetch --no-tags --depth=1 origin "${GITHUB_REF}"
+          test "$(git rev-parse FETCH_HEAD)" = "${GITHUB_SHA}"
           git checkout --force FETCH_HEAD
           git clean -fdx
 
@@ -44,9 +42,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          printf 'Name    Hostname    Identifier    State    Model    Reality\n' > /tmp/igentic-empty-devices.txt
+          printf '%s\n' '{"result":{"devices":[]}}' > /tmp/igentic-empty-devices.json
           set +e
-          output="$(python3 scripts/check-physical-iphone-readiness.py --fixture /tmp/igentic-empty-devices.txt)"
+          output="$(python3 scripts/check-physical-iphone-readiness.py --fixture /tmp/igentic-empty-devices.json)"
           code=$?
           set -e
           test "${code}" -eq 2
