@@ -20,7 +20,7 @@ persistent task queue, or physical-device receipt implementation.
   a durable marker can only recover outcome-unknown. No automatic retry.
 - The receipt proves key possession, not physical execution, consent or
   identity. No battery/OS observation, raw prompts, or other private content
-  is returned. No operation opens a listener or invokes iOS or a model.
+  is returned. The core relay does not open a listener or invoke iOS or a model.
 
 The next production seam is an owner-approved authenticated TLS transport with
 actual owner/device enrollment, key rotation/revocation, durable task status,
@@ -30,3 +30,34 @@ URL parameters or model prompts. Do not reuse the cellular readiness key.
 The existing private Site remains manual and unchanged.
 
 Run: node --test plugins/iphone-connect/test/owner-device-relay.test.mjs
+
+
+## Loopback HTTPS test transport
+
+The optional `createLoopbackOwnerDeviceHTTPS` factory adds a real TLS
+listener, exclusively bound to 127.0.0.1. It never starts automatically,
+has no command-line entry point, rejects non-loopback hosts, browser
+origins and proxy forwarding headers, and accepts bounded, canonical
+JSON via fixed POST routes only. Separate owner and device role credentials
+are passed as hex-encoded bearer keys in headers, never in URLs or prompts.
+The test creates a throwaway localhost certificate and explicitly trusts
+that certificate without disabling certificate verification.
+
+| Owner routes | Device routes |
+| --- | --- |
+| /v1/owner/submit | /v1/device/claim |
+| /v1/owner/status | /v1/device/receipt |
+| /v1/owner/cancel | |
+| /v1/owner/recover | |
+
+The submit/cancel/recover bodies contain only requestId; status and claim
+take an empty object; receipt takes only proof. Responses are marked
+no-store. Unknown, unauthorized, or invalid transitions never echo input.
+Two concurrent claims return at most one payload. The receipt is still
+synthetic key evidence, not physical-device execution.
+
+This adapter is deliberately not reachable from an iPhone or ChatGPT
+account. Do not tunnel or proxy it into a public service. A separate
+production identity/enrollment and revocation review remains required.
+
+Run: node --test plugins/iphone-connect/test/owner-device-relay-https.test.mjs
