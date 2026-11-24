@@ -29,9 +29,9 @@ For a **separately requested iOS27 simulator launch**, available only with an in
 python3 scripts/mac_ios27_openweights_test.py --phase simulator
 ```
 
-This builds again, installs the already unsigned `iGenticDiagnostics` target, launches/screenshots/relaunches it, and shuts down the test simulator. An iOS26 simulator is not accepted. The simulator phase may be too memory-intensive on an 8 GiB Mac; use the build phase first.
+This builds again, installs the already unsigned `iGenticDiagnostics` target, launches/screenshots/relaunches it, and shuts down and deletes only a newly provisioned disposable simulator matching the active Xcode runtime. Existing simulator state is not used as a test target. An iOS26 simulator is not accepted. The simulator phase may be too memory-intensive on an 8 GiB Mac; use the build phase first.
 
-**Additional CI safety net:** [Mac iOS 27 readiness workflow](../../.github/workflows/mac-ios27-openweights-readiness.yml) executes these unit tests and the build phase on GitHub's `xcode-27` hosted macOS runner on the PR and via manual dispatch. Its success proves build readiness on the **hosted runner**, not the owner's Mac.
+**Additional CI safety net:** [Mac iOS 27 readiness workflow](../../.github/workflows/mac-ios27-openweights-readiness.yml) executes these unit tests and the build phase on GitHub's `xcode-27` hosted macOS runner on the PR using its exact event SHA. Its success proves build readiness on the **hosted runner**, not the owner's Mac.
 
 ## Evidence and stop conditions
 

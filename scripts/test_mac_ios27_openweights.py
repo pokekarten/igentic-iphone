@@ -6,6 +6,7 @@ These tests do not need macOS, Xcode, model weights or the internet.
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 import tempfile
 import unittest
@@ -17,6 +18,7 @@ SPEC = importlib.util.spec_from_file_location("igentic_mac_probe", MODULE_PATH)
 assert SPEC is not None and SPEC.loader is not None
 mod = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = mod
+sys.path.insert(0, str(MODULE_PATH.parent))
 SPEC.loader.exec_module(mod)
 
 
@@ -85,6 +87,33 @@ class MacOpenWeightsTest(unittest.TestCase):
         self.assertTrue(all(c.ok for c in checks), checks)
         self.assertEqual(info["ram_gib"], "7.0")
         self.assertIn("Build host RAM >= 7 GiB", [c.label for c in checks])
+
+    def test_isolated_simulator_cleanup_on_failure(self):
+        runtime = "com.apple.CoreSimulator.SimRuntime.iOS-27-2"
+        source = "11111111-1111-1111-1111-111111111111"
+        created = "22222222-2222-2222-2222-222222222222"
+        kind = "com.apple.CoreSimulator.SimDeviceType.iPhone-Air"
+        payload = {"devices": {runtime: [{"name": "iPhone Air", "udid": source,
+                    "isAvailable": True, "deviceTypeIdentifier": kind}]}}
+        with patch.object(mod, "run_capture", side_effect=["Xcode 27.2", json.dumps(payload), created]) as capture, patch.object(mod.subprocess, "run") as cleanup:
+            with self.assertRaises(RuntimeError):
+                with mod.isolated_simulator() as selected:
+                    self.assertEqual(selected, created)
+                    raise RuntimeError("synthetic failure")
+            self.assertEqual(capture.call_args.args[0][-2:], [kind, runtime])
+            self.assertEqual([c.args[0] for c in cleanup.call_args_list],
+                             [["xcrun", "simctl", op, created] for op in ("shutdown", "delete")])
+
+    def test_refuses_existing_simulator_identity(self):
+        runtime = "com.apple.CoreSimulator.SimRuntime.iOS-27-2"
+        source = "11111111-1111-1111-1111-111111111111"
+        payload = {"devices": {runtime: [{"name": "iPhone Air", "udid": source,
+            "isAvailable": True, "deviceTypeIdentifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-Air"}]}}
+        with patch.object(mod, "run_capture", side_effect=["Xcode 27.2", json.dumps(payload), source]), patch.object(mod.subprocess, "run") as cleanup:
+            with self.assertRaises(ValueError):
+                with mod.isolated_simulator():
+                    self.fail("must not use existing simulator")
+            cleanup.assert_not_called()
 
     def test_no_model_execution_is_in_plan(self) -> None:
         for phase in ("preflight", "build", "simulator"):

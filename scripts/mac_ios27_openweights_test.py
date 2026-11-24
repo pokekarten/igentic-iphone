@@ -16,6 +16,10 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import uuid
+from contextlib import contextmanager
+
+from select_ios27_simulator import select_compatible_iphone
 from pathlib import Path
 from typing import NamedTuple
 
@@ -128,9 +132,39 @@ def command_plan(phase: str, scratch: Path) -> list[tuple[list[str], Path]]:
     return steps
 
 
+@contextmanager
+def isolated_simulator():
+    """Use an existing simulator only as a template, never as a test target."""
+    version = run_capture(["xcodebuild", "-version"])
+    match = re.search(r"^Xcode (\d+\.\d+)", version, re.MULTILINE)
+    if not match:
+        raise ValueError("Xcode runtime version unavailable")
+    payload = json.loads(run_capture(["xcrun", "simctl", "list", "devices", "available", "-j"]))
+    source, _, runtime = select_compatible_iphone(payload, match.group(1))
+    rows = [d for d in payload["devices"][runtime] if d.get("udid") == source]
+    if len(rows) != 1:
+        raise ValueError("Ambiguous simulator template")
+    kind = rows[0].get("deviceTypeIdentifier", "")
+    if not isinstance(kind, str) or not re.fullmatch(r"com\.apple\.CoreSimulator\.SimDeviceType\.iPhone-[A-Za-z0-9-]+", kind):
+        raise ValueError("Invalid iPhone simulator template")
+    created = run_capture(["xcrun", "simctl", "create", "iGentic-readiness-" + str(uuid.uuid4()), kind, runtime])
+    if not re.fullmatch(r"[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}", created) or created.lower() == source.lower():
+        raise ValueError("Disposable simulator identity unverified")
+    try:
+        yield created
+    finally:
+        for operation in ("shutdown", "delete"):
+            try:
+                subprocess.run(["xcrun", "simctl", operation, created], capture_output=True, timeout=40, check=False)
+            except (OSError, subprocess.TimeoutExpired):
+                pass
+
+
 def run_steps(phase: str, scratch: Path) -> list[dict[str, object]]:
     results: list[dict[str, object]] = []
     env = os.environ.copy()
+    env.pop("IGENTIC_SIMULATOR_UDID", None)
+    env.pop("IOS27_MATCHED_RUNTIME", None)
     env["APP_PATH"] = str(scratch / "derived/Build/Products/Debug-iphonesimulator/iGenticDiagnostics.app")
     env["SCREENSHOT_PATH"] = str(scratch / "iGenticDiagnostics-launch.png")
     env["BUNDLE_IDENTIFIER"] = "org.example.iGenticDiagnostics"
@@ -138,9 +172,13 @@ def run_steps(phase: str, scratch: Path) -> list[dict[str, object]]:
         label = f"step {index}: {Path(argv[0]).name} {argv[1]}"
         print(f"Running {label}", flush=True)
         try:
-            result = subprocess.run(argv, cwd=cwd, env=env, check=False, timeout=900)
+            if argv == ["bash", "scripts/smoke-ios-simulator.sh"]:
+                with isolated_simulator() as udid:
+                    result = subprocess.run(argv, cwd=cwd, env={**env, "IGENTIC_SIMULATOR_UDID": udid}, check=False, timeout=900)
+            else:
+                result = subprocess.run(argv, cwd=cwd, env=env, check=False, timeout=900)
             status = int(result.returncode)
-        except (OSError, subprocess.TimeoutExpired):
+        except (OSError, ValueError, RuntimeError, subprocess.TimeoutExpired):
             status = 1
         results.append({"step": index, "command": label, "ok": status == 0})
         if status != 0:
