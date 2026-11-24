@@ -110,9 +110,9 @@ export function createTransportNeutralAgentLoop({
     });
   };
   const match = id => task && typeof id === 'string' && id === task.requestId;
-  const expire = () => {
+  const expire = (sampledTime) => {
     if (!task) return false;
-    if (now() < task.expiresAt) return false;
+    if ((sampledTime ?? now()) < task.expiresAt) return false;
     lateReceiptAllowed = false;
     if (!['receipt-key-authenticated', 'cancelled-local', 'outcome-unknown',
           'expired-before-send'].includes(state)) {
@@ -207,14 +207,21 @@ export function createTransportNeutralAgentLoop({
           || typeof envelope.signature !== 'string' || !MAC.test(envelope.signature))
         receiptInvalid();
       const body = normalizeReceipt(envelope.body);
+      const receiptCheckTime = now();
+      // Close the receipt window on any observed expiry, even if a later
+      // clock reading rolls back into the original validity interval.
+      if (expire(receiptCheckTime)) return snapshot();
       if (!match(body.requestId) || body.nonce !== task.receiptNonce
           || body.observedAt < task.issuedAt
-          || body.observedAt > now() + 5
+          || body.observedAt > receiptCheckTime + 5
           || body.observedAt >= task.expiresAt) receiptInvalid();
       const supplied = Buffer.from(envelope.signature, 'hex');
       const expected = Buffer.from(signBody(trustedReceiptKey, body), 'hex');
       if (supplied.length !== expected.length
           || !timingSafeEqual(supplied, expected)) receiptInvalid();
+      // A valid signature cannot revive a task whose deadline passed
+      // during verification. Commit the receipt only inside its TTL.
+      if (expire()) return snapshot();
       authenticatedReceipt = true;
       lateReceiptAllowed = false;
       state = 'receipt-key-authenticated';
