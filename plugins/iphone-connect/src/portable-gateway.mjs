@@ -9,7 +9,7 @@ import { optionalToolCatalog, prepareLocalTask } from './optional-core.mjs';
 import { HANDOFF_ACTIONS, prepareChatGPTHandoff } from './chatgpt-handoff.mjs';
 import { oauthFromEnvironment } from './oauth-jwks.mjs';
 import { validateOAuthConfig, isLocalGatewayRequest, hasBoundedJSONBody,
-  hasValidOAuthAccess, protectedResourceMetadata } from './portable-gateway-security.mjs';
+  verifiedOAuthAccess, protectedResourceMetadata } from './portable-gateway-security.mjs';
 
 const noArgs = z.object({}).strict();
 const output = z.object({ data: z.record(z.string(), z.unknown()) });
@@ -18,7 +18,7 @@ const wrap = data => ({
   structuredContent: { data },
   content: [{ type: 'text', text: JSON.stringify(data) }]
 });
-export function createPortableMcp() {
+export function createPortableMcp({ lookupOwnerResult } = {}) {
   const mcp = new McpServer({ name: 'igentic-iphone-portable', version: '0.1.0' }, {
     instructions: 'Read-only portable preview for MCP clients. No physical-device observation, iPhone action, screenshots, personal data or iOS settings. Do not claim a connected iPhone.'
   });
@@ -62,11 +62,26 @@ export function createPortableMcp() {
     inputSchema: z.object({ action: z.enum(HANDOFF_ACTIONS) }).strict(),
     outputSchema: output, annotations
   }, async ({ action }) => wrap(prepareChatGPTHandoff(action)));
+  if (lookupOwnerResult) {
+    mcp.registerTool('iphone_owner_task_result', {
+      description: 'Read relay evidence for the original task ID without triggering an action.',
+      inputSchema: z.object({
+        requestId: z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/)
+      }).strict(), outputSchema: output, annotations
+    }, async ({ requestId }) => {
+      try { return wrap({ result: await lookupOwnerResult(requestId) }); }
+      catch { return { isError: true, content: [{ type: 'text', text: 'resultUnavailable' }] }; }
+    });
+  }
   return mcp;
 }
-export async function startPortableGateway({ port = 0, oauth } = {}) {
+export async function startPortableGateway({ port = 0, oauth, ownerResults } = {}) {
   if (!Number.isInteger(port) || port < 0 || port > 65535) throw Error('invalidPort');
   const auth = validateOAuthConfig(oauth);
+  if (ownerResults && (!auth || !auth.authorizationServers.includes(ownerResults.issuer)
+      || typeof ownerResults.subject !== 'string' || !ownerResults.subject.trim()
+      || typeof ownerResults.lookup !== 'function')) throw Error('invalidOwnerResultConfig');
+  const { issuer, subject, lookup } = ownerResults ?? {};
   const http = createHttpServer(async (req, res) => {
     res.setHeader('cache-control', 'no-store');
     const port = http.address().port;
@@ -89,7 +104,8 @@ export async function startPortableGateway({ port = 0, oauth } = {}) {
         .end('Method not allowed');
       return;
     }
-    if (auth && !(await hasValidOAuthAccess(req, auth))) {
+    const claims = auth ? await verifiedOAuthAccess(req, auth) : null;
+    if (auth && !claims) {
       res.writeHead(401, {
         'content-type': 'text/plain',
         'www-authenticate': 'Bearer resource_metadata="' + auth.metadataUrl
@@ -104,7 +120,9 @@ export async function startPortableGateway({ port = 0, oauth } = {}) {
       res.writeHead(code, { 'content-type': 'text/plain' }).end('Invalid request');
       return;
     }
-    const mcp = createPortableMcp();
+    const mcp = createPortableMcp({
+      lookupOwnerResult: claims?.iss === issuer && claims?.sub === subject ? lookup : undefined
+    });
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined, enableJsonResponse: true
     });

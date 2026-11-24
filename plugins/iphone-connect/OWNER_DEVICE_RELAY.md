@@ -163,3 +163,9 @@ its result, not the already transmitted request. The attempt is consumed
 before I/O; no implicit enrollment, retry, receipt signing, UI or production
 endpoint is enabled. Native gate review remains separate. Tests use synthetic
 credentials and an injected transport; no actual Keychain changes are made.
+
+The loopback Streamable HTTP gateway also accepts an explicit
+`ownerResults` configuration with `issuer`, `subject` and `lookup`.
+Only a verified OAuth token for that issuer and subject can discover or
+call the tool. The host binds `lookup` to the corresponding owner's relay.
+The standard command-line startup leaves this option disabled.
