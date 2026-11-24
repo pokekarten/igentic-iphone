@@ -10,6 +10,8 @@ public enum AuditEventType: String, Equatable, Sendable {
     case memoryStoreSnapshot
     case runtimeBudgetSnapshot
     case modelSelectionProposal
+    case reminderExecutionStarted
+    case reminderExecutionFinished
 }
 
 public struct AuditEvent: Identifiable, Equatable, Sendable {

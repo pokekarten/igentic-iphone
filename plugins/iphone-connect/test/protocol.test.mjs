@@ -1,0 +1,61 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { ROOT, UI_URI } from '../src/server.mjs';
+
+test('official MCP client: discovery, strict schemas, resource and end-to-end navigation', async t => {
+  const state = await mkdtemp(join(tmpdir(), 'igentic-protocol-'));
+  const transport = new StdioClientTransport({ command: process.execPath, args: [join(ROOT, 'src/server.mjs')],
+    env: { PATH: process.env.PATH, IGENTIC_IPHONE_BACKEND: 'fixture', IGENTIC_IPHONE_STATE_DIR: state }, stderr: 'pipe' });
+  const client = new Client({ name: 'protocol-test', version: '1.0.0' });
+  t.after(async () => { await client.close(); await rm(state, { recursive: true, force: true }); });
+  await client.connect(transport);
+  const tools = (await client.listTools()).tools;
+  assert.equal(tools.length, 16);
+  assert.equal(tools.find(t => t.name === 'iphone_tool_catalog').annotations.readOnlyHint, true);
+  const optionalTools = await client.callTool({ name: 'iphone_tool_catalog', arguments: {} });
+  assert.equal(optionalTools.structuredContent.data.policy, 'all-optional-no-implicit-provider-fallback');
+  assert.equal(optionalTools.structuredContent.data.optionalProviders.find(p => p.id === 'mobilecli').installed, 'not-checked');
+  const offline = await client.callTool({ name: 'iphone_prepare_local_task',
+    arguments: { task: 'reminder', text: 'Test-Erinnerung' } });
+  assert.equal(offline.structuredContent.data.status, 'manual-handoff-only');
+  assert.equal(offline.structuredContent.data.deviceActionExecuted, false);
+  assert.equal(offline.structuredContent.data.approval, 'explicit-on-device-before-write');
+  assert.equal(tools.find(t => t.name === 'iphone_native_launch_app').annotations.readOnlyHint, false);
+
+  assert.equal(tools.find(t => t.name === 'iphone_native_app_status').annotations.readOnlyHint, true);
+  const ownStatus = await client.callTool({ name: 'iphone_native_app_status', arguments: {} });
+  assert.deepEqual(ownStatus.structuredContent.data, {
+    supported: false, installed: 'not-verified', processRunning: 'not-verified'
+  });
+  assert.equal(tools.find(t => t.name === 'iphone_connection_report').annotations.readOnlyHint, true);
+  const report = await client.callTool({ name: 'iphone_connection_report', arguments: {} });
+  assert.equal(report.structuredContent.data.deviceStatus, 'synthetic-only');
+  assert.equal(report.structuredContent.data.routes.length, 5);
+  assert.equal(report.structuredContent.data.actionReadiness, 'not-verified');
+  assert.equal(tools.find(t => t.name === 'iphone_execute_action').annotations.readOnlyHint, false);
+  assert.equal(tools.find(t => t.name === 'iphone_observe').annotations.readOnlyHint, false);
+  const invoke = (name, args = {}) => client.callTool({ name, arguments: args });
+  assert.equal((await invoke('iphone_start_session', { device: 'iphone-1', approved: true })).isError, true);
+  assert.equal((await invoke('arbitrary_shell', { command: 'rm' })).isError, true);
+  const start = await invoke('iphone_start_session', { device: 'iphone-1' });
+  const sessionId = start.structuredContent.data.sessionId;
+  const fixtureLaunch = await invoke('iphone_native_launch_app', { sessionId });
+  assert.equal(fixtureLaunch.isError, true, 'fixture must not pretend to execute a native physical action');
+  assert.equal(fixtureLaunch.content[0].text, 'nativeDriverRequired');
+  const opened = await invoke('iphone_open_diagnostics', { sessionId });
+  const observationId = opened.structuredContent.data.observationId;
+  const prepared = await invoke('iphone_prepare_action', { sessionId, observationId, action: 'open-discovery' });
+  const proposalId = prepared.structuredContent.data.proposalId;
+  const action = await invoke('iphone_execute_action', { sessionId, proposalId });
+  assert.equal(action.structuredContent.data.status, 'verified');
+  assert.equal((await invoke('iphone_execute_action', { sessionId, proposalId })).isError, true);
+  const ui = await client.readResource({ uri: UI_URI });
+  assert.equal(ui.contents[0].mimeType, 'text/html;profile=mcp-app');
+  assert.ok(ui.contents[0].text.includes('Stop session'));
+  await invoke('iphone_stop_session', { sessionId });
+});

@@ -1,20 +1,22 @@
-// swift-tools-version: 6.0
+// swift-tools-version: 6.2
 
 import PackageDescription
 
 let package = Package(
     name: "iGenticIPhone",
     platforms: [
-        .iOS(.v17),
+        .iOS("27.0"),
         .macOS(.v14)
     ],
     products: [
+        .executable(name: "iGenticPluginPolicy", targets: ["iGenticPluginPolicy"]),
         .library(name: "AgentCore", targets: ["AgentCore"]),
         .library(name: "iGenticApp", targets: ["iGenticApp"]),
         .executable(name: "AppleFoundationBaselineHost", targets: ["AppleFoundationBaselineHost"]),
         .executable(name: "AppleOnDeviceProposalProbe", targets: ["AppleOnDeviceProposalProbe"])
     ],
     targets: [
+        .executableTarget(name: "iGenticPluginPolicy", dependencies: ["AgentCore"]),
         .target(name: "AgentCore"),
         .executableTarget(name: "AppleOnDeviceProposalProbe", dependencies: ["AgentCore"]),
         .target(

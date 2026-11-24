@@ -51,3 +51,57 @@ The MacBook Neo with macOS 27.0.1/Xcode 27.2 reported
 2026-11-21. A live, synthetic probe returned `approvalRequired`
 with `policyRequiresApproval` (no reminder was created). Device acceptance
 on the owner's physical iPhone remains separate.
+
+
+## iOS 27 locale eligibility check (2026-11-22)
+
+The on-device system model's presence is **not** proof of its availability
+for the user's preferred language. `AppleFoundationModelsRuntime` now checks
+`SystemLanguageModel.default.supportsLocale` against the first preferred
+language after the model reports available. An unsupported locale fails closed
+with `unsupportedLocale`, rather than sending the request to a cloud endpoint
+or silently choosing a different model. Existing authorization and data
+classification boundaries are unchanged. A separately configured, user-approved
+local open-weight model may be evaluated later; there is **no automatic
+delegation**.
+
+Apple documentation:
+https://developer.apple.com/documentation/foundationmodels/systemlanguagemodel/supportslocale(_:)
+https://developer.apple.com/documentation/updates/foundationmodels
+
+This mapping has a deterministic Swift unit test, but **has not been measured
+on the physical iPhone on iOS 27**. A signed physical-device trial must record
+preferred locale, OS version, model availability, `supportsLocale` result and
+a synthetic German-language structured preview. Do not publish private device
+identifiers, prompts or raw generated text.
+
+## Opt-in typed reminder-draft probe
+
+The reminder screen also uses `ReminderDraftProposalService`. This separate
+probe exercises its structured action/title/Gregorian-date output through the
+same local system model. It supplies one of three fixed synthetic German
+fixtures; it accepts no arbitrary prompt. The supported fixture checks only
+whether the expected object/action terms and tomorrow-at-18:00 Europe/Berlin
+date matched. The other fixtures check abstention for an ambiguous reminder
+time and an unsupported wallpaper request.
+
+```bash
+IGENTIC_RUN_LOCAL_REMINDER_DRAFT_PROBE=1 \
+  swift run AppleOnDeviceProposalProbe
+
+IGENTIC_RUN_LOCAL_REMINDER_DRAFT_PROBE=1 \
+IGENTIC_LOCAL_REMINDER_PROBE_CASE=ambiguous \
+  swift run AppleOnDeviceProposalProbe
+
+IGENTIC_RUN_LOCAL_REMINDER_DRAFT_PROBE=1 \
+IGENTIC_LOCAL_REMINDER_PROBE_CASE=unsupported \
+  swift run AppleOnDeviceProposalProbe
+```
+
+The output contains only result codes and boolean fixture-match fields; no
+generated title/date, prompt or error is printed. All cases remain preview
+only, and the executable has no EventKit writer. A successful fixture match
+is one observation, not a quality rate or guarantee. This route is distinct
+from the public-data-only action preview: the fixed synthetic reminder is
+classified as contextual private input to test the production privacy floor,
+but no user records or shared content are read.

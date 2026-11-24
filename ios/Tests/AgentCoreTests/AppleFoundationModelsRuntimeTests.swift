@@ -25,6 +25,7 @@ final class AppleFoundationModelsRuntimeTests: XCTestCase {
             (.deviceNotEligible, .unavailable(.deviceNotEligible)),
             (.appleIntelligenceNotEnabled, .unavailable(.appleIntelligenceNotEnabled)),
             (.modelNotReady, .unavailable(.modelNotReady)),
+            (.unsupportedLocale, .unavailable(.unsupportedLocale)),
             (.unsupportedPlatform, .unavailable(.unsupportedPlatform)),
             (.unknownSystemCondition, .unavailable(.unknownSystemCondition)),
         ]
@@ -35,6 +36,25 @@ final class AppleFoundationModelsRuntimeTests: XCTestCase {
                 expected
             )
         }
+    }
+
+    func testUnsupportedPreferredLocaleFailsClosedWithoutAnyCloudFallback() {
+        let runtime = AppleFoundationModelsRuntime(
+            availabilityOverride: .unsupportedLocale
+        )
+
+        let decision = runtime.assess(
+            LocalModelRequest(
+                capability: .structuredProposal,
+                dataSensitivity: .publicData,
+                allowedExecutionKinds: [.system]
+            )
+        )
+
+        XCTAssertEqual(
+            decision,
+            .rejected(.runtimeUnavailable(.unsupportedLocale))
+        )
     }
 
     func testHighlyPrivateDataRemainsAboveSystemBackendCeiling() {

@@ -28,7 +28,15 @@
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES">
       <Testables>
-         <TestableReference skipped="NO"><BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="A20000000000000000000005" BuildableName="iGenticDiagnosticsUITests.xctest" BlueprintName="iGenticDiagnosticsUITests" ReferencedContainer="container:iGenticDiagnostics.xcodeproj" /></TestableReference>
+         <TestableReference skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "B20000000000000000000006"
+               BuildableName = "iGenticDiagnosticsUITests.xctest"
+               BlueprintName = "iGenticDiagnosticsUITests"
+               ReferencedContainer = "container:iGenticDiagnostics.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

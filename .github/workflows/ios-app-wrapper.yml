@@ -6,6 +6,7 @@ on:
       - "app/**"
       - "ios/**"
       - "scripts/smoke-ios-simulator.sh"
+      - "scripts/select_ios27_simulator.py"
       - ".github/workflows/ios-app-wrapper.yml"
   push:
     branches:
@@ -14,8 +15,9 @@ on:
       - "app/**"
       - "ios/**"
       - "scripts/smoke-ios-simulator.sh"
+      - "scripts/select_ios27_simulator.py"
       - ".github/workflows/ios-app-wrapper.yml"
-  workflow_dispatch:
+  # Manual dispatch is deliberately disabled: rerun PR checks from GitHub.
 
 permissions:
   contents: read
@@ -31,10 +33,9 @@ defaults:
 jobs:
   simulator-build:
     name: Build and launch diagnostic app in simulator
-    runs-on: macos-15
+    runs-on: xcode-27
     timeout-minutes: 25
     env:
-      PR_NUMBER: ${{ github.event.pull_request.number }}
       BUNDLE_IDENTIFIER: org.example.iGenticDiagnostics
 
     steps:
@@ -43,20 +44,63 @@ jobs:
           set -euo pipefail
           git init .
           git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
-          if git fetch --no-tags --depth=1 origin "${GITHUB_SHA}"; then
-            echo "Fetched ${GITHUB_SHA}"
-          elif [ "${GITHUB_EVENT_NAME}" = "pull_request" ] && [ -n "${PR_NUMBER:-}" ]; then
-            git fetch --no-tags --depth=1 origin "pull/${PR_NUMBER}/merge"
-          else
-            git fetch --no-tags --depth=1 origin "${GITHUB_REF_NAME:-main}"
+          # Never run arbitrary workflow_dispatch refs as privileged CI.
+          # The event/GitHub-supplied ref is the only accepted checkout.
+          case "${GITHUB_EVENT_NAME}:${GITHUB_REF}" in
+            pull_request:refs/pull/*/merge|push:refs/heads/main) ;;
+            *) echo "Unsupported event/ref for untrusted-code CI" >&2; exit 1 ;;
+          esac
+          git fetch --no-tags --depth=1 origin "${GITHUB_REF}"
+          fetched_sha="$(git rev-parse FETCH_HEAD)"
+          if [[ "${fetched_sha}" != "${GITHUB_SHA}" ]]; then
+            echo "Event SHA changed during checkout; rerun the workflow" >&2
+            exit 1
           fi
           git checkout --force FETCH_HEAD
           git clean -fdx
           git config --global --add safe.directory "${GITHUB_WORKSPACE}"
 
+      - name: Select Xcode 27 paired with an available matching iOS runtime
+        run: |
+          set -euo pipefail
+          # AppIntentsTesting from Xcode 27.1 cannot reliably load into a
+          # newer iOS 27.2 simulator: dyld reports a missing private symbol.
+          # Choose a *matching* installed toolchain + iPhone simulator, or
+          # fail immediately with actionable diagnostics (never skip tests).
+          candidates=("$(xcode-select -p)")
+          for app in /Applications/Xcode*.app; do
+            if [[ -d "${app}/Contents/Developer" ]]; then
+              candidates+=("${app}/Contents/Developer")
+            fi
+          done
+          selected_dir=""
+          selected_runtime=""
+          for developer_dir in "${candidates[@]}"; do
+            version_output="$(DEVELOPER_DIR="${developer_dir}" xcodebuild -version 2>/dev/null)" || continue
+            xcode_version="$(printf '%s\n' "${version_output}" | sed -nE 's/^Xcode (27[.][0-9]+)([.][0-9]+)?$/\1/p' | head -1)"
+            [[ -n "${xcode_version}" ]] || continue
+            if DEVELOPER_DIR="${developer_dir}" xcrun simctl list devices available -j |
+              python3 scripts/select_ios27_simulator.py --match-runtime "${xcode_version}" >/dev/null; then
+              selected_dir="${developer_dir}"
+              selected_runtime="${xcode_version}"
+              break
+            fi
+          done
+          if [[ -z "${selected_dir}" ]]; then
+            echo "::error::No compatible Xcode 27 / iOS 27 iPhone simulator pair. Install a matching simulator runtime or Xcode before AppIntentsTesting." >&2
+            exit 1
+          fi
+          echo "DEVELOPER_DIR=${selected_dir}" >> "${GITHUB_ENV}"
+          echo "IOS27_MATCHED_RUNTIME=${selected_runtime}" >> "${GITHUB_ENV}"
+          echo "Selected aligned toolchain: Xcode ${selected_runtime}"
+
       - name: Show Xcode and Swift versions
         run: |
-          xcodebuild -version
+          # Capture the complete output first. Piping xcodebuild into grep -q
+          # closes stdout early and has crashed xcodebuild with SIGABRT on xcode-27.
+          xcode_version="$(xcodebuild -version)"
+          printf '%s\n' "$xcode_version"
+          grep -Eq '^Xcode 27([.]|$)' <<< "$xcode_version"
           swift --version
 
       - name: Resolve local package dependency
@@ -86,6 +130,59 @@ jobs:
           echo "APP_PATH=${app_path}" >> "${GITHUB_ENV}"
           echo "SCREENSHOT_PATH=${screenshot_path}" >> "${GITHUB_ENV}"
 
+      - name: Create isolated iOS 27 simulator
+        run: |
+          set -euo pipefail
+          : "${IOS27_MATCHED_RUNTIME:?Select matching Xcode/iOS runtime first}"
+          # Concurrent Draft PRs must not install or run tests on the same
+          # default CoreSimulator device. Allocate one disposable simulator.
+          json="$(xcrun simctl list devices available -j)"
+          source_udid="$(printf '%s' "${json}" |
+            python3 scripts/select_ios27_simulator.py --match-runtime "${IOS27_MATCHED_RUNTIME}")"
+          spec="$(printf '%s' "${json}" | python3 -c '
+          import json, sys
+          selected = sys.argv[1]
+          for runtime, devices in json.load(sys.stdin).get("devices", {}).items():
+              for device in devices:
+                  if device.get("udid") == selected:
+                      kind = device.get("deviceTypeIdentifier", "")
+                      if kind.startswith("com.apple.CoreSimulator.SimDeviceType.iPhone-") and runtime.startswith("com.apple.CoreSimulator.SimRuntime.iOS-"):
+                          print(kind, runtime)
+                          sys.exit(0)
+          sys.exit("Selected simulator lacks a usable iPhone type/runtime")
+          ' "${source_udid}")"
+          read -r device_type runtime_id <<< "${spec}"
+          isolated_udid="$(xcrun simctl create "iGentic-CI-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" "${device_type}" "${runtime_id}")"
+          echo "IGENTIC_SIMULATOR_UDID=${isolated_udid}" >> "${GITHUB_ENV}"
+          echo "Created isolated matching iOS simulator ${isolated_udid}"
+
       - name: Install, launch, screenshot, and relaunch app
         run: |
           bash scripts/smoke-ios-simulator.sh
+
+      - name: Execute both iOS 27 system-level UI acceptance tests
+        run: |
+          set -euo pipefail
+          : "${IOS27_MATCHED_RUNTIME:?The matched Xcode/iOS preflight must complete}"
+          simulator_udid="${IGENTIC_SIMULATOR_UDID:?Isolated simulator step must complete}"
+          # Run the two fixed, synthetic-only paths, never a physical device.
+          # Use a separate derived-data directory from the unsigned build.
+          # The Xcode test runner requires simulator ad-hoc code signing.
+          xcodebuild \
+            -project app/iGenticDiagnostics/iGenticDiagnostics.xcodeproj \
+            -scheme iGenticDiagnostics \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,id=${simulator_udid}" \
+            -derivedDataPath "${RUNNER_TEMP}/iGenticSystemTestDerivedData" \
+            -parallel-testing-enabled NO \
+            -only-testing:iGenticDiagnosticsUITests/DiagnosticsUITests \
+            -only-testing:iGenticDiagnosticsUITests/iGenticAppIntentsTests \
+            CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- -jobs 2 test
+
+      - name: Remove isolated iOS simulator
+        if: always()
+        run: |
+          if [[ -n "${IGENTIC_SIMULATOR_UDID:-}" ]]; then
+            xcrun simctl shutdown "${IGENTIC_SIMULATOR_UDID}" >/dev/null 2>&1 || true
+            xcrun simctl delete "${IGENTIC_SIMULATOR_UDID}" || true
+          fi

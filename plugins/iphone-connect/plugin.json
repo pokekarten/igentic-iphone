@@ -1,0 +1,20 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "igentic-iphone-connect",
+  "version": "0.1.0",
+  "description": "Client-neutral iGentic iPhone diagnostics with first-party Apple CoreDevice and optional MCP clients.",
+  "author": { "name": "iGentic" },
+  "repository": "https://github.com/pokekarten/igentic-iphone",
+  "license": "Apache-2.0",
+  "extensions": {
+    "com.openai": {
+      "requires_local_executor": true,
+      "interface": {
+        "displayName": "iGentic iPhone Connect",
+        "shortDescription": "Verified iPhone diagnostics for MCP clients",
+        "category": "Developer Tools",
+        "capabilities": ["Read", "Write"]
+      }
+    }
+  }
+}
