@@ -329,3 +329,31 @@ test('snapshot expires an idle task and preserves uncertainty after dispatch', (
     assert.equal(loop.snapshot().state, result.state);
   }
 });
+
+
+test('deadline crossed during durable preparation never releases a payload', () => {
+  let current = time;
+  const envelope = signed(), requestId = envelope.body.requestId;
+  const clock = () => current;
+  const admission = createOwnerProposalAdmission({ key: relayKey, nowSeconds: clock });
+  let marks = 0;
+  const loop = createTransportNeutralAgentLoop({
+    admission, receiptKey: deviceKey, nowSeconds: clock,
+    deliveryAttemptMarker: { markPrepared() {
+      marks += 1;
+      current = envelope.body.expiresAt;
+      return true;
+    } }
+  });
+  loop.start({ envelope, entryPoint: 'chatgpt-site' });
+  assert.throws(() => loop.prepareDelivery({ requestId, route: 'coredevice-wifi' }),
+    /invalidAgentLoopTransition/);
+  assert.equal(marks, 1);
+  const result = loop.snapshot();
+  assert.equal(result.state, 'outcome-unknown');
+  assert.equal(result.actionExecuted, false);
+  assert.equal(result.automaticRetryAllowed, false);
+  assert.throws(() => loop.prepareDelivery({ requestId, route: 'coredevice-wifi' }),
+    /invalidAgentLoopTransition/);
+  assert.equal(marks, 1);
+});

@@ -167,6 +167,9 @@ export function createTransportNeutralAgentLoop({
       transport = route;
       attemptCount += 1;
       state = 'delivery-prepared-not-sent';
+      // Persistence can cross the deadline. Keep the durable uncertainty
+      // boundary, but never release an already expired payload to an adapter.
+      if (expire()) invalid();
       // This intentionally does not expose an executable command or private
       // input. A separate adapter must do the actual transport.
       return Object.freeze({
