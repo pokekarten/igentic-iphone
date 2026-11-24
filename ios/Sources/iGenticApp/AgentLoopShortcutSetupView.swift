@@ -23,6 +23,10 @@ public struct AgentLoopShortcutSetupView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Automatisch mit iGentic verfügbar").font(.headline)
                     Text("Öffne die App-Kurzbefehle und wähle „ChatGPT-Beispielaufgabe“. Weitere Aktionen lesen den iPhone-Status, prüfen die Diagnose oder bereiten einen lokalen Auftrag vor.")
+                    if let url = AgentLoopShortcutSetup.chatGPTExampleURL {
+                        Link("Beispielaufgabe direkt in ChatGPT öffnen", destination: url)
+                            .accessibilityIdentifier("igentic-chatgpt-example")
+                    }
                     ShortcutsLink()
                         .accessibilityIdentifier("igentic-native-app-shortcuts")
                     Text("Diese nativen Aktionen benötigen keinen Import. Die weiteren iGentic-Schritte für den KI-Loop findest du als einzelne Aktionen im Kurzbefehle-Editor. Die Beispielaufgabe öffnet ChatGPT mit einer festen Frage zu einer leeren Testliste.")

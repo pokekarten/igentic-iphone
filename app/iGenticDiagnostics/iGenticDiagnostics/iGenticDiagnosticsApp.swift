@@ -550,14 +550,7 @@ struct iGenticChatGPTFollowUpIntent: AppIntent {
     )
 
     func perform() async throws -> some IntentResult & OpensIntent {
-        var components = URLComponents()
-        components.scheme = "https"
-        components.host = "chatgpt.com"
-        components.path = "/"
-        components.queryItems = [URLQueryItem(
-            name: "q", value: "Erstelle eine kurze Folgeaufgabe zur Prüfung einer leeren Testliste."
-        )]
-        guard let url = components.url else { throw URLError(.badURL) }
+        guard let url = AgentLoopShortcutSetup.chatGPTExampleURL else { throw URLError(.badURL) }
         return .result(opensIntent: OpenURLIntent(url))
     }
 }

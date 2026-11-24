@@ -3,6 +3,17 @@ import Foundation
 /// Authoritative, user-facing configuration for the real API-free Shortcuts
 /// round trip. No launcher URL creates a Shortcut or transports user text.
 public enum AgentLoopShortcutSetup {
+    public static var chatGPTExampleURL: URL? {
+        var components = URLComponents()
+        components.scheme = "https"
+        components.host = "chatgpt.com"
+        components.path = "/"
+        components.queryItems = [URLQueryItem(
+            name: "q", value: "Erstelle eine kurze Folgeaufgabe zur Prüfung einer leeren Testliste."
+        )]
+        return components.url
+    }
+
     public static let primaryShortcutName = "iGentic KI Loop"
     public static let projectChatShortcutName = "iGentic Projekt-Chat"
     public static let researchShortcutName = "iGentic ChatGPT Loop Test"

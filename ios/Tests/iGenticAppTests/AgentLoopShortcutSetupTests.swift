@@ -3,6 +3,16 @@ import Foundation
 @testable import iGenticApp
 
 final class AgentLoopShortcutSetupTests: XCTestCase {
+    func testChatGPTExampleUsesOnlyTheFixedPublicPrompt() throws {
+        let url = try XCTUnwrap(AgentLoopShortcutSetup.chatGPTExampleURL)
+        let parts = try XCTUnwrap(URLComponents(url: url, resolvingAgainstBaseURL: false))
+        XCTAssertEqual(parts.scheme, "https")
+        XCTAssertEqual(parts.host, "chatgpt.com")
+        XCTAssertEqual(parts.queryItems, [URLQueryItem(
+            name: "q", value: "Erstelle eine kurze Folgeaufgabe zur Prüfung einer leeren Testliste."
+        )])
+    }
+
     func testOfficialURLSchemasCarryNoUserData() {
         let setup = AgentLoopShortcutSetup.self
         XCTAssertEqual(setup.primaryShortcutName, "iGentic KI Loop")
