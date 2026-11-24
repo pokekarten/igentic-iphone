@@ -169,3 +169,38 @@ requested, and rerun the strict USB preflight. A read-only status first,
 then a separately authorized synthetic-app observation and independent
 verification. The script never retries device actions or performs pairing,
 installation, tunnel creation, taps, app changes, or background monitoring.
+
+
+## 2026-11-23: ambiguous phone rejection and actionable offline USB blockers
+
+`python3 scripts/iphone_usb_readiness.py` now includes anonymous, stable
+`blockers` codes in its JSON result. For example, when the owner’s iPhone is
+not attached and not on Wi-Fi, the observed read-only result includes:
+
+```json
+{
+  "usb_readonly_candidate": false,
+  "physical_ui_control_verified": false,
+  "blockers": [
+    "iphone_usb_not_detected",
+    "wired_coredevice_tunnel_unavailable",
+    "mobilecli_physical_iphone_not_discovered"
+  ]
+}
+```
+
+A candidate now additionally requires **exactly one paired, wired, live-tunnel
+physical iOS iPhone** in Xcode CoreDevice and **exactly one** real iOS device
+from MobileCLI. Two or more matches fail closed with
+`multiple_wired_iphones_ambiguous` or `multiple_mobilecli_devices_ambiguous`;
+missing counts and malformed device payloads cannot authorize a session.
+Only integer *counts* are retained, never device names or identifiers. Errors
+from a disconnected USB port, CoreDevice or MobileCLI produce distinct anonymous
+codes; strict mode continues to exit **2** until all discovery criteria pass.
+
+This cannot cryptographically prove that the CoreDevice and MobileCLI sightings
+refer to the **same physical phone**. It is an intentionally conservative,
+**read-only** readiness signal, not screen-control permission or user consent.
+A separate operator-confirmed device match and scoped acceptance check remain
+mandatory. No persistent session, tap, app installation, screenshot or phone
+settings mutation occurs during this check.

@@ -26,6 +26,21 @@ export function hasUsablePhysicalTunnel(device) {
   return physicalConnectionState(device) === 'xcode-tunnel-available';
 }
 
+// Describe an *observed, currently usable* CoreDevice transport, never the
+// user's preferred route or a remembered transport. No arbitrary CoreDevice
+// metadata or identifying string crosses the MCP boundary.
+export function physicalConnectionPath(device) {
+  if (!hasUsablePhysicalTunnel(device)) return 'none';
+  const raw = device?.connectionProperties?.transportType;
+  if (typeof raw !== 'string' || raw.length > 24)
+    return 'coredevice-transport-unclassified';
+  const transport = raw.toLowerCase();
+  if (['wired', 'usb', 'usbmux'].includes(transport)) return 'usb-coredevice';
+  if (['wireless', 'wifi', 'wi-fi', 'network', 'localnetwork'].includes(transport))
+    return 'network-coredevice';
+  return 'coredevice-transport-unclassified';
+}
+
 export function sanitizeTree(value) {
   const found = new Set(); let count = 0;
   function visit(node, depth = 0) {
@@ -78,7 +93,12 @@ export async function loadConfig(path) {
     throw new PluginError('invalidConfig');
   if (!/^[A-Fa-f0-9-]{20,50}$/.test(c.deviceId ?? '') || !BUNDLES.has(c.bundleId))
     throw new PluginError('invalidConfig');
-  for (const key of ['mobilecliPath', 'policyPath']) {
+  // A stale/removed legacy CLI path must not prevent the native CoreDevice
+  // driver from starting. The legacy option validates the executable when
+  // explicitly invoked, never as a prerequisite for the first-party path.
+  if (c.mobilecliPath !== undefined && !isAbsolute(c.mobilecliPath))
+    throw new PluginError('invalidConfig');
+  for (const key of ['policyPath']) {
     if (!isAbsolute(c[key] ?? '') || !(await stat(c[key])).isFile()) throw new PluginError('invalidConfig');
   }
   return c;
@@ -107,7 +127,8 @@ export class MobileBackend {
       if (!d) return [];
       const connectionState = physicalConnectionState(d);
       return [{ id: 'iphone-1', kind: this.kind,
-        available: connectionState === 'xcode-tunnel-available', connectionState }];
+        available: connectionState === 'xcode-tunnel-available', connectionState,
+        connectionPath: physicalConnectionPath(d) }];
     } finally { await rm(directory, { recursive: true, force: true }); }
   }
   async mobile(args, signal) {

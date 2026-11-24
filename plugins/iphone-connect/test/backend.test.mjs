@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, writeFile, rm, chmod } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { loadConfig, MobileBackend, hasUsablePhysicalTunnel, physicalConnectionState, discoveryControlRef } from '../src/backend.mjs';
+import { loadConfig, MobileBackend, hasUsablePhysicalTunnel, physicalConnectionState, physicalConnectionPath, discoveryControlRef } from '../src/backend.mjs';
 import { run } from '../src/process.mjs';
 
 test('unconfigured physical mode never silently falls back to fixture', async () => {
@@ -23,6 +23,21 @@ test('config requires private permissions, fixed bundle and strict keys', async 
     policyPath: process.execPath, mobilecliPath: process.execPath, approved: true }));
   await assert.rejects(loadConfig(path), /invalidConfig/);
 });
+test('every physical MobileCLI invocation pins the configured iPhone, never a discovered first device', async t => {
+  const dir = await mkdtemp(join(tmpdir(), 'igentic-pinned-phone-'));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const command = join(dir, 'fake-mobilecli');
+  // Synthetic executable echoes only argument names; no phone or account is used.
+  await writeFile(command, `#!${process.execPath}\nprocess.stdout.write(JSON.stringify({ status: 'ok', data: { argv: process.argv.slice(2) } }));\n`, { mode: 0o700 });
+  await chmod(command, 0o700);
+  const pinnedId = 'a'.repeat(24);
+  const backend = new MobileBackend({ deviceId: pinnedId,
+    bundleId: 'org.example.iGenticDiagnostics', mobilecliPath: command, policyPath: command });
+  const output = await backend.mobile(['dump', 'ui']);
+  assert.deepEqual(output.argv, ['dump', 'ui', '--device', pinnedId]);
+  assert.equal(output.argv.filter(x => x === '--device').length, 1);
+});
+
 test('subprocess timeout, cancellation and output bounds return only coarse errors', async () => {
   await assert.rejects(run(process.execPath, ['-e', 'setTimeout(()=>{},10000)'], { timeout: 20 }), /backendTimeout/);
   await assert.rejects(run(process.execPath, ['-e', 'process.stdout.write("secret".repeat(10000))'], { maxBytes: 100 }), /backendOutputLimit/);
@@ -122,5 +137,37 @@ test('discovery selector fails closed on wrong, disabled, duplicate or oversized
   ];
   for (const tree of rejected) {
     assert.throws(() => discoveryControlRef(tree), /navigationTargetUnavailable/);
+  }
+});
+
+
+test('connection path is a fixed projection of the live physical CoreDevice tunnel only', () => {
+  const device = (transportType, tunnelState = 'connected', reality = 'physical', pairingState = 'paired') => ({
+    hardwareProperties: { reality, platform: 'iOS', deviceType: 'iPhone' },
+    connectionProperties: { transportType, tunnelState, pairingState,
+      privateNetworkName: 'DO-NOT-RETURN' }
+  });
+  const cases = [
+    [device('wired'), 'usb-coredevice'],
+    [device('usb'), 'usb-coredevice'],
+    [device('wireless'), 'network-coredevice'],
+    [device('network'), 'network-coredevice'],
+    [device('localNetwork'), 'network-coredevice'],
+    [device('wifi'), 'network-coredevice'],
+    [device('network', 'disconnected'), 'none'],
+    [device('localNetwork', 'disconnected'), 'none'],
+    [device('wired', 'unavailable'), 'none'],
+    [device('wired', 'connected', 'simulated'), 'none'],
+    [device('network', 'connected', 'physical', 'unpaired'), 'none'],
+    [device('VPN-only'), 'coredevice-transport-unclassified'],
+    [device('wireless;DO-NOT-RETURN'), 'coredevice-transport-unclassified'],
+    [device(undefined), 'coredevice-transport-unclassified'],
+    [null, 'none']
+  ];
+  for (const [input, expected] of cases) {
+    const result = physicalConnectionPath(input);
+    assert.equal(result, expected);
+    assert.doesNotMatch(result, /DO-NOT-RETURN|VPN-only|privateNetworkName/);
+    assert.ok(['usb-coredevice','network-coredevice','coredevice-transport-unclassified','none'].includes(result));
   }
 });

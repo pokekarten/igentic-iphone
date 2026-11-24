@@ -46,13 +46,17 @@ def coredevice_summary(payload: dict) -> dict:
 
 
 def mobilecli_summary(payload: dict) -> dict:
-    if payload.get("status") != "ok":
+    if not isinstance(payload, dict) or payload.get("status") != "ok":
         raise ValueError("mobilecli did not return ok")
-    devices = payload.get("data", {}).get("devices", [])
-    if not isinstance(devices, list):
-        raise ValueError("mobilecli devices is not a list")
+    data = payload.get("data", {})
+    if not isinstance(data, dict):
+        raise ValueError("mobilecli data is not an object")
+    devices = data.get("devices", [])
+    if not isinstance(devices, list) or any(not isinstance(x, dict) for x in devices):
+        raise ValueError("mobilecli devices is not a list of objects")
     # The CLI command explicitly filters by platform=ios and type=real.
-    return {"mobilecli_real_discovered": bool(devices)}
+    # Count only, never print device names, serials, IDs or UI contents.
+    return {"mobilecli_real_discovered": bool(devices), "mobilecli_real_count": len(devices)}
 
 
 def coredevice_probe() -> dict:

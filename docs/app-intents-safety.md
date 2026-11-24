@@ -82,7 +82,7 @@ Before any real-action work, the implementation must define:
 
 ## Implemented versus not implemented
 
-In the current iOS 27 integration draft, `AgentCore` has a local draft/approval pipeline, and the diagnostic app registers two read-only system App Intents plus an `AppShortcutsProvider`: a static diagnostic response and an Apple on-device language-model **availability** check. Both use the local `PolicyEngine` read gate. The second only inspects whether the installed system model is eligible/ready; no user prompt, generated text or network request is used. System-level simulator tests verify the registration and dispatch but cannot establish physical-device eligibility or Siri voice behavior.
+In the current iOS 27 integration draft, `AgentCore` has a local draft/approval pipeline, and the diagnostic app registers bounded system App Intents and an `AppShortcutsProvider`, including a static diagnostic response and an Apple on-device language-model **availability** check. These two use the local `PolicyEngine` read gate. The readiness check only inspects whether the installed system model is eligible/ready; no user prompt, generated text or network request is used. System-level simulator tests verify the registration and dispatch but cannot establish physical-device eligibility or Siri voice behavior.
 
 Still **not implemented**: any remotely authorized generic iPhone action, Shortcut-driven persistent write, action-specific approval receipt for a system write, enterprise management, hosted model fallback, automatic signing, or verified physical iPhone App Intents behavior. No real messages, contacts, calendars, files, health data or financial data are accessed by these read-only intents.
 
