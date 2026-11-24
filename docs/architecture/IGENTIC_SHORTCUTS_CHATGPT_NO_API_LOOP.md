@@ -378,3 +378,8 @@ follow-up about an empty test list. It supplies no personal input or device
 status. The model response appears in ChatGPT. This action requires no
 personal Shortcut import. Voice recognition, account selection and return
 of the resulting answer to iGentic require separate device verification.
+
+Physical test: the signed build installed and launched over Wi-Fi. Invoking
+this featured action via the personal run-shortcut URL by display name opened
+Shortcuts, which reported that the shortcut could not be found. Use the native
+App Shortcuts picker for the featured action. Siri invocation remains unverified.
