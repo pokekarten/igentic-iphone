@@ -23,7 +23,8 @@ async function startTestRelay(t) {
   const [ownerAccessKey,deviceAccessKey,proposalKey,receiptKey,markerKey]=
     Array.from({length:5},()=>randomBytes(32));
   const now=2000000000;
-  provisionPrivateReplayLedger({key:proposalKey,databasePath});
+  provisionPrivateReplayLedger({key:proposalKey,databasePath,
+    relayRoles:{ownerAccessKey,deviceAccessKey,receiptKey,markerKey}});
   const relay=createOwnerDeviceRelay({ownerAccessKey,deviceAccessKey,proposalKey,receiptKey,
     markerKey,databasePath,markerDirectory,nowSeconds:()=>now});
   t.after(()=>relay.close(ownerAccessKey));

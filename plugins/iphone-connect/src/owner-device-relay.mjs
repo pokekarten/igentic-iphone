@@ -19,8 +19,11 @@ export function createOwnerDeviceRelay({
   if (!keys.every(validKey) || keys.some((k, i) => keys.slice(i + 1).some(other => timingSafeEqual(k, other)))
       || typeof nowSeconds !== 'function') throw Error('invalidRelayConfig');
   const [owner, device, proposal, receipt, markerSecret] = keys.map(k => Buffer.from(k));
-  const marker = createPrivateDeliveryAttemptMarker({directory: markerDirectory, key: markerSecret});
-  const admission = createDurableOwnerProposalAdmission({key: proposal, databasePath, nowSeconds});
+  const admission = createDurableOwnerProposalAdmission({key: proposal, databasePath, nowSeconds,
+    relayRoles:{ownerAccessKey:owner,deviceAccessKey:device,receiptKey:receipt,markerKey:markerSecret}});
+  let marker;
+  try { marker = createPrivateDeliveryAttemptMarker({directory: markerDirectory, key: markerSecret}); }
+  catch(error) { admission.close(); throw error; }
   const loop = createTransportNeutralAgentLoop({admission, receiptKey: receipt, nowSeconds,
     deliveryAttemptMarker: marker});
   let envelope = null, claimed = false, released = false, closed = false;
@@ -83,6 +86,7 @@ export function createOwnerDeviceRelay({
     },
     cancel(key, requestId) {
       auth(key, owner);
+      admission.isRevoked();
       if (claimed) throw Error('invalidAgentLoopTransition');
       return loop.cancel({requestId});
     },
@@ -116,6 +120,7 @@ export function createOwnerDeviceRelay({
     },
     recover(key, requestId) {
       auth(key, owner);
+      admission.isRevoked();
       return marker.recover({requestId});
     },
     close(key) {

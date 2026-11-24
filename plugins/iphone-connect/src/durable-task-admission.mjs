@@ -55,6 +55,31 @@ function readRevocation(db, key) {
     throw Error('relayRevocationInvalid');
   return row.revoked === 1;
 }
+// Explicit offline role binding: a different configuration must not
+// silently acquire the existing ledger's device or owner authority.
+function roleBindingMAC(key, roles) {
+  const h = createHmac('sha256',key).update('igentic-relay-role-binding-v1\n');
+  if (roles === undefined) return h.update('offline-only').digest('hex');
+  const names = ['ownerAccessKey','deviceAccessKey','receiptKey','markerKey'];
+  if (!roles || Object.keys(roles).length !== names.length
+      || names.some(name=>!Object.hasOwn(roles,name))) throw Error('invalidRelayRoleBinding');
+  const values = names.map(name=>roles[name]);
+  for (const value of values) validateKey(value);
+  const keys = [key,...values];
+  if (keys.some((k,i)=>keys.slice(i+1).some(other=>timingSafeEqual(k,other))))
+    throw Error('invalidRelayRoleBinding');
+  h.update('owner-device');
+  for (const name of names) h.update(name+'\n').update(roles[name]);
+  return h.digest('hex');
+}
+function assertRoleBinding(db, expected) {
+  const rows = db.prepare('SELECT slot, mac FROM relay_role_binding').all();
+  const row = rows[0];
+  if (rows.length !== 1 || row.slot !== 1 || typeof row.mac !== 'string'
+      || !DIGEST_RE.test(row.mac)
+      || !timingSafeEqual(Buffer.from(row.mac,'hex'),Buffer.from(expected,'hex')))
+    throw Error('relayRoleBindingInvalid');
+}
 function sqliteSettings(db) {
   db.exec('PRAGMA journal_mode = DELETE; PRAGMA synchronous = FULL; PRAGMA busy_timeout = 2000;');
 }
@@ -90,9 +115,10 @@ function assertRowsetIntegrity(db, key) {
  * startup: replacing/deleting the SQLite file must halt admission, not reset
  * replay protection. An interrupted bootstrap leaves an unusable database.
  */
-export function provisionPrivateReplayLedger({ key, databasePath } = {}) {
+export function provisionPrivateReplayLedger({ key, databasePath, relayRoles } = {}) {
   validateKey(key);
   validatePath(databasePath);
+  const binding = roleBindingMAC(key,relayRoles);
   let fd;
   try {
     fd = openSync(databasePath, constants.O_WRONLY | constants.O_CREAT
@@ -107,6 +133,10 @@ export function provisionPrivateReplayLedger({ key, databasePath } = {}) {
       seal TEXT NOT NULL,
       rows_mac TEXT NOT NULL
     );
+    CREATE TABLE relay_role_binding (
+      slot INTEGER PRIMARY KEY CHECK (slot = 1),
+      mac TEXT NOT NULL
+    );
     CREATE TABLE relay_revocation (
       slot INTEGER PRIMARY KEY CHECK (slot = 1),
       revoked INTEGER NOT NULL CHECK (revoked IN (0,1)),
@@ -119,6 +149,7 @@ export function provisionPrivateReplayLedger({ key, databasePath } = {}) {
     db.prepare('INSERT INTO ledger_seal(slot, seal, rows_mac) VALUES (1, ?, ?)')
       .run(privateSeal(key), rowsetMAC(db, key));
     db.prepare('INSERT INTO relay_revocation VALUES (1, 0, ?)').run(revocationMAC(key,0));
+    db.prepare('INSERT INTO relay_role_binding VALUES (1, ?)').run(binding);
   } finally { db.close(); }
 }
 
@@ -129,7 +160,7 @@ export function provisionPrivateReplayLedger({ key, databasePath } = {}) {
  */
 export function createDurableOwnerProposalAdmission({
   key, databasePath, nowSeconds = () => Math.floor(Date.now() / 1000),
-  maxRecords = 256
+  maxRecords = 256, relayRoles
 } = {}) {
   validateKey(key);
   validatePath(databasePath);
@@ -138,6 +169,7 @@ export function createDurableOwnerProposalAdmission({
     throw new Error('invalidReplayDatabaseConfig');
   const fileIdentity = existingPrivateFile(databasePath);
   const pinnedKey = Buffer.from(key);
+  const binding = roleBindingMAC(pinnedKey,relayRoles);
   const verify = createOwnerProposalAdmission({
     key: pinnedKey, nowSeconds, maxInflight: maxRecords
   });
@@ -157,6 +189,7 @@ export function createDurableOwnerProposalAdmission({
     db.prepare('SELECT request_digest, expires_at FROM admitted LIMIT 0').all();
     assertRowsetIntegrity(db, pinnedKey);
     readRevocation(db, pinnedKey);
+    assertRoleBinding(db,binding);
   } catch (error) {
     db.close();
     throw error;
@@ -177,12 +210,14 @@ export function createDurableOwnerProposalAdmission({
   return Object.freeze({
     isRevoked() {
       assertExisting();
+      assertRoleBinding(db,binding);
       return readRevocation(db,pinnedKey);
     },
     revoke() {
       assertExisting();
       db.exec('BEGIN IMMEDIATE');
       try {
+        assertRoleBinding(db,binding);
         if (!readRevocation(db,pinnedKey)) {
           if (db.prepare('UPDATE relay_revocation SET revoked=1, mac=? WHERE slot=1')
               .run(revocationMAC(pinnedKey,1)).changes !== 1) throw Error('relayRevocationInvalid');
@@ -200,6 +235,7 @@ export function createDurableOwnerProposalAdmission({
       const current = existingPrivateFile(databasePath);
       if (current.ino !== fileIdentity.ino || current.dev !== fileIdentity.dev)
         throw new Error('replayDatabaseChanged');
+      assertRoleBinding(db,binding);
       if (readRevocation(db,pinnedKey)) throw Error('relayAccessDenied');
       const accepted = verify.admit(envelope);
       const now = nowSeconds();
@@ -214,6 +250,7 @@ export function createDurableOwnerProposalAdmission({
         // tampering after another verifier handle was opened and avoids
         // staleness when a second legitimate process recently committed.
         assertRowsetIntegrity(db, pinnedKey);
+        assertRoleBinding(db,binding);
         if (readRevocation(db,pinnedKey)) throw Error('relayAccessDenied');
         prune.run(now);
         if (lookup.get(digest)) throw new Error('replayedTaskEnvelope');

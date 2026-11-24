@@ -186,3 +186,18 @@ when revocation commits; use one serving relay process. It cannot resist
 restoring an older authenticated revocation record or database backup. Legacy ledgers without the
 revocation table fail closed; migration must be reviewed separately, never
 delete an existing ledger to upgrade. No MCP tool exposes revocation.
+
+## Explicit offline relay role binding
+
+New relay ledgers must be explicitly provisioned with the proposal key and
+a relayRoles object containing ownerAccessKey, deviceAccessKey, receiptKey
+and markerKey. All five keys must be distinct. The ledger stores only a
+domain-separated HMAC commitment to the ordered roles, never the raw keys.
+A generic offline replay ledger cannot be promoted to a serving relay.
+Reopening with substituted role keys fails before the marker is provisioned.
+The binding is checked during admission, revocation and owner/device
+operations; a normal restart cannot silently replace an enrolled role.
+Existing ledgers without this schema fail closed, not auto-migrate.
+No existing owner files are modified by these tests. This binds configured
+roles, not a physical device identity or an OAuth account; actual enrollment
+exchange, rotation, backup rollback protection and UI remain separate.

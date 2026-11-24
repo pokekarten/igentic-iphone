@@ -2,11 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
-import { mkdtempSync, mkdirSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createOwnerDeviceRelay } from '../src/owner-device-relay.mjs';
-import { provisionPrivateReplayLedger } from '../src/durable-task-admission.mjs';
+import { provisionPrivateReplayLedger, createDurableOwnerProposalAdmission } from '../src/durable-task-admission.mjs';
 import { signReadOnlyDeviceKeyReceipt } from '../src/agent-loop-protocol.mjs';
 
 const NOW = 2_000_000_000;
@@ -19,7 +19,8 @@ function fixture(t) {
   let current=NOW;
   const config={ownerAccessKey,deviceAccessKey,proposalKey,receiptKey,markerKey,
     databasePath,markerDirectory,nowSeconds:()=>current};
-  provisionPrivateReplayLedger({key:proposalKey,databasePath});
+  provisionPrivateReplayLedger({key:proposalKey,databasePath,
+    relayRoles:{ownerAccessKey,deviceAccessKey,receiptKey,markerKey}});
   const handles=[];
   const open=()=>{const relay=createOwnerDeviceRelay(config);handles.push(relay);return relay;};
   t.after(()=>{for(const relay of handles) {try{relay.close(ownerAccessKey);}catch{}}rmSync(root,{recursive:true,force:true});});
@@ -170,4 +171,35 @@ test('revoking after an authenticated receipt preserves historical key evidence'
   assert.equal(result.state,'receipt-key-authenticated');
   assert.equal(result.actionExecuted,false);
   assert.equal(result.ownerApproved,false);
+});
+
+test('ledger requires original role credentials, never silently rotates on restart',t=>{
+  const f=fixture(t), a=f.open();
+  a.close(f.ownerAccessKey);
+  for(const name of ['ownerAccessKey','deviceAccessKey','receiptKey','markerKey']) {
+    assert.throws(()=>createOwnerDeviceRelay({...f.config,[name]:randomBytes(32)}),/relayRoleBindingInvalid/);
+  }
+  assert.equal(f.open().status(f.ownerAccessKey).state,'empty');
+});
+
+test('role binding tampering blocks active and reopened relay',t=>{
+  const f=fixture(t), a=f.open();
+  const db=new DatabaseSync(f.config.databasePath);
+  try { db.exec("UPDATE relay_role_binding SET mac = '"+'0'.repeat(64)+"' WHERE slot=1"); }
+  finally { db.close(); }
+  assert.throws(()=>a.claim(f.deviceAccessKey),/relayRoleBindingInvalid/);
+  assert.throws(()=>f.open(),/relayRoleBindingInvalid/);
+});
+
+
+test('offline ledger cannot be promoted to a relay and relay ledger cannot be opened as offline',t=>{
+  const f=fixture(t);
+  const databasePath=join(f.config.markerDirectory,'offline.sqlite');
+  provisionPrivateReplayLedger({key:f.config.proposalKey,databasePath});
+  assert.throws(()=>createOwnerDeviceRelay({...f.config,databasePath}),/relayRoleBindingInvalid/);
+  assert.throws(()=>createDurableOwnerProposalAdmission({key:f.config.proposalKey,
+    databasePath:f.config.databasePath}),/relayRoleBindingInvalid/);
+  const bytes=readFileSync(f.config.databasePath);
+  for(const name of ['ownerAccessKey','deviceAccessKey','proposalKey','receiptKey','markerKey'])
+    assert.equal(bytes.includes(f.config[name]),false);
 });
