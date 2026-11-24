@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomBytes, randomUUID } from 'node:crypto';
+import { DatabaseSync } from 'node:sqlite';
 import { mkdtempSync, mkdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -115,4 +116,58 @@ test('receipt accepted before a clock rollback remains visible to its owner', t 
   relay.acceptReceipt(f.deviceAccessKey, receipt);
   f.setTime(NOW - 1);
   assert.equal(relay.status(f.ownerAccessKey).state, 'receipt-key-authenticated');
+});
+
+test('owner revocation survives restart and blocks pending claims and new submissions',t=>{
+  const f=fixture(t),o=f.ownerAccessKey,d=f.deviceAccessKey,id=randomUUID();
+  const a=f.open(), b=f.open();
+  a.submit(o,id);
+  assert.throws(()=>a.revokeDevice(d),/relayAccessDenied/);
+  assert.equal(b.revokeDevice(o).deviceRevoked,true);
+  assert.equal(a.status(o).state,'cancelled-local');
+  assert.throws(()=>a.claim(d),/relayAccessDenied/);
+  assert.throws(()=>a.acceptReceipt(d,{}),/relayAccessDenied/);
+  a.close(o);b.close(o);
+  const c=f.open();
+  assert.throws(()=>c.submit(o,randomUUID()),/relayAccessDenied/);
+  assert.throws(()=>c.claim(d),/relayAccessDenied/);
+  assert.equal(c.revokeDevice(o).deviceRevoked,true);
+});
+
+test('revocation after claim preserves uncertainty and blocks otherwise valid receipt',t=>{
+  const f=fixture(t),o=f.ownerAccessKey,d=f.deviceAccessKey,id=randomUUID();
+  const a=f.open();a.submit(o,id);
+  const delivery=a.claim(d);
+  const proof=signReadOnlyDeviceKeyReceipt({key:f.receiptKey,requestId:id,
+    nonce:delivery.receiptNonce,observedAt:NOW});
+  a.revokeDevice(o);
+  assert.throws(()=>a.acceptReceipt(d,proof),/relayAccessDenied/);
+  assert.equal(a.result(o,id).state,'outcome-unknown');
+  assert.equal(a.recover(o,id).automaticRetryAllowed,false);
+});
+
+
+test('revocation record modification fails closed on active handle and reopen',t=>{
+  const f=fixture(t),o=f.ownerAccessKey,d=f.deviceAccessKey;
+  const a=f.open();
+  a.revokeDevice(o);
+  const db=new DatabaseSync(f.config.databasePath);
+  try {db.exec('UPDATE relay_revocation SET revoked=0 WHERE slot=1');}
+  finally {db.close();}
+  assert.throws(()=>a.claim(d),/relayRevocationInvalid/);
+  assert.throws(()=>a.submit(o,randomUUID()),/relayRevocationInvalid/);
+  assert.throws(()=>f.open(),/relayRevocationInvalid/);
+});
+
+test('revoking after an authenticated receipt preserves historical key evidence',t=>{
+  const f=fixture(t),o=f.ownerAccessKey,d=f.deviceAccessKey,id=randomUUID();
+  const a=f.open();a.submit(o,id);
+  const delivery=a.claim(d);
+  a.acceptReceipt(d,signReadOnlyDeviceKeyReceipt({key:f.receiptKey,requestId:id,
+    nonce:delivery.receiptNonce,observedAt:NOW}));
+  a.revokeDevice(o);
+  const result=a.result(o,id);
+  assert.equal(result.state,'receipt-key-authenticated');
+  assert.equal(result.actionExecuted,false);
+  assert.equal(result.ownerApproved,false);
 });

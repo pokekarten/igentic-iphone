@@ -167,3 +167,16 @@ test('macOS Swift claim, synthetic review and receipt reach the owner over loopb
     assert.equal((await call('invalid')).isError, true);
     assert.equal((await post('/v1/device/claim', device)).body.result, null);
   });
+
+test('loopback HTTPS revocation requires owner key and rejects device traffic',async t=>{
+  const {post,owner,device}=await startTestRelay(t);
+  const id=randomUUID();
+  assert.equal((await post('/v1/owner/submit',owner,{requestId:id})).status,200);
+  assert.equal((await post('/v1/owner/revoke-device',device)).status,403);
+  assert.equal((await post('/v1/owner/revoke-device',owner,{force:true})).status,400);
+  assert.equal((await post('/v1/owner/revoke-device',owner)).body.result.deviceRevoked,true);
+  assert.equal((await post('/v1/device/claim',device)).status,403);
+  assert.equal((await post('/v1/device/receipt',device,{proof:{}})).status,403);
+  assert.equal((await post('/v1/owner/result',owner,{requestId:id})).body.result.state,'cancelled-local');
+  assert.equal((await post('/v1/owner/submit',owner,{requestId:randomUUID()})).status,403);
+});

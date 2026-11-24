@@ -9,6 +9,7 @@ import { createOwnerProposalAdmission } from './authenticated-task-envelope.mjs'
 const REPLAY_DOMAIN = 'igentic-local-replay-ledger-v1\n';
 const SEAL_DOMAIN = 'igentic-local-replay-seal-v1\n';
 const ROWSET_DOMAIN = 'igentic-local-replay-rowset-v1\n';
+const REVOCATION_DOMAIN = 'igentic-local-relay-revocation-v1\n';
 const DIGEST_RE = /^[0-9a-f]{64}$/;
 const NOFOLLOW = constants.O_NOFOLLOW;
 
@@ -41,6 +42,18 @@ function validateKey(key) {
 }
 function privateSeal(key) {
   return createHmac('sha256', key).update(SEAL_DOMAIN).digest('hex');
+}
+function revocationMAC(key, revoked) {
+  return createHmac('sha256', key).update(REVOCATION_DOMAIN + String(revoked)).digest('hex');
+}
+function readRevocation(db, key) {
+  const rows = db.prepare('SELECT slot, revoked, mac FROM relay_revocation').all();
+  const row = rows[0];
+  if (rows.length !== 1 || row.slot !== 1 || ![0,1].includes(row.revoked)
+      || typeof row.mac !== 'string' || !DIGEST_RE.test(row.mac)
+      || !timingSafeEqual(Buffer.from(row.mac,'hex'),Buffer.from(revocationMAC(key,row.revoked),'hex')))
+    throw Error('relayRevocationInvalid');
+  return row.revoked === 1;
 }
 function sqliteSettings(db) {
   db.exec('PRAGMA journal_mode = DELETE; PRAGMA synchronous = FULL; PRAGMA busy_timeout = 2000;');
@@ -94,12 +107,18 @@ export function provisionPrivateReplayLedger({ key, databasePath } = {}) {
       seal TEXT NOT NULL,
       rows_mac TEXT NOT NULL
     );
+    CREATE TABLE relay_revocation (
+      slot INTEGER PRIMARY KEY CHECK (slot = 1),
+      revoked INTEGER NOT NULL CHECK (revoked IN (0,1)),
+      mac TEXT NOT NULL
+    );
     CREATE TABLE admitted (
       request_digest TEXT PRIMARY KEY NOT NULL,
       expires_at INTEGER NOT NULL
     ) WITHOUT ROWID;`);
     db.prepare('INSERT INTO ledger_seal(slot, seal, rows_mac) VALUES (1, ?, ?)')
       .run(privateSeal(key), rowsetMAC(db, key));
+    db.prepare('INSERT INTO relay_revocation VALUES (1, 0, ?)').run(revocationMAC(key,0));
   } finally { db.close(); }
 }
 
@@ -137,6 +156,7 @@ export function createDurableOwnerProposalAdmission({
       throw new Error('replayDatabaseIntegrityFailed');
     db.prepare('SELECT request_digest, expires_at FROM admitted LIMIT 0').all();
     assertRowsetIntegrity(db, pinnedKey);
+    readRevocation(db, pinnedKey);
   } catch (error) {
     db.close();
     throw error;
@@ -148,13 +168,39 @@ export function createDurableOwnerProposalAdmission({
   const insert = db.prepare('INSERT INTO admitted(request_digest, expires_at) VALUES (?, ?)');
   const updateRowset = db.prepare('UPDATE ledger_seal SET rows_mac = ? WHERE slot = 1');
 
+  function assertExisting() {
+    if (closed) throw Error('replayDatabaseClosed');
+    const current = existingPrivateFile(databasePath);
+    if (current.ino !== fileIdentity.ino || current.dev !== fileIdentity.dev)
+      throw Error('replayDatabaseChanged');
+  }
   return Object.freeze({
+    isRevoked() {
+      assertExisting();
+      return readRevocation(db,pinnedKey);
+    },
+    revoke() {
+      assertExisting();
+      db.exec('BEGIN IMMEDIATE');
+      try {
+        if (!readRevocation(db,pinnedKey)) {
+          if (db.prepare('UPDATE relay_revocation SET revoked=1, mac=? WHERE slot=1')
+              .run(revocationMAC(pinnedKey,1)).changes !== 1) throw Error('relayRevocationInvalid');
+        }
+        db.exec('COMMIT');
+        return true;
+      } catch(error) {
+        try { db.exec('ROLLBACK'); } catch {}
+        throw error;
+      }
+    },
     admit(envelope) {
       if (closed) throw new Error('replayDatabaseClosed');
       // Reject unlink/replacement of the backing file while a handle is open.
       const current = existingPrivateFile(databasePath);
       if (current.ino !== fileIdentity.ino || current.dev !== fileIdentity.dev)
         throw new Error('replayDatabaseChanged');
+      if (readRevocation(db,pinnedKey)) throw Error('relayAccessDenied');
       const accepted = verify.admit(envelope);
       const now = nowSeconds();
       if (!Number.isSafeInteger(now) || accepted.expiresAt <= now)
@@ -168,6 +214,7 @@ export function createDurableOwnerProposalAdmission({
         // tampering after another verifier handle was opened and avoids
         // staleness when a second legitimate process recently committed.
         assertRowsetIntegrity(db, pinnedKey);
+        if (readRevocation(db,pinnedKey)) throw Error('relayAccessDenied');
         prune.run(now);
         if (lookup.get(digest)) throw new Error('replayedTaskEnvelope');
         if (count.get().count >= maxRecords)

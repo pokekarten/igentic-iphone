@@ -6,7 +6,7 @@ const MAX_BODY = 2048;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const PATHS = new Map([
   ['/v1/owner/submit','submit'], ['/v1/owner/status','status'],
-  ['/v1/owner/result','result'], ['/v1/owner/cancel','cancel'], ['/v1/owner/recover','recover'],
+  ['/v1/owner/result','result'], ['/v1/owner/revoke-device','revokeDevice'], ['/v1/owner/cancel','cancel'], ['/v1/owner/recover','recover'],
   ['/v1/device/claim','claim'], ['/v1/device/receipt','acceptReceipt']
 ]);
 const exact = (v, keys) => v !== null && typeof v === 'object' && !Array.isArray(v)

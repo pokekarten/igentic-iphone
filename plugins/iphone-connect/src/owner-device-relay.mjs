@@ -33,9 +33,16 @@ export function createOwnerDeviceRelay({
     if (!Number.isSafeInteger(t) || t < 0) throw Error('invalidRelayClock');
     return t;
   };
+  function requireActiveDevice() {
+    if (admission.isRevoked()) reject();
+  }
   function status(key) {
     auth(key, owner);
-    const state = loop.snapshot();
+    const revoked = admission.isRevoked();
+    let state = loop.snapshot();
+    if (revoked && !claimed && state.state === 'awaiting-manual-delivery') {
+      state = loop.cancel({requestId:state.requestId});
+    }
     return claimed && !released
       ? Object.freeze({...state,state:'outcome-unknown',automaticRetryAllowed:false})
       : state;
@@ -43,6 +50,7 @@ export function createOwnerDeviceRelay({
   return Object.freeze({
     submit(key, requestId) {
       auth(key, owner);
+      requireActiveDevice();
       if (envelope !== null || claimed || typeof requestId !== 'string' || !UUID.test(requestId))
         throw Error('invalidRelaySubmission');
       // A marker survives the shorter replay-ledger TTL. Never reissue a
@@ -54,6 +62,17 @@ export function createOwnerDeviceRelay({
       return state;
     },
     status,
+    revokeDevice(key) {
+      auth(key, owner);
+      admission.revoke();
+      // Do not erase historical receipt evidence or claim that a prepared
+      // payload was recalled. An unclaimed pending task can be cancelled.
+      const current = loop.snapshot();
+      if (!claimed && current.state === 'awaiting-manual-delivery')
+        loop.cancel({requestId:current.requestId});
+      return Object.freeze({schema:1,deviceRevoked:true,automaticRetryAllowed:false,
+        actionExecuted:false,ownerApproved:false});
+    },
     result(key, requestId) {
       const current = status(key);
       if (typeof requestId !== 'string' || !UUID.test(requestId)) throw Error('invalidRelayRequestId');
@@ -69,6 +88,7 @@ export function createOwnerDeviceRelay({
     },
     claim(key) {
       auth(key, device);
+      requireActiveDevice();
       if (claimed || !envelope || loop.snapshot().state !== 'awaiting-manual-delivery') return null;
       // Once an attempt begins, never release another payload from this
       // instance, even if marker persistence or delivery outcome is uncertain.
@@ -83,12 +103,14 @@ export function createOwnerDeviceRelay({
       }
       // Mark uncertainty before returning; losing this response is not
       // grounds for replay. Only the device role receives the nonce/wire.
+      requireActiveDevice();
       released = true;
       return Object.freeze({canonicalWire:JSON.stringify(envelope),
         receiptNonce:prepared.receiptNonce, requestId, expiresAt});
     },
     acceptReceipt(key, proof) {
       auth(key, device);
+      requireActiveDevice();
       if (!released) throw Error('invalidAgentLoopTransition');
       return loop.acceptKeyReceipt(proof);
     },

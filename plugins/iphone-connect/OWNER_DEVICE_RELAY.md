@@ -169,3 +169,20 @@ The loopback Streamable HTTP gateway also accepts an explicit
 Only a verified OAuth token for that issuer and subject can discover or
 call the tool. The host binds `lookup` to the corresponding owner's relay.
 The standard command-line startup leaves this option disabled.
+
+## Durable server-side revocation (local development)
+
+The owner-only POST /v1/owner/revoke-device accepts exactly an empty JSON
+object and permanently disables this single relay ledger's device authority.
+The SQLite record is authenticated with a separate MAC domain under the
+existing ledger key and committed before success is returned. New submissions,
+claims and receipt submissions are rejected after revocation, including on
+reopen. Unclaimed pending tasks can be cancelled; already prepared payloads
+remain uncertain, and prior authenticated evidence is not erased. No automatic
+retry or re-enrollment is available. This is a single-host development seam,
+not remote identity revocation, distributed synchronization or recall of an
+already released payload. Concurrent processes may have in-flight operations
+when revocation commits; use one serving relay process. It cannot resist
+restoring an older authenticated revocation record or database backup. Legacy ledgers without the
+revocation table fail closed; migration must be reviewed separately, never
+delete an existing ledger to upgrade. No MCP tool exposes revocation.
