@@ -18,14 +18,28 @@ const safeCodes = new Set([
 export async function readPrivatePairingKey(keyPath) {
   if (typeof keyPath !== 'string' || keyPath.length === 0)
     throw Error('privatePairingKeyRequired');
-  const file = await openAsync(keyPath, constants.O_RDONLY | constants.O_NOFOLLOW);
+  // Nonblocking open also prevents a substituted FIFO from hanging the probe.
+  const file = await openAsync(keyPath, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
+  const valid = st => st.isFile() && st.nlink === 1 && (st.mode & 0o077) === 0 &&
+    (typeof process.getuid !== 'function' || st.uid === process.getuid()) &&
+    (st.size === 44 || st.size === 45);
   try {
     const st = await file.stat();
-    if (!st.isFile() || (st.mode & 0o077) !== 0 ||
-        (typeof process.getuid === 'function' && st.uid !== process.getuid()) ||
-        st.size < 44 || st.size > 45)
+    if (!valid(st)) throw Error('privatePairingKeyRequired');
+    // Read at most one byte beyond the maximum accepted size, even if the
+    // file grows after fstat. Never allocate based on a mutable file size.
+    const buffer = Buffer.alloc(46);
+    let length = 0;
+    while (length < buffer.length) {
+      const { bytesRead } = await file.read(buffer, length, buffer.length - length, length);
+      if (bytesRead === 0) break;
+      length += bytesRead;
+    }
+    const after = await file.stat();
+    if (length !== st.size || !valid(after) || after.size !== st.size ||
+        after.mtimeMs !== st.mtimeMs || after.ctimeMs !== st.ctimeMs)
       throw Error('privatePairingKeyRequired');
-    return decodeSharedKey(await file.readFile('utf8'));
+    return decodeSharedKey(buffer.subarray(0, length).toString('utf8'));
   } finally {
     await file.close();
   }
