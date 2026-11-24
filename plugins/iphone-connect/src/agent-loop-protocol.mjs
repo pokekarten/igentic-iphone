@@ -90,7 +90,9 @@ export function createTransportNeutralAgentLoop({
     if (!Number.isSafeInteger(t) || t < 0) throw Error('invalidAgentLoopClock');
     return t;
   };
-  const snapshot = () => Object.freeze({
+  const snapshot = () => {
+    expire();
+    return Object.freeze({
     schema: 1,
     requestId: task?.requestId ?? null,
     capability: task?.capability ?? null,
@@ -105,7 +107,8 @@ export function createTransportNeutralAgentLoop({
     iPhoneConnected: 'not-checked',
     deviceReceipt: authenticatedReceipt ? 'key-authenticated-not-device-attested' : 'none',
     automaticRetryAllowed: false
-  });
+    });
+  };
   const match = id => task && typeof id === 'string' && id === task.requestId;
   const expire = () => {
     if (!task) return false;
