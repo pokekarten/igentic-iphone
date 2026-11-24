@@ -61,3 +61,18 @@ account. Do not tunnel or proxy it into a public service. A separate
 production identity/enrollment and revocation review remains required.
 
 Run: node --test plugins/iphone-connect/test/owner-device-relay-https.test.mjs
+
+## Native claim client (development only)
+
+The internal Swift AgentLoopRelayClaimClient builds the fixed loopback
+POST, uses an ephemeral URLSession with ordinary system certificate
+validation and no redirect, cache or cookie handling, and consumes one
+attempt per instance. It bounds the response to 2048 bytes and verifies
+the exact response shape, nonce syntax, signed canonical wire, request ID,
+expiration and issuance time using the existing native verifier. A failed
+transport is uncertain, never a reason for automatic retry. The parsed
+claim is a preview only; it is not wired to an App Intent, owner approval
+button or receipt signer. The Swift tests use an independent Node-generated
+wire fixture, not a live native TLS request. No system trust settings are
+changed. The native client still needs actual TLS/owner-device enrollment,
+a production endpoint and owner-reviewed execution before physical use.
