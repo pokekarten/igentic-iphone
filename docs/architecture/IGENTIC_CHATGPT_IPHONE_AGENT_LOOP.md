@@ -16,6 +16,62 @@ Neither a ChatGPT plugin nor App Intents intrinsically gives generic iOS shell
 access, unrestricted taps, other apps' private data, or control of Shortcuts
 without the relevant iOS/user permissions.
 
+## Agent blueprint for a conversation in ChatGPT
+
+**First release criterion.** From mobile ChatGPT, ask to open local discovery.
+The same conversation must receive a tool result derived from a fresh physical
+iPhone view receipt. The owner should have no link, ID or result to copy.
+The first release assumes an online paired Mac and an installed signed app.
+Mac-free delivery is a separate milestone.
+
+| Component | Responsibility | Evidence or implementation gap |
+|---|---|---|
+| ChatGPT conversation | Choose the allowed action and consume its tool response. Keep correlation in the invoking tool call. | The private Site can return a manual handoff. A live mobile invocation of the physical action tool is outstanding. |
+| Owner-authenticated MCP endpoint | Bind the client to its device and allowed tools. Route one call to the paired Mac and return its result. | The deployed Site and local stdio server are separate. An authenticated connection to the physical server is the first missing dependency. |
+| Mac action coordinator | Own the session, bind the request to one proposal, dispatch once, read its receipt, release the session. | The existing MCP smoke test performs this sequence against hardware. Exposing this sequence as one durable client operation remains implementation work. |
+| iGentic on iPhone | Apply local policy, perform the specific action and emit the observation. | Discovery uses an app-owned view receipt. The status App Intent uses a distinct journal and can finish locally after one model proposal. |
+| Result delivery | Return the permitted fields to the invoking client. Persist the outcome long enough to recover an interrupted reply. | Local MCP navigation returned a verified result. The current Shortcut lookup requires the exact task ID and only the most recent journal survives. |
+| Follow-up planner | Turn the returned result into the next proposal under the same owner scope. | Mobile ChatGPT produced a synthetic follow-up. Automatic re-entry from that reply into the native executor is open. |
+
+### Wire the first conversation end to end
+
+1. Connect the mobile ChatGPT client to the owner-authenticated physical MCP
+   endpoint. Verify discovery with the actual account. Bind the paired device on
+   the server. Leave the existing Site available for manual navigation.
+2. Add one composite discovery operation over the existing session, observation,
+   proposal and receipt methods. Persist the owner-scoped operation ID before
+   dispatch. On duplicate delivery, return the stored outcome. After a
+   post-dispatch disconnect, reconcile the original receipt before any retry.
+3. Return the device observation in the same tool call when possible. For a
+   delayed result, provide an owner-scoped result lookup keyed to the operation.
+   Verify that the originating chat can retrieve it. A device callback alone
+   does not establish that ChatGPT received it.
+4. Add the Shortcut path after navigation passes. Bind the native task ID to
+   the originating operation at ticket creation. Keep both in the coordinator
+   across invocations. Read the completion through `iphone_shortcut_result`.
+   If the journal was replaced, report unavailable. Keep raw telemetry local.
+5. Allow one follow-up per initial acceptance run. Give it a new operation ID,
+   retain the parent ID, and re-evaluate policy. Stop on expiry, cancellation,
+   an uncertain outcome or exhaustion of the action budget. Increase the
+   budget only after the multi-step regression tests pass.
+
+### Release tests and failure handling
+
+| Test through the normal entry point | Required observation |
+|---|---|
+| Mobile chat requests discovery on Wi-Fi | That chat displays the result of its own operation after the iPhone emits the matching discovery receipt. |
+| Shortcut path with installed personal workflow | Start and advance App Intents use the same ticket. The physical journal yields finished, and the originating chat receives that result. |
+| Phone offline or app unavailable | The client sees the failed stage. A request already dispatched stays uncertain until reconciled. |
+| Duplicate, late or wrong-owner result | Duplicate delivery executes once. Expired requests cannot dispatch. Another owner cannot discover whether the ticket exists. |
+| Client disconnect immediately after dispatch | Reconnection retrieves the prior outcome or reports uncertainty. The phone sees at most one action. |
+| ChatGPT proposes a follow-up | A child operation cites the parent and returns its own evidence. A fabricated success or unsupported capability stops the loop. |
+| Revoke access while a job is pending | New dispatch and disclosure are denied. Previously dispatched work retains its recorded outcome. |
+
+Record the build, transport, action, client and outcome at each boundary using
+synthetic tasks. Physical action, mobile conversation delivery, and follow-up
+execution each need a direct observation. The first acceptance run should
+produce all three in one trace before enabling additional capabilities.
+
 ## Acceptance of one complete turn
 
 Trace one request from the originating client through owner review, the local
