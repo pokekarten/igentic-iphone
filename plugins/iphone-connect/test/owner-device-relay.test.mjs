@@ -45,6 +45,8 @@ test('separate roles, one claim, exact receipt and no execution claim',t=>{
   assert.equal(result.actionExecuted,false);
   assert.equal(result.ownerApproved,false);
   assert.equal(result.iPhoneConnected,'not-checked');
+  assert.equal(relay.status(o).state,'receipt-key-authenticated');
+  assert.equal(relay.status(o).receiptKeyAuthenticated,true);
   assert.throws(()=>relay.acceptReceipt(d,sign(delivery.receiptNonce)),/invalidAgentLoopTransition/);
 });
 test('lost claim and restart recover only uncertainty; same task cannot be reissued',t=>{
@@ -90,4 +92,26 @@ test('expiry after delivery preparation prevents payload and receipt even after 
   assert.equal(relay.claim(d),null);
   assert.throws(()=>relay.acceptReceipt(d,{}),/invalidAgentLoopTransition/);
   assert.throws(()=>relay.cancel(o,id),/invalidAgentLoopTransition/);
+});
+
+test('a device cannot claim after the clock moves before task issuance', t => {
+  const f = fixture(t), relay = f.open(), id = randomUUID();
+  relay.submit(f.ownerAccessKey, id);
+  f.setTime(NOW - 1);
+  assert.equal(relay.claim(f.deviceAccessKey), null);
+  f.setTime(NOW);
+  assert.equal(relay.claim(f.deviceAccessKey), null);
+  assert.equal(relay.status(f.ownerAccessKey).state, 'expired-before-send');
+});
+
+test('receipt accepted before a clock rollback remains visible to its owner', t => {
+  const f = fixture(t), relay = f.open(), id = randomUUID();
+  relay.submit(f.ownerAccessKey, id);
+  const delivery = relay.claim(f.deviceAccessKey);
+  const receipt = signReadOnlyDeviceKeyReceipt({
+    key: f.receiptKey, requestId: id, nonce: delivery.receiptNonce, observedAt: NOW
+  });
+  relay.acceptReceipt(f.deviceAccessKey, receipt);
+  f.setTime(NOW - 1);
+  assert.equal(relay.status(f.ownerAccessKey).state, 'receipt-key-authenticated');
 });
