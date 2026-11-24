@@ -150,3 +150,16 @@ have no configured lookup.
 The macOS integration test uses an MCP SDK client to discover the tool
 and read the Swift-generated fixture proof twice by its original ID.
 It also checks an unknown ID and rejects malformed input.
+
+## Enrollment-bound native claim session
+
+The internal main-actor AgentLoopEnrolledClaimSession connects existing local
+enrollment storage to a single explicit loopback claim. External AI mode is
+required; Trusted Devices mode is not sufficient because the relay has no
+trusted-device identity binding yet. It reads existing enrollment before I/O,
+then checks cancellation, current mode and exact enrollment again before
+returning a preview. Revocation while the network request is in flight blocks
+its result, not the already transmitted request. The attempt is consumed
+before I/O; no implicit enrollment, retry, receipt signing, UI or production
+endpoint is enabled. Native gate review remains separate. Tests use synthetic
+credentials and an injected transport; no actual Keychain changes are made.

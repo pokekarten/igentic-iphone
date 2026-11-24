@@ -85,3 +85,96 @@ final class AgentLoopDeviceEnrollmentVaultTests: XCTestCase {
     }
 }
 #endif
+
+#if canImport(Security) && canImport(Darwin)
+import AgentCore
+
+private actor EnrollmentClaimProbe {
+    private(set) var calls = 0
+    private(set) var keysMatched = false
+    private var continuation: CheckedContinuation<Void, Never>?
+    func claim(device: Data, proposal: Data) async -> AgentLoopRelayClaim? {
+        calls += 1
+        keysMatched = device == Data((0..<32).map(UInt8.init))
+            && proposal == Data((32..<64).map(UInt8.init))
+        await withCheckedContinuation { continuation = $0 }
+        return nil
+    }
+    func release() {
+        continuation?.resume()
+        continuation = nil
+    }
+    func isWaiting() -> Bool { continuation != nil }
+}
+
+extension AgentLoopDeviceEnrollmentVaultTests {
+    @MainActor
+    func testEnrolledClaimUsesDistinctKeysAndRejectsRevocationDuringIO() async throws {
+        let backend = EnrollmentMemoryBackend()
+        let vault = AgentLoopDeviceEnrollmentVault(backend: backend, separateReplayKey: Self.key(96))
+        let enrollment = Self.enrollment()
+        try vault.enrollExplicitly(enrollment)
+        let probe = EnrollmentClaimProbe()
+        let session = AgentLoopEnrolledClaimSession(vault: vault, currentPrivacyMode: { .externalAI }) {
+            _, device, proposal in await probe.claim(device: device, proposal: proposal)
+        }
+        let pending = Task { try await session.claimAfterLocalAction(port: 12345) }
+        for _ in 0..<1000 {
+            if await probe.isWaiting() { break }
+            try await Task.sleep(for: .milliseconds(1))
+        }
+        let waiting = await probe.isWaiting()
+        XCTAssertTrue(waiting)
+        guard waiting else { pending.cancel(); return }
+        try vault.revokeExplicitly(id: enrollment.id)
+        await probe.release()
+        do {
+            _ = try await pending.value
+            XCTFail("Revoked session returned a claim")
+        } catch {
+            XCTAssertEqual(error as? AgentLoopEnrolledClaimSession.Failure, .enrollmentChanged)
+        }
+        let calls = await probe.calls
+        let matched = await probe.keysMatched
+        XCTAssertEqual(calls, 1)
+        XCTAssertTrue(matched)
+        do {
+            _ = try await session.claimAfterLocalAction(port: 12345)
+            XCTFail("Second attempt was not rejected")
+        } catch {
+            XCTAssertEqual(error as? AgentLoopEnrolledClaimSession.Failure, .alreadyAttempted)
+        }
+    }
+
+    @MainActor
+    func testLocalOnlyAndMissingEnrollmentDoNotContactTransport() async throws {
+        let backend = EnrollmentMemoryBackend()
+        let vault = AgentLoopDeviceEnrollmentVault(backend: backend, separateReplayKey: Self.key(96))
+        var privacy = PrivacyMode.localOnly
+        let session = AgentLoopEnrolledClaimSession(vault: vault, currentPrivacyMode: { privacy }) {
+            _, _, _ in throw AgentLoopRelayClaimError.transportUncertain
+        }
+        do {
+            _ = try await session.claimAfterLocalAction(port: 12345)
+            XCTFail("Local Only was not blocked")
+        } catch {
+            XCTAssertEqual(error as? AgentLoopEnrolledClaimSession.Failure, .privacyDenied)
+        }
+        privacy = .trustedDevices
+        do {
+            _ = try await session.claimAfterLocalAction(port: 12345)
+            XCTFail("Unenrolled external relay is not a trusted device")
+        } catch {
+            XCTAssertEqual(error as? AgentLoopEnrolledClaimSession.Failure, .privacyDenied)
+        }
+        privacy = .externalAI
+        do {
+            _ = try await session.claimAfterLocalAction(port: 12345)
+            XCTFail("Missing enrollment was not blocked")
+        } catch {
+            XCTAssertEqual(error as? AgentLoopDeviceEnrollmentError, .notEnrolled)
+        }
+        XCTAssertEqual(backend.writes, 0)
+    }
+}
+#endif
