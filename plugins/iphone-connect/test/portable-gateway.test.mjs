@@ -15,7 +15,7 @@ test('portable Streamable HTTP MCP works for generic clients read-only', async t
   ));
   const tools = (await client.listTools()).tools;
   assert.deepEqual(tools.map(x => x.name).sort(),
-    ['iphone_connection_report', 'iphone_get_capabilities',
+    ['iphone_chatgpt_handoff', 'iphone_connection_report', 'iphone_get_capabilities',
       'iphone_prepare_local_task', 'iphone_tool_catalog']);
   assert.ok(tools.every(x => x.annotations.readOnlyHint === true));
   assert.ok(tools.every(x => x.annotations.destructiveHint === false));
@@ -46,6 +46,19 @@ test('portable Streamable HTTP MCP works for generic clients read-only', async t
   const privateText = await client.callTool({ name: 'iphone_prepare_local_task',
     arguments: { task: 'workspace-note', text: 'secret local note' } });
   assert.equal(privateText.isError, true);
+  const handoff = await client.callTool({
+    name: 'iphone_chatgpt_handoff', arguments: { action: 'discovery' }
+  });
+  assert.notEqual(handoff.isError, true);
+  assert.equal(handoff.structuredContent.data.launchUrl,
+    'igentic://handoff/v1/discovery');
+  assert.equal(handoff.structuredContent.data.actionExecuted, false);
+  assert.equal(handoff.structuredContent.data.requiresOwnerTap, true);
+  assert.equal(handoff.structuredContent.data.iPhoneConnected, 'not-checked');
+  const forbidden = await client.callTool({
+    name: 'iphone_chatgpt_handoff', arguments: { action: 'wipe-iphone' }
+  });
+  assert.equal(forbidden.isError, true);
   const unavailable = await client.callTool({ name: 'iphone_execute_action', arguments: {} });
   assert.equal(unavailable.isError, true);
 });

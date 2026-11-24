@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { request } from 'node:https';
 import { HEARTBEAT_BODY, HEARTBEAT_PATH, createCellularGateway,
-  createHeartbeatVerifier, decodeSharedKey, signCellular, startFromEnvironment } from '../src/cellular-gateway.mjs';
+  createHeartbeatVerifier, decodeSharedKey, signCellular, signCellularResponse, startFromEnvironment } from '../src/cellular-gateway.mjs';
 
 const key = Buffer.alloc(32, 0x01);
 const timestamp = 1795393200;
@@ -25,6 +25,17 @@ test('strict first-party key parser and deterministic HMAC contract', () => {
   assert.match(signCellular({key,timestamp,nonce}),/^[0-9a-f]{64}$/);
   assert.equal(signCellular({key,timestamp,nonce}),signCellular({key,timestamp,nonce}));
   assert.notEqual(signCellular({key,timestamp,nonce}),signCellular({key,timestamp:timestamp+1,nonce}));
+});
+
+test('server response proof binds exactly one readiness request', () => {
+  const nonce = '11111111-2222-3333-4444-555555555555';
+  const proof = signCellularResponse({ key, timestamp, nonce });
+  assert.match(proof, /^[0-9a-f]{64}$/);
+  assert.notEqual(signCellularResponse({ key, timestamp, nonce:randomUUID() }), proof);
+  assert.notEqual(signCellularResponse({ key, timestamp:timestamp + 1, nonce }), proof);
+  assert.notEqual(signCellularResponse({ key:Buffer.alloc(32, 2), timestamp, nonce }), proof);
+  assert.throws(()=>signCellularResponse({ key, timestamp, nonce:'invalid' }),
+    /invalidCellularEnvelope/);
 });
 
 test('valid readiness is authenticated, single-use, and allows NO remote action', () => {
@@ -84,7 +95,10 @@ test('real HTTPS listener accepts signed readiness, refuses replay and wrong aut
     const req=request({host:'127.0.0.1',port:address.port,method,path,
       ca:undefined,rejectUnauthorized:false,headers},resp=>{
       let text='';resp.setEncoding('utf8');
-      resp.on('data',c=>text+=c);resp.on('end',()=>resolve({status:resp.statusCode,json:JSON.parse(text)}));
+      resp.on('data',c=>text+=c);resp.on('end',()=>resolve({
+        status:resp.statusCode,json:JSON.parse(text),
+        responseProof:resp.headers['x-igentic-response-proof']
+      }));
     });
     req.on('error',reject);req.end(body);
   });
@@ -95,8 +109,12 @@ test('real HTTPS listener accepts signed readiness, refuses replay and wrong aut
     'x-igentic-signature':signCellular({key,timestamp:now,nonce})};
   const ok=await post(headers);
   assert.equal(ok.status,200);assert.equal(ok.json.deviceControl,'not-enabled');
+  assert.equal(ok.responseProof, signCellularResponse({key,timestamp:now,nonce}));
+  assert.equal((await post(headers)).responseProof, undefined);
   assert.equal((await post(headers)).status,409);
-  assert.equal((await post({...headers,'x-igentic-signature':'a'.repeat(64)})).status,401);
+  const badSignature = await post({...headers,'x-igentic-signature':'a'.repeat(64)});
+  assert.equal(badSignature.status,401);
+  assert.equal(badSignature.responseProof, undefined);
   assert.equal((await post(headers,HEARTBEAT_BODY,'GET')).status,405);
   assert.equal((await post(headers,HEARTBEAT_BODY,'POST','/something-else')).status,404);
   assert.equal((await post({...headers,'content-type':'text/plain'})).status,415);

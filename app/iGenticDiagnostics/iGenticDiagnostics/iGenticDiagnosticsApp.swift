@@ -1,5 +1,6 @@
 import SwiftUI
 import AppIntents
+import UIKit
 import AgentCore
 import iGenticApp
 
@@ -41,6 +42,9 @@ struct iGenticDiagnosticsApp: App {
                 nativeBridgeOpenDiscovery: pluginBridge?.action == "open-discovery",
                 nativeBridgeScreenObserved: { [pluginBridge] view in
                     pluginBridge?.writeObservedReceipt(view: view)
+                },
+                handoffPreviewObserved: { route in
+                    iGenticChatGPTHandoffPreviewReceiptWriter.writeObserved(route: route)
                 }
             )
             .overlay(alignment: .top) {
@@ -105,6 +109,59 @@ struct iGenticDiagnosticsApp: App {
                 print(physicalProbeStatus)
                 #endif
             }
+            #if DEBUG
+            .task {
+            // One strictly opt-in, own-app, synthetic physical acceptance:
+            // no AI model is invoked, and any preexisting owner task is
+            // NEVER touched. The only external receipt is fixed booleans.
+            guard ProcessInfo.processInfo.arguments.contains("--igentic-shortcuts-loop-smoke")
+            else { return }
+            let store = AgentLoopShortcutExchangeStore()
+            var outcome = "notVerified"
+            var didClear = false
+            do {
+                if try store.snapshot() != nil {
+                    outcome = "preexistingOwnerSessionSkipped"
+                } else {
+                    defer { try? store.clear() }
+                    let prompt = try store.begin(task: "Nenne eine Demo-Zimmerpflanze")
+                    let taskID = try store.pendingTaskID()
+                    _ = try store.receive(answer: "Demoantwort: Basilikum", taskID: taskID)
+                    let observed = try store.snapshot()
+                    if prompt.contains("Demo-Zimmerpflanze"),
+                       observed?.task == "Nenne eine Demo-Zimmerpflanze",
+                       observed?.answer == "Demoantwort: Basilikum",
+                       observed?.isAnswered == true {
+                        outcome = "syntheticLocalRoundTripVerified"
+                    }
+                    try store.clear()
+                    didClear = try store.snapshot() == nil
+                }
+            } catch {
+                outcome = "syntheticLocalRoundTripFailed"
+            }
+            let packet: [String: Any] = [
+                "schema": 1,
+                "mode": "synthetic-only",
+                "outcome": outcome,
+                "cleanedUp": didClear,
+                "chatGPTCalled": false,
+                "iOSActionExecuted": false,
+                "personalDataReturned": false
+            ]
+            if let directory = FileManager.default.urls(
+                for: .documentDirectory, in: .userDomainMask
+            ).first,
+            let data = try? JSONSerialization.data(
+                withJSONObject: packet, options: [.sortedKeys]
+            ) {
+                try? data.write(
+                    to: directory.appendingPathComponent("igentic-shortcuts-loop-smoke-receipt.json"),
+                    options: [.atomic, .completeFileProtectionUnlessOpen]
+                )
+            }
+            }
+            #endif
         }
     }
 }
@@ -143,17 +200,403 @@ struct iGenticReadOnlyDiagnosticsIntent: AppIntent {
     }
 }
 
+// A real, owner-requested on-device status. It returns coarse runtime data to
+// Shortcuts, not to a remote plugin. No identifiers, photos, messages or
+// cross-app content; no background polling or external provider requests.
+@available(iOS 27.0, *)
+struct iGenticDeviceStatusIntent: AppIntent {
+    static let title: LocalizedStringResource = "Read iGentic iPhone Status"
+    static let description = IntentDescription(
+        "Read the battery, low-power mode and iOS version locally in Shortcuts."
+    )
+    static let supportedModes: IntentModes = .background
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ReturnsValue<String> {
+        let decision = PolicyEngine().decide(
+            PolicyRequest(
+                privacyMode: .localOnly,
+                dataClassification: DataClassification(
+                    level: .contextualPrivateData,
+                    reason: "Owner-requested local device runtime status."
+                ),
+                actionRisk: .read,
+                requestedDelegationTarget: .localDevice
+            )
+        )
+        guard decision.isAllowed, !decision.requiresApproval else {
+            throw iGenticDiagnosticsIntentError.policyDenied
+        }
+        return .result(value: AgentLoopDeviceStatusReader.read().shortcutSummary)
+    }
+}
+
+// A second Shortcuts entry: classify text on the iPhone, but NEVER execute the
+// result or automatically forward the user's input to ChatGPT or other apps.
+// The returned summary deliberately excludes the original instruction.
+@available(iOS 27.0, *)
+struct iGenticPrepareAgentTaskIntent: AppIntent {
+    static let title: LocalizedStringResource = "Prepare iGentic Agent Task"
+    static let description = IntentDescription(
+        "Create a read-only local task preview for iGentic; no iPhone command is executed."
+    )
+    static let supportedModes: IntentModes = .background
+
+    @Parameter(title: "Auftrag")
+    var instruction: String
+
+    func perform() async throws -> some IntentResult & ReturnsValue<String> {
+        let decision = PolicyEngine().decide(
+            PolicyRequest(
+                privacyMode: .localOnly,
+                dataClassification: DataClassification(
+                    level: .contextualPrivateData,
+                    reason: "User-entered Shortcuts task, processed locally."
+                ),
+                actionRisk: .prepare,
+                requestedDelegationTarget: .localDevice
+            )
+        )
+        guard decision.isAllowed, !decision.requiresApproval else {
+            throw iGenticDiagnosticsIntentError.policyDenied
+        }
+        return .result(value: AgentLoopTaskBridge.shortcutSummary(instruction))
+    }
+}
+
+// Apple Shortcuts can chain these three first-party actions around its built-in
+// "Use Model" action (including the ChatGPT extension). No OpenAI API key,
+// external iGentic server, synthetic model response or arbitrary iOS execution.
+@available(iOS 27.0, *)
+struct iGenticStartAILoopIntent: AppIntent {
+    static let title: LocalizedStringResource = "iGentic KI-Auftrag starten"
+    static let description = IntentDescription(
+        "Stores one bounded local request and returns the prompt for the next Shortcuts model action."
+    )
+    static let supportedModes: IntentModes = .background
+
+    @Parameter(title: "Frage")
+    var instruction: String
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ReturnsValue<String> {
+        let decision = PolicyEngine().decide(
+            PolicyRequest(
+                privacyMode: .localOnly,
+                dataClassification: DataClassification(
+                    level: .contextualPrivateData, reason: "Local model task preparation."
+                ),
+                actionRisk: .prepare, requestedDelegationTarget: .localDevice
+            )
+        )
+        guard decision.isAllowed, !decision.requiresApproval else {
+            throw iGenticDiagnosticsIntentError.policyDenied
+        }
+        return .result(value: try AgentLoopShortcutExchangeStore().beginTicket(task: instruction))
+    }
+}
+
+@available(iOS 27.0, *)
+struct iGenticReadAILoopPromptIntent: AppIntent {
+    static let title: LocalizedStringResource = "iGentic KI-Prompt lesen"
+    static let description = IntentDescription(
+        "Returns the single locally prepared prompt to the owner's Shortcut; does not contact an AI provider."
+    )
+    static let supportedModes: IntentModes = .background
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ReturnsValue<String> {
+        let decision = PolicyEngine().decide(
+            PolicyRequest(
+                privacyMode: .localOnly,
+                dataClassification: DataClassification(
+                    level: .contextualPrivateData, reason: "Read a local pending AI prompt."
+                ),
+                actionRisk: .read, requestedDelegationTarget: .localDevice
+            )
+        )
+        guard decision.isAllowed, !decision.requiresApproval else {
+            throw iGenticDiagnosticsIntentError.policyDenied
+        }
+        return .result(value: try AgentLoopShortcutExchangeStore().pendingPrompt())
+    }
+}
+
+// Request binding prevents a stale or out-of-order Shortcuts reply from
+// attaching to a subsequent task. The ID is correlation, never authorization.
+// Optional structured alternative to the simpler separate Prompt + ID
+// actions. The JSON ticket is for Shortcuts dictionary parsing only and must
+// never be forwarded wholesale to ChatGPT: send only its prompt field.
+@available(iOS 27.0, *)
+struct iGenticReadAILoopTicketIntent: AppIntent {
+    static let title: LocalizedStringResource = "iGentic KI-Auftragspaket lesen"
+    static let description = IntentDescription(
+        "Returns JSON with taskId and prompt for advanced owner-configured Shortcuts."
+    )
+    static let supportedModes: IntentModes = .background
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ReturnsValue<String> {
+        let decision = PolicyEngine().decide(
+            PolicyRequest(
+                privacyMode: .localOnly,
+                dataClassification: DataClassification(
+                    level: .contextualPrivateData,
+                    reason: "Read structured local Shortcuts ticket."
+                ),
+                actionRisk: .read, requestedDelegationTarget: .localDevice
+            )
+        )
+        guard decision.isAllowed, !decision.requiresApproval else {
+            throw iGenticDiagnosticsIntentError.policyDenied
+        }
+        return .result(value: try AgentLoopShortcutExchangeStore().pendingTicket())
+    }
+}
+
+@available(iOS 27.0, *)
+struct iGenticReadAILoopTaskIDIntent: AppIntent {
+    static let title: LocalizedStringResource = "iGentic KI-Auftrags-ID lesen"
+    static let description = IntentDescription(
+        "Reads the current local task correlation ID for a later Shortcuts result."
+    )
+    static let supportedModes: IntentModes = .background
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ReturnsValue<String> {
+        let decision = PolicyEngine().decide(
+            PolicyRequest(
+                privacyMode: .localOnly,
+                dataClassification: DataClassification(
+                    level: .contextualPrivateData,
+                    reason: "Owner-triggered Shortcuts task correlation read."
+                ),
+                actionRisk: .read, requestedDelegationTarget: .localDevice
+            )
+        )
+        guard decision.isAllowed, !decision.requiresApproval else {
+            throw iGenticDiagnosticsIntentError.policyDenied
+        }
+        return .result(value: try AgentLoopShortcutExchangeStore().pendingTaskID())
+    }
+}
+
+@available(iOS 27.0, *)
+struct iGenticReceiveAILoopAnswerIntent: AppIntent {
+    static let title: LocalizedStringResource = "iGentic KI-Antwort übernehmen"
+    static let description = IntentDescription(
+        "Stores one model response locally for owner review. Never executes an AI-proposed iPhone action."
+    )
+    static let supportedModes: IntentModes = .background
+
+    @Parameter(title: "Modellantwort")
+    var answer: String
+
+    @Parameter(title: "Auftrags-ID")
+    var taskID: String
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ReturnsValue<String> {
+        let decision = PolicyEngine().decide(
+            PolicyRequest(
+                privacyMode: .localOnly,
+                dataClassification: DataClassification(
+                    level: .contextualPrivateData, reason: "Receive untrusted model text locally."
+                ),
+                actionRisk: .prepare, requestedDelegationTarget: .localDevice
+            )
+        )
+        guard decision.isAllowed, !decision.requiresApproval else {
+            throw iGenticDiagnosticsIntentError.policyDenied
+        }
+        return .result(value: try AgentLoopShortcutExchangeStore().receive(answer: answer, taskID: taskID))
+    }
+}
+
+// These two App Intents turn the verified read-only model proposal into an
+// actual owner-configured Shortcuts round trip across app invocations.
+// They never call ChatGPT, forward a status to a provider, grant approval,
+// execute a write action or assert physical iPhone attestation.
+@available(iOS 27.0, *)
+struct iGenticStartStatusLoopIntent: AppIntent {
+    static let title: LocalizedStringResource = "iGentic Status-Loop starten"
+    static let description = IntentDescription(
+        "Create one bounded read-only status task for an owner-configured Shortcut."
+    )
+    static let supportedModes: IntentModes = .background
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ReturnsValue<String> {
+        let decision = PolicyEngine().decide(PolicyRequest(
+            privacyMode: .localOnly,
+            dataClassification: .publicDefault,
+            actionRisk: .prepare,
+            requestedDelegationTarget: .localDevice
+        ))
+        guard decision.isAllowed, !decision.requiresApproval else {
+            throw iGenticDiagnosticsIntentError.policyDenied
+        }
+        return .result(value: try AgentLoopStatusShortcutStore().begin())
+    }
+}
+
+@available(iOS 27.0, *)
+struct iGenticAdvanceStatusLoopIntent: AppIntent {
+    static let title: LocalizedStringResource = "iGentic Status-Loop fortsetzen"
+    static let description = IntentDescription(
+        "Validate a model action, read only coarse local status or finish; no remote execution."
+    )
+    static let supportedModes: IntentModes = .background
+
+    @Parameter(title: "Auftrags-ID")
+    var taskID: String
+
+    @Parameter(title: "Modellvorschlag")
+    var modelReply: String
+
+    @Parameter(title: "Nach Statusabfrage lokal abschließen", default: false)
+    var finishAfterRead: Bool
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ReturnsValue<String> {
+        let decision = PolicyEngine().decide(PolicyRequest(
+            privacyMode: .localOnly,
+            dataClassification: DataClassification(
+                level: .contextualPrivateData,
+                reason: "Fixed on-device status observation for an owner Shortcuts task."
+            ),
+            actionRisk: .read,
+            requestedDelegationTarget: .localDevice
+        ))
+        guard decision.isAllowed, !decision.requiresApproval else {
+            throw iGenticDiagnosticsIntentError.policyDenied
+        }
+        return .result(value: try AgentLoopStatusShortcutStore().advance(
+            taskID: taskID, modelReply: modelReply, finishAfterRead: finishAfterRead,
+            statusReader: { AgentLoopDeviceStatusReader.read() }
+        ))
+    }
+}
+
+// Shortcuts asks iGentic for a new anonymous correlation token before asking
+// ChatGPT. No user content is stored, and this token is NOT authentication.
+@available(iOS 27.0, *)
+struct iGenticCreateLoopTokenIntent: AppIntent {
+    static let title: LocalizedStringResource = "Create iGentic Loop Token"
+    static let description = IntentDescription(
+        "Create a correlation token for a finite Shortcuts workflow; no cloud or phone action."
+    )
+    static let supportedModes: IntentModes = .background
+
+    func perform() async throws -> some IntentResult & ReturnsValue<String> {
+        let decision = PolicyEngine().decide(
+            PolicyRequest(
+                privacyMode: .localOnly, dataClassification: .publicDefault,
+                actionRisk: .read, requestedDelegationTarget: .localDevice
+            )
+        )
+        guard decision.isAllowed, !decision.requiresApproval else {
+            throw iGenticDiagnosticsIntentError.policyDenied
+        }
+        return .result(value: AgentLoopModelHandoff.newCorrelationID())
+    }
+}
+
+// This is the second half of an API-free Shortcuts model handoff.
+// Shortcuts calls ChatGPT's Use Model action; this app-owned Intent validates
+// the *returned model text*. It never invokes ChatGPT or performs a phone action.
+@available(iOS 27.0, *)
+struct iGenticReviewModelReplyIntent: AppIntent {
+    static let title: LocalizedStringResource = "Review iGentic Model Reply"
+    static let description = IntentDescription(
+        "Validate a ChatGPT reply locally and return a non-executing JSON receipt."
+    )
+    static let supportedModes: IntentModes = .background
+
+    @Parameter(title: "Task ID")
+    var taskID: String
+
+    @Parameter(title: "Model Reply")
+    var modelReply: String
+
+    func perform() async throws -> some IntentResult & ReturnsValue<String> {
+        let decision = PolicyEngine().decide(
+            PolicyRequest(
+                privacyMode: .localOnly,
+                dataClassification: DataClassification(
+                    level: .contextualPrivateData,
+                    reason: "Explicit Shortcuts model output reviewed on device."
+                ),
+                actionRisk: .prepare,
+                requestedDelegationTarget: .localDevice
+            )
+        )
+        guard decision.isAllowed, !decision.requiresApproval else {
+            throw iGenticDiagnosticsIntentError.policyDenied
+        }
+        return .result(value: AgentLoopModelHandoff.review(
+            taskID: taskID, modelReply: modelReply
+        ))
+    }
+}
+
 @available(iOS 16.0, *)
+/// A bundled Siri entry point for a fixed, public example task.
+@available(iOS 27.0, *)
+struct iGenticChatGPTFollowUpIntent: AppIntent {
+    static let title: LocalizedStringResource = "Beispielaufgabe in ChatGPT öffnen"
+    static let description = IntentDescription(
+        "Öffnet ChatGPT mit einer festen Beispielanfrage zur Prüfung einer leeren Testliste."
+    )
+
+    func perform() async throws -> some IntentResult & OpensIntent {
+        guard let url = AgentLoopShortcutSetup.chatGPTExampleURL else { throw URLError(.badURL) }
+        return .result(opensIntent: OpenURLIntent(url))
+    }
+}
+
+// Featured shortcuts are installed by iOS with the app (no manual import).
+// Keep the catalog small: the other typed App Intents remain available as
+// building blocks in the Shortcuts editor for owner-configured AI workflows.
 struct iGenticDiagnosticsShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
         AppShortcut(
-                intent: iGenticReadOnlyDiagnosticsIntent(),
-                phrases: [
-                    "Check diagnostics in \(.applicationName)",
-                    "Show diagnostics in \(.applicationName)"
-                ],
-                shortTitle: "Check Diagnostics",
+            intent: iGenticChatGPTFollowUpIntent(),
+            phrases: ["Starte eine ChatGPT Beispielaufgabe mit \(.applicationName)"],
+            shortTitle: "ChatGPT-Beispielaufgabe",
+            systemImageName: "bubble.left.and.bubble.right"
+        )
+        AppShortcut(
+            intent: iGenticReadOnlyDiagnosticsIntent(),
+            phrases: [
+                "Check diagnostics in \(.applicationName)",
+                "Show diagnostics in \(.applicationName)"
+            ],
+            shortTitle: "Check Diagnostics",
             systemImageName: "checkmark.shield"
+        )
+        AppShortcut(
+            intent: iGenticDeviceStatusIntent(),
+            phrases: [
+                "Check iPhone status with \(.applicationName)",
+                "Read my battery with \(.applicationName)"
+            ],
+            shortTitle: "iPhone Status",
+            systemImageName: "battery.100percent"
+        )
+        AppShortcut(
+            intent: iGenticPrepareAgentTaskIntent(),
+            phrases: [
+                "Prepare a task with \(.applicationName)"
+            ],
+            shortTitle: "Agent Task Preview",
+            systemImageName: "checklist"
+        )
+        AppShortcut(
+            intent: iGenticStartAILoopIntent(),
+            phrases: ["Start AI loop with \(.applicationName)"],
+            shortTitle: "KI-Auftrag starten",
+            systemImageName: "bubble.left.and.text.bubble.right"
         )
     }
 }
@@ -193,6 +636,24 @@ private struct iGenticNativeBridgeLaunch {
         else { return }
         try? bytes.write(
             to: directory.appendingPathComponent("igentic-plugin-receipt.json"),
+            options: [.atomic, .completeFileProtectionUnlessOpen]
+        )
+    }
+}
+
+
+// The preview is an in-app navigation gate, never permission. A fresh UUID
+// is generated on-device only after the native sheet appears. We store only
+// five fixed-schema fields; no URL, prompt, person, token or device ID.
+private enum iGenticChatGPTHandoffPreviewReceiptWriter {
+    static func writeObserved(route: ChatGPTHandoffRoute) {
+        guard let directory = FileManager.default.urls(
+            for: .documentDirectory, in: .userDomainMask
+        ).first,
+        let bytes = try? JSONEncoder().encode(ChatGPTHandoffPreviewReceipt(route: route))
+        else { return }
+        try? bytes.write(
+            to: directory.appendingPathComponent("igentic-chatgpt-preview-receipt.json"),
             options: [.atomic, .completeFileProtectionUnlessOpen]
         )
     }

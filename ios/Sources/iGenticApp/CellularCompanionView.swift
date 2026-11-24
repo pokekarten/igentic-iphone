@@ -132,7 +132,11 @@ private enum CellularReadinessClient {
                   json["status"] as? String == "accepted",
                   json["capability"] as? String == "readiness-only",
                   json["deviceControl"] as? String == "not-enabled",
-                  json["backgroundExecution"] as? String == "not-guaranteed"
+                  json["backgroundExecution"] as? String == "not-guaranteed",
+                  CellularHeartbeatProtocol.verifyResponseProof(
+                      secret: secret, timestamp: timestamp, nonce: nonce,
+                      header: reply.value(forHTTPHeaderField: "x-igentic-response-proof")
+                  )
             else { return "Serverbestätigung nicht gültig" }
             switch await inspector.routeEvidence() {
             case "cellular-transport-observed":

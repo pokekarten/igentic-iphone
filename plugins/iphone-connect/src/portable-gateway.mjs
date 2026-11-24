@@ -6,6 +6,10 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import { z } from 'zod';
 import { makeConnectionReport } from './connection-report.mjs';
 import { optionalToolCatalog, prepareLocalTask } from './optional-core.mjs';
+import { HANDOFF_ACTIONS, prepareChatGPTHandoff } from './chatgpt-handoff.mjs';
+import { oauthFromEnvironment } from './oauth-jwks.mjs';
+import { validateOAuthConfig, isLocalGatewayRequest, hasBoundedJSONBody,
+  hasValidOAuthAccess, protectedResourceMetadata } from './portable-gateway-security.mjs';
 
 const noArgs = z.object({}).strict();
 const output = z.object({ data: z.record(z.string(), z.unknown()) });
@@ -52,11 +56,30 @@ export function createPortableMcp() {
       text: z.string().max(800).optional()
     }).strict(), outputSchema: output, annotations
   }, async ({ task, text }) => wrap(prepareLocalTask(task, text)));
+  mcp.registerTool('iphone_chatgpt_handoff', {
+    title: 'Prepare an iPhone handoff link for ChatGPT',
+    description: 'Generate an allowlisted user-tapped link into our signed iGentic iPhone app. Does NOT call App Intents, execute actions, read phone data or imply a connected iPhone. For reminders, review and owner approval stay inside the app.',
+    inputSchema: z.object({ action: z.enum(HANDOFF_ACTIONS) }).strict(),
+    outputSchema: output, annotations
+  }, async ({ action }) => wrap(prepareChatGPTHandoff(action)));
   return mcp;
 }
-export async function startPortableGateway({ port = 0 } = {}) {
+export async function startPortableGateway({ port = 0, oauth } = {}) {
   if (!Number.isInteger(port) || port < 0 || port > 65535) throw Error('invalidPort');
+  const auth = validateOAuthConfig(oauth);
   const http = createHttpServer(async (req, res) => {
+    res.setHeader('cache-control', 'no-store');
+    const port = http.address().port;
+    if (!isLocalGatewayRequest(req, port)) {
+      res.writeHead(403, { 'content-type': 'text/plain' }).end('Forbidden');
+      return;
+    }
+    if (req.url === '/.well-known/oauth-protected-resource' && auth
+        && req.method === 'GET') {
+      res.writeHead(200, { 'content-type': 'application/json' })
+        .end(JSON.stringify(protectedResourceMetadata(auth)));
+      return;
+    }
     if (req.url !== '/mcp') {
       res.writeHead(404, { 'content-type': 'text/plain' }).end('Not found');
       return;
@@ -66,8 +89,19 @@ export async function startPortableGateway({ port = 0 } = {}) {
         .end('Method not allowed');
       return;
     }
-    if (Number(req.headers['content-length']) > 65536) {
-      res.writeHead(413, { 'content-type': 'text/plain' }).end('Too large');
+    if (auth && !(await hasValidOAuthAccess(req, auth))) {
+      res.writeHead(401, {
+        'content-type': 'text/plain',
+        'www-authenticate': 'Bearer resource_metadata="' + auth.metadataUrl
+          + '", scope="' + auth.scope + '"'
+      }).end('Unauthorized');
+      return;
+    }
+    const bodyStatus = hasBoundedJSONBody(req);
+    if (bodyStatus !== 'ok') {
+      const code = bodyStatus === 'tooLarge' ? 413
+        : bodyStatus === 'wrongContentType' ? 415 : 411;
+      res.writeHead(code, { 'content-type': 'text/plain' }).end('Invalid request');
       return;
     }
     const mcp = createPortableMcp();
@@ -101,7 +135,12 @@ export async function startPortableGateway({ port = 0 } = {}) {
   };
 }
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  startPortableGateway({ port: Number(process.env.IGENTIC_PORTABLE_MCP_PORT ?? '37865') })
+  // CLI staging mode uses JOSE JWKS cryptographic verification, not a test
+  // callback. Incomplete OAuth config fails closed before opening the port.
+  startPortableGateway({
+    port: Number(process.env.IGENTIC_PORTABLE_MCP_PORT ?? '37865'),
+    oauth: oauthFromEnvironment(process.env)
+  })
     .then(gateway => console.error('iGentic read-only MCP gateway: http://127.0.0.1:' + gateway.port + '/mcp'))
     .catch(() => { console.error('gatewayStartupFailed'); process.exitCode = 1; });
 }

@@ -18,6 +18,42 @@ reminder writes, general tap/type commands and public hosting are not exposed.
 This is an executable initial capability boundary, not the entire product
 roadmap in the [research atlas on Draft PR #379](https://github.com/pokekarten/igentic-iphone/blob/docs/iphone-agent-ecosystem-2026-11-21/docs/research/IPHONE_AGENT_PROJECT_ATLAS.md).
 
+## Experimental ChatGPT-specific API handoff (new, read-only)
+
+See [CHATGPT_HANDOFF.md](CHATGPT_HANDOFF.md). ChatGPT can connect to the
+client-neutral, loopback-only Streamable HTTP MCP prototype using an approved
+private MCP tunnel and call `iphone_chatgpt_handoff`. It returns only a
+fixed `igentic://handoff/v1/...` link that the owner may open on their iPhone.
+The signed iGentic app then displays a second in-app navigation choice.
+This does not trigger App Intents, write reminders, reach the phone remotely,
+connect a ChatGPT account automatically, or claim mobile-client support.
+The existing read-only diagnostics App Intent remains separate.
+
+A further offline-only security prototype is described in
+[AUTHENTICATED_TASK_ENVELOPE.md](AUTHENTICATED_TASK_ENVELOPE.md): a strictly
+read-only HMAC-authenticated owner-relay task proposal with expiry and
+in-memory replay protection. The [sealed single-host replay ledger](DURABLE_REPLAY_LEDGER.md)
+adds explicit owner provisioning, opaque keyed request digests and restart-safe
+atomic consumption. It supersedes the earlier auto-created SQLite experiment:
+the legacy store is intentionally removed in this integration PR. Neither
+module connects this plugin to an iPhone, installs a Site tool, starts a
+server or executes a request. Owner/device enrolment, cross-host replay
+protection, authenticated transport and independent device receipts remain
+separate gates.
+
+## Client-neutral Agent Loop contract (offline-only)
+
+See [AGENT_LOOP_PROTOCOL.md](AGENT_LOOP_PROTOCOL.md) for a runnable
+cross-client state contract for ChatGPT, Siri, Shortcuts, local models and the
+iGentic app. It connects the existing authenticated read-only proposals, the
+sealed SQLite replay ledger and the read-only Site tool contract in *tests*.
+It never starts a server, executes a device action or treats an unknown
+delivery as success. A key-authenticated receipt is not hardware attestation.
+The optional [private write-ahead delivery marker](DELIVERY_ATTEMPT_MARKER.md)
+adds a crash-conservative on-disk preparation gate without storing private
+task text or creating a transport. It requires explicit owner provisioning
+and does not replace the authenticated replay ledger or hardware receipts.
+
 ## Requirements and setup
 
 - macOS with Node.js 22+, Xcode and an already paired, unlocked physical iPhone.
@@ -113,6 +149,25 @@ The backend never substitutes the synthetic backend. Fixture mode is explicit:
 ```sh
 IGENTIC_IPHONE_BACKEND=fixture npm run smoke
 ```
+
+## Physical installation prerequisites (read-only)
+
+Run npm run preflight:cellular-physical for a sanitized, **read-only**
+report on iGentic's Xcode team/bundle settings, local signing identity,
+local candidate provisioning profiles and the existing live CoreDevice
+connection. No signing, Apple account mutation, app installation, data
+transfer, Internet request or real mobile-network proof is performed.
+See [CELLULAR_COMPANION.md](CELLULAR_COMPANION.md).
+
+## Owner-hosted cellular HTTPS preflight (Mac-only)
+
+The separate `npm run smoke:cellular-host` command verifies a
+**configured owner-operated HTTPS host** using a fixed signed request and
+request-bound signed response. It requires explicit local environment
+configuration, defaults to **no network activity**, never outputs keys or
+hostnames, never opens a port, and explicitly reports `cellularVerified=false`
+even if the Mac's probe passes. See
+[CELLULAR_COMPANION.md](CELLULAR_COMPANION.md) for setup and limits.
 
 ## Optional first-party mobile data (4G/5G)
 
@@ -237,3 +292,33 @@ resource or connection domains are allowed by the resource CSP.
 
 See [privacy](PRIVACY.md), [third-party notices](THIRD_PARTY_NOTICES.md) and the
 [implementation evidence](../../docs/reports/chatgpt-iphone-plugin-2026-11-22.md).
+
+
+### Reproduce a published ChatGPT Site plugin response on the physical iPhone
+
+The optional `smoke:published:wifi` command accepts **three actual tool-result
+objects supplied by the operator**, in order: `diagnostics`, `discovery`,
+`reminder-draft`. Each must contain `structuredContent.data` with the exact
+canonical handoff contract. Supply only these public, fixed fields: no account
+identifiers, tokens, phone records or other user data.
+
+```sh
+# On the owner’s Mac, with the paired physical iPhone reachable over Wi-Fi:
+npm run smoke:published:wifi < /path/to/three-site-tool-results.json
+```
+
+The test rejects altered URLs, changed authorization/status fields and
+non-Wi-Fi devices. It dispatches only the three fixed **own-app preview** URLs
+using Apple CoreDevice, and requires a fresh, nonce-like, app-owned receipt
+after each dispatch. It never creates a reminder, invokes a generic iOS shell,
+reads private phone data or bypasses the in-app confirmation.
+
+**Scope:** The operator must obtain the responses from the *real installed
+ChatGPT Site plugin* and hand them to this program. The program cannot
+independently authenticate their origin. Success proves the submitted fixed
+links can open app-owned previews over the Mac-to-iPhone route, **not**
+autonomous Site-to-Mac communication, a human owner tap, approval of writes,
+cellular reachability, or direct live phone control by the hosted Site.
+A future remote connection requires a separately authenticated gateway or
+a private Secure MCP Tunnel and a newly connected plugin; do not expose the
+loopback MCP endpoint publicly.

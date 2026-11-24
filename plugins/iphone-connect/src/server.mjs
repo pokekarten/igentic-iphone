@@ -47,6 +47,9 @@ export function createServer(service) {
     'Read-only first-party status for the allowlisted Diagnostics app: installed and process running. Does not inspect private app content or prove foreground/UI state.',
     {}, true, () => service.nativeAppStatus());
 
+  add('iphone_shortcut_result', 'Read completed iGentic Shortcut result',
+    'Use the exact taskId returned by the status Shortcut. Returns its recorded local completion without device telemetry. A missing or replaced journal cannot verify this task.',
+    { taskId: id }, true, a => service.shortcutResult(a.taskId));
   add('iphone_connection_report', 'Check USB, Wi-Fi and other connection paths',
     'Read-only live CoreDevice status and five separately scoped route states. No device identifiers, network scan or iPhone actions. A detected tunnel is not proof of app-owned receipt or optional legacy driver readiness.',
     {}, true, () => service.connectionReport());

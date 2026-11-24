@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleDevelopmentRegion</key><string>$(DEVELOPMENT_LANGUAGE)</string>
+  <key>CFBundleExecutable</key><string>$(EXECUTABLE_NAME)</string>
+  <key>CFBundleIdentifier</key><string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+  <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
+  <key>CFBundleName</key><string>$(PRODUCT_NAME)</string>
+  <key>CFBundleDisplayName</key><string>iGentic</string>
+  <key>CFBundlePackageType</key><string>APPL</string>
+  <key>CFBundleShortVersionString</key><string>$(MARKETING_VERSION)</string>
+  <key>CFBundleVersion</key><string>$(CURRENT_PROJECT_VERSION)</string>
+  <key>LSRequiresIPhoneOS</key><true/>
+  <key>UILaunchScreen</key><dict/>
+  <key>NSRemindersFullAccessUsageDescription</key>
+  <string>iGentic erstellt nur nach deiner Freigabe eine Erinnerung in deiner Standardliste und liest genau diesen neuen Eintrag zur Kontrolle zurück. iOS verlangt dafür vollständigen Zugriff auf Erinnerungen.</string>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>iGentic nimmt nur nach Tippen kurz Sprache für eine lokale Transkription auf; keine Cloud-Ausweichroute.</string>
+  <key>NSSpeechRecognitionUsageDescription</key>
+  <string>iGentic wandelt auf Wunsch gesprochene deutsche Sprache ausschließlich auf diesem Gerät in Text um.</string>
+  <key>CFBundleURLTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleURLName</key><string>org.example.iGenticDiagnostics.handoff</string>
+      <key>CFBundleTypeRole</key><string>Viewer</string>
+      <key>CFBundleURLSchemes</key><array><string>igentic</string></array>
+    </dict>
+  </array>
+</dict>
+</plist>

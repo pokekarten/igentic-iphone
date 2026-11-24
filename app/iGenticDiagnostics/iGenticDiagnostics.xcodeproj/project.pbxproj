@@ -232,12 +232,8 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = iGentic;
-				INFOPLIST_KEY_NSMicrophoneUsageDescription = "iGentic nimmt nur nach Tippen kurz Sprache für eine lokale Transkription auf; keine Cloud-Ausweichroute.";
-				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "iGentic wandelt auf Wunsch gesprochene deutsche Sprache ausschließlich auf diesem Gerät in Text um.";
-				INFOPLIST_KEY_NSRemindersFullAccessUsageDescription = "iGentic erstellt nur nach deiner Freigabe eine Erinnerung in deiner Standardliste und liest genau diesen neuen Eintrag zur Kontrolle zurück. iOS verlangt dafür vollständigen Zugriff auf Erinnerungen.";
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = iGenticDiagnostics/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -259,12 +255,8 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = iGentic;
-				INFOPLIST_KEY_NSMicrophoneUsageDescription = "iGentic nimmt nur nach Tippen kurz Sprache für eine lokale Transkription auf; keine Cloud-Ausweichroute.";
-				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "iGentic wandelt auf Wunsch gesprochene deutsche Sprache ausschließlich auf diesem Gerät in Text um.";
-				INFOPLIST_KEY_NSRemindersFullAccessUsageDescription = "iGentic erstellt nur nach deiner Freigabe eine Erinnerung in deiner Standardliste und liest genau diesen neuen Eintrag zur Kontrolle zurück. iOS verlangt dafür vollständigen Zugriff auf Erinnerungen.";
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = iGenticDiagnostics/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
