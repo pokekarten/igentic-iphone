@@ -176,3 +176,14 @@ remote server, user reminders or device permissions are altered.
 
 These documents define supported platform mechanisms, not proof of user account
 access, remote enrollment, or actual phone functionality.
+
+### Physical Wi-Fi check on 24 November 2026
+
+CoreDevice reported a physical iPhone Air on localNetwork and launched the
+installed Diagnostics app. The Mac SDK-client Wi-Fi harness completed all
+three own-app preview routes with fresh receipts and rejected the invalid
+route. A separate direct discovery handoff also changed the app receipt.
+One run from the integration checkout timed out; the completed harness run
+used the handoff acceptance checkout. This evidence covers Mac-mediated
+navigation. Mobile ChatGPT invocation, Shortcut completion and an authenticated
+receipt in the originating chat still require independent observation.
