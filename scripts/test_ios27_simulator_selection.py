@@ -1,6 +1,8 @@
 """Deterministic simulator-selection tests; no Xcode or physical iPhone needed."""
 from __future__ import annotations
 
+import json
+import subprocess
 import sys
 import unittest
 from pathlib import Path
@@ -24,6 +26,44 @@ class IOS27SimulatorSelectionTests(unittest.TestCase):
             select_compatible_iphone(payload),
             ("newer", "iPhone Air", "com.apple.CoreSimulator.SimRuntime.iOS-27-2"),
         )
+
+    def test_xcode_271_chooses_271_not_newer_272(self):
+        payload = {"devices": {
+            "com.apple.CoreSimulator.SimRuntime.iOS-27-1": [device("iPhone Air", "matching")],
+            "com.apple.CoreSimulator.SimRuntime.iOS-27-2": [device("iPhone Air", "mismatched")],
+        }}
+        self.assertEqual(select_compatible_iphone(payload, "27.1")[0], "matching")
+        self.assertEqual(select_compatible_iphone(payload, "27.2")[0], "mismatched")
+
+    def test_missing_matching_runtime_fails_closed(self):
+        payload = {"devices": {
+            "com.apple.CoreSimulator.SimRuntime.iOS-27-2": [device("iPhone Air", "newer")],
+        }}
+        with self.assertRaisesRegex(ValueError, "No iOS 27.1 iPhone simulator"):
+            select_compatible_iphone(payload, "27.1")
+
+    def test_cli_requires_xcode_matched_runtime_and_never_falls_back(self):
+        payload = json.dumps({"devices": {
+            "com.apple.CoreSimulator.SimRuntime.iOS-27-2": [device("iPhone Air", "fixture-272")]
+        }})
+        command = [sys.executable, str(Path(__file__).with_name("select_ios27_simulator.py"))]
+        good = subprocess.run(command + ["--match-runtime", "27.2"],
+                              input=payload, capture_output=True, text=True)
+        self.assertEqual(good.returncode, 0, good.stderr)
+        self.assertEqual(good.stdout.strip(), "fixture-272")
+        bad = subprocess.run(command + ["--match-runtime", "27.1"],
+                             input=payload, capture_output=True, text=True)
+        self.assertEqual(bad.returncode, 1)
+        self.assertFalse(bad.stdout.strip())
+        self.assertIn("No iOS 27.1 iPhone simulator", bad.stderr)
+
+    def test_bad_xcode_version_rejected(self):
+        payload = {"devices": {
+            "com.apple.CoreSimulator.SimRuntime.iOS-27-2": [device("iPhone Air", "newer")],
+        }}
+        for version in ("26.7", "27", "xcode27.2", "27.2.2x", ""):
+            with self.subTest(version=version), self.assertRaisesRegex(ValueError, "Invalid"):
+                select_compatible_iphone(payload, version)
 
     def test_rejects_only_older_iphones(self):
         payload = {"devices": {

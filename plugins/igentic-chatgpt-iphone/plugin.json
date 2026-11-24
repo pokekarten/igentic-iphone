@@ -1,0 +1,23 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "igentic-chatgpt-iphone",
+  "version": "0.1.0",
+  "description": "ChatGPT-first iGentic iPhone handoff workflow. Read-only action planning; no device access without a separately connected MCP service.",
+  "author": {
+    "name": "iGentic"
+  },
+  "repository": "https://github.com/pokekarten/igentic-iphone",
+  "license": "Apache-2.0",
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "iGentic iPhone for ChatGPT",
+        "shortDescription": "Safe iPhone task handoffs via ChatGPT",
+        "category": "Developer Tools",
+        "capabilities": [
+          "Read"
+        ]
+      }
+    }
+  }
+}

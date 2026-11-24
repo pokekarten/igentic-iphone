@@ -14,6 +14,35 @@ The goal is not to build another chatbot app. The goal is to explore the iPhone,
 
 The migration lives in a separate, reviewable PR; until that PR is merged, `main` retains its old platform declarations. Real iPhone install/signing and performance acceptance have not yet been demonstrated for this migration.
 
+The [iGentic iPhone Connect developer plugin](plugins/iphone-connect/README.md)
+provides a local MCP server, typed diagnostics tools and an MCP Apps dashboard
+for ChatGPT/Codex-compatible hosts. See its [implementation and acceptance evidence](docs/reports/chatgpt-iphone-plugin-2026-11-22.md)
+for the exact tested scope and outstanding physical-device/web-connection gates.
+
+The [optional first-party Mobilfunk Companion](plugins/iphone-connect/CELLULAR_COMPANION.md)
+adds a foreground-only, HMAC-authenticated HTTPS **readiness** check to an
+owner-operated server, independently of ChatGPT and the Mac. Its Swift client
+can identify whether the actual HTTPS transaction used a cellular network
+interface once Apple's metrics arrive; missing metrics remain unverified.
+This is **not** remote iOS control, a continuous background service, or proof
+of real-world 4G/5G connectivity: deployment still needs a signed new iPhone
+app, trusted HTTPS host and explicit physical mobile-data acceptance. USB-C
+and Wi-Fi remain independent connection options. The optional
+`npm run smoke:cellular-host` preflight checks an explicitly configured
+owner-operated HTTPS server **from the Mac only** and never claims a cellular
+or iPhone-device connection. For physical-install prerequisites, use the
+separate read-only npm run preflight:cellular-physical command in the
+iPhone Connect plugin. It reports only sanitized statuses and never
+installs an app or changes Apple account settings.
+
+**All add-ons are optional.** The native iOS `Offline-Werkzeuge` module provides
+manual text drafts, explicit copy, on-device speech and selected-image Vision
+OCR without ChatGPT, Mac or third-party automation. The existing reminder
+workflow keeps separate approval. The plugin has a standalone read-only
+[tool catalog and manual fallback](plugins/iphone-connect/OPTIONAL_TOOLS.md);
+neither helper asserts phone connectivity. Physical use of new native code
+requires a freshly signed and installed iGentic build.
+
 This repository is intentionally small and controller-friendly. It is designed for a workflow where ChatGPT acts as the project controller through the GitHub Connector, Codex creates narrow Draft PRs, and real iPhone testing decides what is actually usable.
 
 ## Mission
