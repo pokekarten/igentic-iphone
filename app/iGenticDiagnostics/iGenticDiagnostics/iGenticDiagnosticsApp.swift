@@ -541,11 +541,38 @@ struct iGenticReviewModelReplyIntent: AppIntent {
 }
 
 @available(iOS 16.0, *)
+/// A bundled Siri entry point for a fixed, public example task.
+@available(iOS 27.0, *)
+struct iGenticChatGPTFollowUpIntent: AppIntent {
+    static let title: LocalizedStringResource = "Beispielaufgabe in ChatGPT öffnen"
+    static let description = IntentDescription(
+        "Öffnet ChatGPT mit einer festen Beispielanfrage zur Prüfung einer leeren Testliste."
+    )
+
+    func perform() async throws -> some IntentResult & OpensIntent {
+        var components = URLComponents()
+        components.scheme = "https"
+        components.host = "chatgpt.com"
+        components.path = "/"
+        components.queryItems = [URLQueryItem(
+            name: "q", value: "Erstelle eine kurze Folgeaufgabe zur Prüfung einer leeren Testliste."
+        )]
+        guard let url = components.url else { throw URLError(.badURL) }
+        return .result(opensIntent: OpenURLIntent(url))
+    }
+}
+
 // Featured shortcuts are installed by iOS with the app (no manual import).
 // Keep the catalog small: the other typed App Intents remain available as
 // building blocks in the Shortcuts editor for owner-configured AI workflows.
 struct iGenticDiagnosticsShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
+        AppShortcut(
+            intent: iGenticChatGPTFollowUpIntent(),
+            phrases: ["Starte eine ChatGPT Beispielaufgabe mit \(.applicationName)"],
+            shortTitle: "ChatGPT-Beispielaufgabe",
+            systemImageName: "bubble.left.and.bubble.right"
+        )
         AppShortcut(
             intent: iGenticReadOnlyDiagnosticsIntent(),
             phrases: [

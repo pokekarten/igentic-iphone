@@ -368,3 +368,13 @@ installed. The lock file has no task content or device identifiers. Offline
 tests cover both same-process reentrancy and a second OS-level lock handle.
 Keychain enrollment, independently verified device receipts, and signed
 iPhone acceptance are separate pending gates.
+
+### Bundled Siri shortcut for a ChatGPT follow-up
+
+The app now features **ChatGPT-Beispielaufgabe**. Its Siri phrase is
+“Starte eine ChatGPT Beispielaufgabe mit” followed by the application name.
+The App Intent opens chatgpt.com with a fixed German example asking for a
+follow-up about an empty test list. It supplies no personal input or device
+status. The model response appears in ChatGPT. This action requires no
+personal Shortcut import. Voice recognition, account selection and return
+of the resulting answer to iGentic require separate device verification.
