@@ -47,11 +47,18 @@ that certificate without disabling certificate verification.
 | --- | --- |
 | /v1/owner/submit | /v1/device/claim |
 | /v1/owner/status | /v1/device/receipt |
+| /v1/owner/result | |
 | /v1/owner/cancel | |
 | /v1/owner/recover | |
 
-The submit/cancel/recover bodies contain only requestId; status and claim
-take an empty object; receipt takes only proof. Responses are marked
+Submit, result, cancel and recover take `{"requestId":"<uuid>"}`.
+Status and claim take an empty object. Receipt takes only proof.
+Use the owner result route for a task-specific lookup. A matching request
+returns its ID, lifecycle state and receipt evidence flags. An unknown ID
+returns `{"schema":1,"result":null}`, including after a relay restart that
+lost the in-memory task. A lookup can be repeated without claiming or
+re-executing the task. The UUID correlates a task, while the owner key
+authenticates the caller. Responses are marked
 no-store. Unknown, unauthorized, or invalid transitions never echo input.
 Two concurrent claims return at most one payload. The receipt is still
 synthetic key evidence, not physical-device execution.
@@ -86,9 +93,8 @@ still apply. A second explicit local review transition may prepare a single
 synthetic key proof, with a different receipt key, current external-sharing
 policy and an unexpired read. No status observation is included. Replacing
 the nonce, reusing the proof transition, rolling the clock back after expiry,
-or using Local Only mode cannot issue a new proof. The fixture is not wired
-to the UI, a network sender, App Intents or a production key vault; neither
-a physical iPhone nor a human consent attestation follows from it. Release
+or using Local Only mode cannot issue a new proof. The macOS test sends the synthetic proof over loopback HTTPS.
+A production sender, native approval UI and enrolled signing key are still open. Release
 builds contain no such proof-generation method. A Node-generated independent
 synthetic HMAC vector is checked by the native regression tests.
 
@@ -96,18 +102,22 @@ synthetic HMAC vector is checked by the native regression tests.
 
 On a Mac with Xcode command-line tools, run
 `node --test plugins/iphone-connect/test/owner-device-relay-https.test.mjs`.
-The native test compiles the current Swift request builder, claim parser and
-client. The ordinary client sees an untrusted, newly generated certificate
+The native smoke test builds a private Debug fixture against the local iGenticApp package. The ordinary client sees an untrusted, newly generated certificate
 and consumes its attempt. A separate test-only URLSession explicitly trusts
 that certificate for this process, requests the pending claim over HTTPS and
 verifies the live Node response with the Swift parser against the owner's
-fresh request ID. A second device claim is empty. The owner still sees
-`outcome-unknown` and `actionExecuted=false`. The adjacent Node test covers
-receipt submission and owner lookup. Neither test changes Keychain trust.
+fresh request ID. The fixture stages the claim in the native review gate
+using a temporary replay journal. It feeds a synthetic status into the local
+read and explicitly simulates the separate sharing review. Swift submits
+the resulting one-use proof via HTTPS. The Node owner looks up that same
+request ID twice and observes `receipt-key-authenticated` with
+`actionExecuted=false`. A second device claim is empty. Before the read and
+in Local Only mode, the gate supplies no proof. The test reads synthetic
+data on the Mac and installs no trust in the system Keychain.
 
 For a product roundtrip, bind one owner and foreground app installation to
 the same task, obtain an owner-reviewed app read, then return a minimal result
-through an authenticated plugin lookup for that task. Verify it from the
+through a plugin lookup bound to that owner and task. Verify it from the
 originating ChatGPT conversation. Exercise the reverse Shortcuts/Siri entry
 separately on a physical iPhone, including whether it opens the intended
 conversation or starts a new one.

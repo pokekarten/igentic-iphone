@@ -33,6 +33,13 @@ export function createOwnerDeviceRelay({
     if (!Number.isSafeInteger(t) || t < 0) throw Error('invalidRelayClock');
     return t;
   };
+  function status(key) {
+    auth(key, owner);
+    const state = loop.snapshot();
+    return claimed && !released
+      ? Object.freeze({...state,state:'outcome-unknown',automaticRetryAllowed:false})
+      : state;
+  }
   return Object.freeze({
     submit(key, requestId) {
       auth(key, owner);
@@ -46,12 +53,14 @@ export function createOwnerDeviceRelay({
       envelope = signed;
       return state;
     },
-    status(key) {
-      auth(key, owner);
-      const state = loop.snapshot();
-      return claimed && !released
-        ? Object.freeze({...state,state:'outcome-unknown',automaticRetryAllowed:false})
-        : state;
+    status,
+    result(key, requestId) {
+      const current = status(key);
+      if (typeof requestId !== 'string' || !UUID.test(requestId)) throw Error('invalidRelayRequestId');
+      if (current.requestId !== requestId) return null;
+      // Explicit external projection. Internal status fields may grow independently.
+      const {state, receiptKeyAuthenticated, deviceReceipt, actionExecuted, ownerApproved, iPhoneConnected} = current;
+      return Object.freeze({requestId, state, receiptKeyAuthenticated, deviceReceipt, actionExecuted, ownerApproved, iPhoneConnected});
     },
     cancel(key, requestId) {
       auth(key, owner);

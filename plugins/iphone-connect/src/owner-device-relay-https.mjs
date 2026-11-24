@@ -6,7 +6,7 @@ const MAX_BODY = 2048;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const PATHS = new Map([
   ['/v1/owner/submit','submit'], ['/v1/owner/status','status'],
-  ['/v1/owner/cancel','cancel'], ['/v1/owner/recover','recover'],
+  ['/v1/owner/result','result'], ['/v1/owner/cancel','cancel'], ['/v1/owner/recover','recover'],
   ['/v1/device/claim','claim'], ['/v1/device/receipt','acceptReceipt']
 ]);
 const exact = (v, keys) => v !== null && typeof v === 'object' && !Array.isArray(v)
@@ -69,7 +69,7 @@ export function createLoopbackOwnerDeviceHTTPS({relay,tlsKey,tlsCert,port=0} = {
           // extra whitespace and alternate encodings before any transition.
           if(!Buffer.from(JSON.stringify(input)).equals(wire)) return deny(400);
         } catch { return deny(400); }
-        const takesID=['submit','cancel','recover'].includes(method);
+        const takesID=['submit','cancel','recover','result'].includes(method);
         const takesProof=method==='acceptReceipt';
         if(takesID ? (!exact(input,['requestId'])||typeof input.requestId!=='string'||!UUID.test(input.requestId))
             : takesProof ? !exact(input,['proof']) : !exact(input,[])) return deny(400);

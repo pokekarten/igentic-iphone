@@ -53,6 +53,7 @@ test('lost claim and restart recover only uncertainty; same task cannot be reiss
   const f=fixture(t), o=f.ownerAccessKey,d=f.deviceAccessKey,id=randomUUID();
   const first=f.open();first.submit(o,id);first.claim(d);first.close(o);
   const next=f.open();
+  assert.equal(next.result(o,id),null);
   assert.equal(next.recover(o,id).state,'outcome-unknown');
   assert.equal(next.recover(o,id).automaticRetryAllowed,false);
   assert.throws(()=>next.submit(o,id),/relayDeliveryAlreadyUncertain/);

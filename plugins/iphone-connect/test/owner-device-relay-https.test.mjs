@@ -94,30 +94,53 @@ test('real loopback TLS: strict owner/device roles, one claim, nonce receipt and
   assert.equal((await post('/v1/owner/recover',owner,{requestId:id})).body.result.state,'outcome-unknown');
 });
 
-test('macOS native client refuses untrusted TLS and the Swift protocol accepts a live, test-trusted claim',
+test('owner result requires a matching task ID and exposes only its bounded status', async t => {
+  const {post, owner, device} = await startTestRelay(t);
+  const path = '/v1/owner/result';
+  const requestId = randomUUID();
+  const lookup = (key, id) => post(path, key, {requestId:id});
+  assert.deepEqual((await lookup(owner, requestId)).body, {schema:1, result:null});
+  assert.equal((await post(path, owner, {})).status, 400);
+  assert.equal((await lookup(owner, 'invalid')).status, 400);
+  assert.equal((await post('/v1/owner/submit', owner, {requestId})).status, 200);
+  assert.equal((await lookup(device, requestId)).status, 403);
+  assert.deepEqual((await lookup(owner, randomUUID())).body, {schema:1, result:null});
+  const pending = {requestId, state:'awaiting-manual-delivery', receiptKeyAuthenticated:false,
+    deviceReceipt:'none', actionExecuted:false, ownerApproved:false, iPhoneConnected:'not-checked'};
+  assert.deepEqual((await lookup(owner, requestId)).body, {schema:1, result:pending});
+  assert.equal((await post('/v1/device/claim', device)).status, 200);
+  assert.deepEqual((await lookup(owner, requestId)).body.result, {...pending, state:'outcome-unknown'});
+});
+
+test('macOS Swift claim, synthetic review and receipt reach the owner over loopback TLS',
   {skip: process.platform !== 'darwin'}, async t => {
-    const {root, address, cert, post, owner, device, proposalKey, now} = await startTestRelay(t);
-    const binary = join(root, 'native-claim-smoke');
-    const source = path => fileURLToPath(new URL(path, import.meta.url));
-    const compile = spawnSync('xcrun', ['swiftc', '-parse-as-library',
-      source('../../../ios/Sources/iGenticApp/AgentLoopRemoteTaskVerifier.swift'),
-      source('../../../ios/Sources/iGenticApp/AgentLoopRelayClaimClient.swift'),
-      source('./fixtures/NativeRelayClaimSmoke.swift'), '-o', binary],
-      {encoding: 'utf8', timeout: 120000});
-    assert.equal(compile.status, 0, compile.stderr || compile.error?.message);
+    const {root, address, cert, post, owner, device, proposalKey, receiptKey, now} = await startTestRelay(t);
+    const scratch = join(root, 'build');
+    const packageDir = fileURLToPath(new URL('./fixtures/', import.meta.url));
+    const compile = spawnSync('xcrun', ['swift', 'build', '--package-path', packageDir,
+      '--scratch-path', scratch, '--jobs', '2', '--product', 'NativeRelaySmoke'],
+      {encoding: 'utf8', timeout: 180000});
+    assert.equal(compile.status, 0, compile.error?.message || compile.stderr + compile.stdout);
+    const binary = join(scratch, 'debug', 'NativeRelaySmoke');
     const requestID = randomUUID();
     assert.equal((await post('/v1/owner/submit', owner, {requestId:requestID})).status, 200);
     // Keep synthetic role credentials in an anonymous pipe, out of command arguments and logs.
     const input = {requestID, now, port:address.port, certificate:new X509Certificate(cert).raw.toString('base64'),
-      deviceKey:device.toString('base64'), proposalKey:proposalKey.toString('base64')};
+      deviceKey:device.toString('base64'), proposalKey:proposalKey.toString('base64'), receiptKey:receiptKey.toString('base64')};
     await new Promise((resolve, reject) => {
       const child = execFile(binary, [], {timeout: 25000}, error => error ? reject(error) : resolve());
       child.stdin.on('error', reject);
       child.stdin.end(JSON.stringify(input));
     });
-    const status = (await post('/v1/owner/status', owner)).body.result;
+    const lookup = () => post('/v1/owner/result', owner, {requestId:requestID});
+    const status = (await lookup()).body.result;
     assert.equal(status.requestId, requestID);
-    assert.equal(status.state, 'outcome-unknown');
+    assert.equal(status.state, 'receipt-key-authenticated');
+    assert.equal(status.receiptKeyAuthenticated, true);
+    assert.equal(status.ownerApproved, false);
+    assert.equal(status.iPhoneConnected, 'not-checked');
+    assert.equal(status.deviceReceipt, 'key-authenticated-not-device-attested');
     assert.equal(status.actionExecuted, false);
+    assert.deepEqual((await lookup()).body.result, status);
     assert.equal((await post('/v1/device/claim', device)).body.result, null);
   });
