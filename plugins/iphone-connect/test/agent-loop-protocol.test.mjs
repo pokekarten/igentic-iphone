@@ -357,3 +357,21 @@ test('deadline crossed during durable preparation never releases a payload', () 
     /invalidAgentLoopTransition/);
   assert.equal(marks, 1);
 });
+
+test('a clock rollback invalidates a pending task without replaying a delivery', () => {
+  for (const dispatched of [false, true]) {
+    let current = time;
+    const loop = make(() => current), envelope = signed();
+    const requestId = envelope.body.requestId;
+    loop.start({ envelope, entryPoint: 'chatgpt-site' });
+    if (dispatched) {
+      loop.prepareDelivery({ requestId, route: 'coredevice-wifi' });
+      loop.recordTransport({ requestId, outcome: 'transport-acknowledged' });
+    }
+    current = time - 1;
+    assert.equal(loop.snapshot().state, dispatched ? 'outcome-unknown' : 'expired-before-send');
+    current = time;
+    assert.throws(() => loop.prepareDelivery({ requestId, route: 'coredevice-wifi' }),
+      /invalidAgentLoopTransition/);
+  }
+});

@@ -112,7 +112,8 @@ export function createTransportNeutralAgentLoop({
   const match = id => task && typeof id === 'string' && id === task.requestId;
   const expire = (sampledTime) => {
     if (!task) return false;
-    if ((sampledTime ?? now()) < task.expiresAt) return false;
+    const currentTime = sampledTime ?? now();
+    if (currentTime >= task.issuedAt && currentTime < task.expiresAt) return false;
     lateReceiptAllowed = false;
     if (!['receipt-key-authenticated', 'cancelled-local', 'outcome-unknown',
           'expired-before-send'].includes(state)) {
