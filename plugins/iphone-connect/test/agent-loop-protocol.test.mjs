@@ -311,3 +311,21 @@ test('no network, Apple access or subprocess launcher in protocol module', async
   assert.doesNotMatch(code, /from ['"]node:(?:http|https|net|child_process)['"]/);
   assert.doesNotMatch(code, /fetch[(]|\\.listen[(]|execFile|process\\.env/);
 });
+
+test('snapshot expires an idle task and preserves uncertainty after dispatch', () => {
+  for (const dispatched of [false, true]) {
+    let current = time;
+    const loop = make(() => current), envelope = signed();
+    const requestId = envelope.body.requestId;
+    loop.start({ envelope, entryPoint: 'chatgpt-site' });
+    if (dispatched) {
+      loop.prepareDelivery({ requestId, route: 'coredevice-wifi' });
+      loop.recordTransport({ requestId, outcome: 'transport-acknowledged' });
+    }
+    current = envelope.body.expiresAt;
+    const result = loop.snapshot();
+    assert.equal(result.state, dispatched ? 'outcome-unknown' : 'expired-before-send');
+    assert.equal(result.automaticRetryAllowed, false);
+    assert.equal(loop.snapshot().state, result.state);
+  }
+});
