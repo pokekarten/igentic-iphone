@@ -263,3 +263,10 @@ and individual reads. The Mac executed all three assertions successfully.
 The mobile browser showed the sign-in button. The source was a Mac-issued
 URL and the result was observed on screen; no signed-in project context,
 scheduled ChatGPT Task or automatic callback to the original chat was tested.
+
+On 24 November 2026 a repeat test on the physical iPhone Air returned verified
+for both the local MCP discovery action and its receipt. A separate CoreDevice
+URL launch opened a synthetic ChatGPT query in the mobile browser. The device
+screen showed the submitted factors 17 and 43 and the distinct reply PINIE 731.
+The response was observed on screen; no automatic transfer to the first chat
+was exercised.
