@@ -121,3 +121,19 @@ through a plugin lookup bound to that owner and task. Verify it from the
 originating ChatGPT conversation. Exercise the reverse Shortcuts/Siri entry
 separately on a physical iPhone, including whether it opens the intended
 conversation or starts a new one.
+
+## Native local enrollment storage
+
+AgentLoopDeviceEnrollmentVault provides explicit import and local revocation
+of a single credential bundle, using a non-synchronizing, unlocked-only,
+ThisDeviceOnly iOS Keychain item. Device access, proposal, receipt and local
+replay keys must all differ. Missing, malformed or inaccessible storage
+does not auto-enroll or reset. Local revocation replaces the credential
+record with a tombstone; no automatic re-enrollment or rotation is exposed.
+This is single-process main-actor serialization, not distributed CAS or
+rollback-resistant storage. Revocation does not invalidate previously copied
+keys or revoke the remote relay; server-side revocation and session lifecycle
+remain required. The vault is not wired to a setup screen, claim client or
+production signer. Tests use a synthetic in-memory backend; no real Keychain
+items are written during tests. The iOS backend requires a native build and
+physical-device acceptance.
