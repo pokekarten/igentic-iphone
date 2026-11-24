@@ -203,3 +203,23 @@ test('Shortcut completion is scoped to the requested task and omits journal cont
   for (const change of [{ stage: 'readAttempted' }, { id: 'other' }, { extra: true }, { createdAt: null }])
     assert.throws(() => shortcutCompletion({ ...row, ...change }, taskId), /shortcutCompletionUnverified/);
 });
+
+test('Shortcut lookup reads the app journal through the native backend', async () => {
+  const taskId = '5fd452bc-6815-48da-9a5b-02f555553d05';
+  const native = new NativeCoreDeviceBackend({
+    deviceId: '1'.repeat(24), bundleId: 'org.example.iGenticDiagnostics',
+    policyPath: process.execPath
+  });
+  native.policy = async () => {};
+  let source;
+  native.core = async args => {
+    source = args[args.indexOf('--source') + 1];
+    const target = args[args.indexOf('--destination') + 1];
+    await writeFile(target, JSON.stringify({ schema: 1, id: taskId.toUpperCase(),
+      createdAt: 123, stage: 'finished' }));
+  };
+  assert.deepEqual(await native.shortcutResult(taskId), {
+    taskId, stage: 'finished', evidence: 'physical-own-app-journal'
+  });
+  assert.equal(source, 'Library/Application Support/iGentic/shortcuts-status-loop-v1.json');
+});
