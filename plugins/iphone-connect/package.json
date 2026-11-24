@@ -20,7 +20,9 @@
     "serve:portable": "node src/portable-gateway.mjs",
     "serve:cellular": "node src/cellular-gateway.mjs",
     "smoke:handoff:wifi": "node scripts/smoke-handoff-wifi.mjs",
-    "smoke:published:wifi": "node scripts/smoke-published-handoff-wifi.mjs"
+    "smoke:published:wifi": "node scripts/smoke-published-handoff-wifi.mjs",
+    "smoke:cellular-host": "node scripts/smoke-cellular-host.mjs",
+    "preflight:cellular-physical": "node scripts/physical-cellular-preflight.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/ext-apps": "2.0.4",

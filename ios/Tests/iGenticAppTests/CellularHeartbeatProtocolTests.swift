@@ -81,6 +81,30 @@ final class CellularHeartbeatProtocolTests: XCTestCase {
     }
 
     #if canImport(CryptoKit)
+    func testResponseProofMatchesNodeAndRejectsReplaysOrTampering() {
+        let secret = Data(repeating: 1, count: 32)
+        let nonce = "11111111-2222-3333-4444-555555555555"
+        let issued = 1_795_393_200
+        let proof = "3200817eb3d37e3bb2ad20f5a0dda974eefb49ca8c44f52f392fa2ecd2864dfb"
+        XCTAssertEqual(CellularHeartbeatProtocol.responseProof(
+            secret: secret, timestamp: issued, nonce: nonce), proof)
+        XCTAssertTrue(CellularHeartbeatProtocol.verifyResponseProof(
+            secret: secret, timestamp: issued, nonce: nonce, header: proof))
+        for tampered in [nil, "", String(repeating: "a", count: 64),
+                         proof.uppercased(), "0" + proof.dropFirst()] as [String?] {
+            XCTAssertFalse(CellularHeartbeatProtocol.verifyResponseProof(
+                secret: secret, timestamp: issued, nonce: nonce, header: tampered))
+        }
+        XCTAssertFalse(CellularHeartbeatProtocol.verifyResponseProof(
+            secret: secret, timestamp: issued + 1, nonce: nonce, header: proof))
+        XCTAssertFalse(CellularHeartbeatProtocol.verifyResponseProof(
+            secret: secret, timestamp: issued,
+            nonce: "99999999-2222-3333-4444-555555555555", header: proof))
+        XCTAssertFalse(CellularHeartbeatProtocol.verifyResponseProof(
+            secret: Data(repeating: 2, count: 32),
+            timestamp: issued, nonce: nonce, header: proof))
+    }
+
     func testSwiftAndNodeHaveExactSameHMACSignature() {
         let secret = Data(repeating: 1, count: 32)
         let nonce = "11111111-2222-3333-4444-555555555555"

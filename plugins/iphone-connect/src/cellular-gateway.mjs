@@ -35,6 +35,17 @@ export function signCellular({ key, timestamp, nonce, body = HEARTBEAT_BODY }) {
     .update(cellularMessage({ timestamp, nonce, body }), 'utf8').digest('hex');
 }
 
+// Server proof is HMAC-bound to this exact authenticated request, not a device
+// identity, user approval or permission to execute anything. TLS remains required.
+export function signCellularResponse({ key, timestamp, nonce }) {
+  if (!Buffer.isBuffer(key) || key.length !== 32) throw Error('invalidPrivateCellularKey');
+  if (!Number.isSafeInteger(timestamp) || !NONCE_PATTERN.test(nonce))
+    throw Error('invalidCellularEnvelope');
+  const message = ['igentic-cellular-response-v1', String(timestamp), nonce,
+    'accepted', 'readiness-only', 'not-enabled', 'not-guaranteed'].join('\n');
+  return createHmac('sha256', key).update(message, 'utf8').digest('hex');
+}
+
 const failure = status => ({ status, body: { schema: 1, status: 'rejected' } });
 
 export function createHeartbeatVerifier({ key, nowSeconds = () => Math.floor(Date.now() / 1000) }) {
@@ -88,8 +99,9 @@ export function createCellularGateway({ tlsKey, tlsCert, sharedKey, port = 0, ho
     key: tlsKey, cert: tlsCert, minVersion: 'TLSv1.2',
     requestCert: false, maxHeaderSize: 8192
   }, (req, res) => {
-    const reply = (status, value) => {
+    const reply = (status, value, proof = null) => {
       res.writeHead(status, {
+        ...(proof === null ? {} : { 'x-igentic-response-proof': proof }),
         'content-type': 'application/json; charset=utf-8',
         'cache-control': 'no-store', 'x-content-type-options': 'nosniff'
       });
@@ -123,7 +135,12 @@ export function createCellularGateway({ tlsKey, tlsCert, sharedKey, port = 0, ho
         method: req.method, url: req.url, headers: req.headers,
         body: Buffer.concat(chunks), secure: req.socket.encrypted === true
       });
-      reply(result.status, result.body);
+      // Issue proof ONLY on an authenticated, non-replayed request.
+      const proof = result.status === 200 ? signCellularResponse({
+        key: sharedKey, timestamp: Number(req.headers['x-igentic-timestamp']),
+        nonce: req.headers['x-igentic-nonce']
+      }) : null;
+      reply(result.status, result.body, proof);
     });
     req.on('error', () => { if (!res.headersSent) res.destroy(); });
   });
