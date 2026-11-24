@@ -81,12 +81,18 @@ export function callSitesTool(name, args) {
       shortcutName: 'iGentic KI Loop', requiresSignedIPhoneApp: true,
       requiresOwnerSetup: true, requiresChatGPTExtension: true,
       steps: [
-        'Run iGentic KI-Auftrags-ID lesen and retain the result as a Shortcuts variable',
-        'Read iGentic KI-Prompt from the locally prepared iGentic task',
-        'Run Apple Shortcuts Use Model with the ChatGPT extension and the prompt variable',
-        'Pass the model response and unchanged task ID to iGentic KI-Antwort übernehmen',
-        'Open iGentic Diagnostics and review KI-Antwort prüfen before any other action'
+        'Starte iGentic KI-Auftrags-ID lesen und speichere die unveränderte Auftrags-ID als Kurzbefehle-Variable.',
+        'Lies iGentic KI-Prompt aus dem lokal vorbereiteten iGentic-Auftrag.',
+        'Nutze in Apple Kurzbefehle die ChatGPT-Aktion Modell verwenden mit der Prompt-Variable.',
+        'Übergib Modellantwort und unveränderte Auftrags-ID an iGentic KI-Antwort übernehmen.',
+        'Öffne iGentic Diagnose und prüfe KI-Antwort prüfen vor jedem weiteren Schritt.'
       ],
+      projectChat: {
+        availableFromThisSite: false,
+        shortcutProjectContext: 'not-verified',
+        requiresSeparateUserConfirmation: true,
+        note: 'ChatGPT Modell verwenden in Kurzbefehle ist nicht automatisch ein Chat im gewünschten ChatGPT-Projekt. Projektwahl, Kontextübernahme und Rückgabe müssen separat auf dem iPhone nachgewiesen werden.'
+      },
       warning: 'A model response is untrusted text. No device action, approval, or ChatGPT-to-Site callback is performed.'
     };
   }

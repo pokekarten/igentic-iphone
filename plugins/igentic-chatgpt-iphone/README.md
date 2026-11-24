@@ -103,3 +103,12 @@ to that browser document and is **not** automatically available as a
 ChatGPT plugin. See `sites-reference/README.md` for the distinction
 and explicit approval requirements. The original static no-JavaScript
 `sites-reference/index.html` remains the safest fallback.
+
+
+## Browser operator console (Draft PR #410)
+
+The optional /console Site reference drives the three existing read-only MCP
+tools with explicit button clicks over the same origin. It can show capabilities,
+Shortcuts setup and a validated manual iGentic link. No real iPhone status,
+execution, owner approval, OpenAI API, Site deployment or automatic callback
+is claimed. The no-JavaScript original page remains available.

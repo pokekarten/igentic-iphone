@@ -94,7 +94,7 @@ From the repository root, after the existing plugin dependencies are installed:
 node --test plugins/iphone-connect/test/sites-mcp.test.mjs
 plugins/iphone-connect/node_modules/.bin/esbuild \
   plugins/igentic-chatgpt-iphone/sites-reference/worker.mjs \
-  --bundle --format=esm --platform=browser --loader:.html=text \
+  --bundle --format=esm --platform=browser --loader:.html=text --loader:.txt=text \
   --outfile=plugins/iphone-connect/dist/sites-handoff/server/index.js
 ```
 
@@ -163,3 +163,96 @@ References:
 - https://webmachinelearning.github.io/webmcp/
 - https://developer.chrome.com/docs/modern-web-guidance/guides/webmcp/webmcp
 - https://help.openai.com/en/articles/20001547-hosting-a-plugin-with-chatgpt-sites
+
+
+## Operator console at /console (still read-only)
+
+The original static / page remains usable without JavaScript and keeps the three
+fixed first-party app links. The optional /console page uses a fixed same-origin
+script at /console.js to call only the existing three Site MCP tools: capability
+discovery, manual Shortcuts setup instructions, and a manual first-party handoff.
+The script never posts arbitrary tasks, secrets or device identifiers, never
+navigates automatically, and never renders untrusted HTML. Only exact known
+app links can be shown after a validated tool response. All failures remain
+non-executing; the iPhone is still not checked. The hosted Site must provide
+its own owner authentication; this demo does not grant it.
+
+The /console page permits only script-src self and connect-src self. The original
+/ page keeps connect-src none. Static /console.js is served with no-store and
+nosniff headers. The test bundle requires the additional --loader:.txt=text
+flag, as above. This is not deployed to the private ChatGPT Site by GitHub.
+
+To test the **actual Chrome browser interaction** in a temporary local-only
+session after installing the existing plugin dev dependencies:
+
+    node scripts/smoke-chatgpt-sites-console-chrome.mjs
+
+This test serves the bundled Worker over 127.0.0.1 with an isolated
+headless browser, clicks all three read-only controls, confirms three real
+same-origin MCP calls, validates the owner-tapped link without following it,
+and fails on external requests or page errors. It does not connect to
+ChatGPT or any real iPhone, and does not publish the private Site.
+
+The console bounds each operator-initiated browser request to 12 seconds, has an
+explicit Cancel button, disables competing actions while a request is pending,
+rejects late responses after cancellation, and removes stale handoff links on
+destination changes. Cancelling a browser read never claims remote device
+cancellation. Plugin unavailability is not interpreted as iPhone offline
+verification.
+
+
+### ChatGPT project context versus Shortcuts model replies
+
+The read-only `igentic_shortcuts_setup` response distinguishes a
+ChatGPT **Use Model** reply in Apple Shortcuts from a verified conversation in
+a specific ChatGPT Project. Neither this Site nor a successful Shortcuts reply
+proves project selection, conversation reuse, or context continuity. The
+`projectChat` field and visible console warning are deliberately
+`not-verified`, until signed native acceptance demonstrates it. No project
+identifier, conversation URL, account token or arbitrary text is sent to Site
+MCP tools.
+
+
+### Site MCP registry self-check (owner-clicked)
+
+The `/console` button **Site-MCP-Werkzeuge prüfen** performs two
+same-origin, manually triggered read-only MCP calls, `server/discover`
+and `tools/list`, using the exact mirrored method/version headers.
+It checks the supported protocol, server identity, **exactly three**
+allowlisted read-only tools, their non-destructive annotations and their
+**exact, closed argument schemas** (empty arguments for discovery/setup; the
+three fixed handoff actions for the navigation tool). Extra capabilities or
+parameter names fail closed rather than being misreported as compatible.
+Missing/stale registration, unexpected write authority, a failed request
+or a forged response is reported as **not confirmed**, never as an
+available iPhone connection. This is a deployed-Site compatibility check,
+not proof of device access or actual task execution. Its code is still
+reference source until owner-authorized publication of the existing
+private Site.
+
+
+### Copying a safe Site compatibility summary into ChatGPT (manual)
+
+After the owner triggers successful `server/discover` and `tools/list` inspection,
+a separate button can copy a **fixed, sanitized textual summary**. It contains
+only the known protocol/server/tool names and explicitly *unverified* device,
+execution and ChatGPT Project statuses. Neither raw server payloads nor the
+browser URL, account identifiers, task bodies, secrets or device identifiers
+are transferred. Clipboard writes need an explicit owner click and a capable
+browser; permission rejection is non-executing. A failed recheck invalidates
+the previous report, and leaving the page disables the copy action. This is a
+manual ChatGPT context handoff, not automatic ChatGPT Project selection or a
+signed device receipt.
+
+
+### Read response framing and source identity consistently
+
+All three read-only browser `tools/call` results, plus `server/discover`
+and `tools/list`, now require the exact `jsonrpc: "2.0"` framing,
+matching request ID, no simultaneous `error` field, a successful
+`resultType`, and the **expected, bounded Site server identity**
+(`igentic-iphone-handoff` version `0.2.0`). A malformed, unsigned,
+foreign, or inflated response cannot reveal a manually prepared handoff
+link or enable a compatibility report. This is same-origin response
+consistency, not cryptographic server attestation or device execution
+verification.

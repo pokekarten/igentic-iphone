@@ -59,6 +59,17 @@ test('Shortcut guide describes real owner-controlled action names without constr
   assert.match(guide.steps.join(' '), /KI-Auftrags-ID lesen/);
   assert.match(guide.steps.join(' '), /Modell verwenden|Use Model/);
   assert.match(guide.steps.join(' '), /KI-Antwort übernehmen/);
+  assert.match(guide.steps.join(' '), /Starte|Nutze|Öffne/);
+  assert.deepEqual({
+    availableFromThisSite: guide.projectChat.availableFromThisSite,
+    shortcutProjectContext: guide.projectChat.shortcutProjectContext,
+    requiresSeparateUserConfirmation: guide.projectChat.requiresSeparateUserConfirmation
+  }, {
+    availableFromThisSite: false,
+    shortcutProjectContext: 'not-verified',
+    requiresSeparateUserConfirmation: true
+  });
+  assert.match(guide.projectChat.note, /Projektwahl|Projekt/);
   const rpc = await call('igentic_shortcuts_setup');
   assert.equal(rpc.result.isError, false);
   assert.deepEqual(rpc.result.structuredContent.data, guide);
