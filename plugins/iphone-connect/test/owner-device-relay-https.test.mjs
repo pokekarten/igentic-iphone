@@ -78,6 +78,11 @@ test('real loopback TLS: strict owner/device roles, one claim, nonce receipt and
   assert.equal(accepted.body.result.actionExecuted,false);
   assert.equal(accepted.body.result.ownerApproved,false);
   assert.equal(accepted.body.result.iPhoneConnected,'not-checked');
+  const afterReceipt = await post('/v1/owner/status', owner);
+  assert.equal(afterReceipt.body.result.requestId, id);
+  assert.equal(afterReceipt.body.result.state, 'receipt-key-authenticated');
+  assert.equal(afterReceipt.body.result.receiptKeyAuthenticated, true);
+  assert.equal(afterReceipt.body.result.deviceReceipt, 'key-authenticated-not-device-attested');
   assert.equal((await post('/v1/device/receipt',device,{proof})).status,409);
   assert.equal((await post('/v1/owner/recover',owner,{requestId:id})).body.result.state,'outcome-unknown');
 });
