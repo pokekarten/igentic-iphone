@@ -137,3 +137,16 @@ remain required. The vault is not wired to a setup screen, claim client or
 production signer. Tests use a synthetic in-memory backend; no real Keychain
 items are written during tests. The iOS backend requires a native build and
 physical-device acceptance.
+
+## Local MCP result lookup
+
+An explicitly configured local MCP host can pass an owner-bound
+`lookupOwnerResult(requestId)` to `createServer`. This enables the
+read-only `iphone_owner_task_result` tool. The host supplies owner
+authentication and returns the bounded relay result for that ID. Tool
+arguments contain only the ID. The default server and the deployed Site
+have no configured lookup.
+
+The macOS integration test uses an MCP SDK client to discover the tool
+and read the Swift-generated fixture proof twice by its original ID.
+It also checks an unknown ID and rejects malformed input.

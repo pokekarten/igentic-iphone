@@ -1,3 +1,6 @@
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
+import { createServer } from '../src/server.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {randomBytes,randomUUID,X509Certificate} from 'node:crypto';
@@ -141,6 +144,26 @@ test('macOS Swift claim, synthetic review and receipt reach the owner over loopb
     assert.equal(status.iPhoneConnected, 'not-checked');
     assert.equal(status.deviceReceipt, 'key-authenticated-not-device-attested');
     assert.equal(status.actionExecuted, false);
-    assert.deepEqual((await lookup()).body.result, status);
+    const server = createServer({}, {
+      lookupOwnerResult: async requestId => {
+        const response = await post('/v1/owner/result', owner, {requestId});
+        assert.equal(response.status, 200);
+        return response.body.result;
+      },
+    });
+    const client = new Client({name:'relay-smoke', version:'1'});
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    t.after(async () => { await client.close(); await server.close(); });
+    await server.connect(serverTransport);
+    await client.connect(clientTransport);
+    const name = 'iphone_owner_task_result';
+    assert.ok((await client.listTools()).tools.some(tool => tool.name === name));
+    const call = requestId => client.callTool({name, arguments:{requestId}});
+    for (const [requestId, expected] of [[requestID, status], [randomUUID(), null], [requestID, status]]) {
+      const reply = await call(requestId);
+      assert.equal(reply.isError ?? false, false);
+      assert.deepEqual(reply.structuredContent, {data:{result:expected}});
+    }
+    assert.equal((await call('invalid')).isError, true);
     assert.equal((await post('/v1/device/claim', device)).body.result, null);
   });

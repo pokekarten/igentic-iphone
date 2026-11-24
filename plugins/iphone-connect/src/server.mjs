@@ -18,7 +18,7 @@ const session = { sessionId: id };
 const payload = z.object({ data: z.record(z.string(), z.unknown()) });
 const hints = readOnly => ({ readOnlyHint: readOnly, destructiveHint: false, openWorldHint: false });
 
-export function createServer(service) {
+export function createServer(service, { lookupOwnerResult } = {}) {
   const server = new McpServer({ name: 'igentic-iphone-connect', version: '0.1.0' }, {
     instructions: 'Use fixed diagnostics tools only. List devices, start a short session, open Diagnostics, observe, prepare a supported navigation, execute once, read result and stop. Fixture results are not physical-device evidence. Never replay unknownOutcome. No personal data, screenshots, reminder writes or arbitrary app control are available.'
   });
@@ -40,6 +40,12 @@ export function createServer(service) {
       } finally { extra.signal?.removeEventListener('abort', abort); }
     });
   };
+  if (lookupOwnerResult) {
+    add('iphone_owner_task_result', 'Read an iGentic relay task result',
+      'Look up an existing task by its original request ID. Returns relay evidence without triggering an action.',
+      { requestId: z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/) },
+      true, async ({ requestId }) => ({ result: await lookupOwnerResult(requestId) }));
+  }
   add('iphone_list_devices', 'List authorized iPhones',
     'Use this to find the configured iPhone alias and connection availability. No personal device identifiers or installed app list.',
     {}, true, () => service.list());
