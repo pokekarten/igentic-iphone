@@ -31,6 +31,23 @@ precedes completion of the sample or reaches the signed deadline, clear the
 sample and retain the historical fact that the read completed. A repeated
 submission must never start a second read.
 
+### Mobile Site and Shortcut acceptance
+
+The private [iGentic Site](https://igentic-uebergabetest.horizonthopper.chatgpt.site/ki-loop)
+publishes a guide and launcher for the owner-configured **iGentic KI Loop**.
+The Site source release is `70afcf3b168586f2c3bac1fb83205730c057dd70`.
+The deployed MCP service returned the existing diagnostics handoff through the
+connected ChatGPT tool. The new Shortcut route passed the bundled Worker tests
+and was displayed in the desktop browser. Discovery of the new action by the
+mobile ChatGPT client and execution of the Shortcut on iPhone remain unverified.
+
+For the device acceptance run, first prepare a synthetic task in iGentic and
+record its local task ID. Invoke the mobile handoff in a fresh ChatGPT chat,
+open the guide, and tap the Shortcut launcher. Verify that the answer appears
+under the same task ID in iGentic. Repeat over cellular with Wi-Fi off to
+establish the mobile transport. Record a result in the originating chat as a
+separate check if a return path is available.
+
 ## Three distinct integration paths
 
 | Route | Runtime | Exists today | Main limitation |
