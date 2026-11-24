@@ -454,6 +454,9 @@ struct iGenticAdvanceStatusLoopIntent: AppIntent {
     @Parameter(title: "Modellvorschlag")
     var modelReply: String
 
+    @Parameter(title: "Nach Statusabfrage lokal abschließen", default: false)
+    var finishAfterRead: Bool
+
     @MainActor
     func perform() async throws -> some IntentResult & ReturnsValue<String> {
         let decision = PolicyEngine().decide(PolicyRequest(
@@ -469,7 +472,7 @@ struct iGenticAdvanceStatusLoopIntent: AppIntent {
             throw iGenticDiagnosticsIntentError.policyDenied
         }
         return .result(value: try AgentLoopStatusShortcutStore().advance(
-            taskID: taskID, modelReply: modelReply,
+            taskID: taskID, modelReply: modelReply, finishAfterRead: finishAfterRead,
             statusReader: { AgentLoopDeviceStatusReader.read() }
         ))
     }

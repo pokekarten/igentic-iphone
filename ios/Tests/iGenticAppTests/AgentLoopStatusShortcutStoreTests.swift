@@ -19,6 +19,28 @@ private func jsonDictionary(_ text: String) throws -> [String: Any] {
 }
 
 final class AgentLoopStatusShortcutStoreTests: XCTestCase {
+    func testLocalCompletionPersistsAndPreventsASecondRead() async throws {
+        try await MainActor.run {
+            let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+            defer { try? FileManager.default.removeItem(at: dir) }
+            let file = dir.appendingPathComponent("journal.json")
+            let store = AgentLoopStatusShortcutStore(fileURL: file)
+            let id = try XCTUnwrap(try jsonDictionary(store.begin())["taskId"] as? String)
+            let result = try jsonDictionary(store.advance(
+                taskID: id, modelReply: #"{"action":"status.read"}"#,
+                finishAfterRead: true, statusReader: demoShortcutsStatus
+            ))
+            XCTAssertEqual(result["stage"] as? String, "finished")
+            XCTAssertNotNil(result["observation"])
+            XCTAssertNil(result["nextPrompt"])
+            let reopened = AgentLoopStatusShortcutStore(fileURL: file)
+            XCTAssertThrowsError(try reopened.advance(
+                taskID: id, modelReply: #"{"action":"status.read"}"#,
+                finishAfterRead: true, statusReader: { XCTFail("Unexpected second read"); return demoShortcutsStatus() }
+            )) { XCTAssertEqual($0 as? AgentLoopStatusShortcutError, .alreadyFinished) }
+        }
+    }
+
     func testRealStatusReadAndFinishSurviveSeparateShortcutsInvocations() async throws {
         try await MainActor.run {
             let dir = FileManager.default.temporaryDirectory

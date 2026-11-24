@@ -143,6 +143,7 @@ public final class AgentLoopStatusShortcutStore {
     /// a crash cannot cause a speculative automatic second read.
     public func advance(
         taskID: String, modelReply: String,
+        finishAfterRead: Bool = false,
         statusReader: () -> AgentLoopLocalStatus
     ) throws -> String {
         try withClaim {
@@ -218,13 +219,13 @@ public final class AgentLoopStatusShortcutStore {
                 guard ageAfterRead >= 0, ageAfterRead < Self.ttl else {
                     throw AgentLoopStatusShortcutError.expired
                 }
-                state.stage = .awaitingFinish
+                state.stage = finishAfterRead ? .finished : .awaitingFinish
                 try save(state)
                 return try encode(AgentLoopStatusShortcutResult(
-                    taskId: taskID, stage: "awaitingFinish",
+                    taskId: taskID, stage: state.stage.rawValue,
                     localStatusRead: true,
                     observation: summary,
-                    nextPrompt: """
+                    nextPrompt: finishAfterRead ? nil : """
                     Antworte ausschließlich mit {"action":"finish"}.
                     Du kannst weder eine Aktion freigeben noch ihren Erfolg behaupten.
                     """
