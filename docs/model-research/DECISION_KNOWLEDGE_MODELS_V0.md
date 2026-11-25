@@ -50,3 +50,14 @@ This experimental prompt is direct JSON, not the native Qwen tool envelope; no r
 5. Validate native iPhone memory, latency, thermal, battery, cancellation and deterministic policy, then integrate as opt-in proposal-only provider.
 
 At each development iteration refresh primary model cards, licenses, current benchmarks and relevant runtime changes before proposing a new candidate. Do not automatically upgrade models based on a leaderboard.
+
+## Observed host baseline — 2026-11-25
+
+Executed on the owner MacBook Neo from isolated source commit `bf18edab9c665fad08675ad47caedeab615610fc`, using cached community Qwen3 0.6B 4-bit MLX revision `73e3e38d981303bc594367cd910ea6eb48349da8`, MLX 0.32.1 and mlx-lm 0.31.3. No weight download, external model call or device inference.
+
+- Focused unit tests: 11/11 passed; repository validator and default no-inference path passed.
+- Actual direct-JSON model evaluation: 0/16 exact, 16/16 invalid format, 0/8 exact for each language; two responses hit the 96-token cap. Model evaluation returned exit 1 as expected.
+- Individual generation times observed: 0.380–1.337 seconds. This is a small host smoke run, not statistical performance evidence.
+- No parseable unsafe proposal was counted; malformed output means this does NOT establish safe reasoning. Semantic decision accuracy is not assessable through the strict interface on this run. No raw generated output retained in the report.
+
+Decision: do not promote this model/configuration into the execution path. Compare native tool output or constrained structured generation on separate development examples without changing the V0 evaluation. Keep the deterministic fallback. This does not reject the entire Qwen family or establish that another model is better.
