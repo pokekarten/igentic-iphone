@@ -3,16 +3,13 @@ name: iphone-connect
 description: Inspect a connected physical iPhone and navigate the iGentic Diagnostics demo app using bounded MCP sessions. Use for iPhone diagnostic checks and synthetic discovery navigation, not general personal-app automation.
 ---
 
-Choose tools for the question being explored. Availability and capabilities can
-each be queried without opening an app. Start a session when a device operation
-is needed. For example:
+Use the plugin's `iphone_*` tools. Start with `iphone_list_devices`, then
+`iphone_get_capabilities`. A configured tool is not evidence of a working phone.
 
-- Compare two observations in Diagnostics and report how their markers differ.
-- Preview a supported action from the latest observation and stop there.
-- If navigation is requested, execute the exact prepared proposal once and
-  inspect its receipt. Each refresh requires preparing a new proposal.
-
-Stop the session when the experiment ends.
+For a requested diagnostic task, start a session, open Diagnostics, observe the
+sanitized state and prepare `open-discovery` if requested. Execute the returned
+proposal ID once, read the action result, then stop the session. Never invent a
+session, proposal or observation ID. A stale observation requires a fresh read.
 
 Only fixed navigation in our demo app is supported. Existing reminder permission
 does not authorize another reminder. The model cannot supply approvals, choose
@@ -30,3 +27,5 @@ fixture, simulator, or physical device. Do not call a fixture an iPhone test.
 Setup and connection instructions are in [README](../../README.md). Private ChatGPT
 web access requires a configured HTTPS connection or Secure MCP Tunnel; installing
 this desktop package alone does not create that connection.
+
+The standalone portable MCP preview is an optional read-only interface for multiple compatible clients, not just ChatGPT. It does not access the physical device. Native iOS App Intents require a separate installed app. See [portable architecture](../../PORTABLE_MCP.md).

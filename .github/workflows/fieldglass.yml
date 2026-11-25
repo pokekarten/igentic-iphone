@@ -4,7 +4,6 @@ on:
     paths:
       - 'products/fieldglass/**'
       - '.github/workflows/fieldglass.yml'
-  workflow_dispatch:
 permissions:
   contents: read
 jobs:
@@ -14,9 +13,11 @@ jobs:
     steps:
       - name: Fetch the current revision
         run: |
+          set -euo pipefail
           git init .
           git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
           git fetch --no-tags --depth=1 origin "${GITHUB_SHA}"
+          test "$(git rev-parse FETCH_HEAD)" = "${GITHUB_SHA}"
           git checkout --detach FETCH_HEAD
       - name: Install and test the standalone source archive
         working-directory: products/fieldglass

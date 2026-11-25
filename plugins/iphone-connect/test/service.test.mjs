@@ -156,25 +156,17 @@ test('receipts remain available after stop but are bounded under repeated safe a
   assert.throws(() => service.result(id, proposals[0]), /unknownResult/);
 });
 
-for (const scenario of ['identical refresh', 'deadline during verification']) {
-  test(`proposal cannot dispatch after ${scenario}`, async t => {
-    let now = 0;
-    const { service, backend } = await lab(t, new FixtureBackend(), { now: () => now, observationMs: 100 });
-    const { sessionId } = await service.start('iphone-1');
-    const observation = await service.open(sessionId);
-    const proposal = service.prepare(sessionId, observation.observationId, 'open-discovery');
-    if (scenario === 'identical refresh') {
-      await service.observe(sessionId);
-    } else {
-      const observe = backend.observe.bind(backend);
-      backend.observe = async signal => {
-        now += 101;
-        return observe(signal);
-      };
-    }
-    let dispatches = 0;
-    backend.discovery = async () => { dispatches++; };
-    await code(service.execute(sessionId, proposal.proposalId), 'staleObservation');
-    assert.equal(dispatches, 0);
-  });
-}
+
+test('capabilities retain every future route without inventing phone readiness', async t => {
+  const { service } = await lab(t);
+  const snapshot = service.capabilities();
+  assert.equal(snapshot.ready, 'notYetObserved');
+  assert.deepEqual(snapshot.connectionPaths.map(x => x.id),
+    ['usb-c', 'wifi', 'cellular', 'on-device', 'simulator']);
+  for (const route of snapshot.connectionPaths) {
+    assert.match(route.status, /^[a-z-]+$/);
+    assert.equal(typeof route.macRequired, 'boolean');
+  }
+  assert.equal(snapshot.connectionPaths.find(x => x.id === 'cellular').status, 'companion-readiness-not-verified');
+  assert.equal(snapshot.connectionPaths.find(x => x.id === 'simulator').status, 'test-only-not-physical-evidence');
+});

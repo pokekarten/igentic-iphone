@@ -10,8 +10,8 @@ import { loadConfig } from '../src/backend.mjs';
 const option = name => { const n = process.argv.indexOf(name); return n < 0 ? undefined : process.argv[n + 1]; };
 try {
   const mobilecliPath = option('--mobilecli');
-  if (!isAbsolute(mobilecliPath ?? '') || !(await stat(mobilecliPath)).isFile())
-    throw new Error('Pass --mobilecli with the absolute path of your separately installed MobileCLI.');
+  if (mobilecliPath && (!isAbsolute(mobilecliPath) || !(await stat(mobilecliPath)).isFile()))
+    throw new Error('Optional --mobilecli must be an existing absolute path.');
   const json = decode(await run('/usr/bin/xcrun', ['devicectl', 'list', 'devices', '--json-output', '-']));
   const devices = (json.result?.devices ?? []).filter(d => d.hardwareProperties?.reality === 'physical');
   const selected = option('--device');
@@ -37,7 +37,8 @@ try {
   const policyPath = join(root, 'iGenticPluginPolicy');
   await copyFile(policySource, policyPath); await chmod(policyPath, 0o700);
   const configPath = join(root, 'config.json');
-  const config = { deviceId: d.hardwareProperties.udid, bundleId: 'de.bos.neoagent.igenticdiagnostics', mobilecliPath, policyPath };
+  const config = { deviceId: d.hardwareProperties.udid, bundleId: 'de.bos.neoagent.igenticdiagnostics', policyPath,
+    ...(mobilecliPath ? { mobilecliPath } : {}) };
   await writeFile(configPath, JSON.stringify(config), { mode: 0o600 }); await chmod(configPath, 0o600);
   await loadConfig(configPath);
   console.log('Local physical iPhone configured. Private identifiers remain in the local 0600 config.');

@@ -1,5 +1,7 @@
 # iPhone Connect – Produktentwurf
 
+**Historischer Entwurf aus PR #394 (November 2026).** Dieser Bericht dokumentiert frühere Vorschläge und Quellen, nicht den aktuellen Implementierungsstand oder eine Freigabe für den gemeinsamen iPhone-Connect-Plugin. Die ursprünglichen Änderungen am gemeinsamen Plugin bleiben im Commit `e2e26d5` erhalten und sind separat zu bewerten.
+
 ## Ein vollständiger erster Auftrag
 
 „Zeige mir die lokale Entdeckungsseite auf meinem iPhone.“ ChatGPT zeigt das Zielgerät, der Mac startet eine kurze Sitzung, Diagnostics öffnet die Seite und eine zweite Beobachtung bestätigt den sichtbaren Zustand. Die Karte nennt Gerät, Ergebnis und Zeitpunkt. Bei Verbindungsverlust bleibt der letzte bestätigte Zustand mit seinem Alter sichtbar. Erfolg bedeutet, dass der Nutzer die Seite auf seinem Gerät sehen kann und versteht, ob die Sitzung noch läuft.

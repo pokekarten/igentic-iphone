@@ -1,5 +1,7 @@
 # Fieldglass
 
+**Integrationsgrenze:** eigenständiges experimentelles Produkt, nicht die iGentic-Agent-Runtime. Der Standardkanal bleibt manuell; Mac- und Simulatorlabore sind getrennte, explizit konfigurierte Testwege. Links mit Suchtext oder Entwürfen sind nicht verschlüsselt und können in Chat-, Prozess- oder Systemverläufen erscheinen. Für diese Übergabe nur synthetische oder ausdrücklich zur Weitergabe freigegebene Inhalte verwenden. Die neue Integration aktiviert keine Geräteverbindung, keinen Capture-Modus und keinen externen Provider. Die iGentic-Kern-App behält ihre iOS-27-Plattformvorgabe; Fieldglass ist ein separates Projekt mit eigener Kompatibilitätsangabe.
+
 Fieldglass ist eine eigenständige iOS-Werkbank mit lokalem MCP-Plugin. Ein Experiment beginnt auf dem iPhone oder im Chat. Die App verarbeitet ausgewählte Bilder, das Plugin bereitet Aufgaben vor und vergleicht zurückgegebene Ergebnisse. Für das Entwicklerlabor bietet der Mac zusätzliche Simulatorwerkzeuge. App, Server und XCTest-Treiber liegen in diesem Verzeichnis. Die gemeinsame technische Basis sind Apple-Frameworks, das MCP-SDK und Zod.
 
 ## Erster Versuch

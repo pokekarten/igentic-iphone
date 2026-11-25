@@ -2,6 +2,7 @@ import { randomUUID, createHash } from 'node:crypto';
 import { mkdir, open, readFile, unlink, chmod } from 'node:fs/promises';
 import { join } from 'node:path';
 import { PluginError } from './process.mjs';
+import { makeConnectionReport } from './connection-report.mjs';
 
 const fingerprint = data => createHash('sha256').update(JSON.stringify(data)).digest('hex');
 export class PhoneService {
@@ -10,11 +11,35 @@ export class PhoneService {
     this.sessions = new Map(); this.results = new Map();
   }
   async list() { return { devices: await this.backend.list(), backend: this.backend.kind }; }
+  async shortcutResult(taskId) {
+    if (!this.backend.shortcutResult) throw new PluginError('shortcutResultUnavailable');
+    return this.backend.shortcutResult(taskId.toLowerCase());
+  }
+  async nativeAppStatus() {
+    if (typeof this.backend.appStatus !== 'function') return {
+      supported: false, installed: 'not-verified', processRunning: 'not-verified'
+    };
+    return this.backend.appStatus();
+  }
+  async connectionReport() {
+    return makeConnectionReport({ backend: this.backend.kind, devices: await this.backend.list() });
+  }
   capabilities() {
-    return { backend: this.backend.kind, mode: 'diagnostics-only', requiresMac: true,
-      actions: ['open-diagnostics', 'open-discovery'], observation: 'fixed-markers-only',
+    return { backend: this.backend.kind, driver: this.backend.driver ?? 'legacy-or-fixture',
+      mode: 'diagnostics-only', requiresMac: true,
+      actions: ['open-diagnostics', 'open-discovery', 'native-launch-own-app'],
+      observation: this.backend.driver === 'coredevice-native' ? 'own-app-view-receipt' : 'fixed-markers-only',
       screenshots: false, personalAppControl: false, reminderWrites: false,
-      connection: 'local-stdio', ready: 'notYetObserved' };
+      connection: 'local-stdio', ready: 'notYetObserved',
+      // An explicit roadmap, not a fallback chain. No path can inherit the
+      // readiness of another path or authorize a physical action by itself.
+      connectionPaths: [
+        { id: 'usb-c', status: 'coredevice-requires-active-tunnel', macRequired: true },
+        { id: 'wifi', status: 'coredevice-requires-active-tunnel', macRequired: true },
+        { id: 'cellular', status: 'companion-readiness-not-verified', macRequired: false },
+        { id: 'on-device', status: 'separate-native-app', macRequired: false },
+        { id: 'simulator', status: 'test-only-not-physical-evidence', macRequired: true }
+      ] };
   }
   // Keep recent stopped-session receipts readable, but bound retained history.
   // The device lease (not this in-memory history) remains the exclusivity gate.
@@ -81,6 +106,13 @@ export class PhoneService {
   async observe(id) {
     return this.within(id, async s => this.record(s, await this.backend.observe(s.controller.signal)));
   }
+  async nativeLaunch(id) {
+    return this.within(id, async s => {
+      if (typeof this.backend.launchOwnApp !== 'function')
+        throw new PluginError('nativeDriverRequired');
+      return this.backend.launchOwnApp(s.controller.signal);
+    });
+  }
   async open(id) {
     return this.within(id, async s => this.record(s, await this.backend.open(s.controller.signal)));
   }
@@ -94,7 +126,7 @@ export class PhoneService {
       throw new PluginError('staleObservation');
     if (!o.markers.includes('Open local discovery')) throw new PluginError('navigationTargetUnavailable');
     const proposalId = randomUUID();
-    s.proposal = { proposalId, action, observationId, fingerprint: o.fingerprint, expiresAt: o.at + this.observationMs, consumed: false };
+    s.proposal = { proposalId, action, observationId, fingerprint: o.fingerprint, consumed: false };
     return { proposalId, action, persistentWrite: false, requiresApproval: false,
       summary: 'Open bundled discovery content in iGentic Diagnostics.' };
   }
@@ -103,12 +135,11 @@ export class PhoneService {
       const p = s.proposal;
       if (!p || p.proposalId !== proposalId || p.consumed) throw new PluginError('invalidProposal');
       if (s.uncertain) throw new PluginError('reconciliationRequired');
-      if (s.observation.observationId !== p.observationId || this.now() > p.expiresAt) throw new PluginError('staleObservation');
+      if (this.now() - s.observation.at > this.observationMs) throw new PluginError('staleObservation');
       const signal = s.controller.signal;
       const current = await this.backend.observe(signal);
       this.session(id);
       if (signal.aborted) throw new PluginError('cancelled');
-      if (this.now() > p.expiresAt) throw new PluginError('staleObservation');
       if (fingerprint(current) !== p.fingerprint) throw new PluginError('screenChanged');
       p.consumed = true;
       const record = { proposalId, status: 'unknownOutcome', backend: this.backend.kind };

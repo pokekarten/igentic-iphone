@@ -11,27 +11,16 @@ if [[ ! -d "${APP_PATH}" ]]; then
   exit 1
 fi
 
-SIMULATOR_UDID="$({ xcrun simctl list devices available -j; } | python3 -c '
-import json
-import sys
-
-payload = json.load(sys.stdin)
-candidates = []
-for runtime, devices in payload.get("devices", {}).items():
-    if ".iOS-" not in runtime:
-        continue
-    for device in devices:
-        if device.get("isAvailable") and device.get("name", "").startswith("iPhone"):
-            candidates.append((runtime, device["name"], device["udid"]))
-
-if not candidates:
-    raise SystemExit("No available iPhone simulator found")
-
-candidates.sort(reverse=True)
-runtime, name, udid = candidates[0]
-print(udid)
-print(f"Selected simulator: {name} ({runtime})", file=sys.stderr)
-')"
+selector_args=()
+if [[ -n "${IOS27_MATCHED_RUNTIME:-}" ]]; then
+  selector_args+=(--match-runtime "${IOS27_MATCHED_RUNTIME}")
+fi
+if [[ -n "${IGENTIC_SIMULATOR_UDID:-}" ]]; then
+  # CI provisions this disposable device. Never switch to a shared one.
+  SIMULATOR_UDID="${IGENTIC_SIMULATOR_UDID}"
+else
+  SIMULATOR_UDID="$(xcrun simctl list devices available -j | python3 "$(dirname "${BASH_SOURCE[0]}")/select_ios27_simulator.py" "${selector_args[@]}")"
+fi
 
 cleanup() {
   xcrun simctl terminate "${SIMULATOR_UDID}" "${BUNDLE_IDENTIFIER}" >/dev/null 2>&1 || true
@@ -40,7 +29,16 @@ cleanup() {
 trap cleanup EXIT
 
 xcrun simctl boot "${SIMULATOR_UDID}" 2>/dev/null || true
-xcrun simctl bootstatus "${SIMULATOR_UDID}" -b
+# Fail with a clear infrastructure error rather than hanging indefinitely.
+python3 - "${SIMULATOR_UDID}" <<'PYBOOT'
+import subprocess
+import sys
+try:
+    subprocess.run(["xcrun", "simctl", "bootstatus", sys.argv[1], "-b"],
+                   timeout=240, check=True)
+except subprocess.TimeoutExpired:
+    raise SystemExit("Simulator boot timed out after 240 seconds")
+PYBOOT
 xcrun simctl install "${SIMULATOR_UDID}" "${APP_PATH}"
 
 launch_and_verify() {
@@ -70,13 +68,16 @@ if [[ ! "${first_pid}" =~ ^[0-9]+$ ]]; then
 fi
 
 sleep 3
-xcrun simctl io "${SIMULATOR_UDID}" screenshot "${SCREENSHOT_PATH}"
+# iPhone Duo (iOS 27) exposes two displays. Screen ID 1 is the primary
+# LCD; never let simctl guess when multiple displays are connected.
+xcrun simctl io "${SIMULATOR_UDID}" screenshot --display=1 "${SCREENSHOT_PATH}"
 if [[ ! -s "${SCREENSHOT_PATH}" ]]; then
   echo "Simulator screenshot was not created" >&2
   exit 1
 fi
 
-screenshot_bytes="$(stat -f '%z' "${SCREENSHOT_PATH}")"
+# POSIX byte count works on macOS runners and Linux audit regression hosts.
+screenshot_bytes="$(wc -c < "${SCREENSHOT_PATH}" | tr -d '[:space:]')"
 echo "Captured simulator screenshot (${screenshot_bytes} bytes): ${SCREENSHOT_PATH}"
 xcrun simctl terminate "${SIMULATOR_UDID}" "${BUNDLE_IDENTIFIER}"
 

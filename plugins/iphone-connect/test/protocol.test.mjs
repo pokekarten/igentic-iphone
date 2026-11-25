@@ -15,7 +15,28 @@ test('official MCP client: discovery, strict schemas, resource and end-to-end na
   t.after(async () => { await client.close(); await rm(state, { recursive: true, force: true }); });
   await client.connect(transport);
   const tools = (await client.listTools()).tools;
-  assert.equal(tools.length, 10);
+  assert.equal(tools.length, 16);
+  assert.equal(tools.find(t => t.name === 'iphone_tool_catalog').annotations.readOnlyHint, true);
+  const optionalTools = await client.callTool({ name: 'iphone_tool_catalog', arguments: {} });
+  assert.equal(optionalTools.structuredContent.data.policy, 'all-optional-no-implicit-provider-fallback');
+  assert.equal(optionalTools.structuredContent.data.optionalProviders.find(p => p.id === 'mobilecli').installed, 'not-checked');
+  const offline = await client.callTool({ name: 'iphone_prepare_local_task',
+    arguments: { task: 'reminder', text: 'Test-Erinnerung' } });
+  assert.equal(offline.structuredContent.data.status, 'manual-handoff-only');
+  assert.equal(offline.structuredContent.data.deviceActionExecuted, false);
+  assert.equal(offline.structuredContent.data.approval, 'explicit-on-device-before-write');
+  assert.equal(tools.find(t => t.name === 'iphone_native_launch_app').annotations.readOnlyHint, false);
+
+  assert.equal(tools.find(t => t.name === 'iphone_native_app_status').annotations.readOnlyHint, true);
+  const ownStatus = await client.callTool({ name: 'iphone_native_app_status', arguments: {} });
+  assert.deepEqual(ownStatus.structuredContent.data, {
+    supported: false, installed: 'not-verified', processRunning: 'not-verified'
+  });
+  assert.equal(tools.find(t => t.name === 'iphone_connection_report').annotations.readOnlyHint, true);
+  const report = await client.callTool({ name: 'iphone_connection_report', arguments: {} });
+  assert.equal(report.structuredContent.data.deviceStatus, 'synthetic-only');
+  assert.equal(report.structuredContent.data.routes.length, 5);
+  assert.equal(report.structuredContent.data.actionReadiness, 'not-verified');
   assert.equal(tools.find(t => t.name === 'iphone_execute_action').annotations.readOnlyHint, false);
   assert.equal(tools.find(t => t.name === 'iphone_observe').annotations.readOnlyHint, false);
   const invoke = (name, args = {}) => client.callTool({ name, arguments: args });
@@ -23,6 +44,9 @@ test('official MCP client: discovery, strict schemas, resource and end-to-end na
   assert.equal((await invoke('arbitrary_shell', { command: 'rm' })).isError, true);
   const start = await invoke('iphone_start_session', { device: 'iphone-1' });
   const sessionId = start.structuredContent.data.sessionId;
+  const fixtureLaunch = await invoke('iphone_native_launch_app', { sessionId });
+  assert.equal(fixtureLaunch.isError, true, 'fixture must not pretend to execute a native physical action');
+  assert.equal(fixtureLaunch.content[0].text, 'nativeDriverRequired');
   const opened = await invoke('iphone_open_diagnostics', { sessionId });
   const observationId = opened.structuredContent.data.observationId;
   const prepared = await invoke('iphone_prepare_action', { sessionId, observationId, action: 'open-discovery' });

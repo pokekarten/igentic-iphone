@@ -63,6 +63,15 @@ public struct SensitiveDataDetectionResult: Equatable, Sendable {
 }
 
 public struct SensitiveDataDetector: SensitiveDataDetecting {
+    // IBAN is standardized for participating jurisdictions, but ordinary two-
+    // letter words followed by a time (for example "um 18 Uhr") can otherwise
+    // look like the permissive shape below. Keep the common current IBAN
+    // prefixes explicit and retain a digit-dense fallback for less common or
+    // newly registered jurisdictions.
+    private static let knownIBANCountryCodes = Set(
+        "AD AE AL AT AZ BA BE BG BH BI BJ BR BY CH CR CY CZ DE DK DO DZ EE EG ES FI FK FO FR GB GE GI GL GR GT HR HU IE IL IQ IS IT JO KW KZ LB LC LI LT LU LV LY MC MD ME MK MR MT MU NL NO OM PK PL PS PT QA RO RS SA SC SE SI SK SM SN SO ST SV TL TN TR UA VA VG XK".split(separator: " ").map(String.init)
+    )
+
     public init() {}
 
     public func detect(in text: String) -> SensitiveDataDetectionResult {
@@ -131,11 +140,29 @@ public struct SensitiveDataDetector: SensitiveDataDetecting {
     }
 
     private func containsIBANLikePattern(in text: String) -> Bool {
-        // Require a word boundary before and after the IBAN to avoid matching
-        // across adjacent words (e.g. "REFERENZ 0049..."). Match typical IBAN
-        // form: two letters, two digits, then 11–30 alphanumeric characters.
+        // Match a word-bounded IBAN-like shape, then check its prefix. Requiring
+        // an IBAN jurisdiction avoids interpreting ordinary text such as
+        // "um 18 Uhr an die Demo-Pflanze" as a bank identifier. A digit-dense
+        // fallback preserves conservative detection for less common prefixes.
         let uppercasedText = text.uppercased()
-        return contains(pattern: #"\b[A-Z]{2}\s?[0-9]{2}(?:\s?[A-Z0-9]){11,30}\b"#, in: uppercasedText)
+        guard let regex = try? NSRegularExpression(
+            pattern: #"\b([A-Z]{2})\s?[0-9]{2}(?:\s?[A-Z0-9]){11,30}\b"#,
+            options: []
+        ) else { return false }
+
+        let fullRange = NSRange(uppercasedText.startIndex..<uppercasedText.endIndex, in: uppercasedText)
+        for match in regex.matches(in: uppercasedText, range: fullRange) {
+            guard let countryRange = Range(match.range(at: 1), in: uppercasedText),
+                  let ibanRange = Range(match.range(at: 0), in: uppercasedText) else { continue }
+            let country = String(uppercasedText[countryRange])
+            if Self.knownIBANCountryCodes.contains(country) { return true }
+            let nearbyPrefix = uppercasedText[..<ibanRange.lowerBound].suffix(32)
+            if nearbyPrefix.contains("IBAN") { return true }
+            let digitCount = uppercasedText[ibanRange].unicodeScalars
+                .filter(CharacterSet.decimalDigits.contains).count
+            if digitCount >= 6 { return true }
+        }
+        return false
     }
 
     private func containsGermanPhoneLikePattern(in text: String) -> Bool {

@@ -14,7 +14,7 @@ final class CreateReminderApprovalViewTests: XCTestCase {
             "2026-09-01 12:00 (Europe/Berlin, UTC+02:00)"
         )
         XCTAssertEqual(presentation.destinationSummary, "Device-local storage")
-        XCTAssertEqual(presentation.persistentWriteNotice, "This action writes persistent user data.")
+        XCTAssertTrue(presentation.persistentWriteNotice.contains("default Apple Reminders list"))
         XCTAssertTrue(presentation.canApprove)
     }
 
@@ -30,6 +30,13 @@ final class CreateReminderApprovalViewTests: XCTestCase {
         XCTAssertEqual(receipt.subject, subject)
         XCTAssertEqual(receipt.status, .approved)
         XCTAssertEqual(receipt.origin, .explicitHuman)
+    }
+
+    func testPreviewExplainsThatApprovalDoesNotExecute() {
+        let presentation = CreateReminderApprovalPresentation(
+            subject: .syntheticDiagnosticPreview(), mode: .preview
+        )
+        XCTAssertEqual(presentation.persistentWriteNotice, "Preview only. Approval does not create a reminder.")
     }
 
     func testRejectProducesExplicitHumanRejectedReceipt() {

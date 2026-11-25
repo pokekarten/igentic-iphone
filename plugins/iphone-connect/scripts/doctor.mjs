@@ -2,14 +2,12 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { loadConfig, MobileBackend } from '../src/backend.mjs';
-import { networkPreflight } from '../src/network-diagnostics.mjs';
+import { NativeCoreDeviceBackend } from '../src/native-coredevice.mjs';
 const root = join(homedir(), 'Library/Application Support/iGentic/iphone-connect');
-// Read-only host preflight. Neither an installed extension nor a VPN is proof
-// of reachable iPhone automation over 5G.
-console.log(JSON.stringify({ networkPreflight: await networkPreflight() }));
 try {
   const c = await loadConfig(process.env.IGENTIC_IPHONE_CONFIG ?? join(root, 'config.json'));
-  const backend = new MobileBackend(c);
+  const backend = process.env.IGENTIC_IPHONE_DRIVER === 'mobilecli'
+    ? new MobileBackend(c) : new NativeCoreDeviceBackend(c);
   console.log(JSON.stringify({ configured: true, devices: await backend.list() }));
   try {
     const lease = JSON.parse(await readFile(join(root, 'device.lease'), 'utf8'));

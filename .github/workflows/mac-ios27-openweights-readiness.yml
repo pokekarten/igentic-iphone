@@ -1,0 +1,50 @@
+name: Mac iOS 27 Open-Weight Readiness
+
+on:
+  pull_request:
+    paths:
+      - "scripts/mac_ios27_openweights_test.py"
+      - "scripts/test_mac_ios27_openweights.py"
+      - "docs/testing/MAC_IOS27_OPENWEIGHT_TEST.md"
+      - ".github/workflows/mac-ios27-openweights-readiness.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mac-ios27-readiness-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  xcode27-no-download:
+    name: Mac Xcode 27 preflight and unsigned iOS build
+    runs-on: xcode-27
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository without marketplace actions
+        run: |
+          set -euo pipefail
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          case "${GITHUB_EVENT_NAME}:${GITHUB_REF}" in
+            pull_request:refs/pull/*/merge) ;;
+            *) exit 1 ;;
+          esac
+          git fetch --no-tags --depth=1 origin "${GITHUB_REF}"
+          test "$(git rev-parse FETCH_HEAD)" = "${GITHUB_SHA}"
+          git checkout --force FETCH_HEAD
+          git clean -fdx
+          git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+
+      - name: Test runner logic without Apple model downloads
+        run: python3 -m unittest discover -s scripts -p 'test_mac_ios27_*.py' -v
+
+      - name: Inspect Mac Xcode 27 and Apple Silicon readiness
+        run: python3 scripts/mac_ios27_openweights_test.py --phase preflight
+
+      - name: Build and test iGentic and unsigned iOS 27 simulator target
+        run: python3 scripts/mac_ios27_openweights_test.py --phase build

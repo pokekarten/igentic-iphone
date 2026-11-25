@@ -1,5 +1,7 @@
 # iPhone Connect – Projektauswahl und Produktplan
 
+**Historischer Entwurf aus PR #394 (November 2026).** Dieser Bericht dokumentiert frühere Vorschläge und Quellen, nicht den aktuellen Implementierungsstand oder eine Freigabe für den gemeinsamen iPhone-Connect-Plugin. Die ursprünglichen Änderungen am gemeinsamen Plugin bleiben im Commit `e2e26d5` erhalten und sind separat zu bewerten.
+
 ## Inventar
 
 GitHub-Metadaten der eindeutigen Repository-Links aus dem iGentic-Atlas und zweier Streaming-Referenzen. Ein Lizenzfeld beschreibt das Repository und ersetzt keine Prüfung seiner Binärabhängigkeiten.

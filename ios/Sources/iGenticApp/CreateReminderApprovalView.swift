@@ -1,6 +1,10 @@
 import AgentCore
 import Foundation
 
+public enum CreateReminderReviewMode: Sendable {
+    case execution, preview
+}
+
 public struct CreateReminderApprovalPresentation: Equatable, Sendable {
     public let actionSummary: String
     public let title: String
@@ -9,12 +13,14 @@ public struct CreateReminderApprovalPresentation: Equatable, Sendable {
     public let persistentWriteNotice: String
     public let canApprove: Bool
 
-    public init(subject: CreateReminderApprovalSubject) {
+    public init(subject: CreateReminderApprovalSubject, mode: CreateReminderReviewMode = .execution) {
         actionSummary = "Create one reminder"
         title = subject.title.value
         dueSummary = Self.dueSummary(for: subject.due)
         destinationSummary = Self.destinationSummary(for: subject.actionDataDestination)
-        persistentWriteNotice = "This action writes persistent user data."
+        persistentWriteNotice = mode == .preview
+            ? "Preview only. Approval does not create a reminder."
+            : "Approval creates one reminder in your default Apple Reminders list. A system-synced list may sync through your configured account."
         canApprove = subject.actionRisk == .execute
             && subject.actionDataDestination != .none
             && subject.actionDataDestination != .unknown
@@ -73,9 +79,9 @@ package struct CreateReminderHumanApprovalSession: Sendable {
     package let subject: CreateReminderApprovalSubject
     package let presentation: CreateReminderApprovalPresentation
 
-    package init(subject: CreateReminderApprovalSubject) {
+    package init(subject: CreateReminderApprovalSubject, mode: CreateReminderReviewMode = .execution) {
         self.subject = subject
-        self.presentation = CreateReminderApprovalPresentation(subject: subject)
+        self.presentation = CreateReminderApprovalPresentation(subject: subject, mode: mode)
     }
 
     package func approve(requestID: String) -> CreateReminderHumanApprovalDecision {
@@ -122,9 +128,10 @@ public struct CreateReminderApprovalView: View {
 
     public init(
         subject: CreateReminderApprovalSubject,
+        mode: CreateReminderReviewMode = .execution,
         onDecision: @escaping (CreateReminderHumanApprovalDecision) -> Void
     ) {
-        self.session = CreateReminderHumanApprovalSession(subject: subject)
+        self.session = CreateReminderHumanApprovalSession(subject: subject, mode: mode)
         self.onDecision = onDecision
     }
 
@@ -144,7 +151,9 @@ public struct CreateReminderApprovalView: View {
                     .accessibilityElement(children: .combine)
 
                     LabeledContent("Due", value: session.presentation.dueSummary)
+                        .fixedSize(horizontal: false, vertical: true)
                     LabeledContent("Storage", value: session.presentation.destinationSummary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
 
                 Section("Confirmation") {

@@ -1,0 +1,81 @@
+import XCTest
+@testable import iGenticApp
+
+final class AgentLoopDocumentWorkflowTests: XCTestCase {
+    @MainActor
+    func testFocusIsBoundedAndControlFree() {
+        XCTAssertTrue(AgentLoopDocumentWorkflow.allowedFocus("Meeting location and start time"))
+        XCTAssertFalse(AgentLoopDocumentWorkflow.allowedFocus(""))
+        XCTAssertFalse(AgentLoopDocumentWorkflow.allowedFocus("question\nsecond line"))
+        XCTAssertFalse(AgentLoopDocumentWorkflow.allowedFocus(String(repeating: "x", count: 241)))
+    }
+    @MainActor
+    func testSourceOrderAndExactExtracts() async {
+        let lines = ["Demo heading", "Room Cedar", "Start at 14:30"]
+        let r = await AgentLoopDocumentWorkflow.run(recognize: { lines }, select: { input in
+            XCTAssertEqual(input, lines)
+            return [3, 2]
+        }, elapsed: { 1 })
+        XCTAssertEqual(r.outcome,.completed)
+        XCTAssertEqual(r.excerpts,["Room Cedar","Start at 14:30"])
+    }
+    @MainActor
+    func testInvalidSelectionCannotProduceReport() async {
+        for ids in [[], [1,1], [0], [4], [1,2,3,4]] {
+            let r = await AgentLoopDocumentWorkflow.run(recognize: { ["One","Two","Three"] },
+                select: { _ in ids }, elapsed: { 1 })
+            XCTAssertEqual(r.outcome,.selectionRejected)
+            XCTAssertTrue(r.excerpts.isEmpty)
+        }
+    }
+    @MainActor
+    func testOversizeAndControlInputNeverReachesModel() async {
+        for lines in [[String(repeating:"a", count:513)], ["line\u{0}"], Array(repeating:"word",count:33)] {
+            let r = await AgentLoopDocumentWorkflow.run(recognize: { lines }, select: { _ in
+                XCTFail("Rejected input reached model")
+                return [1]
+            }, elapsed: { 1 })
+            XCTAssertEqual(r.outcome,.inputRejected)
+        }
+    }
+    @MainActor
+    func testExpiredSelectionCannotReturnExcerpts() async {
+        var time = 1.0
+        let r = await AgentLoopDocumentWorkflow.run(recognize: { ["One"] }, select: { _ in
+            time = 61; return [1]
+        }, elapsed: { time })
+        XCTAssertEqual(r.outcome,.expired)
+        XCTAssertTrue(r.excerpts.isEmpty)
+    }
+}
+
+extension AgentLoopDocumentWorkflowTests {
+    @MainActor
+    func testIndependentQuestionsRequireEverySelection() async throws {
+        let questions = ["Meeting location", "Meeting start time"]
+        var calls: [String] = []
+        let lines = ["Heading", "Room Cedar", "Start: 14:30"]
+        let ids = try await AgentLoopDocumentWorkflow.selectPerQuestion(questions: questions, lines: lines,
+            choose: { q, source in
+                XCTAssertEqual(source, lines)
+                calls.append(q)
+                return q == questions[0] ? 2 : 3
+            }, elapsed: { 1 })
+        XCTAssertEqual(ids,[2,3])
+        XCTAssertEqual(calls,questions)
+        let rejected = try await AgentLoopDocumentWorkflow.selectPerQuestion(questions: questions, lines: lines,
+            choose: { q, _ in q == questions[0] ? 2 : 0 }, elapsed: { 1 })
+        XCTAssertEqual(rejected,[])
+    }
+
+    @MainActor
+    func testQuestionBudgetStopsBeforeSecondModelCall() async throws {
+        var time = 1.0
+        var calls = 0
+        let ids = try await AgentLoopDocumentWorkflow.selectPerQuestion(
+            questions: ["Location", "Time"], lines: ["Room Cedar", "14:30"],
+            choose: { _, _ in calls += 1; time = 60; return 1 }, elapsed: { time })
+        XCTAssertEqual(calls,1)
+        XCTAssertEqual(ids,[])
+    }
+}

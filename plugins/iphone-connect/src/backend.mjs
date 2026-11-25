@@ -9,12 +9,36 @@ export const MARKERS = Object.freeze(['iGentic Diagnostics', 'Open local discove
 
 // A remembered pairing or a stale wired transport is not proof of a usable tunnel.
 // In particular, a simulator must never satisfy the physical-device contract.
+// Deliberately expose only one of four fixed readiness codes. Never echo
+// CoreDevice identifiers, transport metadata or arbitrary device labels.
+// A usable CoreDevice tunnel is not proof that MobileCLI or our app is ready.
+export function physicalConnectionState(device) {
+  if (device?.hardwareProperties?.reality !== 'physical'
+      || device?.hardwareProperties?.platform !== 'iOS'
+      || device?.hardwareProperties?.deviceType !== 'iPhone') return 'unsupported-device';
+  if (device?.connectionProperties?.pairingState !== 'paired') return 'pairing-required';
+  if (!['connected', 'available'].includes(device?.connectionProperties?.tunnelState))
+    return 'no-active-tunnel';
+  return 'xcode-tunnel-available';
+}
+
 export function hasUsablePhysicalTunnel(device) {
-  return device?.hardwareProperties?.reality === 'physical'
-    && device?.hardwareProperties?.platform === 'iOS'
-    && device?.hardwareProperties?.deviceType === 'iPhone'
-    && device?.connectionProperties?.pairingState === 'paired'
-    && ['connected', 'available'].includes(device?.connectionProperties?.tunnelState);
+  return physicalConnectionState(device) === 'xcode-tunnel-available';
+}
+
+// Describe an *observed, currently usable* CoreDevice transport, never the
+// user's preferred route or a remembered transport. No arbitrary CoreDevice
+// metadata or identifying string crosses the MCP boundary.
+export function physicalConnectionPath(device) {
+  if (!hasUsablePhysicalTunnel(device)) return 'none';
+  const raw = device?.connectionProperties?.transportType;
+  if (typeof raw !== 'string' || raw.length > 24)
+    return 'coredevice-transport-unclassified';
+  const transport = raw.toLowerCase();
+  if (['wired', 'usb', 'usbmux'].includes(transport)) return 'usb-coredevice';
+  if (['wireless', 'wifi', 'wi-fi', 'network', 'localnetwork'].includes(transport))
+    return 'network-coredevice';
+  return 'coredevice-transport-unclassified';
 }
 
 export function sanitizeTree(value) {
@@ -31,6 +55,34 @@ export function sanitizeTree(value) {
   return { elementCount: count, markers: [...found].sort() };
 }
 
+// Select only the one known, actionable control in our foreground diagnostics
+// app. SwiftUI NavigationLink can appear as a Link instead of a Button on
+// different runtimes. Never generalize this to arbitrary taps or UI text.
+export function discoveryControlRef(elements) {
+  if (!Array.isArray(elements)) throw new PluginError('navigationTargetUnavailable');
+  let found = null; let visited = 0;
+  const visit = (node, depth = 0) => {
+    if (!node || typeof node !== 'object') return;
+    if (depth > 50 || ++visited > 3000) throw new PluginError('navigationTargetUnavailable');
+    const role = node.type;
+    const actionable = typeof role === 'string'
+      && /^(?:XCUIElementType)?(?:button|link)$/i.test(role);
+    const expected = node.label === 'Open local discovery'
+      || node.identifier === 'igentic-open-local-discovery';
+    if (actionable && expected && node.enabled !== false
+        && typeof node.ref === 'string' && /^@?e\d+$/.test(node.ref)) {
+      if (found !== null) throw new PluginError('navigationTargetUnavailable');
+      found = node.ref;
+    }
+    if (node.children !== undefined && !Array.isArray(node.children))
+      throw new PluginError('navigationTargetUnavailable');
+    for (const child of node.children ?? []) visit(child, depth + 1);
+  };
+  for (const node of elements) visit(node);
+  if (found === null) throw new PluginError('navigationTargetUnavailable');
+  return found;
+}
+
 export async function loadConfig(path) {
   if (!path) return null;
   if (!isAbsolute(path)) throw new PluginError('configPathMustBeAbsolute');
@@ -41,7 +93,12 @@ export async function loadConfig(path) {
     throw new PluginError('invalidConfig');
   if (!/^[A-Fa-f0-9-]{20,50}$/.test(c.deviceId ?? '') || !BUNDLES.has(c.bundleId))
     throw new PluginError('invalidConfig');
-  for (const key of ['mobilecliPath', 'policyPath']) {
+  // A stale/removed legacy CLI path must not prevent the native CoreDevice
+  // driver from starting. The legacy option validates the executable when
+  // explicitly invoked, never as a prerequisite for the first-party path.
+  if (c.mobilecliPath !== undefined && !isAbsolute(c.mobilecliPath))
+    throw new PluginError('invalidConfig');
+  for (const key of ['policyPath']) {
     if (!isAbsolute(c[key] ?? '') || !(await stat(c[key])).isFile()) throw new PluginError('invalidConfig');
   }
   return c;
@@ -68,7 +125,10 @@ export class MobileBackend {
       const d = devices.find(d => d.hardwareProperties?.reality === 'physical'
         && (d.hardwareProperties?.udid === this.config.deviceId || d.identifier === this.config.deviceId));
       if (!d) return [];
-      return [{ id: 'iphone-1', kind: this.kind, available: hasUsablePhysicalTunnel(d) }];
+      const connectionState = physicalConnectionState(d);
+      return [{ id: 'iphone-1', kind: this.kind,
+        available: connectionState === 'xcode-tunnel-available', connectionState,
+        connectionPath: physicalConnectionPath(d) }];
     } finally { await rm(directory, { recursive: true, force: true }); }
   }
   async mobile(args, signal) {
@@ -102,17 +162,10 @@ export class MobileBackend {
   }
   async discovery(signal) {
     await this.policy('open-discovery', signal);
-    const tree = await this.tree(signal); const matches = [];
-    const visit = (n, depth = 0) => {
-      if (!n || depth > 50) return;
-      if (n.label === 'Open local discovery' && /button/i.test(n.type ?? '') && n.enabled !== false
-          && /^@?e\d+$/.test(n.ref ?? '')) matches.push(n.ref);
-      for (const c of n.children ?? []) visit(c, depth + 1);
-    };
-    for (const n of tree) visit(n);
-    if (matches.length !== 1) throw new PluginError('navigationTargetUnavailable');
+    const tree = await this.tree(signal);
+    const targetRef = discoveryControlRef(tree);
     await this.assertApp(signal);
-    await this.mobile(['io', 'tap', matches[0]], signal);
+    await this.mobile(['io', 'tap', targetRef], signal);
     return this.observe(signal);
   }
 }

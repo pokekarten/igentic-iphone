@@ -19,7 +19,7 @@ defaults:
 jobs:
   test:
     name: Swift package tests
-    runs-on: macos-15
+    runs-on: xcode-27
     timeout-minutes: 15
     env:
       PR_NUMBER: ${{ github.event.pull_request.number }}

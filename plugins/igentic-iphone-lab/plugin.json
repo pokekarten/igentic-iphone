@@ -1,0 +1,20 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "igentic-iphone-lab",
+  "version": "0.1.0",
+  "description": "Synthetic-only read-only MCP lab for developing a safe iPhone agent bridge.",
+  "repository": "https://github.com/pokekarten/igentic-iphone",
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "iGentic iPhone Lab",
+        "shortDescription": "Safe simulated iPhone, no device control",
+        "developerName": "iGentic",
+        "category": "Developer Tools",
+        "capabilities": [
+          "Read"
+        ]
+      }
+    }
+  }
+}

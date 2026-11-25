@@ -1,9 +1,14 @@
 # iGentic iPhone Connect
 
 Version 0.1.0 is a **local desktop developer plugin** for ChatGPT/Codex-compatible
-MCP hosts. It includes ten typed tools, one skill, an MCP Apps dashboard, a
+MCP hosts. It includes fifteen typed tools, one skill, an MCP Apps dashboard with live route checks, a
 physical-iPhone adapter, a separate fixture backend, and a Swift bridge to the
 existing iGentic `PolicyEngine` and `AuditLog`.
+
+The first-party read-only iphone_native_app_status tool inspects only the
+configured iGentic app identity and exact running executable, using Apple
+CoreDevice. It reports fixed booleans and no app paths, process IDs or
+device identifiers. Process running does not mean foreground UI.
 
 The implemented workflow is: discover the configured device, acquire a short
 exclusive session, open our Diagnostics app, observe fixed public markers,
@@ -13,14 +18,78 @@ reminder writes, general tap/type commands and public hosting are not exposed.
 This is an executable initial capability boundary, not the entire product
 roadmap in the [research atlas on Draft PR #379](https://github.com/pokekarten/igentic-iphone/blob/docs/iphone-agent-ecosystem-2026-11-21/docs/research/IPHONE_AGENT_PROJECT_ATLAS.md).
 
+## Experimental ChatGPT-specific API handoff (new, read-only)
+
+See [CHATGPT_HANDOFF.md](CHATGPT_HANDOFF.md). ChatGPT can connect to the
+client-neutral, loopback-only Streamable HTTP MCP prototype using an approved
+private MCP tunnel and call `iphone_chatgpt_handoff`. It returns only a
+fixed `igentic://handoff/v1/...` link that the owner may open on their iPhone.
+The signed iGentic app then displays a second in-app navigation choice.
+This does not trigger App Intents, write reminders, reach the phone remotely,
+connect a ChatGPT account automatically, or claim mobile-client support.
+The existing read-only diagnostics App Intent remains separate.
+
+A further offline-only security prototype is described in
+[AUTHENTICATED_TASK_ENVELOPE.md](AUTHENTICATED_TASK_ENVELOPE.md): a strictly
+read-only HMAC-authenticated owner-relay task proposal with expiry and
+in-memory replay protection. The [sealed single-host replay ledger](DURABLE_REPLAY_LEDGER.md)
+adds explicit owner provisioning, opaque keyed request digests and restart-safe
+atomic consumption. It supersedes the earlier auto-created SQLite experiment:
+the legacy store is intentionally removed in this integration PR. Neither
+module connects this plugin to an iPhone, installs a Site tool, starts a
+server or executes a request. Owner/device enrolment, cross-host replay
+protection, authenticated transport and independent device receipts remain
+separate gates.
+
+## Client-neutral Agent Loop contract (offline-only)
+
+See [AGENT_LOOP_PROTOCOL.md](AGENT_LOOP_PROTOCOL.md) for a runnable
+cross-client state contract for ChatGPT, Siri, Shortcuts, local models and the
+iGentic app. It connects the existing authenticated read-only proposals, the
+sealed SQLite replay ledger and the read-only Site tool contract in *tests*.
+It never starts a server, executes a device action or treats an unknown
+delivery as success. A key-authenticated receipt is not hardware attestation.
+The optional [private write-ahead delivery marker](DELIVERY_ATTEMPT_MARKER.md)
+adds a crash-conservative on-disk preparation gate without storing private
+task text or creating a transport. It requires explicit owner provisioning
+and does not replace the authenticated replay ledger or hardware receipts.
+
 ## Requirements and setup
 
 - macOS with Node.js 22+, Xcode and an already paired, unlocked physical iPhone.
 - The already signed iGentic Diagnostics app installed on that phone. This setup
   does not install, remove, sign or grant permissions to any iPhone application.
-- A **separately installed MobileCLI**. The local adapter was developed against
-  1.0.24. The MobileCLI binary and developer runner are not bundled. Inspect its
-  FSL-1.1-ALv2 terms before redistributing or commercializing a dependent product.
+- **First-party Apple CoreDevice + iGentic native view-receipt adapter** is
+  the default. It needs no external mobile automation binary. It can only
+  launch two fixed view routes in our own signed Diagnostics app and verify
+  its per-launch UUID receipt.
+- The separate MobileCLI implementation is a legacy **optional** driver; its
+  own license applies only when explicitly selected.
+
+### Connection paths: all retained, readiness never transferred
+
+USB-C and Wi-Fi remain long-term supported development routes through the **same**
+physical CoreDevice adapter, but an active paired physical Xcode tunnel is a
+required gate. `iphone_list_devices` reports only a coarse, fixed
+`connectionPath` (`usb-coredevice`, `network-coredevice`,
+`coredevice-transport-unclassified` or `none`) and never exposes
+the device's raw transport metadata. An unclassified but active tunnel can
+remain CoreDevice-available; that does not establish whether it is USB or Wi-Fi.
+
+| Path | Current boundary | Independent proof required |
+| --- | --- | --- |
+| USB-C | First-party Apple CoreDevice adapter | Fresh tunnel and own-app UUID receipt |
+| Wi-Fi | First-party CoreDevice adapter, no MobileCLI dependency | Fresh network tunnel and own-app UUID receipt on real iPhone |
+| Cellular | Optional native HTTPS readiness-only companion, code not deployed or hardware-verified | New signed iPhone app, owner-hosted HTTPS server and genuine mobile-data test |
+| On-device | Native App Intents and Shortcuts, outside this Mac plugin | iPhone-local execution and owner permission |
+| Simulator | Explicit fixture/native simulator tests, **not physical-device evidence** | Simulator-specific acceptance only |
+
+Xcode 27 may report Wi-Fi as `localNetwork`; it maps to the fixed `network-coredevice` code **only while the paired physical tunnel is active**. A transient tunnel or Bonjour discovery alone is not evidence that MobileCLI can see the device.
+
+The first-party driver uses Apple's devicectl plus a nonce-matched fixed receipt from our own SwiftUI view. This is **not** arbitrary iOS UI control. Read the [first-party implementation](FIRST_PARTY_COREDEVICE.md) and its physical-device test limits.
+
+No route silently falls back to another. Disconnection cannot turn a remembered
+USB, Wi-Fi, VPN or simulator path into an available physical iPhone.
 
 ### Cellular and VPN are not device-control transports
 
@@ -32,28 +101,29 @@ discovery rejects simulators, remembered-only pairings and stale USB transport
 metadata whenever the reported tunnel is unavailable or disconnected.
 
 Do not claim a 5G remote-control test from Tailscale login, an IP address or VPN
-connectivity alone. A future cellular-native companion must expose only explicitly
-approved app-owned actions, use authenticated outbound communication with bounded
-lifetimes and demonstrate its actual foreground/background lifecycle on the
-physical phone. No public listener, generic iOS shell, cross-app automation or
+connectivity alone. The first-party cellular **readiness-only** companion has now been
+implemented as a separate opt-in HTTPS client/server, but is not a remote
+device-control transport. Its signed ping has no action execution. It
+requires manual owner configuration of an HTTPS host and newly signed app;
+no physical 4G/5G acceptance has happened. Any future device actions require
+separate approval, scope and physical evidence. No public listener, generic iOS shell, cross-app automation or
 unattended system-setting control is provided by this release.
 
 From this directory:
 
 ```sh
 npm ci --ignore-scripts
-node scripts/setup.mjs --mobilecli /absolute/path/to/mobilecli
+node scripts/setup.mjs
 npm run doctor
-```
+npm run smoke
 
-`doctor` reports a separate, read-only `networkPreflight` with the local
-Tailscale macOS extension registration state. `awaitingUserApproval` requires
-a macOS user action in Network Extensions; `extensionActivated` means the
-extension is registered, **not** that VPN traffic or an iPhone is reachable.
-VPN connectivity, cellular reachability and Xcode-over-cellular remain
-`notTested` / `notEstablished` until separate physical observations exist. The
-probe never logs network identities, device IDs or raw extension output and
-does not request a VPN permission or change system settings.
+# Optional legacy driver only, when separately installed:
+IGENTIC_IPHONE_DRIVER=mobilecli npm run doctor
+
+# Real first-party own-app acceptance, USB-C and WLAN tested independently:
+npm run smoke:usb
+npm run smoke:wifi
+```
 
 Setup builds only the small Swift policy executable from this repository with
 one compiler job, or uses the prebuilt helper in an architecture-specific
@@ -65,12 +135,58 @@ The current fixed app identity is `de.bos.neoagent.igenticdiagnostics`; a second
 supported development identity is `org.example.iGenticDiagnostics`. Changing
 the identity in private config does not sign/install the app.
 
-If the physical phone is unavailable, the server returns that state. It never
-substitutes the synthetic backend. Fixture mode is explicit:
+If the physical phone is unavailable, the server returns that state. When a
+configured physical device is found, `iphone_list_devices` also reports one of
+four **fixed, privacy-safe CoreDevice status codes**:
+`xcode-tunnel-available`, `no-active-tunnel`, `pairing-required` or
+`unsupported-device`. A missing device has no observed entry. An active Xcode
+tunnel is **not** proof that MobileCLI or our app has been verified. No device
+names, UDIDs, transport metadata or private screen content enter tool results.
+For `no-active-tunnel`, reconnect USB-C, unlock the phone, confirm Trust and
+check Xcode's Devices window; a VPN alone does not create the required tunnel.
+The backend never substitutes the synthetic backend. Fixture mode is explicit:
 
 ```sh
 IGENTIC_IPHONE_BACKEND=fixture npm run smoke
 ```
+
+## Physical installation prerequisites (read-only)
+
+Run npm run preflight:cellular-physical for a sanitized, **read-only**
+report on iGentic's Xcode team/bundle settings, local signing identity,
+local candidate provisioning profiles and the existing live CoreDevice
+connection. No signing, Apple account mutation, app installation, data
+transfer, Internet request or real mobile-network proof is performed.
+See [CELLULAR_COMPANION.md](CELLULAR_COMPANION.md).
+
+## Owner-hosted cellular HTTPS preflight (Mac-only)
+
+The separate `npm run smoke:cellular-host` command verifies a
+**configured owner-operated HTTPS host** using a fixed signed request and
+request-bound signed response. It requires explicit local environment
+configuration, defaults to **no network activity**, never outputs keys or
+hostnames, never opens a port, and explicitly reports `cellularVerified=false`
+even if the Mac's probe passes. See
+[CELLULAR_COMPANION.md](CELLULAR_COMPANION.md) for setup and limits.
+
+## Optional first-party mobile data (4G/5G)
+
+Use [CELLULAR_COMPANION.md](CELLULAR_COMPANION.md) to set up an **owner-hosted**
+authenticated HTTPS readiness gateway with no third-party mobile automation
+software. It is a **separate route**, not an automatic CoreDevice fallback.
+Use npm run serve:cellular only after explicit private-key/TLS configuration.
+A manual tap in the newly installed iPhone app sends a fixed signed readiness
+ping with no remote-control commands. Afterward, Apple URLSession
+transaction metrics distinguish observed cellular transport from
+non-cellular or unverified connections; they do not identify a 4G/5G
+generation. The client never asserts a route from a Wi-Fi setting alone. The host code and simulator build are
+not proof that the physical iPhone used cellular data.
+
+## Portable iGentic plugin (ChatGPT is optional)
+
+The primary goal is an independent native iPhone agent, with App Intents, Shortcuts and a client-neutral MCP interface. An additional read-only Streamable HTTP protocol preview is available with npm run serve:portable. It binds to loopback only and **does not** connect to the iPhone. The physical desktop stdio backend remains separate. See [portable architecture](PORTABLE_MCP.md).
+
+The signed iOS app also contains a first-party **Offline-Werkzeuge** view with a local text editor, speech through Apple AVFoundation, user-selected photo OCR through Vision, and the existing separate approved reminder workflow. None requires ChatGPT, the Mac, MobileCLI or an external model. These changes require installing the **updated** signed app to use on a physical phone. See [optional tools and true fallback limits](OPTIONAL_TOOLS.md).
 
 ## Install the desktop plugin
 
@@ -106,7 +222,10 @@ limited to approved partners; see [desktop-only plugins](https://developers.open
 | Tool | Behavior |
 | --- | --- |
 | `iphone_list_devices` | Return only configured alias, backend and observed connection availability |
+| `iphone_connection_report` | Read-only live physical-tunnel status and independent USB-C, Wi-Fi, cellular, on-device and test route states; never claims an unverified app action |
 | `iphone_get_capabilities` | Explain current capability boundary without claiming readiness |
+| `iphone_tool_catalog` | List built-in offline functions and independent optional providers without assuming they are installed |
+| `iphone_prepare_local_task` | Prepare non-executing native handoff instructions even with no Mac, network or iPhone connection |
 | `iphone_start_session` | Acquire a five-minute exclusive device lease |
 | `iphone_open_diagnostics` | Launch the fixed app, check foreground identity and return recognized markers |
 | `iphone_observe` | Refresh fixed marker/count observation; suppress raw content |
@@ -171,3 +290,33 @@ resource or connection domains are allowed by the resource CSP.
 
 See [privacy](PRIVACY.md), [third-party notices](THIRD_PARTY_NOTICES.md) and the
 [implementation evidence](../../docs/reports/chatgpt-iphone-plugin-2026-11-22.md).
+
+
+### Reproduce a published ChatGPT Site plugin response on the physical iPhone
+
+The optional `smoke:published:wifi` command accepts **three actual tool-result
+objects supplied by the operator**, in order: `diagnostics`, `discovery`,
+`reminder-draft`. Each must contain `structuredContent.data` with the exact
+canonical handoff contract. Supply only these public, fixed fields: no account
+identifiers, tokens, phone records or other user data.
+
+```sh
+# On the owner’s Mac, with the paired physical iPhone reachable over Wi-Fi:
+npm run smoke:published:wifi < /path/to/three-site-tool-results.json
+```
+
+The test rejects altered URLs, changed authorization/status fields and
+non-Wi-Fi devices. It dispatches only the three fixed **own-app preview** URLs
+using Apple CoreDevice, and requires a fresh, nonce-like, app-owned receipt
+after each dispatch. It never creates a reminder, invokes a generic iOS shell,
+reads private phone data or bypasses the in-app confirmation.
+
+**Scope:** The operator must obtain the responses from the *real installed
+ChatGPT Site plugin* and hand them to this program. The program cannot
+independently authenticate their origin. Success proves the submitted fixed
+links can open app-owned previews over the Mac-to-iPhone route, **not**
+autonomous Site-to-Mac communication, a human owner tap, approval of writes,
+cellular reachability, or direct live phone control by the hosted Site.
+A future remote connection requires a separately authenticated gateway or
+a private Secure MCP Tunnel and a newly connected plugin; do not expose the
+loopback MCP endpoint publicly.
