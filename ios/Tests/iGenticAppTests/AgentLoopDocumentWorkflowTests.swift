@@ -3,6 +3,13 @@ import XCTest
 
 final class AgentLoopDocumentWorkflowTests: XCTestCase {
     @MainActor
+    func testFocusIsBoundedAndControlFree() {
+        XCTAssertTrue(AgentLoopDocumentWorkflow.allowedFocus("Meeting location and start time"))
+        XCTAssertFalse(AgentLoopDocumentWorkflow.allowedFocus(""))
+        XCTAssertFalse(AgentLoopDocumentWorkflow.allowedFocus("question\nsecond line"))
+        XCTAssertFalse(AgentLoopDocumentWorkflow.allowedFocus(String(repeating: "x", count: 241)))
+    }
+    @MainActor
     func testSourceOrderAndExactExtracts() async {
         let lines = ["Demo heading", "Room Cedar", "Start at 14:30"]
         let r = await AgentLoopDocumentWorkflow.run(recognize: { lines }, select: { input in

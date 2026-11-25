@@ -4,6 +4,7 @@ import PhotosUI
 
 public struct AgentLoopDocumentView: View {
     @State private var selection: PhotosPickerItem?
+    @State private var focus = "Wichtige Fakten, Termine und Aufgaben"
     @State private var job: Task<Void, Never>?
     @State private var result: AgentLoopDocumentResult?
     @State private var generation = UUID()
@@ -17,8 +18,10 @@ public struct AgentLoopDocumentView: View {
                 PhotosPicker(selection: $selection, matching: .images) {
                     Label("Bild auswählen", systemImage: "doc.viewfinder")
                 }.disabled(job != nil)
+                TextField("Was soll der Agent finden?", text: $focus)
+                    .disabled(job != nil)
                 Button("Dokument lokal auswerten") { start() }
-                    .disabled(selection == nil || job != nil)
+                    .disabled(selection == nil || job != nil || focus.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     .accessibilityIdentifier("igentic-document-agent-start")
                 if job != nil {
                     ProgressView("OCR und lokale KI laufen")
@@ -36,6 +39,7 @@ public struct AgentLoopDocumentView: View {
             }
         }
         .navigationTitle("Dokumenten-Agent")
+        .onChange(of: focus) { _, _ in stop(); result = nil }
         .onChange(of: selection) { _, _ in stop(); result = nil }
         .onChange(of: scenePhase) { _, phase in if phase != .active { stop(); result = nil } }
         .onDisappear { stop(); result = nil }
@@ -48,13 +52,14 @@ public struct AgentLoopDocumentView: View {
     private func start() {
         guard job == nil, let item = selection else { return }
         result = nil
+        let query = focus
         let token = UUID()
         generation = token
         job = Task { @MainActor in
             let outcome: AgentLoopDocumentResult
             if let data = try? await item.loadTransferable(type: Data.self) {
                 if Task.isCancelled || generation != token { return }
-                outcome = await AgentLoopDocumentWorkflow.runOnDevice(image: data)
+                outcome = await AgentLoopDocumentWorkflow.runOnDevice(image: data, focus: query)
             } else {
                 outcome = .init(outcome: .inputRejected, sourceLineCount: 0, excerpts: [])
             }
