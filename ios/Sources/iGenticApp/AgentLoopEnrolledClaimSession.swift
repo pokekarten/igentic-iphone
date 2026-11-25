@@ -9,7 +9,7 @@ import AgentCore
 @MainActor
 final class AgentLoopEnrolledClaimSession {
     enum Failure: Error, Equatable {
-        case privacyDenied, alreadyAttempted, enrollmentChanged, reviewUnavailable
+        case privacyDenied, alreadyAttempted, enrollmentChanged, reviewUnavailable, proofUnavailable
     }
 
     private let vault: AgentLoopDeviceEnrollmentVault
@@ -17,6 +17,7 @@ final class AgentLoopEnrolledClaimSession {
     private let transport: @Sendable (Int, Data, Data) async throws -> AgentLoopRelayClaim?
     private var attempted = false
     private var pendingReview: (gate: AgentLoopSignedOwnerStatusGate, enrollment: AgentLoopDeviceEnrollment)?
+    private var completedReview: (gate: AgentLoopSignedOwnerStatusGate, enrollment: AgentLoopDeviceEnrollment)?
 
     init(vault: AgentLoopDeviceEnrollmentVault,
          currentPrivacyMode: @escaping @MainActor () -> PrivacyMode,
@@ -88,9 +89,29 @@ final class AgentLoopEnrolledClaimSession {
         guard let pending = pendingReview else { throw Failure.reviewUnavailable }
         pendingReview = nil
         try checkEnrollment(pending.enrollment)
+        guard pending.gate.snapshot().stage == .awaitingOwnerReview else {
+            throw Failure.reviewUnavailable
+        }
         let result = pending.gate.readAfterLocalReviewAction()
         try checkEnrollment(pending.enrollment)
+        if result.stage == .locallyRead {
+            completedReview = pending
+        }
         return result
+    }
+
+    /// A third, separate native owner action prepares the fixed key-holder
+    /// acknowledgement. Never returns status text and never sends it here.
+    /// Consume this opportunity even if policy, enrollment or signing fails.
+    func prepareProofAfterSeparateLocalShareAction() throws -> Data {
+        guard let completed = completedReview else { throw Failure.proofUnavailable }
+        completedReview = nil
+        try checkEnrollment(completed.enrollment)
+        guard let proof = completed.gate.prepareReadOnlyKeyProofAfterSeparateLocalReview(
+            receiptKey: completed.enrollment.receiptKey, currentPrivacyMode: currentPrivacyMode()
+        ) else { throw Failure.proofUnavailable }
+        try checkEnrollment(completed.enrollment)
+        return proof
     }
 
     private func checkEnrollment(_ expected: AgentLoopDeviceEnrollment) throws {

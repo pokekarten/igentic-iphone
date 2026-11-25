@@ -148,7 +148,7 @@ extension AgentLoopDeviceEnrollmentVaultTests {
 
     @MainActor
     func testClaimStagesReviewAndRequiresSeparateReadWithLiveEnrollment() async throws {
-        for scenario in ["success", "revoked", "local-only", "mismatched-claim"] {
+        for scenario in ["success", "revoked", "local-only", "mismatched-claim", "revoked-after-read", "local-only-after-read", "expired-after-read", "outside-session-read"] {
             let backend = EnrollmentMemoryBackend()
             let vault = AgentLoopDeviceEnrollmentVault(backend: backend, separateReplayKey: Self.key(96))
             let enrollment = AgentLoopDeviceEnrollment(id: UUID(), deviceAccessKey: Self.key(32),
@@ -164,9 +164,10 @@ extension AgentLoopDeviceEnrollmentVaultTests {
                 receiptNonce: "22222222-3333-4444-8555-666666666666", expiresAt: 2_000_000_060)
             var mode = PrivacyMode.externalAI
             var reads = 0
+            var time = 2_000_000_000
             let gate = AgentLoopSignedOwnerStatusGate(
                 replayJournal: try AgentLoopLocalReplayJournal(directory: dir, key: Self.key(96)),
-                clockSeconds: { 2_000_000_000 }, statusReader: {
+                clockSeconds: { time }, statusReader: {
                     reads += 1
                     return AgentLoopLocalStatus(batteryFraction: 0.64, lowPowerModeEnabled: true, osVersion: "27.2")
                 })
@@ -174,9 +175,11 @@ extension AgentLoopDeviceEnrollmentVaultTests {
                 _, _, _ in claim
             }
             XCTAssertThrowsError(try session.readAfterSeparateLocalReviewAction())
+            XCTAssertThrowsError(try session.prepareProofAfterSeparateLocalShareAction())
             let staged = try await session.stageClaimAfterLocalAction(port: 12345, gate: gate)
             XCTAssertEqual(reads, 0)
             XCTAssertNil(staged?.ownerAppObservation)
+            XCTAssertThrowsError(try session.prepareProofAfterSeparateLocalShareAction())
             if scenario == "mismatched-claim" {
                 XCTAssertEqual(staged?.stage, .denied)
                 XCTAssertThrowsError(try session.readAfterSeparateLocalReviewAction())
@@ -196,6 +199,9 @@ extension AgentLoopDeviceEnrollmentVaultTests {
                     XCTAssertEqual($0 as? AgentLoopEnrolledClaimSession.Failure, .privacyDenied)
                 }
                 mode = .externalAI
+            } else if scenario == "outside-session-read" {
+                XCTAssertEqual(gate.readAfterLocalReviewAction().stage, .locallyRead)
+                XCTAssertThrowsError(try session.readAfterSeparateLocalReviewAction())
             } else {
                 let result = try session.readAfterSeparateLocalReviewAction()
                 XCTAssertEqual(result.stage, .locallyRead)
@@ -203,9 +209,28 @@ extension AgentLoopDeviceEnrollmentVaultTests {
                 XCTAssertFalse(result.externalDataShared)
                 XCTAssertFalse(result.remoteActionExecuted)
                 XCTAssertEqual(result.independentDeviceReceipt, "none")
+                if scenario == "revoked-after-read" {
+                    try vault.revokeExplicitly(id: enrollment.id)
+                    XCTAssertThrowsError(try session.prepareProofAfterSeparateLocalShareAction())
+                } else if scenario == "local-only-after-read" {
+                    mode = .localOnly
+                    XCTAssertThrowsError(try session.prepareProofAfterSeparateLocalShareAction())
+                    mode = .externalAI
+                } else if scenario == "expired-after-read" {
+                    time += 60
+                    XCTAssertThrowsError(try session.prepareProofAfterSeparateLocalShareAction())
+                    time -= 59
+                } else {
+                    let proof = try session.prepareProofAfterSeparateLocalShareAction()
+                    XCTAssertEqual(String(decoding: proof, as: UTF8.self),
+                        #"{"body":{"schema":1,"kind":"read-only-device-key-ack","requestId":"11111111-2222-4333-8444-555555555555","capability":"igentic.own_app.status.read","nonce":"22222222-3333-4444-8555-666666666666","observedAt":2000000000,"status":"key-holder-reports-read"},"signature":"27ecb277fcdcf0c6591740d8bb58f9885bdacc54e986748116f77842ddec3a6e"}"#)
+                    XCTAssertFalse(String(decoding: proof, as: UTF8.self).contains("64 %"))
+                    XCTAssertFalse(gate.snapshot().remoteActionExecuted)
+                }
             }
             XCTAssertThrowsError(try session.readAfterSeparateLocalReviewAction())
-            XCTAssertEqual(reads, scenario == "success" ? 1 : 0)
+            XCTAssertThrowsError(try session.prepareProofAfterSeparateLocalShareAction())
+            XCTAssertEqual(reads, ["revoked", "local-only"].contains(scenario) ? 0 : 1)
         }
     }
 
