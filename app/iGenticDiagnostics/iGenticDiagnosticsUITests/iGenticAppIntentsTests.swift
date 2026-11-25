@@ -1,4 +1,5 @@
 import AppIntentsTesting
+import Foundation
 import XCTest
 
 /// Out-of-process system-level integration test, not an in-app direct call.
@@ -50,6 +51,39 @@ final class iGenticAppIntentsTests: XCTestCase {
                 try XCTUnwrap(output),
                 "iGentic diagnostics shortcut is available. This is a fixed demo response, not a device health check. No personal data was accessed."
             )
+        }
+    }
+
+    @MainActor
+    func testDeterministicLocalStatusLoopRunsThroughSystem() async throws {
+        let app = XCUIApplication()
+        app.launch()
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15))
+
+        // Exercise the real registered intent, not the Swift store directly.
+        // No model API, network delegate, Mac worker or write action is needed.
+        // Two completed tasks must have different correlation IDs.
+        var previousTaskID: String?
+        for _ in 0..<2 {
+            let definitions = IntentDefinitions(bundleIdentifier: "org.example.iGenticDiagnostics")
+            let intent = definitions.intents["iGenticRunLocalStatusLoopIntent"]
+            let output = try await intent.makeIntent().run().value.as(String.self)
+            let payload = try XCTUnwrap(
+                JSONSerialization.jsonObject(with: Data(output.utf8)) as? [String: Any]
+            )
+            XCTAssertEqual(payload["schema"] as? Int, 1)
+            XCTAssertEqual(payload["stage"] as? String, "finished")
+            XCTAssertEqual(payload["localStatusRead"] as? Bool, true)
+            XCTAssertEqual(payload["remoteActionExecuted"] as? Bool, false)
+            XCTAssertEqual(payload["ownerApproved"] as? Bool, false)
+            XCTAssertNil(payload["nextPrompt"])
+            let taskID = try XCTUnwrap(payload["taskId"] as? String)
+            XCTAssertEqual(UUID(uuidString: taskID)?.uuidString.lowercased(), taskID)
+            XCTAssertNotEqual(previousTaskID, taskID)
+            previousTaskID = taskID
+            let observation = try XCTUnwrap(payload["observation"] as? String)
+            XCTAssertTrue(observation.contains("iGentic iPhone: Akku"))
+            XCTAssertTrue(observation.contains("ChatGPT-Verbindung nicht geprüft"))
         }
     }
 
