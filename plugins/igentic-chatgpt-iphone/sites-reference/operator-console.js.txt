@@ -1,0 +1,288 @@
+// First-party browser console for ONLY the three fixed, read-only Site MCP tools.
+// Same-origin MCP requests, no credentials in JS, device driver or auto-navigation.
+(() => {
+  'use strict';
+  const VERSION = '2026-07-28';
+  const ACTIONS = ['diagnostics', 'discovery', 'reminder-draft'];
+  const TOOLS = ['igentic_get_capabilities', 'igentic_shortcuts_setup', 'iphone_chatgpt_handoff'];
+  const REQUEST_TIMEOUT_MS = 12000;
+  const byId = id => document.getElementById(id);
+  const capabilities = byId('show-capabilities');
+  const verifyRegistry = byId('verify-site-registry');
+  const registryStatus = byId('site-registry-status');
+  const copySiteCheck = byId('copy-site-check');
+  const copySiteStatus = byId('copy-site-status');
+  const shortcuts = byId('show-shortcuts');
+  const handoff = byId('prepare-handoff');
+  const cancel = byId('cancel-mcp-request');
+  const action = byId('handoff-action');
+  const link = byId('prepared-link');
+  const status = byId('status');
+  const buttons = [capabilities, verifyRegistry, shortcuts, handoff];
+  const list = byId('capability-list');
+  const steps = byId('shortcuts-list');
+  const projectChatStatus = byId('project-chat-status');
+  let requestId = 0;
+  let busy = false;
+  let active = null;
+  let registryVerified = false;
+  // Static, privacy-safe text only: never copy raw MCP responses, origin,
+  // account identity, credentials, device identifiers, URLs or model prompts.
+  const sanitizedReport = [
+    'iGentic Site-MCP Kompatibilitätsprüfung (manuell im Browser)',
+    'Protokoll: 2026-07-28',
+    'Server: igentic-iphone-handoff 0.2.0',
+    'Werkzeugliste: iphone_chatgpt_handoff, igentic_get_capabilities, igentic_shortcuts_setup',
+    'Werkzeuge: 3 lesend, nicht destruktiv; Registrierung beim Klick geprüft',
+    'iPhone: Verbindung nicht geprüft',
+    'iPhone-Aktion: nicht ausgeführt',
+    'ChatGPT-Projektkontext: nicht verifiziert',
+    'Hinweis: Dies ist weder ein Gerätebeleg noch ein kryptografischer Nachweis.'
+  ].join('\n');
+
+  const clearLink = () => {
+    link.hidden = true;
+    link.removeAttribute('href');
+  };
+  const clearList = node => { node.replaceChildren(); };
+  const putItems = (node, values) => {
+    clearList(node);
+    for (const value of values) {
+      const item = document.createElement('li');
+      item.textContent = value;
+      node.appendChild(item);
+    }
+  };
+  const setBusy = value => {
+    busy = value;
+    for (const button of buttons) button.disabled = value;
+    action.disabled = value;
+    cancel.disabled = !value;
+    copySiteCheck.disabled = value || !registryVerified;
+  };
+  const allowedData = data => data && typeof data === 'object'
+    && data.schema === 1 && data.actionExecuted === false
+    && data.iPhoneConnected === 'not-checked';
+
+  // Same-origin inspection and calls use the identical bounded, cancellable MCP
+  // wire request. Only the three listed read methods can be issued by this UI.
+  async function callRpc(method, name, args) {
+    if (!['server/discover', 'tools/list', 'tools/call'].includes(method))
+      throw Error('blockedMcpMethod');
+    if (method === 'tools/call' && (!TOOLS.includes(name)
+        || (name !== 'iphone_chatgpt_handoff' && Object.keys(args).length !== 0)))
+      throw Error('blockedTool');
+    if (method !== 'tools/call' && (name !== undefined || args !== undefined))
+      throw Error('blockedMcpParameters');
+    const controller = new AbortController();
+    active = controller;
+    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    const id = ++requestId;
+    const params = {
+      _meta: {
+        'io.modelcontextprotocol/protocolVersion': VERSION,
+        'io.modelcontextprotocol/clientCapabilities': {}
+      }
+    };
+    const headers = {
+      'content-type': 'application/json',
+      'Mcp-Protocol-Version': VERSION,
+      'Mcp-Method': method
+    };
+    if (method === 'tools/call') {
+      params.name = name;
+      params.arguments = args;
+      headers['Mcp-Name'] = name;
+    }
+    try {
+      const response = await fetch('/mcp', {
+        method: 'POST', credentials: 'same-origin', cache: 'no-store',
+        referrerPolicy: 'no-referrer', signal: controller.signal,
+        headers, body: JSON.stringify({jsonrpc:'2.0',id,method,params})
+      });
+      if (controller.signal.aborted) throw Error('siteMcpCancelled');
+      if (!response.ok) throw Error('siteMcpUnavailable');
+      const rpc = await response.json();
+      // A late response, stale ID or error cannot become a successful result.
+      if (controller.signal.aborted) throw Error('siteMcpCancelled');
+      if (!rpc || typeof rpc !== 'object' || Array.isArray(rpc)
+          || rpc.jsonrpc !== '2.0' || rpc.id !== id
+          || Object.hasOwn(rpc, 'error')
+          || rpc.result?.resultType !== 'complete' || !validServer(rpc.result))
+        throw Error('invalidSiteRpc');
+      return rpc.result;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  async function callTool(name, args) {
+    const result = await callRpc('tools/call', name, args);
+    if (result.isError !== false || !allowedData(result.structuredContent?.data))
+      throw Error('invalidSiteToolResult');
+    return result.structuredContent.data;
+  }
+
+  const expectedRegistry = ['igentic_get_capabilities', 'igentic_shortcuts_setup', 'iphone_chatgpt_handoff'];
+  const exactKeys = (value, keys) => value && typeof value === 'object'
+    && !Array.isArray(value) && Object.keys(value).length === keys.length
+    && keys.every(key => Object.hasOwn(value, key));
+  const exactValues = (value, expected) => Array.isArray(value)
+    && value.length === expected.length
+    && value.every(item => typeof item === 'string')
+    && value.slice().sort().every((item, index) => item === expected.slice().sort()[index]);
+  const safeReadOnlyDescriptor = tool => {
+    if (!tool || typeof tool.name !== 'string'
+        || !exactKeys(tool.annotations, ['readOnlyHint', 'destructiveHint', 'openWorldHint'])
+        || tool.annotations.readOnlyHint !== true
+        || tool.annotations.destructiveHint !== false
+        || tool.annotations.openWorldHint !== false
+        || !exactKeys(tool.inputSchema, ['type', 'additionalProperties', 'properties', 'required'])
+        || tool.inputSchema.type !== 'object'
+        || tool.inputSchema.additionalProperties !== false)
+      return false;
+    const {properties, required} = tool.inputSchema;
+    if (tool.name === 'iphone_chatgpt_handoff') {
+      return exactKeys(properties, ['action'])
+        && exactKeys(properties.action, ['type','enum'])
+        && properties.action.type === 'string'
+        && exactValues(properties.action.enum, ACTIONS)
+        && exactValues(required, ['action']);
+    }
+    return ['igentic_get_capabilities', 'igentic_shortcuts_setup'].includes(tool.name)
+      && exactKeys(properties, [])
+      && exactValues(required, []);
+  };
+  const validServer = result => {
+    const meta = result?._meta;
+    const server = meta?.['io.modelcontextprotocol/serverInfo'];
+    return exactKeys(meta, ['io.modelcontextprotocol/serverInfo'])
+      && exactKeys(server, ['name', 'version'])
+      && server.name === 'igentic-iphone-handoff'
+      && server.version === '0.2.0';
+  };
+  async function inspectSiteRegistry() {
+    const discovery = await callRpc('server/discover');
+    if (!validServer(discovery)
+        || !Array.isArray(discovery.supportedVersions)
+        || discovery.supportedVersions.length !== 1
+        || discovery.supportedVersions[0] !== VERSION
+        || !exactKeys(discovery.capabilities, ['tools'])
+        || !exactKeys(discovery.capabilities.tools, []))
+      throw Error('invalidSiteDiscovery');
+    const listing = await callRpc('tools/list');
+    if (!validServer(listing)
+        || !Array.isArray(listing.tools)
+        || listing.tools.length !== expectedRegistry.length
+        || listing.tools.some(t => !safeReadOnlyDescriptor(t))
+        || !exactValues(listing.tools.map(t=>t.name), expectedRegistry))
+      throw Error('siteToolsNotReady');
+    return listing.tools.length;
+  }
+
+  async function run(operation) {
+    if (busy) return;
+    clearLink(); // stale links never survive a new request or an error
+    setBusy(true);
+    status.textContent = 'Lese das Site-Plugin …';
+    try {
+      const result = await operation();
+      status.textContent = 'Werkzeugantwort empfangen. iPhone-Verbindung: nicht geprüft. Keine Aktion ausgeführt.';
+      return result;
+    } catch {
+      status.textContent = 'Plugin-Abfrage nicht verfügbar, abgebrochen, abgelaufen oder Antwort ungültig. Keine iPhone-Aktion ausgeführt.';
+      clearLink();
+    } finally {
+      active = null;
+      setBusy(false);
+    }
+  }
+
+  verifyRegistry.addEventListener('click', () => run(async () => {
+    registryVerified = false;
+    copySiteCheck.disabled = true;
+    copySiteStatus.textContent = 'Vorheriges Prüfergebnis ungültig. Neue Prüfung läuft.';
+    registryStatus.textContent = 'Prüfe Site-MCP-Version und Toolliste …';
+    try {
+      const total = await inspectSiteRegistry();
+      registryVerified = true;
+      registryStatus.textContent = 'Site-MCP v0.2.0 bestätigt: ' + total
+        + ' lesende Werkzeuge registriert. iPhone-Verbindung weiterhin nicht geprüft.';
+      copySiteStatus.textContent = 'Bereinigter Site-Status bereit. Nur nach Antippen kopieren.';
+    } catch (error) {
+      registryVerified = false;
+      registryStatus.textContent = 'Site-MCP-Kompatibilität nicht bestätigt. '
+        + 'Die veröffentlichte Site könnte veraltet oder unerreichbar sein. '
+        + 'Keine iPhone-Aktion ausgeführt.';
+      copySiteStatus.textContent = 'Kein gültiger Site-Status zum Kopieren.';
+      throw error;
+    }
+  }));
+
+  copySiteCheck.addEventListener('click', async () => {
+    if (busy || !registryVerified) return;
+    try {
+      // Only an explicit owner gesture may transfer a bounded static summary.
+      await navigator.clipboard.writeText(sanitizedReport);
+      copySiteStatus.textContent = 'Bereinigter Site-Status kopiert. In ChatGPT selbst einfügen.';
+    } catch {
+      copySiteStatus.textContent = 'Kopieren nicht verfügbar. Kein Bericht übertragen.';
+    }
+  });
+
+  capabilities.addEventListener('click', () => run(async () => {
+    clearList(list);
+    const data = await callTool('igentic_get_capabilities', {});
+    if (data.status !== 'static-documentation-only'
+        || !Array.isArray(data.capabilities) || data.capabilities.length !== 3
+        || data.capabilities.some(x => typeof x.name !== 'string'
+          || typeof x.supportedByThisSite !== 'boolean')) throw Error('badCapabilities');
+    putItems(list, data.capabilities.map(x =>
+      x.name + ': ' + (x.supportedByThisSite ? 'manuell verfügbar' : 'hier nicht verfügbar')));
+  }));
+
+  shortcuts.addEventListener('click', () => run(async () => {
+    clearList(steps);
+    projectChatStatus.textContent = 'Projektchat-Kontext: nicht verifiziert.';
+    const data = await callTool('igentic_shortcuts_setup', {});
+    if (data.status !== 'owner-manual-setup-instructions'
+        || data.shortcutCreated !== false || data.requiresOwnerSetup !== true
+        || !Array.isArray(data.steps) || data.steps.length !== 5
+        || data.steps.some(s => typeof s !== 'string' || s.length > 220)
+        || !data.projectChat
+        || data.projectChat.availableFromThisSite !== false
+        || data.projectChat.shortcutProjectContext !== 'not-verified'
+        || data.projectChat.requiresSeparateUserConfirmation !== true)
+      throw Error('badShortcuts');
+    putItems(steps, data.steps);
+    projectChatStatus.textContent =
+      'Projektchat-Kontext: nicht verifiziert. „Modell verwenden“ ist nicht automatisch ein Chat im gewählten ChatGPT-Projekt. Projektwahl und Kontextübernahme müssen separat auf dem iPhone geprüft werden.';
+  }));
+
+  // Never retain a prepared link after changing the intended destination.
+  action.addEventListener('change', clearLink);
+  cancel.addEventListener('click', () => {
+    if (busy) active?.abort();
+  });
+
+  handoff.addEventListener('click', () => run(async () => {
+    const selected = action.value;
+    if (!ACTIONS.includes(selected)) throw Error('unsupportedHandoff');
+    const data = await callTool('iphone_chatgpt_handoff', { action: selected });
+    const exactUrl = 'igentic://handoff/v1/' + selected;
+    if (data.action !== selected || data.launchUrl !== exactUrl
+        || data.requiresOwnerTap !== true
+        || data.dataSentToIPhone !== 'none'
+        || data.authorization !== 'link-is-navigation-only-not-permission'
+        || action.value !== selected) throw Error('badHandoff');
+    link.href = exactUrl; // only validated, fixed first-party app scheme
+    link.hidden = false;
+  }));
+
+  window.addEventListener('pagehide', () => {
+    active?.abort();
+    registryVerified = false;
+    copySiteCheck.disabled = true;
+    clearLink();
+  });
+})();

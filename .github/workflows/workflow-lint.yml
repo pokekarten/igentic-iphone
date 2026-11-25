@@ -50,4 +50,6 @@ jobs:
           echo "${RUNNER_TEMP}/bin" >> "${GITHUB_PATH}"
 
       - name: Lint workflow files
-        run: actionlint -color
+        # v1.7.7 predates the GitHub-hosted xcode-27 label (GA 2026-10-15).
+        # Suppress only this outdated-label diagnostic; retain all other rules.
+        run: actionlint -color -ignore 'label "xcode-27" is unknown'
