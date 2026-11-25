@@ -109,11 +109,26 @@ public enum AgentLoopLocalDiagnosticWorkflow {
                 After both observations have been obtained, select finish. Never repeat an action.
                 The native app independently validates and executes the allowed local reads.
                 """)
-            let completed = progress.completed.map(\.rawValue).joined(separator: ", ")
-            let response = try await session.respond(
-                to: "Completed: \(completed.isEmpty ? "none" : completed). Status obtained: \(progress.statusAvailable). Local AI readiness: \(progress.localModelAvailable.map(String.init) ?? "not yet checked"). Select the next action.",
-                generating: iGenticDiagnosticStepCandidate.self)
-            return response.content.action
+            // Rebuild the tool menu and output schema from native observations.
+            // Never offer a completed tool again. Each turn may abstain.
+            if progress.completed.isEmpty {
+                return try await session.respond(
+                    to: "Choose the first read: device status or local AI readiness.",
+                    generating: iGenticDiagnosticStepCandidate.self).content.action
+            }
+            if !progress.statusAvailable {
+                return try await session.respond(
+                    to: "AI readiness was checked (available: \(progress.localModelAvailable == true)). Device status is missing. Select the remaining status read, or abort if unsure.",
+                    generating: iGenticDiagnosticStatusCandidate.self).content.action
+            }
+            if progress.localModelAvailable == nil {
+                return try await session.respond(
+                    to: "Device status was obtained. Local AI readiness is missing. Select the remaining AI readiness read, or abort if unsure.",
+                    generating: iGenticDiagnosticReadinessCandidate.self).content.action
+            }
+            return try await session.respond(
+                to: "Both required observations are now present. Complete the report by selecting finish, or abort if unsure.",
+                generating: iGenticDiagnosticFinishCandidate.self).content.action
             #else
             throw CancellationError()
             #endif
@@ -131,7 +146,25 @@ public enum AgentLoopLocalDiagnosticWorkflow {
 @available(iOS 26.0, macOS 26.0, *)
 @Generable
 private struct iGenticDiagnosticStepCandidate {
-    @Guide(description: "Next action, not an execution result.", .anyOf(["status.read","model.readiness","finish"]))
+    @Guide(description: "Next action, not an execution result.", .anyOf(["status.read","model.readiness","abort"]))
     var action: String
+}
+
+@available(iOS 26.0, macOS 26.0, *)
+@Generable
+private struct iGenticDiagnosticStatusCandidate {
+    @Guide(.anyOf(["status.read","abort"])) var action: String
+}
+
+@available(iOS 26.0, macOS 26.0, *)
+@Generable
+private struct iGenticDiagnosticReadinessCandidate {
+    @Guide(.anyOf(["model.readiness","abort"])) var action: String
+}
+
+@available(iOS 26.0, macOS 26.0, *)
+@Generable
+private struct iGenticDiagnosticFinishCandidate {
+    @Guide(.anyOf(["finish","abort"])) var action: String
 }
 #endif
