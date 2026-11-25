@@ -30,6 +30,163 @@ final class DiagnosticsUITests: XCTestCase {
         XCTAssertFalse(app.navigationBars["Review reminder"].exists)
     }
 
+
+    @MainActor
+    func testChatGPTHandoffOpensPreviewWithoutAutomaticNavigation() {
+        let app = XCUIApplication()
+        app.launch()
+        // Initial setup still needs the owner's local confirmation.
+        let confirm = app.buttons["Confirm and continue"]
+        if confirm.waitForExistence(timeout: 10) { confirm.tap() }
+        XCTAssertTrue(app.navigationBars["iGentic Diagnostics"].waitForExistence(timeout: 15))
+
+        // Apple XCUIApplication.open exercises the real custom URL dispatch
+        // and SwiftUI onOpenURL rather than only calling the Swift URL parser.
+        let url = URL(string: "igentic://handoff/v1/discovery")!
+        app.open(url)
+        let preview = app.staticTexts[
+            "Du hast diesen Link auf dem iPhone geöffnet. Es wurde keine Aktion ausgeführt oder freigegeben."
+        ]
+        XCTAssertTrue(preview.waitForExistence(timeout: 15))
+        // No discovery screen until the owner makes a second local choice.
+        XCTAssertFalse(app.navigationBars["Explore"].exists)
+        // Match the owned row's stable identifier rather than scanning every
+        // label with an NSPredicate (which can time out in iOS 27 snapshots).
+        // Keep the element type open: SwiftUI exposes NavigationLink differently
+        // across the supported simulator runtimes.
+        let openDiscovery = app.descendants(matching: .any)
+            .matching(identifier: "igentic-handoff-open-discovery")
+            .firstMatch
+        guard openDiscovery.waitForExistence(timeout: 10) else {
+            XCTFail("Expected the manual handoff discovery control")
+            return
+        }
+        openDiscovery.tap()
+        XCTAssertTrue(app.navigationBars["Explore"].waitForExistence(timeout: 10))
+    }
+
+
+    @MainActor
+    func testChatGPTColdStartURLPreservesNavigationOnlyAfterSetup() {
+        let app = XCUIApplication()
+        // XCUIApplication.open launches the app from the real URL scheme,
+        // instead of passing synthetic SwiftUI state to DiagnosticView.
+        app.open(URL(string: "igentic://handoff/v1/diagnostics")!)
+        let confirm = app.buttons["Confirm and continue"]
+        if confirm.waitForExistence(timeout: 10) { confirm.tap() }
+
+        let preview = app.staticTexts[
+            "Du hast diesen Link auf dem iPhone geöffnet. Es wurde keine Aktion ausgeführt oder freigegeben."
+        ]
+        XCTAssertTrue(preview.waitForExistence(timeout: 15))
+        XCTAssertTrue(app.navigationBars["iGentic Diagnostics"].exists)
+        // The incoming link did not approve anything or open another app.
+        XCTAssertFalse(app.navigationBars["Explore"].exists)
+    }
+
+    @MainActor
+    func testAgentHomeLocalStatusAndPreview() {
+        let app = XCUIApplication()
+        app.launch()
+        let confirm = app.buttons["Confirm and continue"]
+        if confirm.waitForExistence(timeout: 10) { confirm.tap() }
+        guard let entry = scrollToControl("igentic-open-agent-home", in: app) else { return }
+        entry.tap()
+
+        XCTAssertTrue(app.navigationBars["iGentic Agent"].waitForExistence(timeout: 15))
+        // Keep the local status near the top of Agent Home. This avoids
+        // depending on a deeply offscreen control after SwiftUI expands the
+        // long preview and Shortcuts sections on small iOS 27 simulators.
+        guard let status = scrollToControl("igentic-agent-local-status", in: app)
+        else { return }
+        status.tap()
+        let output = app.descendants(matching: .any)
+            .matching(identifier: "igentic-agent-status-result").firstMatch
+        XCTAssertTrue(output.waitForExistence(timeout: 10))
+        XCTAssertTrue(output.label.contains("ChatGPT-Verbindung nicht geprüft"))
+
+        guard let prompt = scrollToControl("igentic-agent-prompt", in: app) else { return }
+        prompt.tap()
+        prompt.typeText("Offline Textentwurf")
+        // A multi-line field can leave the preview covered by the software
+        // keyboard on a compact iOS 27 simulator. Use the same visible,
+        // owner-controlled dismissal action available in the real app.
+        if app.keyboards.firstMatch.exists {
+            let closeKeyboard = app.buttons["igentic-agent-dismiss-keyboard"]
+            XCTAssertTrue(closeKeyboard.waitForExistence(timeout: 10))
+            closeKeyboard.tap()
+            let keyboardGone = XCTNSPredicateExpectation(
+                predicate: NSPredicate(format: "exists == false"),
+                object: app.keyboards.firstMatch
+            )
+            XCTAssertEqual(XCTWaiter.wait(for: [keyboardGone], timeout: 10), .completed)
+        }
+        guard let preview = scrollToControl("igentic-agent-preview", in: app) else { return }
+        preview.tap()
+        XCTAssertTrue(app.descendants(matching: .any)
+            .matching(identifier: "igentic-agent-proposal").firstMatch.waitForExistence(timeout: 10))
+        // Tapping Preview should dismiss editing focus before the user
+        // scrolls through the longer local proposal or Shortcuts guide.
+        let keyboard = app.keyboards.firstMatch
+        if keyboard.exists {
+            let hidden = XCTNSPredicateExpectation(
+                predicate: NSPredicate(format: "exists == false"), object: keyboard
+            )
+            XCTAssertEqual(XCTWaiter.wait(for: [hidden], timeout: 10), .completed)
+        }
+        // iOS 27 currently does not consistently expose the ShareLink's
+        // accessibility identifier in XCUITest. Manual share availability
+        // is unit-tested by AgentLoopLocalBridgeTests; this UI test confirms
+        // the actual local status and proposal without opening another app.
+        XCTAssertTrue(app.descendants(matching: .any)
+            .matching(identifier: "igentic-agent-proposal").firstMatch.exists)
+    }
+
+    @MainActor
+    func testAgentLoopInboxOpensWithoutCallingExternalModel() {
+        // This is a UI-only acceptance. The pure Swift store tests cover the
+        // Start → Receive → Review protocol and failures; Apple's customer
+        // AppIntentsTesting environment does not run the real ChatGPT model.
+        let app = XCUIApplication()
+        app.launch()
+        let confirm = app.buttons["Confirm and continue"]
+        if confirm.waitForExistence(timeout: 10) { confirm.tap() }
+        guard let entry = scrollToControl("igentic-open-agent-home", in: app) else { return }
+        entry.tap()
+        XCTAssertTrue(app.navigationBars["iGentic Agent"].waitForExistence(timeout: 15))
+        guard let inbox = scrollToControl("igentic-loop-open-inbox", in: app) else { return }
+        inbox.tap()
+        XCTAssertTrue(app.navigationBars["KI-Antwort prüfen"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Kein offener KI-Auftrag"].waitForExistence(timeout: 10))
+        // No model or OS Shortcuts actions are invoked by this navigation.
+    }
+
+    @MainActor
+    func testAPIFreeLoopSetupGuideHasSafeNativeLinks() {
+        let app = XCUIApplication()
+        app.launch()
+        let confirm = app.buttons["Confirm and continue"]
+        if confirm.waitForExistence(timeout: 10) { confirm.tap() }
+        guard let entry = scrollToControl("igentic-open-agent-home", in: app)
+        else { return }
+        entry.tap()
+        XCTAssertTrue(app.navigationBars["iGentic Agent"]
+            .waitForExistence(timeout: 15))
+        guard let setup = scrollToControl("igentic-loop-open-setup", in: app)
+        else { return }
+        setup.tap()
+        XCTAssertTrue(app.navigationBars["KI-Loop einrichten"]
+            .waitForExistence(timeout: 10))
+        XCTAssertTrue(app.descendants(matching: .any)
+            .matching(identifier: "igentic-loop-setup-name")
+            .firstMatch.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["iGentic KI Loop"].exists)
+        // Do not tap Create/Run: that would invoke another OS app or model.
+        XCTAssertTrue(app.descendants(matching: .any)
+            .matching(identifier: "igentic-loop-setup-local-state")
+            .firstMatch.exists)
+    }
+
     @MainActor
     private func scrollToControl(_ identifier: String, in app: XCUIApplication) -> XCUIElement? {
         // Use a stable accessibility identifier, not a SwiftUI-dependent
@@ -38,12 +195,29 @@ final class DiagnosticsUITests: XCTestCase {
         for attempt in 0...6 {
             if control.exists && control.isHittable { return control }
             if attempt == 6 { break }
-            if app.collectionViews.firstMatch.exists {
+            if app.scrollViews.firstMatch.exists {
+                app.scrollViews.firstMatch.swipeUp()
+            } else if app.collectionViews.firstMatch.exists {
                 app.collectionViews.firstMatch.swipeUp()
             } else if app.tables.firstMatch.exists {
                 app.tables.firstMatch.swipeUp()
             } else {
                 app.swipeUp()
+            }
+        }
+        // The SwiftUI scroll position can shift past a control when focus or
+        // keyboard safe-area insets change. Search back towards the top as
+        // well; never silently skip a missing required UI control.
+        for _ in 0..<6 {
+            if control.exists && control.isHittable { return control }
+            if app.scrollViews.firstMatch.exists {
+                app.scrollViews.firstMatch.swipeDown()
+            } else if app.collectionViews.firstMatch.exists {
+                app.collectionViews.firstMatch.swipeDown()
+            } else if app.tables.firstMatch.exists {
+                app.tables.firstMatch.swipeDown()
+            } else {
+                app.swipeDown()
             }
         }
         XCTFail("Expected a visible bundled diagnostic control: \(identifier)")

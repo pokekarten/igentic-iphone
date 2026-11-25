@@ -78,3 +78,19 @@ An explicit synthetic fixture cannot pass physical USB acceptance.
 A successful result is **not** evidence of foreground or arbitrary UI
 navigation. The stronger receipt-based full app navigation still requires a
 provisioned and installed new app build and additional hardware acceptance.
+
+### Return a completed Shortcuts task to the MCP client
+
+Retain the taskId from the iGentic status-loop start intent. After the
+advance intent completes the task, call `iphone_shortcut_result` with that
+taskId through the local CoreDevice MCP server. The server reads one fixed
+journal in the paired app container and returns the matching ID and finished
+stage. The output omits the status observation. The journal contains only
+the latest task, so a subsequent task may replace the prior result.
+This read reports historical local completion, without initiating another read
+of phone status. The hosted handoff Site has no access to this Mac transport.
+
+Hardware acceptance on 24 November 2026 verified the discovery action and its
+receipt through the 16-tool local MCP server. A freshly generated unissued ID
+returned a backend error. Successful retrieval of a completed personal
+Shortcut ticket on hardware remains open.

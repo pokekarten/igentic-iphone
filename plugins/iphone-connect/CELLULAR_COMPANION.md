@@ -12,7 +12,14 @@ The iOS client uses Apple's URLSession and CryptoKit. It allows cellular data, r
 
 Request headers: `x-igentic-timestamp` (Unix seconds), `x-igentic-nonce` (fresh lowercase UUID), `x-igentic-signature` (HMAC-SHA256 hex over the exact versioned method, path, timestamp, nonce and SHA-256 body digest). No raw secret crosses the network.
 
-The Node HTTPS host, implemented **in this repository**, validates the exact method/body/path/signature and content type, a 60-second timestamp window, and one-time nonce within a bounded in-memory cache. It limits header bytes, request bytes, simultaneous connections and requests per connection. No remote action, arbitrary iOS command, UI tap, shell, persistent user-data write, session approval or third-party tool is included. A valid response explicitly says `deviceControl=not-enabled` and `backgroundExecution=not-guaranteed`. Replay cache is per running process, so it must not be mistaken for persistent protection across server restarts; only a harmless readiness check is implemented.
+The Node HTTPS host, implemented **in this repository**, validates the exact method/body/path/signature and content type, a 60-second timestamp window, and one-time nonce within a bounded in-memory cache. It limits header bytes, request bytes, simultaneous connections and requests per connection. No remote action, arbitrary iOS command, UI tap, shell, persistent user-data write, session approval or third-party tool is included. A valid response explicitly says `deviceControl=not-enabled` and `backgroundExecution=not-guaranteed`. On a successful authenticated request the server additionally returns an
+`x-igentic-response-proof` HMAC-SHA256 header bound to the request timestamp,
+nonce and the fixed readiness response fields. The signed iPhone client must
+verify this proof before showing a confirmed response. A missing, altered or
+replayed acknowledgment is rejected. The proof does not grant a device-control
+permission or identify a physical device. Older readiness hosts without this
+header must be updated together with the signed client; there is no insecure
+fallback. Replay cache is per running process, so it must not be mistaken for persistent protection across server restarts; only a harmless readiness check is implemented.
 
 ## Owner-operated server deployment
 
@@ -46,6 +53,66 @@ manager, supply the actual secure private-key file rather than a symlinked
 path. Private key files are never bundled or committed.
 
 Pairing remains **manual** in this version; there is no automatic credential enrollment, QR provisioning or hosted relay. Do not start public service without reviewing firewall, TLS certificate and key policies.
+
+## Read-only physical iPhone signing preflight
+
+Before attempting a signed physical iPhone installation, run on the Mac
+from the repository's plugin folder:
+
+    cd plugins/iphone-connect
+    npm run preflight:cellular-physical
+
+This *read-only* diagnostic inspects the iOS app's committed Xcode settings,
+checks only the existence of locally available Apple code-signing identities
+and candidate provisioning profiles, and asks the existing iGentic doctor for
+a live CoreDevice tunnel status. It does **not** create or select an Apple
+Developer Team, change bundle identifiers, inspect certificate contents,
+reveal identifiers, print paths, install an app or start a public server.
+Candidate profiles are **not** verified to match the specific app.
+Presence of a developer identity does not prove that the current app can
+be signed. Every report explicitly sets the profile-match, physical-install
+and cellular-transport evidence flags to false.
+
+With default source settings, the app still has an empty
+DEVELOPMENT_TEAM and placeholder org.example.iGenticDiagnostics identifier.
+The owner must configure their own development team and app identifier
+privately in Xcode before physical signing. The report never prints their team,
+certificate, device ID, host name or pairing secret. Physical network
+reachability is separate from HTTPS owner-host readiness and from a
+successful 4G/5G task transaction.
+
+## Mac-only readiness verification of an owner HTTPS server
+
+After the owner has explicitly provisioned a trusted HTTPS hostname,
+certificate and privately stored pairing key, run **on the Mac**:
+
+    cd plugins/iphone-connect
+    export IGENTIC_CELLULAR_ENDPOINT="https://YOUR-OWN-HOST/v1/companion/readiness"
+    export IGENTIC_CELLULAR_SHARED_KEY_FILE="/path/to/private/readiness.key"
+    npm run smoke:cellular-host
+
+The new first-party test client sends one nonce-bound HMAC-signed, fixed
+readiness JSON request to **only the explicitly configured HTTPS endpoint**.
+It uses normal system TLS trust, refuses redirects, checks the exact fixed
+response body, verifies the server's **request-bound HMAC response proof**,
+rejects malformed/oversized responses and checks private key-file permissions.
+The Mac probe opens its pairing key with `O_NOFOLLOW`, checks owner,
+file mode and exact key-file size through the same open descriptor,
+and rejects symlinks without a path-check/read race.
+The private key, URL, IP, host identity and request parameters are never
+printed. The production script offers **no** option to disable TLS
+verification. It does **not** create a service or expose a network port.
+Without owner configuration it fails closed and does not contact a host.
+
+Success only produces a sanitized record marked
+`authenticated-owner-host-readiness`, with
+`route=mac-network`, `cellularVerified=false`,
+`iphoneAppVerified=false` and `backgroundVerified=false`.
+**This is not a physical iPhone test** and not proof that any 4G/5G radio,
+iOS app, device authorization or agent loop is functioning. No host has been
+configured for the actual deployment in this PR. Tests use a *throwaway*
+localhost TLS certificate, trusted only by the test code; they never disable
+TLS checking for production.
 
 ## Per-request physical transport evidence
 

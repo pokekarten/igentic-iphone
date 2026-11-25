@@ -1,8 +1,10 @@
 # iGentic iPhone — comparative capability gap audit
 **Date:** 2026-11-23
 **Project source reviewed:** `pokekarten/igentic-iphone`, development HEAD `372e50a` (draft PR #403, stacked on #402); **not** current `main`.
-**Research input:** [Atlas PR #379](https://github.com/pokekarten/igentic-iphone/pull/379) (the atlas file is on that PR's branch, not in this stacked PR), assembled on 2026-11-21/22.
+**Research input:** [Atlas PR #379](https://github.com/pokekarten/igentic-iphone/pull/379) ([consolidated atlas snapshot](../research/IPHONE_AGENT_PROJECT_ATLAS.md)), assembled on 2026-11-21/22.
 **Corpus:** 99 GitHub URL identities explicitly in the atlas (**98 external upstreams + iGentic**), plus **9 additional external projects in its cross-reference inventory** = **107 external references total**. Entries may be prior README claims, not new individual source-code audits or real-device tests. Selected high-priority upstreams were separately rechecked via current GitHub README and official product documentation on 2026-11-23.
+
+**Historical snapshot:** All capability and readiness statements refer to the source revision above, not the current integrated Agent Loop. Later changes require a separate evidence-based reassessment.
 
 ## Executive conclusion
 

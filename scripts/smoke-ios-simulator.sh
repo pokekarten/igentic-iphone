@@ -15,7 +15,12 @@ selector_args=()
 if [[ -n "${IOS27_MATCHED_RUNTIME:-}" ]]; then
   selector_args+=(--match-runtime "${IOS27_MATCHED_RUNTIME}")
 fi
-SIMULATOR_UDID="$(xcrun simctl list devices available -j | python3 "$(dirname "${BASH_SOURCE[0]}")/select_ios27_simulator.py" "${selector_args[@]}")"
+if [[ -n "${IGENTIC_SIMULATOR_UDID:-}" ]]; then
+  # CI provisions this disposable device. Never switch to a shared one.
+  SIMULATOR_UDID="${IGENTIC_SIMULATOR_UDID}"
+else
+  SIMULATOR_UDID="$(xcrun simctl list devices available -j | python3 "$(dirname "${BASH_SOURCE[0]}")/select_ios27_simulator.py" "${selector_args[@]}")"
+fi
 
 cleanup() {
   xcrun simctl terminate "${SIMULATOR_UDID}" "${BUNDLE_IDENTIFIER}" >/dev/null 2>&1 || true
@@ -24,7 +29,16 @@ cleanup() {
 trap cleanup EXIT
 
 xcrun simctl boot "${SIMULATOR_UDID}" 2>/dev/null || true
-xcrun simctl bootstatus "${SIMULATOR_UDID}" -b
+# Fail with a clear infrastructure error rather than hanging indefinitely.
+python3 - "${SIMULATOR_UDID}" <<'PYBOOT'
+import subprocess
+import sys
+try:
+    subprocess.run(["xcrun", "simctl", "bootstatus", sys.argv[1], "-b"],
+                   timeout=240, check=True)
+except subprocess.TimeoutExpired:
+    raise SystemExit("Simulator boot timed out after 240 seconds")
+PYBOOT
 xcrun simctl install "${SIMULATOR_UDID}" "${APP_PATH}"
 
 launch_and_verify() {

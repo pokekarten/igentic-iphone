@@ -27,7 +27,13 @@ interface once Apple's metrics arrive; missing metrics remain unverified.
 This is **not** remote iOS control, a continuous background service, or proof
 of real-world 4G/5G connectivity: deployment still needs a signed new iPhone
 app, trusted HTTPS host and explicit physical mobile-data acceptance. USB-C
-and Wi-Fi remain independent connection options.
+and Wi-Fi remain independent connection options. The optional
+`npm run smoke:cellular-host` preflight checks an explicitly configured
+owner-operated HTTPS server **from the Mac only** and never claims a cellular
+or iPhone-device connection. For physical-install prerequisites, use the
+separate read-only npm run preflight:cellular-physical command in the
+iPhone Connect plugin. It reports only sanitized statuses and never
+installs an app or changes Apple account settings.
 
 **All add-ons are optional.** The native iOS `Offline-Werkzeuge` module provides
 manual text drafts, explicit copy, on-device speech and selected-image Vision
@@ -103,6 +109,7 @@ See:
 - `MODEL_STRATEGY.md`
 - `docs/KNOWLEDGE_MAP.md`
 - `docs/model-research/README.md`
+- [External mobile-agent research and historical evidence](docs/research/README.md)
 - `docs/provider-research/README.md`
 - `docs/GITHUB_CONTROL.md`
 - `docs/VALIDATION.md`
