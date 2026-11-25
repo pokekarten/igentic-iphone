@@ -2,7 +2,8 @@
 import SwiftUI
 
 /// An honest chat-shaped entry point for existing, owner-controlled tools.
-/// No LLM calls, cross-app automation, background control or fake receipts.
+/// Explicit local-model diagnostic workflow; no cross-app automation,
+/// background control or fake receipts.
 public struct AgentHomePrototypeView: View {
     @State private var input = ""
     @FocusState private var isPromptFocused: Bool
@@ -12,6 +13,8 @@ public struct AgentHomePrototypeView: View {
     @State private var nativeLoopTestText: String?
     @State private var loopMessage: String?
     @State private var loopReady = false
+    @State private var diagnosticRun: Task<Void, Never>?
+    @State private var diagnosticReport: AgentLoopDiagnosticReport?
     private let loopStore = AgentLoopShortcutExchangeStore()
     @Environment(\.dismiss) private var dismiss
 
@@ -175,6 +178,33 @@ public struct AgentHomePrototypeView: View {
                     Text("Nur feste Testvorschläge und eine eigene Statusabfrage. Kein ChatGPT-Aufruf, keine Datenweitergabe und keine anderen iPhone-Apps.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Lokaler KI-Agent: Diagnosebericht").font(.headline)
+                    Text("Das Apple-Sprachmodell plant mehrere lokale Schritte. iGentic prüft und führt ausschließlich eigene Status- und KI-Bereitschaftsabfragen aus und erstellt daraus einen Bericht.")
+                        .font(.footnote)
+                    Button("Lokalen KI-Agenten starten") {
+                        diagnosticReport = nil
+                        diagnosticRun = Task { @MainActor in
+                            diagnosticReport = await AgentLoopLocalDiagnosticWorkflow.runOnDevice()
+                            diagnosticRun = nil
+                        }
+                    }
+                    .disabled(diagnosticRun != nil)
+                    .accessibilityIdentifier("igentic-agent-diagnostic-start")
+                    if diagnosticRun != nil {
+                        ProgressView("Lokale Planung läuft")
+                        Button("Abbrechen") { diagnosticRun?.cancel() }
+                    }
+                    if let result = diagnosticReport {
+                        Text(result.localReport ?? "Gestoppt: \(result.outcome.rawValue)")
+                            .font(.footnote)
+                            .accessibilityIdentifier("igentic-agent-diagnostic-report")
+                        Text("Modellschritte: \(result.modelTurns) · Keine externe Übertragung")
+                            .font(.caption)
+                    }
+                }
+                .onDisappear { diagnosticRun?.cancel() }
 
                 Text("Direkt öffnen").font(.headline)
                 VStack(alignment: .leading, spacing: 12) {

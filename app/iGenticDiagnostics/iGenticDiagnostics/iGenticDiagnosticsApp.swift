@@ -111,6 +111,15 @@ struct iGenticDiagnosticsApp: App {
             }
             #if DEBUG
             .task {
+                guard ProcessInfo.processInfo.arguments.contains("--igentic-local-agent-diagnostic-smoke") else { return }
+                let report = await AgentLoopLocalDiagnosticWorkflow.runOnDevice()
+                let result = "PHYSICAL_AGENT_WORKFLOW=\(report.outcome.rawValue); turns=\(report.modelTurns); steps=\(report.steps.map(\.rawValue).joined(separator: ",")); reportPrepared=\(report.localReport != nil)"
+                print(result)
+                physicalProbeStatus = result
+            }
+            #endif
+            #if DEBUG
+            .task {
             // One strictly opt-in, own-app, synthetic physical acceptance:
             // no AI model is invoked, and any preexisting owner task is
             // NEVER touched. The only external receipt is fixed booleans.
