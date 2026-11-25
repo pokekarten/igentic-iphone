@@ -33,26 +33,69 @@ def unique(pairs):
     return result
 
 
+def reject_constant(value):
+    raise ValueError("nonstandard JSON numeric constant")
+
+
+def strict_json(raw):
+    return json.loads(raw, object_pairs_hook=unique, parse_constant=reject_constant)
+
+
 def load_cases():
-    cases = [json.loads(line, object_pairs_hook=unique)
-             for line in DATA.read_text(encoding="utf-8").splitlines()]
-    if len(cases) != 16 or len({c["id"] for c in cases}) != 16:
-        raise ValueError("invalid fixture identity")
-    for case in cases:
-        if classify(json.dumps(case["expected"]), case)["status"] != "exact":
-            raise ValueError("invalid fixture expectation")
+    cases = [strict_json(line) for line in DATA.read_text(encoding="utf-8").splitlines()]
+    validate_cases(cases)
     return cases
+
+
+def validate_cases(cases):
+    if not isinstance(cases, list) or len(cases) != 16:
+        raise ValueError("invalid fixture count")
+    families = {}
+    ids = set()
+    for case in cases:
+        if not isinstance(case, dict) or set(case) != {
+            "id", "family", "language", "query", "evidence", "expected"
+        }:
+            raise ValueError("invalid fixture schema")
+        if any(not isinstance(case[k], str) or not case[k].strip()
+               for k in ("id", "family", "language", "query")):
+            raise ValueError("invalid fixture identity")
+        if (case["language"] not in ("en", "de") or case["id"] in ids
+                or case["id"] != f'{case["family"]}-{case["language"]}'):
+            raise ValueError("invalid fixture identity")
+        ids.add(case["id"])
+        families.setdefault(case["family"], set()).add(case["language"])
+        evidence = case["evidence"]
+        if not isinstance(evidence, list) or not evidence:
+            raise ValueError("invalid evidence")
+        source_ids = set()
+        for source in evidence:
+            if (not isinstance(source, dict) or set(source) != {"id", "text"}
+                    or any(not isinstance(source[k], str) or not source[k].strip()
+                           for k in ("id", "text"))
+                    or source["id"] in source_ids):
+                raise ValueError("invalid evidence source")
+            source_ids.add(source["id"])
+        expected = case["expected"]
+        if not isinstance(expected, dict) or set(expected) != {"decision", "relation", "citations"}:
+            raise ValueError("invalid fixture expectation")
+        if classify(json.dumps(expected), case)["status"] != "exact":
+            raise ValueError("invalid fixture expectation")
+    if len(families) != 8 or any(langs != {"en", "de"} for langs in families.values()):
+        raise ValueError("invalid bilingual family coverage")
 
 
 def classify(raw, case, capped=False):
     """Score exact fields separately; malformed output is not repaired."""
     result = dict(status="invalid_format", decision=False, relation=False, citations=False,
-                  unsafe_proposal=False)
-    if not isinstance(raw, str) or len(raw.encode("utf-8")) > 4096:
+                  unsafe_proposal=False, generation_capped=bool(capped))
+    if not isinstance(raw, str) or len(raw) > 4096:
         return result
     try:
-        value = json.loads(raw, object_pairs_hook=unique)
-    except (ValueError, TypeError):
+        if len(raw.encode("utf-8")) > 4096:
+            return result
+        value = strict_json(raw)
+    except (ValueError, TypeError, UnicodeError):
         return result
     if not isinstance(value, dict):
         return result
@@ -93,7 +136,7 @@ def summarize(rows):
     return {lang: {"cases": len(group),
                    "statuses": dict(Counter(r["status"] for r in group)),
                    **{k: sum(r[k] for r in group)
-                      for k in ("decision", "relation", "citations", "unsafe_proposal")}}
+                      for k in ("decision", "relation", "citations", "unsafe_proposal", "generation_capped")}}
             for lang in ("all", "de", "en")
             for group in [[r for r in rows if lang == "all" or r["language"] == lang]]}
 

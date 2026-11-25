@@ -52,6 +52,30 @@ class DecisionKnowledgeTests(unittest.TestCase):
     def test_capped(self):
         self.assertEqual(ev.classify(json.dumps(self.case["expected"]), self.case, capped=True)["status"], "capped")
 
+    def test_invalid_unicode_and_nonstandard_json(self):
+        for raw in ("\ud800", '{"decision":"propose","relation":"supported","citations":[NaN]}'):
+            self.assertEqual(ev.classify(raw, self.case)["status"], "invalid_format")
+
+    def test_malformed_capped_generation_is_counted(self):
+        row = ev.classify("{", self.case, capped=True)
+        self.assertEqual(row["status"], "invalid_format")
+        self.assertTrue(row["generation_capped"])
+        summary = ev.summarize([dict(row, language="de")])
+        self.assertEqual(summary["all"]["generation_capped"], 1)
+
+    def test_fixture_validation_rejects_duplicate_sources_and_identity(self):
+        import copy
+        for kind in ("source", "language", "id"):
+            cases = copy.deepcopy(self.cases)
+            if kind == "source":
+                cases[0]["evidence"].append(cases[0]["evidence"][0])
+            elif kind == "language":
+                cases[0]["language"] = "fr"
+            else:
+                cases[0]["id"] = cases[1]["id"]
+            with self.assertRaises(ValueError):
+                ev.validate_cases(cases)
+
     def test_default_does_not_infer(self):
         with patch("sys.argv", ["eval"]), patch.object(ev, "run_mlx") as run:
             self.assertEqual(ev.main(), 0)
