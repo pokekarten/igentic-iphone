@@ -95,3 +95,93 @@ final class AgentLoopDiagnosticJournalTests: XCTestCase {
         }
     }
 }
+
+extension AgentLoopDiagnosticJournalTests {
+    @MainActor
+    func testQueuePersistsFIFOAndRejectsOutOfOrderExecution() async throws {
+        let (dir,url) = try fixture()
+        defer { try? FileManager.default.removeItem(at:dir) }
+        let journal = AgentLoopDiagnosticJournal(url:url)
+        let first = try journal.enqueue(goal:.basic)
+        let second = try journal.enqueue(goal:.extended)
+        let reopened = AgentLoopDiagnosticJournal(url:url)
+        XCTAssertEqual(try reopened.snapshot()?.queuedTickets.map(\.id),[first,second])
+        do {
+            _ = try await reopened.run(goal:.extended,queuedID:second) { _ in
+                XCTFail("Out-of-order execution")
+                return .init(outcome:.failed,steps:[],modelTurns:0,localReport:nil)
+            }
+            XCTFail("Out-of-order ticket accepted")
+        } catch { XCTAssertEqual(error as? AgentLoopDiagnosticJournal.Failure,.staleTicket) }
+        let report = try await reopened.run(goal:.basic,queuedID:first) { checkpoint in
+            await AgentLoopLocalDiagnosticWorkflow.run(propose: { p in
+                ["status.read","model.readiness","finish"][p.completed.count]
+            }, readStatus: { .init(batteryFraction:0.5,lowPowerModeEnabled:false,osVersion:"27") },
+            checkModel:{true},elapsed:{1},checkpoint:checkpoint)
+        }
+        XCTAssertEqual(report.outcome,.completed)
+        let saved = try XCTUnwrap(reopened.snapshot())
+        XCTAssertEqual(saved.id,first)
+        XCTAssertEqual(saved.queuedTickets.map(\.id),[second])
+        _ = try await reopened.run(goal:.extended,queuedID:second) { _ in
+            .init(outcome:.failed,steps:[],modelTurns:1,localReport:nil)
+        }
+        XCTAssertEqual(try reopened.snapshot()?.stage,.stopped)
+        XCTAssertEqual(try reopened.snapshot()?.queuedTickets,[])
+    }
+
+    @MainActor
+    func testQueueBoundRemovalAndDirectRunGate() async throws {
+        let (dir,url) = try fixture()
+        defer { try? FileManager.default.removeItem(at:dir) }
+        let journal = AgentLoopDiagnosticJournal(url:url)
+        var ids: [UUID] = []
+        for _ in 0..<4 { ids.append(try journal.enqueue(goal:.basic)) }
+        XCTAssertThrowsError(try journal.enqueue(goal:.extended)) {
+            XCTAssertEqual($0 as? AgentLoopDiagnosticJournal.Failure,.queueFull)
+        }
+        try journal.removeQueued(id:ids[0])
+        try journal.removeQueued(id:ids[2])
+        XCTAssertEqual(try journal.snapshot()?.queuedTickets.map(\.id),[ids[1],ids[3]])
+        XCTAssertThrowsError(try journal.removeQueued(id:ids[0])) {
+            XCTAssertEqual($0 as? AgentLoopDiagnosticJournal.Failure,.staleTicket)
+        }
+        do {
+            _ = try await journal.run(goal:.basic) { _ in
+                XCTFail("Queue bypassed")
+                return .init(outcome:.failed,steps:[],modelTurns:0,localReport:nil)
+            }
+            XCTFail("Direct run accepted despite pending queue")
+        } catch { XCTAssertEqual(error as? AgentLoopDiagnosticJournal.Failure,.queuePending) }
+    }
+
+    @MainActor
+    func testInterruptedHeadDoesNotConsumeLaterTicket() async throws {
+        let (dir,url) = try fixture()
+        defer { try? FileManager.default.removeItem(at:dir) }
+        let journal = AgentLoopDiagnosticJournal(url:url)
+        let first = try journal.enqueue(goal:.basic)
+        let second = try journal.enqueue(goal:.extended)
+        do {
+            _ = try await journal.run(goal:.basic,queuedID:first) { checkpoint in
+                do { try checkpoint([.readStatus]) } catch { XCTFail("Checkpoint failed") }
+                return .init(outcome:.failed,steps:[],modelTurns:1,localReport:nil)
+            }
+            XCTFail("Invalid terminal report accepted")
+        } catch { XCTAssertEqual(error as? AgentLoopDiagnosticJournal.Failure,.invalid) }
+        let reopened = AgentLoopDiagnosticJournal(url:url)
+        XCTAssertEqual(try reopened.snapshot()?.stage,.running)
+        XCTAssertEqual(try reopened.snapshot()?.queuedTickets.map(\.id),[second])
+        do {
+            _ = try await reopened.run(goal:.extended,queuedID:second) { _ in
+                XCTFail("Interrupted task bypassed")
+                return .init(outcome:.failed,steps:[],modelTurns:0,localReport:nil)
+            }
+            XCTFail("Later ticket accepted")
+        } catch { XCTAssertEqual(error as? AgentLoopDiagnosticJournal.Failure,.staleTicket) }
+        _ = try await reopened.run(goal:.basic,restartID:first) { _ in
+            .init(outcome:.cancelled,steps:[],modelTurns:0,localReport:nil)
+        }
+        XCTAssertEqual(try reopened.snapshot()?.queuedTickets.map(\.id),[second])
+    }
+}

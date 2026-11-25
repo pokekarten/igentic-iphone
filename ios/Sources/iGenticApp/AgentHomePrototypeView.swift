@@ -190,19 +190,42 @@ public struct AgentHomePrototypeView: View {
                     Button("Lokalen KI-Agenten starten") {
                         startDiagnostic(.basic)
                     }
-                    .disabled(diagnosticRun != nil || scenePhase != .active || diagnosticJournalBlocked || diagnosticCheckpoint?.stage == .running)
+                    .disabled(diagnosticRun != nil || scenePhase != .active || diagnosticJournalBlocked || diagnosticCheckpoint?.stage == .running || !(diagnosticCheckpoint?.queuedTickets.isEmpty ?? true))
                     .accessibilityIdentifier("igentic-agent-diagnostic-start")
                     Button("Erweiterten Fähigkeitsbericht erstellen") {
                         startDiagnostic(.extended)
                     }
-                    .disabled(diagnosticRun != nil || scenePhase != .active || diagnosticJournalBlocked || diagnosticCheckpoint?.stage == .running)
+                    .disabled(diagnosticRun != nil || scenePhase != .active || diagnosticJournalBlocked || diagnosticCheckpoint?.stage == .running || !(diagnosticCheckpoint?.queuedTickets.isEmpty ?? true))
                     .accessibilityIdentifier("igentic-agent-diagnostic-extended")
+                    Text("Lokale Aufgabenwarteschlange").font(.subheadline).bold()
+                    HStack {
+                        Button("Basis einreihen") { enqueueDiagnostic(.basic) }
+                        Button("Erweitert einreihen") { enqueueDiagnostic(.extended) }
+                    }
+                    .disabled(diagnosticRun != nil || scenePhase != .active || diagnosticJournalBlocked
+                              || diagnosticCheckpoint?.stage == .running || (diagnosticCheckpoint?.queuedTickets.count ?? 0) >= 4)
+                    if let tickets = diagnosticCheckpoint?.queuedTickets, !tickets.isEmpty {
+                        ForEach(tickets, id: \.id) { ticket in
+                            HStack {
+                                Text(ticket.goal == .basic ? "Basisdiagnose" : "Fähigkeitsbericht")
+                                Spacer()
+                                Button("Entfernen") { removeQueuedDiagnostic(ticket.id) }
+                                    .disabled(diagnosticRun != nil || diagnosticJournalBlocked || scenePhase != .active
+                                              || diagnosticCheckpoint?.stage == .running)
+                            }
+                        }
+                        Button("Warteschlange lokal abarbeiten") { runDiagnosticQueue() }
+                            .disabled(diagnosticRun != nil || diagnosticJournalBlocked || scenePhase != .active
+                                      || diagnosticCheckpoint?.stage == .running)
+                        Text("Bis zu vier Diagnoseaufträge nacheinander, nur bei aktiver App. Bei Fehler oder Abbruch bleiben weitere Aufträge in der Warteschlange.")
+                            .font(.caption)
+                    }
                     if diagnosticJournalBlocked {
                         Text("Aufgabenjournal nicht verfügbar. Keine neue Ausführung.").font(.caption)
                     }
                     if let saved = diagnosticCheckpoint {
                         Text("Letzter Auftrag: \(saved.steps.count) bestätigte Schritte · " +
-                             (saved.stage == .running ? "unterbrochen" : saved.stage == .completed ? "abgeschlossen" : "gestoppt"))
+                             (saved.stage == .queued ? "wartet" : saved.stage == .running ? "unterbrochen" : saved.stage == .completed ? "abgeschlossen" : "gestoppt"))
                             .font(.caption)
                         if saved.stage == .running {
                             Button("Unterbrochene Diagnose neu starten") {
@@ -282,6 +305,42 @@ public struct AgentHomePrototypeView: View {
             diagnosticJournalBlocked = false
         } catch {
             diagnosticJournalBlocked = true
+        }
+    }
+
+    private func enqueueDiagnostic(_ goal: AgentLoopDiagnosticGoal) {
+        guard diagnosticRun == nil, scenePhase == .active, !diagnosticJournalBlocked else { return }
+        do { try diagnosticJournal.enqueue(goal: goal) }
+        catch { diagnosticJournalBlocked = true }
+        refreshDiagnosticJournal()
+    }
+
+    private func removeQueuedDiagnostic(_ id: UUID) {
+        guard diagnosticRun == nil, scenePhase == .active, !diagnosticJournalBlocked else { return }
+        do { try diagnosticJournal.removeQueued(id: id) }
+        catch { diagnosticJournalBlocked = true }
+        refreshDiagnosticJournal()
+    }
+
+    private func runDiagnosticQueue() {
+        guard diagnosticRun == nil, scenePhase == .active, !diagnosticJournalBlocked else { return }
+        // Capture the owner-selected batch, never silently consume later additions.
+        let tickets = diagnosticCheckpoint?.queuedTickets ?? []
+        guard !tickets.isEmpty else { return }
+        diagnosticReport = nil
+        diagnosticRun = Task { @MainActor in
+            defer { diagnosticRun = nil; refreshDiagnosticJournal() }
+            for ticket in tickets {
+                guard !Task.isCancelled, scenePhase == .active else { return }
+                do {
+                    let report = try await diagnosticJournal.run(goal: ticket.goal, queuedID: ticket.id) { checkpoint in
+                        await AgentLoopLocalDiagnosticWorkflow.runOnDevice(goal: ticket.goal, checkpoint: checkpoint)
+                    }
+                    guard !Task.isCancelled, scenePhase == .active else { return }
+                    diagnosticReport = report
+                    guard report.outcome == .completed else { return }
+                } catch { return }
+            }
         }
     }
 

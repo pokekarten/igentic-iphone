@@ -7,15 +7,30 @@ import Glibc
 
 /// Metadata only. No observation, prompt, approval, credential or action payload.
 struct AgentLoopDiagnosticCheckpoint: Codable, Equatable, Sendable {
-    enum Stage: String, Codable, Sendable { case running, completed, stopped }
+    enum Stage: String, Codable, Sendable { case queued, running, completed, stopped }
+    struct Ticket: Codable, Equatable, Sendable {
+        let id: UUID
+        let goal: AgentLoopDiagnosticGoal
+    }
     let schema: Int
     let id: UUID
     let goal: AgentLoopDiagnosticGoal
     var steps: [AgentLoopDiagnosticStep]
     var stage: Stage
+    // Optional field preserves canonical decoding of existing v1 journals.
+    var pending: [Ticket]? = nil
+
+    var queuedTickets: [Ticket] {
+        (stage == .queued ? [Ticket(id: id, goal: goal)] : []) + (pending ?? [])
+    }
 
     var valid: Bool {
         let reads = goal.requiredReads
+        let waiting = pending ?? []
+        guard queuedTickets.count <= 4, waiting.allSatisfy({ $0.id != id }),
+              Set(waiting.map(\.id)).count == waiting.count,
+              pending == nil || !waiting.isEmpty,
+              stage != .queued || steps.isEmpty else { return false }
         guard schema == 1, Set(steps).count == steps.count,
               steps.allSatisfy({ reads.contains($0) || $0 == .finish }) else { return false }
         if steps.contains(.finish) {
@@ -31,7 +46,7 @@ struct AgentLoopDiagnosticCheckpoint: Codable, Equatable, Sendable {
 /// observation is reused and this type grants no write or remote authority.
 @MainActor
 final class AgentLoopDiagnosticJournal {
-    enum Failure: Error, Equatable { case busy, invalid, recoveryRequired, staleRecovery }
+    enum Failure: Error, Equatable { case busy, invalid, recoveryRequired, staleRecovery, queueFull, queuePending, staleTicket }
     private let url: URL
     init(url: URL = defaultURL()) { self.url = url }
     static func defaultURL() -> URL {
@@ -97,18 +112,74 @@ final class AgentLoopDiagnosticJournal {
         return try load()
     }
 
-    func run(goal: AgentLoopDiagnosticGoal, restartID: UUID? = nil,
+    /// Queue a fixed read-only goal. Never launches a model or tool.
+    @discardableResult
+    func enqueue(goal: AgentLoopDiagnosticGoal) throws -> UUID {
+        let fd = try claim()
+        defer { _ = close(fd) }
+        let ticket = AgentLoopDiagnosticCheckpoint.Ticket(id: UUID(), goal: goal)
+        if var state = try load() {
+            guard state.queuedTickets.count < 4 else { throw Failure.queueFull }
+            if state.stage == .running { throw Failure.recoveryRequired }
+            if state.stage == .queued || !state.queuedTickets.isEmpty {
+                state.pending = (state.pending ?? []) + [ticket]
+                try save(state)
+                return ticket.id
+            }
+        }
+        try save(.init(schema: 1, id: ticket.id, goal: goal, steps: [], stage: .queued))
+        return ticket.id
+    }
+
+    /// Remove only a matching waiting task. No active or completed attempt
+    /// can be cancelled or rewritten by a stale queue selection.
+    func removeQueued(id: UUID) throws {
+        let fd = try claim()
+        defer { _ = close(fd) }
+        guard var state = try load(), state.stage != .running,
+              state.queuedTickets.contains(where: { $0.id == id }) else { throw Failure.staleTicket }
+        if state.stage == .queued && state.id == id {
+            let remaining = state.pending ?? []
+            if let first = remaining.first {
+                let rest = Array(remaining.dropFirst())
+                state = .init(schema: 1, id: first.id, goal: first.goal, steps: [], stage: .queued,
+                              pending: rest.isEmpty ? nil : rest)
+            } else {
+                state.stage = .stopped
+            }
+        } else {
+            let remaining = (state.pending ?? []).filter { $0.id != id }
+            state.pending = remaining.isEmpty ? nil : remaining
+        }
+        try save(state)
+    }
+
+    func run(goal: AgentLoopDiagnosticGoal, restartID: UUID? = nil, queuedID: UUID? = nil,
              operation: @MainActor ((@MainActor ([AgentLoopDiagnosticStep]) throws -> Void)) async -> AgentLoopDiagnosticReport
     ) async throws -> AgentLoopDiagnosticReport {
         let fd = try claim()
         defer { _ = close(fd) }
         let previous = try load()
+        guard restartID == nil || queuedID == nil else { throw Failure.invalid }
+        var pending = previous?.pending
+        var attemptID = UUID()
         if let restartID {
             guard let previous, previous.id == restartID, previous.stage == .running,
                   previous.goal == goal else { throw Failure.staleRecovery }
-        } else if previous?.stage == .running { throw Failure.recoveryRequired }
+        } else if let queuedID {
+            guard let previous, previous.stage != .running,
+                  let next = previous.queuedTickets.first,
+                  next.id == queuedID, next.goal == goal else { throw Failure.staleTicket }
+            attemptID = next.id
+            let remaining = Array(previous.queuedTickets.dropFirst())
+            pending = remaining.isEmpty ? nil : remaining
+        } else {
+            if previous?.stage == .running { throw Failure.recoveryRequired }
+            if !(previous?.queuedTickets.isEmpty ?? true) { throw Failure.queuePending }
+        }
         try Task.checkCancellation()
-        var state = AgentLoopDiagnosticCheckpoint(schema: 1, id: UUID(), goal: goal, steps: [], stage: .running)
+        var state = AgentLoopDiagnosticCheckpoint(schema: 1, id: attemptID, goal: goal,
+                                                  steps: [], stage: .running, pending: pending)
         try save(state)
         var acceptingProgress = true
         let report = await operation { steps in
@@ -120,7 +191,7 @@ final class AgentLoopDiagnosticJournal {
             state = next
         }
         acceptingProgress = false
-        guard report.steps == state.steps else { throw Failure.invalid }
+        guard report.steps == state.steps, !Task.isCancelled || report.outcome != .completed else { throw Failure.invalid }
         state.stage = report.outcome == .completed ? .completed : .stopped
         try save(state)
         return report
