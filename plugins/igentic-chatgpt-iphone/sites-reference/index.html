@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; connect-src 'none'; img-src 'none'">
+  <title>iGentic iPhone – manuelle Übergabe</title>
+  <style>
+    :root { color-scheme: light dark; font: 16px/1.5 system-ui,-apple-system,BlinkMacSystemFont,sans-serif; }
+    body { max-width: 640px; margin: 2rem auto; padding: 0 1.25rem; }
+    nav { display: grid; gap: .8rem; margin: 1.5rem 0; }
+    a { display: block; padding: 1rem; border: 1px solid; border-radius: .7rem; color: inherit; text-decoration: none; }
+    a:focus-visible { outline: 3px solid Highlight; outline-offset: 3px; }
+    small { display: block; opacity: .8; margin-top: .25rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>iGentic auf dem iPhone öffnen</h1>
+    <p>Diese Seite bietet ausschließlich drei feste Links zu deiner eigenen iGentic-App. Es wird keine Verbindung geprüft, keine Aktion ausgeführt und kein persönlicher Text übertragen.</p>
+    <nav aria-label="Erlaubte App-Bereiche">
+      <a href="igentic://handoff/v1/diagnostics">Diagnose öffnen<small>Lokale Statusansicht</small></a>
+      <a href="igentic://handoff/v1/discovery">Lokale Entdeckungen<small>Nur in der iGentic-App</small></a>
+      <a href="igentic://handoff/v1/reminder-draft">Erinnerungsentwurf<small>Kein Eintrag wird automatisch erstellt</small></a>
+    </nav>
+    <p><a href="/ki-loop">KI Loop einrichten und starten (manuelle Anleitung)</a></p>
+    <p><a href="/console">Plugin-Bedienfeld für Fähigkeiten, Kurzbefehle und manuelle Übergabe öffnen</a></p>
+    <p>Du musst die signierte iGentic-App installiert haben. iOS kann nachfragen, bevor die App geöffnet wird. In der App ist eine zweite manuelle Auswahl nötig. Diese Seite steuert weder andere Apps noch iOS-Einstellungen.</p>
+    <p><small>Falls ein Link im ChatGPT-Client nicht geöffnet wird, starte die iGentic-App direkt. Keine Daten werden hier gespeichert oder versendet.</small></p>
+  </main>
+</body>
+</html>

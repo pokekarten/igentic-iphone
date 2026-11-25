@@ -1,0 +1,36 @@
+{
+  "name": "igentic-local",
+  "interface": {
+    "displayName": "iGentic developer plugins"
+  },
+  "plugins": [
+    {
+      "name": "igentic-iphone-connect",
+      "source": {
+        "source": "local",
+        "path": "./plugins/iphone-connect"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    },
+    {
+      "name": "igentic-chatgpt-iphone",
+      "source": {
+        "source": "local",
+        "path": "./plugins/igentic-chatgpt-iphone"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools",
+      "interface": {
+        "displayName": "iGentic iPhone for ChatGPT",
+        "shortDescription": "Safe iPhone task handoff assistant"
+      }
+    }
+  ]
+}

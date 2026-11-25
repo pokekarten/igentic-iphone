@@ -1,7 +1,7 @@
 # Apple API Review
 
 Status: Phase 0 research artifact
-Original Phase-0 review: 2026-06-12; platform reassessment: 2026-11-21
+Last updated: 2026-06-12
 
 This document records what Apple APIs and platform concepts are relevant to iGentic iPhone before we add real App Intents, local model runtimes, or device-specific behavior.
 
@@ -99,17 +99,3 @@ Apple APIs support the project direction, but the safe order remains:
 6. diagnostic UI,
 7. App Intents,
 8. model runtime.
-
-
-## November 2026 update: iOS 27 and the public/private API boundary
-
-This section supersedes the **time-specific** conclusions from June 2026, not the enduring policy and privacy rules. All capabilities below are **Apple-officially documented**, not proven on iGentic's physical iPhone Air.
-
-- [App Intents updates](https://developer.apple.com/documentation/updates/appintents): newer execution-target controls, system shortcut support and app-schema integration improve **declared actions**. The operating system still does not grant every third-party app unrestricted read/write access to other apps just because it exposes App Intents.
-- [Foundation Models](https://developer.apple.com/documentation/updates/foundationmodels): on iOS 27, `LanguageModel` is a provider-neutral API for compatible on-device and cloud language models. Native sessions can use guided generation, supported tool-calling modes and availability checks. The interface does **not** confer execution authorization; tool handlers still pass through iGentic's deterministic policy and approval.
-- [Evaluations framework](https://developer.apple.com/documentation/evaluations): Swift tool-call and output evaluation is newly available in Xcode 27. Evaluate against `igentic-action-benchmark-v0.jsonl` without changing frozen cases or treating results as physical device evidence.
-- [Foundation Models framework utilities](https://github.com/apple/foundation-models-utilities) and [Core AI models](https://github.com/apple/coreai-models): Apple-hosted open-source packages provide context/skills/provider utilities and export recipes respectively. Core AI model recipes target **iOS 27+**; old iOS builds need conditional compilation or separate backends.
-- [Apple's app distribution guidance](https://developer.apple.com/app-store/review/guidelines/) and [Developer Program agreement](https://developer.apple.com/support/terms/apple-developer-program-license-agreement/): **developer-mode/sideloaded cross-app testing** with XCTest/CoreDevice/DDI/loopback-VPN is a **separate lab capability** and not assumed to be permitted as an ordinary App Store feature. Do not enable it via a model prompt or bundle it into the production App Intents action surface.
-- [Model availability](https://support.apple.com/de-de/121115) depends on eligible hardware, OS, locale and actual system state. The iPhone Air is listed as Apple Intelligence compatible, but this is not proof the model is available or fast on the tested device.
-
-**Current recommendation:** build a typed safe App Intents/action path first; treat any unrestricted phone-control transport as optional, separately approved research; use the native OS-27 model API before adding a second session framework; maintain an explicitly tested older-OS fallback. The [technical reassessment](research/TECHNICAL_REASSESSMENT_2026_11_21.md) documents alternatives and stop conditions.

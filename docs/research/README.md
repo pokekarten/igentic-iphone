@@ -1,5 +1,7 @@
 # iGentic external-project research
 
+**Historical snapshot (2026-11-21/22).** Current product status, permissions, deployment baseline and priorities are governed by the active integration and project plan. Older platform proposals in this research do not reintroduce legacy iOS support. The original PR #379 preserves its proposed planning revisions in Git history; this integration keeps the current active plans intact.
+
 - [Own ChatGPT iPhone plugin: architecture and reuse decision](IPHONE_AGENT_PROJECT_ATLAS.md#2026-11-22-own-chatgpt-iphone-plugin--feasibility-and-implementation-decision) — all 107 indexed external repositories classified; current OpenAI plugin/MCP/MCP Apps paths, native versus developer-mode boundaries, staged implementation and acceptance. Architecture assessment only; no plugin/device integration executed.
 
 - [Five uploaded iOS 27 runtime repositories — 4,897-file source audit](FIVE_UPLOADED_IOS27_RUNTIME_SOURCE_AUDIT_2026_11_22.md) — Core AI Models/Kit/Zoo, MLX Swift LM and SwiftLlama, concrete code blockers, model authenticity and tool authorization.
@@ -17,4 +19,4 @@ This folder holds **curated external projects**, rather than product code, depen
   
 Use the evidence labels and privacy/publication rules in [the knowledge map](../KNOWLEDGE_MAP.md) and [source verification](../SOURCE_VERIFICATION.md). A third-party README is a **source claim**, not an iGentic physical-device test. Add findings to the existing atlas rather than creating duplicate lists.
 
-Last source review: **2026-11-22** (source-only ZIP inspection; not device testing).
+Last source review in this snapshot: **2026-11-22** (source-only ZIP inspection; not device testing).

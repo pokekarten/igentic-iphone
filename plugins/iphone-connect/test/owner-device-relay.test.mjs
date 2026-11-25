@@ -1,0 +1,205 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { randomBytes, randomUUID } from 'node:crypto';
+import { DatabaseSync } from 'node:sqlite';
+import { mkdtempSync, mkdirSync, rmSync, readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { createOwnerDeviceRelay } from '../src/owner-device-relay.mjs';
+import { provisionPrivateReplayLedger, createDurableOwnerProposalAdmission } from '../src/durable-task-admission.mjs';
+import { signReadOnlyDeviceKeyReceipt } from '../src/agent-loop-protocol.mjs';
+
+const NOW = 2_000_000_000;
+function fixture(t) {
+  const root = mkdtempSync(join(tmpdir(),'igentic-relay-test-'));
+  const databasePath=join(root,'replay.sqlite'), markerDirectory=join(root,'attempts');
+  mkdirSync(markerDirectory,{mode:0o700});
+  const [ownerAccessKey,deviceAccessKey,proposalKey,receiptKey,markerKey] =
+    Array.from({length:5},()=>randomBytes(32));
+  let current=NOW;
+  const config={ownerAccessKey,deviceAccessKey,proposalKey,receiptKey,markerKey,
+    databasePath,markerDirectory,nowSeconds:()=>current};
+  provisionPrivateReplayLedger({key:proposalKey,databasePath,
+    relayRoles:{ownerAccessKey,deviceAccessKey,receiptKey,markerKey}});
+  const handles=[];
+  const open=()=>{const relay=createOwnerDeviceRelay(config);handles.push(relay);return relay;};
+  t.after(()=>{for(const relay of handles) {try{relay.close(ownerAccessKey);}catch{}}rmSync(root,{recursive:true,force:true});});
+  return {config,open,ownerAccessKey,deviceAccessKey,receiptKey,setTime:t=>current=t};
+}
+test('separate roles, one claim, exact receipt and no execution claim',t=>{
+  const f=fixture(t), relay=f.open(), id=randomUUID();
+  const o=f.ownerAccessKey,d=f.deviceAccessKey;
+  assert.throws(()=>relay.submit(d,id),/relayAccessDenied/);
+  assert.throws(()=>relay.status(d),/relayAccessDenied/);
+  assert.equal(relay.claim(d),null);
+  assert.equal(relay.submit(o,id).state,'awaiting-manual-delivery');
+  assert.throws(()=>relay.claim(o),/relayAccessDenied/);
+  assert.equal(relay.status(o).receiptNonce,undefined);
+  const delivery=relay.claim(d);
+  assert.equal(JSON.parse(delivery.canonicalWire).body.requestId,id);
+  assert.equal(relay.claim(d),null);
+  assert.equal(relay.status(o).state,'outcome-unknown');
+  const sign=nonce=>signReadOnlyDeviceKeyReceipt({key:f.receiptKey,requestId:id,nonce,observedAt:NOW});
+  assert.throws(()=>relay.acceptReceipt(o,sign(delivery.receiptNonce)),/relayAccessDenied/);
+  assert.throws(()=>relay.acceptReceipt(d,sign(randomUUID())),/invalidAgentLoopReceipt/);
+  const result=relay.acceptReceipt(d,sign(delivery.receiptNonce));
+  assert.equal(result.receiptKeyAuthenticated,true);
+  assert.equal(result.actionExecuted,false);
+  assert.equal(result.ownerApproved,false);
+  assert.equal(result.iPhoneConnected,'not-checked');
+  assert.equal(relay.status(o).state,'receipt-key-authenticated');
+  assert.equal(relay.status(o).receiptKeyAuthenticated,true);
+  assert.throws(()=>relay.acceptReceipt(d,sign(delivery.receiptNonce)),/invalidAgentLoopTransition/);
+});
+test('lost claim and restart recover only uncertainty; same task cannot be reissued',t=>{
+  const f=fixture(t), o=f.ownerAccessKey,d=f.deviceAccessKey,id=randomUUID();
+  const first=f.open();first.submit(o,id);first.claim(d);first.close(o);
+  const next=f.open();
+  assert.equal(next.result(o,id),null);
+  assert.equal(next.recover(o,id).state,'outcome-unknown');
+  assert.equal(next.recover(o,id).automaticRetryAllowed,false);
+  assert.throws(()=>next.submit(o,id),/relayDeliveryAlreadyUncertain/);
+  f.setTime(NOW+120);
+  assert.throws(()=>next.submit(o,id),/relayDeliveryAlreadyUncertain/);
+  assert.equal(next.claim(d),null);
+});
+test('expired or cancelled tasks never release a delivery',t=>{
+  const f=fixture(t),o=f.ownerAccessKey,d=f.deviceAccessKey;
+  const first=f.open(), id=randomUUID();first.submit(o,id);
+  f.setTime(NOW+60);assert.equal(first.claim(d),null);
+  assert.equal(first.status(o).state,'expired-before-send');
+  const second=f.open(), next=randomUUID();second.submit(o,next);
+  second.cancel(o,next);assert.equal(second.claim(d),null);
+});
+test('key reuse and caller mutation cannot expand relay authority',t=>{
+  const f=fixture(t);
+  assert.throws(()=>createOwnerDeviceRelay({...f.config,deviceAccessKey:f.ownerAccessKey}),/invalidRelayConfig/);
+  const relay=f.open(), old=Buffer.from(f.ownerAccessKey);
+  f.ownerAccessKey.fill(0);
+  assert.throws(()=>relay.status(f.ownerAccessKey),/relayAccessDenied/);
+  assert.equal(relay.status(old).state,'empty');
+  relay.close(old);
+  assert.throws(()=>relay.status(old),/relayAccessDenied/);
+});
+
+
+test('expiry after delivery preparation prevents payload and receipt even after rollback',t=>{
+  const f=fixture(t),o=f.ownerAccessKey,d=f.deviceAccessKey,id=randomUUID();
+  let armed=false,reads=0;
+  const relay=createOwnerDeviceRelay({...f.config,nowSeconds:()=>armed&&++reads===6?NOW+60:NOW});
+  t.after(()=>relay.close(o));
+  relay.submit(o,id);
+  armed=true;
+  assert.equal(relay.claim(d),null);
+  assert.equal(relay.status(o).state,'outcome-unknown');
+  assert.equal(relay.claim(d),null);
+  assert.throws(()=>relay.acceptReceipt(d,{}),/invalidAgentLoopTransition/);
+  assert.throws(()=>relay.cancel(o,id),/invalidAgentLoopTransition/);
+});
+
+test('a device cannot claim after the clock moves before task issuance', t => {
+  const f = fixture(t), relay = f.open(), id = randomUUID();
+  relay.submit(f.ownerAccessKey, id);
+  f.setTime(NOW - 1);
+  assert.equal(relay.claim(f.deviceAccessKey), null);
+  f.setTime(NOW);
+  assert.equal(relay.claim(f.deviceAccessKey), null);
+  assert.equal(relay.status(f.ownerAccessKey).state, 'expired-before-send');
+});
+
+test('receipt accepted before a clock rollback remains visible to its owner', t => {
+  const f = fixture(t), relay = f.open(), id = randomUUID();
+  relay.submit(f.ownerAccessKey, id);
+  const delivery = relay.claim(f.deviceAccessKey);
+  const receipt = signReadOnlyDeviceKeyReceipt({
+    key: f.receiptKey, requestId: id, nonce: delivery.receiptNonce, observedAt: NOW
+  });
+  relay.acceptReceipt(f.deviceAccessKey, receipt);
+  f.setTime(NOW - 1);
+  assert.equal(relay.status(f.ownerAccessKey).state, 'receipt-key-authenticated');
+});
+
+test('owner revocation survives restart and blocks pending claims and new submissions',t=>{
+  const f=fixture(t),o=f.ownerAccessKey,d=f.deviceAccessKey,id=randomUUID();
+  const a=f.open(), b=f.open();
+  a.submit(o,id);
+  assert.throws(()=>a.revokeDevice(d),/relayAccessDenied/);
+  assert.equal(b.revokeDevice(o).deviceRevoked,true);
+  assert.equal(a.status(o).state,'cancelled-local');
+  assert.throws(()=>a.claim(d),/relayAccessDenied/);
+  assert.throws(()=>a.acceptReceipt(d,{}),/relayAccessDenied/);
+  a.close(o);b.close(o);
+  const c=f.open();
+  assert.throws(()=>c.submit(o,randomUUID()),/relayAccessDenied/);
+  assert.throws(()=>c.claim(d),/relayAccessDenied/);
+  assert.equal(c.revokeDevice(o).deviceRevoked,true);
+});
+
+test('revocation after claim preserves uncertainty and blocks otherwise valid receipt',t=>{
+  const f=fixture(t),o=f.ownerAccessKey,d=f.deviceAccessKey,id=randomUUID();
+  const a=f.open();a.submit(o,id);
+  const delivery=a.claim(d);
+  const proof=signReadOnlyDeviceKeyReceipt({key:f.receiptKey,requestId:id,
+    nonce:delivery.receiptNonce,observedAt:NOW});
+  a.revokeDevice(o);
+  assert.throws(()=>a.acceptReceipt(d,proof),/relayAccessDenied/);
+  assert.equal(a.result(o,id).state,'outcome-unknown');
+  assert.equal(a.recover(o,id).automaticRetryAllowed,false);
+});
+
+
+test('revocation record modification fails closed on active handle and reopen',t=>{
+  const f=fixture(t),o=f.ownerAccessKey,d=f.deviceAccessKey;
+  const a=f.open();
+  a.revokeDevice(o);
+  const db=new DatabaseSync(f.config.databasePath);
+  try {db.exec('UPDATE relay_revocation SET revoked=0 WHERE slot=1');}
+  finally {db.close();}
+  assert.throws(()=>a.claim(d),/relayRevocationInvalid/);
+  assert.throws(()=>a.submit(o,randomUUID()),/relayRevocationInvalid/);
+  assert.throws(()=>f.open(),/relayRevocationInvalid/);
+});
+
+test('revoking after an authenticated receipt preserves historical key evidence',t=>{
+  const f=fixture(t),o=f.ownerAccessKey,d=f.deviceAccessKey,id=randomUUID();
+  const a=f.open();a.submit(o,id);
+  const delivery=a.claim(d);
+  a.acceptReceipt(d,signReadOnlyDeviceKeyReceipt({key:f.receiptKey,requestId:id,
+    nonce:delivery.receiptNonce,observedAt:NOW}));
+  a.revokeDevice(o);
+  const result=a.result(o,id);
+  assert.equal(result.state,'receipt-key-authenticated');
+  assert.equal(result.actionExecuted,false);
+  assert.equal(result.ownerApproved,false);
+});
+
+test('ledger requires original role credentials, never silently rotates on restart',t=>{
+  const f=fixture(t), a=f.open();
+  a.close(f.ownerAccessKey);
+  for(const name of ['ownerAccessKey','deviceAccessKey','receiptKey','markerKey']) {
+    assert.throws(()=>createOwnerDeviceRelay({...f.config,[name]:randomBytes(32)}),/relayRoleBindingInvalid/);
+  }
+  assert.equal(f.open().status(f.ownerAccessKey).state,'empty');
+});
+
+test('role binding tampering blocks active and reopened relay',t=>{
+  const f=fixture(t), a=f.open();
+  const db=new DatabaseSync(f.config.databasePath);
+  try { db.exec("UPDATE relay_role_binding SET mac = '"+'0'.repeat(64)+"' WHERE slot=1"); }
+  finally { db.close(); }
+  assert.throws(()=>a.claim(f.deviceAccessKey),/relayRoleBindingInvalid/);
+  assert.throws(()=>f.open(),/relayRoleBindingInvalid/);
+});
+
+
+test('offline ledger cannot be promoted to a relay and relay ledger cannot be opened as offline',t=>{
+  const f=fixture(t);
+  const databasePath=join(f.config.markerDirectory,'offline.sqlite');
+  provisionPrivateReplayLedger({key:f.config.proposalKey,databasePath});
+  assert.throws(()=>createOwnerDeviceRelay({...f.config,databasePath}),/relayRoleBindingInvalid/);
+  assert.throws(()=>createDurableOwnerProposalAdmission({key:f.config.proposalKey,
+    databasePath:f.config.databasePath}),/relayRoleBindingInvalid/);
+  const bytes=readFileSync(f.config.databasePath);
+  for(const name of ['ownerAccessKey','deviceAccessKey','proposalKey','receiptKey','markerKey'])
+    assert.equal(bytes.includes(f.config[name]),false);
+});

@@ -1,0 +1,226 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { build } from 'esbuild';
+import { fileURLToPath } from 'node:url';
+import { handleSitesMcp } from '../../igentic-chatgpt-iphone/sites-reference/mcp-handler.mjs';
+import { HANDOFF_ACTIONS, prepareChatGPTHandoff } from '../src/chatgpt-handoff.mjs';
+
+const version = '2026-07-28';
+const meta = {
+  'io.modelcontextprotocol/protocolVersion': version,
+  'io.modelcontextprotocol/clientInfo': { name: 'igentic-test', version: '1' },
+  'io.modelcontextprotocol/clientCapabilities': {}
+};
+const call = (method, params, id = 1) => ({
+  jsonrpc: '2.0', id, method,
+  params: params === null || Array.isArray(params) ? params : { ...(params ?? {}), _meta: meta }
+});
+const request = (rpc, options = {}) => {
+  const { headers: extraHeaders = {}, ...rest } = options;
+  return new Request('https://owner-site.invalid/mcp', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json',
+      'mcp-protocol-version': version, 'mcp-method': rpc?.method ?? 'tools/list',
+      ...(rpc?.method === 'tools/call' && typeof rpc?.params?.name === 'string'
+        ? { 'mcp-name': rpc.params.name } : {}), ...extraHeaders },
+    body: JSON.stringify(rpc), ...rest
+  });
+};
+
+test('Sites wire protocol discovers three read-only tools and returns all canonical handoffs', async () => {
+  const discovery = await (await handleSitesMcp(request(call('server/discover')))).json();
+  assert.equal(discovery.result.resultType, 'complete');
+  assert.deepEqual(discovery.result.supportedVersions, [version]);
+  assert.deepEqual(discovery.result.capabilities, { tools: {} });
+  assert.deepEqual(discovery.result._meta['io.modelcontextprotocol/serverInfo'],
+    { name: 'igentic-iphone-handoff', version: '0.2.0' });
+  const listing = await (await handleSitesMcp(request(call('tools/list')))).json();
+  assert.equal(listing.result.tools.length, 3);
+  assert.deepEqual(listing.result.tools.map(t => t.name), [
+    'iphone_chatgpt_handoff', 'igentic_get_capabilities', 'igentic_shortcuts_setup'
+  ]);
+  assert.ok(listing.result.tools.every(t => t.annotations.readOnlyHint && !t.annotations.destructiveHint));
+  const tool = listing.result.tools[0];
+  assert.equal(tool.annotations.readOnlyHint, true);
+  assert.equal(tool.annotations.destructiveHint, false);
+  for (const action of HANDOFF_ACTIONS) {
+    const response = await handleSitesMcp(request(call('tools/call', {
+      name: tool.name, arguments: { action }
+    }, action)));
+    assert.equal(response.headers.get('cache-control'), 'no-store');
+    const result = await response.json();
+    assert.equal(result.id, action);
+    assert.equal(result.result.isError, false);
+    assert.deepEqual(result.result.structuredContent.data, prepareChatGPTHandoff(action));
+    assert.deepEqual(JSON.parse(result.result.content[0].text), prepareChatGPTHandoff(action));
+  }
+});
+
+test('Sites rejects unsupported tools, injected arguments and write intent without reflecting content', async () => {
+  for (const params of [
+    { name: 'iphone_execute_action', arguments: { action: 'diagnostics' } },
+    { name: 'iphone_chatgpt_handoff', arguments: { action: 'delete-contacts' } },
+    { name: 'iphone_chatgpt_handoff', arguments: { action: 'diagnostics', text: 'SYNTHETIC_PRIVATE_SENTINEL' } },
+    { name: 'iphone_chatgpt_handoff', arguments: { action: 'diagnostics', approved: true } },
+    { name: 'iphone_chatgpt_handoff', arguments: { action: 'https://example.invalid' } }
+  ]) {
+    const reply = await handleSitesMcp(request(call('tools/call', params)));
+    const body = await reply.text();
+    assert.equal(JSON.parse(body).result.isError, true);
+    assert.doesNotMatch(body, /SYNTHETIC_PRIVATE_SENTINEL|delete-contacts|https:/);
+  }
+});
+
+test('Sites validates HTTP and JSON-RPC boundaries without executing notifications or batches', async () => {
+  for (const method of ['GET', 'DELETE', 'OPTIONS']) {
+    const response = await handleSitesMcp(new Request('https://owner-site.invalid/mcp', { method }));
+    assert.equal(response.status, 405);
+    assert.equal(response.headers.get('allow'), 'POST');
+  }
+  assert.equal((await handleSitesMcp(new Request('https://owner-site.invalid/mcp?secret=x'))).status, 404);
+  assert.equal((await handleSitesMcp(request({}, { headers: { 'content-type': 'text/plain' } }))).status, 415);
+  assert.equal((await handleSitesMcp(request({}, { body: '{' }))).status, 400);
+  for (const rpc of [null, [], [call('tools/list')], {},
+    { jsonrpc: '2.0', method: 'tools/call', params: { name: 'iphone_chatgpt_handoff', arguments: { action: 'diagnostics' } } },
+    call('tools/list', {}, {}), { ...call('tools/list'), approved: true }]) {
+    const response = await handleSitesMcp(request(rpc));
+    assert.equal(response.status, 400);
+    assert.equal((await response.json()).error.code, -32600);
+  }
+  for (const params of [[], null, { approved: true }]) {
+    const result = await (await handleSitesMcp(request(call('tools/list', params)))).json();
+    assert.equal(result.error.code, -32602);
+  }
+  const unknown = await (await handleSitesMcp(request(call('resources/read', {})))).json();
+  assert.equal(unknown.error.code, -32601);
+});
+
+test('Sites bounds streamed input even without Content-Length and cancels excess data', async () => {
+  let cancelled = false;
+  const body = new ReadableStream({
+    pull(controller) { controller.enqueue(new Uint8Array(1024)); },
+    cancel() { cancelled = true; }
+  });
+  const response = await handleSitesMcp(request({}, { body, duplex: 'half' }));
+  assert.equal(response.status, 413);
+  assert.equal(cancelled, true);
+});
+
+test('built Worker serves the fixed page and MCP without network, secrets or device dependencies', async () => {
+  const bundle = await build({
+    entryPoints: [fileURLToPath(new URL('../../igentic-chatgpt-iphone/sites-reference/worker.mjs', import.meta.url))],
+    bundle: true, write: false, format: 'esm', platform: 'browser',
+    loader: { '.html': 'text', '.txt': 'text' }, metafile: true
+  });
+  assert.equal(bundle.outputFiles.length, 1);
+  assert.equal(Object.keys(bundle.metafile.inputs).length, 8);
+  for (const file of Object.keys(bundle.metafile.inputs))
+    assert.doesNotMatch(file, /native-coredevice|node_modules|oauth|server\.mjs/);
+  const { default: worker } = await import('data:text/javascript;base64,' +
+    Buffer.from(bundle.outputFiles[0].text).toString('base64'));
+  const page = await worker.fetch(new Request('https://owner-site.invalid/'));
+  assert.equal(page.status, 200);
+  assert.match(page.headers.get('content-security-policy'), /default-src 'none'/);
+  const html = await page.text();
+  assert.equal([...html.matchAll(/href="igentic:\/\/handoff\/v1\//g)].length, 3);
+  const guide = await worker.fetch(new Request('https://owner-site.invalid/ki-loop'));
+  assert.equal(guide.status, 200);
+  assert.match(guide.headers.get('content-security-policy'), /connect-src 'none'/);
+  assert.match(guide.headers.get('content-security-policy'), /frame-ancestors 'none'/);
+  assert.equal(guide.headers.get('cache-control'), 'no-store');
+  assert.equal(guide.headers.get('referrer-policy'), 'no-referrer');
+  const guideBody = await guide.text();
+  const attributed = await worker.fetch(new Request('https://owner-site.invalid/ki-loop?utm_source=chatgpt.com'));
+  assert.equal(attributed.status, 200);
+  assert.equal(await attributed.text(), guideBody);
+  assert.deepEqual([...guideBody.matchAll(/href="([^"]+)"/g)].map(x => x[1]), [
+    'igentic://handoff/v1/diagnostics', 'shortcuts://run-shortcut?name=iGentic%20KI%20Loop', '/'
+  ]);
+  assert.doesNotMatch(guideBody, /<script\b|<form\b|<iframe\b|<img\b|http[s]?:\/\//i);
+  assert.match(guideBody, /iGentic KI-Antwort übernehmen/);
+  for (const query of ['?private=1', '?utm_source=chatgpt.com&private=1',
+                       '?utm_source=evil', '?utm_source=chatgpt.com&utm_source=chatgpt.com']) {
+    const rejected = await worker.fetch(new Request('https://owner-site.invalid/ki-loop' + query));
+    assert.equal(rejected.status, 404);
+    assert.equal(await rejected.text(), 'Not found');
+  }
+  assert.equal((await worker.fetch(new Request('https://owner-site.invalid/ki-loop',
+    { method: 'POST' }))).status, 404);
+  const consolePage = await worker.fetch(new Request('https://owner-site.invalid/console'));
+  assert.equal(consolePage.status, 200);
+  assert.match(consolePage.headers.get('content-security-policy'), /connect-src 'self'/);
+  assert.match(consolePage.headers.get('content-security-policy'), /frame-ancestors 'none'/);
+  assert.match(await consolePage.text(), /src="\/console\.js"/);
+  const consoleJS = await worker.fetch(new Request('https://owner-site.invalid/console.js'));
+  assert.equal(consoleJS.status, 200);
+  assert.match(consoleJS.headers.get('content-type'), /text\/javascript/);
+  assert.match(await consoleJS.text(), /igentic_shortcuts_setup/);
+  assert.equal((await worker.fetch(
+    new Request('https://owner-site.invalid/console?private=1'))).status, 404);
+  assert.equal((await worker.fetch(
+    new Request('https://owner-site.invalid/console.js?private=1'))).status, 404);
+  assert.equal((await worker.fetch(
+    new Request('https://owner-site.invalid/console', { method:'POST' }))).status, 404);
+  const response = await worker.fetch(request(call('tools/call', {
+    name: 'iphone_chatgpt_handoff', arguments: { action: 'discovery' }
+  }), { headers: { 'content-type': 'application/json',
+    'oai-authenticated-user-email': 'SYNTHETIC_PRIVATE_SENTINEL' } }));
+  const text = await response.text();
+  assert.doesNotMatch(text, /SYNTHETIC_PRIVATE_SENTINEL/);
+  assert.deepEqual(JSON.parse(text).result.structuredContent.data, prepareChatGPTHandoff('discovery'));
+  assert.equal((await worker.fetch(new Request('https://owner-site.invalid/secret'))).status, 404);
+});
+
+test('MCP 2026-07-28 results include complete discriminator and server identity', async () => {
+  for (const method of ['server/discover', 'tools/list']) {
+    const data = await (await handleSitesMcp(request(call(method)))).json();
+    assert.equal(data.result.resultType, 'complete');
+    assert.equal(data.result._meta['io.modelcontextprotocol/serverInfo'].name, 'igentic-iphone-handoff');
+  }
+  for (const action of HANDOFF_ACTIONS) {
+    const data = await (await handleSitesMcp(request(call('tools/call', {
+      name: 'iphone_chatgpt_handoff', arguments: { action }
+    })))).json();
+    assert.equal(data.result.resultType, 'complete');
+    assert.equal(data.result.structuredContent.data.actionExecuted, false);
+    assert.equal(data.result.structuredContent.data.requiresOwnerTap, true);
+  }
+});
+
+test('MCP 2026-07-28 rejects missing or mismatched request mirror headers', async () => {
+  const rpc = call('tools/call', { name: 'iphone_chatgpt_handoff',
+    arguments: { action: 'diagnostics' } });
+  for (const headers of [
+    { 'mcp-protocol-version': '2025-11-25' },
+    { 'mcp-method': 'tools/list' },
+    { 'mcp-name': 'untrusted-tool' }
+  ]) {
+    const response = await handleSitesMcp(request(rpc, { headers }));
+    assert.equal(response.status, 400);
+    assert.equal((await response.json()).error.code, -32020);
+  }
+  const missing = await handleSitesMcp(new Request('https://owner-site.invalid/mcp', {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(rpc)
+  }));
+  assert.equal(missing.status, 400);
+  assert.equal((await missing.json()).error.code, -32020);
+});
+
+test('MCP 2026-07-28 unsupported versions advertise supported versions', async () => {
+  const rpc = call('tools/list');
+  rpc.params._meta = { ...meta, 'io.modelcontextprotocol/protocolVersion': '2099-01-01' };
+  const response = await handleSitesMcp(request(rpc, {
+    headers: { 'mcp-protocol-version': '2099-01-01' }
+  }));
+  assert.equal(response.status, 400);
+  const data = await response.json();
+  assert.equal(data.error.code, -32022);
+  assert.deepEqual(data.error.data.supported, [version]);
+  assert.equal(data.error.data.requested, '2099-01-01');
+});
+
+test('unknown modern RPC methods return 404 and a method-not-found error', async () => {
+  const response = await handleSitesMcp(request(call('resources/read')));
+  assert.equal(response.status, 404);
+  assert.equal((await response.json()).error.code, -32601);
+});

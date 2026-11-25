@@ -36,6 +36,7 @@ public enum LocalModelRuntimeUnavailabilityReason: String, Equatable, Sendable {
     case deviceNotEligible
     case appleIntelligenceNotEnabled
     case modelNotReady
+    case unsupportedLocale
     case unknownSystemCondition
 }
 
