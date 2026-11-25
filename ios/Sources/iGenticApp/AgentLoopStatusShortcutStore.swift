@@ -164,21 +164,21 @@ public final class AgentLoopStatusShortcutStore {
             // A crash may occur after readAttempted was persisted and after
             // the status reader observed a real device. Its uncertainty takes
             // priority over TTL, and must not be rewritten as simple expiry.
-            if state.stage == .readAttempted {
-                throw AgentLoopStatusShortcutError.uncertainRead
-            }
-            let age = clock().timeIntervalSince(state.createdAt)
-            guard age >= 0, age < Self.ttl else {
-                state.stage = .expired
-                try save(state)
-                throw AgentLoopStatusShortcutError.expired
-            }
+            // Terminal outcomes are historical facts, not actionable tickets.
+            // A delayed response or clock rollback must never rewrite a
+            // completed or rejected task to expired.
             switch state.stage {
             case .readAttempted: throw AgentLoopStatusShortcutError.uncertainRead
             case .finished: throw AgentLoopStatusShortcutError.alreadyFinished
             case .rejected: throw AgentLoopStatusShortcutError.rejected
             case .expired: throw AgentLoopStatusShortcutError.expired
             case .awaitingStatus, .awaitingFinish: break
+            }
+            let age = clock().timeIntervalSince(state.createdAt)
+            guard age >= 0, age < Self.ttl else {
+                state.stage = .expired
+                try save(state)
+                throw AgentLoopStatusShortcutError.expired
             }
 
             let checked = AgentLoopModelHandoff.review(
