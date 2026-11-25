@@ -5,8 +5,8 @@ import FoundationModels
 #endif
 
 /// Fixed owner-selected goal, model-directed sequence, deterministic execution.
-/// No provider, external tool, persistence, arbitrary command or write authority.
-public enum AgentLoopDiagnosticStep: String, Sendable, Equatable {
+/// No external provider, arbitrary command or system write authority.
+public enum AgentLoopDiagnosticStep: String, Codable, Sendable, Equatable {
     case readStatus = "status.read"
     case checkModel = "model.readiness"
     case inspectCapabilities = "capabilities.read"
@@ -14,7 +14,7 @@ public enum AgentLoopDiagnosticStep: String, Sendable, Equatable {
 }
 
 /// Goal is selected by the local owner, not inferred from model output.
-public enum AgentLoopDiagnosticGoal: Sendable, Equatable {
+public enum AgentLoopDiagnosticGoal: String, Codable, Sendable, Equatable {
     case basic, extended
     var requiredReads: [AgentLoopDiagnosticStep] {
         self == .basic ? [.readStatus, .checkModel] : [.readStatus, .checkModel, .inspectCapabilities]
@@ -66,7 +66,8 @@ public enum AgentLoopLocalDiagnosticWorkflow {
         readStatus: @MainActor () -> AgentLoopLocalStatus,
         checkModel: @MainActor () -> Bool,
         inspectCapabilities: @MainActor () -> Int = { AgentHomeCapabilityCatalog.navigationTools().count },
-        elapsed: @MainActor () -> TimeInterval
+        elapsed: @MainActor () -> TimeInterval,
+        checkpoint: @MainActor ([AgentLoopDiagnosticStep]) throws -> Void = { _ in }
     ) async -> AgentLoopDiagnosticReport {
         var steps: [AgentLoopDiagnosticStep] = []
         var turns = 0
@@ -118,6 +119,7 @@ public enum AgentLoopLocalDiagnosticWorkflow {
             case .finish:
                 guard remaining.isEmpty, let status, let readiness else { return receipt(.rejectedProposal) }
                 if let failure = currentFailure() { return receipt(failure) }
+                do { try checkpoint(steps + [step]) } catch { return receipt(.failed) }
                 steps.append(step)
                 var text = status.shortcutSummary + "\nLokale KI: " +
                     (readiness ? "bereit" : "nicht bereit") +
@@ -126,6 +128,7 @@ public enum AgentLoopLocalDiagnosticWorkflow {
                 return receipt(.completed,text)
             }
             if let failure = currentFailure() { return receipt(failure) }
+            do { try checkpoint(steps + [step]) } catch { return receipt(.failed) }
             steps.append(step)
         }
         return receipt(.rejectedProposal)
@@ -134,7 +137,8 @@ public enum AgentLoopLocalDiagnosticWorkflow {
     #if os(iOS) && canImport(UIKit)
     /// Native UI/explicit debug test entry, with the actual Apple system model.
     /// No fallback to a hosted provider and no model-controlled tool callbacks.
-    public static func runOnDevice(goal: AgentLoopDiagnosticGoal = .basic) async -> AgentLoopDiagnosticReport {
+    public static func runOnDevice(goal: AgentLoopDiagnosticGoal = .basic,
+                                   checkpoint: @MainActor ([AgentLoopDiagnosticStep]) throws -> Void = { _ in }) async -> AgentLoopDiagnosticReport {
         let runtime = AppleFoundationModelsRuntime()
         guard runtime.assess(.init(capability: .structuredProposal, dataSensitivity: .publicData,
                                   allowedExecutionKinds: [.system])).isAccepted else {
@@ -179,7 +183,7 @@ public enum AgentLoopLocalDiagnosticWorkflow {
         elapsed: {
             let d = start.duration(to: .now).components
             return Double(d.seconds) + Double(d.attoseconds) / 1e18
-        })
+        }, checkpoint: checkpoint)
     }
     #endif
 }

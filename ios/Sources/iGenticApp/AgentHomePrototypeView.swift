@@ -15,6 +15,9 @@ public struct AgentHomePrototypeView: View {
     @State private var loopReady = false
     @State private var diagnosticRun: Task<Void, Never>?
     @State private var diagnosticReport: AgentLoopDiagnosticReport?
+    @State private var diagnosticCheckpoint: AgentLoopDiagnosticCheckpoint?
+    @State private var diagnosticJournalBlocked = false
+    private let diagnosticJournal = AgentLoopDiagnosticJournal()
     private let loopStore = AgentLoopShortcutExchangeStore()
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
@@ -187,13 +190,27 @@ public struct AgentHomePrototypeView: View {
                     Button("Lokalen KI-Agenten starten") {
                         startDiagnostic(.basic)
                     }
-                    .disabled(diagnosticRun != nil || scenePhase != .active)
+                    .disabled(diagnosticRun != nil || scenePhase != .active || diagnosticJournalBlocked || diagnosticCheckpoint?.stage == .running)
                     .accessibilityIdentifier("igentic-agent-diagnostic-start")
                     Button("Erweiterten Fähigkeitsbericht erstellen") {
                         startDiagnostic(.extended)
                     }
-                    .disabled(diagnosticRun != nil || scenePhase != .active)
+                    .disabled(diagnosticRun != nil || scenePhase != .active || diagnosticJournalBlocked || diagnosticCheckpoint?.stage == .running)
                     .accessibilityIdentifier("igentic-agent-diagnostic-extended")
+                    if diagnosticJournalBlocked {
+                        Text("Aufgabenjournal nicht verfügbar. Keine neue Ausführung.").font(.caption)
+                    }
+                    if let saved = diagnosticCheckpoint {
+                        Text("Letzter Auftrag: \(saved.steps.count) bestätigte Schritte · " +
+                             (saved.stage == .running ? "unterbrochen" : saved.stage == .completed ? "abgeschlossen" : "gestoppt"))
+                            .font(.caption)
+                        if saved.stage == .running {
+                            Button("Unterbrochene Diagnose neu starten") {
+                                startDiagnostic(saved.goal, restartID: saved.id)
+                            }
+                            .disabled(diagnosticRun != nil || diagnosticJournalBlocked || scenePhase != .active)
+                        }
+                    }
                     if diagnosticRun != nil {
                         ProgressView("Lokale Planung läuft")
                         Button("Abbrechen") { stopDiagnostic() }
@@ -208,7 +225,7 @@ public struct AgentHomePrototypeView: View {
                 }
                 .onDisappear { stopDiagnostic() }
                 .onChange(of: scenePhase) { _, phase in
-                    if phase != .active { stopDiagnostic() }
+                    if phase != .active { stopDiagnostic() } else if diagnosticRun == nil { refreshDiagnosticJournal() }
                 }
 
                 Text("Direkt öffnen").font(.headline)
@@ -242,6 +259,7 @@ public struct AgentHomePrototypeView: View {
         .navigationTitle("iGentic Agent")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
+            refreshDiagnosticJournal()
             if let state = try? loopStore.snapshot() {
                 let age = Date().timeIntervalSince(state.createdAt)
                 loopReady = !state.isAnswered
@@ -258,14 +276,29 @@ public struct AgentHomePrototypeView: View {
         diagnosticRun?.cancel()
     }
 
-    private func startDiagnostic(_ goal: AgentLoopDiagnosticGoal) {
-        guard diagnosticRun == nil, scenePhase == .active else { return }
+    private func refreshDiagnosticJournal() {
+        do {
+            diagnosticCheckpoint = try diagnosticJournal.snapshot()
+            diagnosticJournalBlocked = false
+        } catch {
+            diagnosticJournalBlocked = true
+        }
+    }
+
+    private func startDiagnostic(_ goal: AgentLoopDiagnosticGoal, restartID: UUID? = nil) {
+        guard diagnosticRun == nil, scenePhase == .active, !diagnosticJournalBlocked else { return }
         diagnosticReport = nil
         diagnosticRun = Task { @MainActor in
-            defer { diagnosticRun = nil }
-            let report = await AgentLoopLocalDiagnosticWorkflow.runOnDevice(goal: goal)
-            guard !Task.isCancelled, scenePhase == .active else { return }
-            diagnosticReport = report
+            defer { diagnosticRun = nil; refreshDiagnosticJournal() }
+            do {
+                let report = try await diagnosticJournal.run(goal: goal, restartID: restartID) { checkpoint in
+                    await AgentLoopLocalDiagnosticWorkflow.runOnDevice(goal: goal, checkpoint: checkpoint)
+                }
+                guard !Task.isCancelled, scenePhase == .active else { return }
+                diagnosticReport = report
+            } catch {
+                diagnosticReport = nil
+            }
         }
     }
 
