@@ -48,3 +48,34 @@ final class AgentLoopDocumentWorkflowTests: XCTestCase {
         XCTAssertTrue(r.excerpts.isEmpty)
     }
 }
+
+extension AgentLoopDocumentWorkflowTests {
+    @MainActor
+    func testIndependentQuestionsRequireEverySelection() async throws {
+        let questions = ["Meeting location", "Meeting start time"]
+        var calls: [String] = []
+        let lines = ["Heading", "Room Cedar", "Start: 14:30"]
+        let ids = try await AgentLoopDocumentWorkflow.selectPerQuestion(questions: questions, lines: lines,
+            choose: { q, source in
+                XCTAssertEqual(source, lines)
+                calls.append(q)
+                return q == questions[0] ? 2 : 3
+            }, elapsed: { 1 })
+        XCTAssertEqual(ids,[2,3])
+        XCTAssertEqual(calls,questions)
+        let rejected = try await AgentLoopDocumentWorkflow.selectPerQuestion(questions: questions, lines: lines,
+            choose: { q, _ in q == questions[0] ? 2 : 0 }, elapsed: { 1 })
+        XCTAssertEqual(rejected,[])
+    }
+
+    @MainActor
+    func testQuestionBudgetStopsBeforeSecondModelCall() async throws {
+        var time = 1.0
+        var calls = 0
+        let ids = try await AgentLoopDocumentWorkflow.selectPerQuestion(
+            questions: ["Location", "Time"], lines: ["Room Cedar", "14:30"],
+            choose: { _, _ in calls += 1; time = 60; return 1 }, elapsed: { time })
+        XCTAssertEqual(calls,1)
+        XCTAssertEqual(ids,[])
+    }
+}

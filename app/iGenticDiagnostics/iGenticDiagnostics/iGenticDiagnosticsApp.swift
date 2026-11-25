@@ -112,7 +112,7 @@ struct iGenticDiagnosticsApp: App {
             #if DEBUG
             .task {
                 guard ProcessInfo.processInfo.arguments.contains("--igentic-document-agent-smoke") else { return }
-                let report = await AgentLoopDocumentWorkflow.runOnDevice(image: AgentLoopDocumentWorkflow.syntheticImage(), focus: "Meeting location and start time")
+                let report = await AgentLoopDocumentWorkflow.runOnDevice(image: AgentLoopDocumentWorkflow.syntheticImage(), focus: "Meeting location", additionalFocus: "Meeting start time")
                 let matched = report.excerpts.contains(where: { $0.contains("Room Cedar") })
                     && report.excerpts.contains(where: { $0.contains("14:30") })
                 let result = "PHYSICAL_DOCUMENT_AGENT=\(report.outcome.rawValue); lines=\(report.sourceLineCount); excerpts=\(report.excerpts.count); expectedFacts=\(matched)"
