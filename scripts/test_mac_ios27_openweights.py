@@ -115,6 +115,17 @@ class MacOpenWeightsTest(unittest.TestCase):
                     self.fail("must not use existing simulator")
             cleanup.assert_not_called()
 
+    def test_report_cannot_overwrite_file_created_after_preflight(self):
+        with tempfile.TemporaryDirectory() as directory:
+            report = Path(directory) / "report.json"
+            def preflight():
+                report.write_text("existing", encoding="utf-8")
+                return [mod.Check("synthetic", True, "ok")], {}
+            with patch.object(sys, "argv", ["probe", "--report", str(report)]), \
+                 patch.object(mod, "preflight", side_effect=preflight):
+                self.assertEqual(mod.main(), 2)
+            self.assertEqual(report.read_text(encoding="utf-8"), "existing")
+
     def test_no_model_execution_is_in_plan(self) -> None:
         for phase in ("preflight", "build", "simulator"):
             commands = [a for argv, _ in mod.command_plan(phase, Path("/tmp/probe"))

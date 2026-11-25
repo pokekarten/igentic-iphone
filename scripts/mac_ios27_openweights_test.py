@@ -155,9 +155,11 @@ def isolated_simulator():
     finally:
         for operation in ("shutdown", "delete"):
             try:
-                subprocess.run(["xcrun", "simctl", operation, created], capture_output=True, timeout=40, check=False)
+                result = subprocess.run(["xcrun", "simctl", operation, created], capture_output=True, timeout=40, check=False)
+                if result.returncode != 0:
+                    print(f"WARNING: disposable simulator {operation} returned non-zero status", file=sys.stderr)
             except (OSError, subprocess.TimeoutExpired):
-                pass
+                print(f"WARNING: disposable simulator {operation} could not complete", file=sys.stderr)
 
 
 def run_steps(phase: str, scratch: Path) -> list[dict[str, object]]:
@@ -221,7 +223,8 @@ def main() -> int:
                   "steps": results, "model_inference_performed": False,
                   "physical_iphone_test_performed": False}
         try:
-            args.report.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+            with args.report.open("x", encoding="utf-8") as output:
+                output.write(json.dumps(report, indent=2) + "\n")
         except OSError as error:
             print(f"Could not save report: {type(error).__name__}", file=sys.stderr)
             return 2
