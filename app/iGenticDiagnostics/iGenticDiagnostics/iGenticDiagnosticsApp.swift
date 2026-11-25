@@ -111,6 +111,27 @@ struct iGenticDiagnosticsApp: App {
             }
             #if DEBUG
             .task {
+                guard ProcessInfo.processInfo.arguments.contains("--igentic-document-agent-smoke") else { return }
+                let report = await AgentLoopDocumentWorkflow.runOnDevice(image: AgentLoopDocumentWorkflow.syntheticImage(), focus: "Meeting location", additionalFocus: "Meeting start time")
+                let matched = report.excerpts.contains(where: { $0.contains("Room Cedar") })
+                    && report.excerpts.contains(where: { $0.contains("14:30") })
+                let result = "PHYSICAL_DOCUMENT_AGENT=\(report.outcome.rawValue); lines=\(report.sourceLineCount); excerpts=\(report.excerpts.count); expectedFacts=\(matched)"
+                print(result)
+                physicalProbeStatus = result
+            }
+            #endif
+            #if DEBUG
+            .task {
+                guard ProcessInfo.processInfo.arguments.contains("--igentic-local-agent-diagnostic-smoke") else { return }
+                let goal: AgentLoopDiagnosticGoal = ProcessInfo.processInfo.arguments.contains("--igentic-agent-extended") ? .extended : .basic
+                let report = await AgentLoopLocalDiagnosticWorkflow.runOnDevice(goal: goal)
+                let result = "PHYSICAL_AGENT_WORKFLOW=\(report.outcome.rawValue); turns=\(report.modelTurns); steps=\(report.steps.map(\.rawValue).joined(separator: ",")); reportPrepared=\(report.localReport != nil)"
+                print(result)
+                physicalProbeStatus = result
+            }
+            #endif
+            #if DEBUG
+            .task {
             // One strictly opt-in, own-app, synthetic physical acceptance:
             // no AI model is invoked, and any preexisting owner task is
             // NEVER touched. The only external receipt is fixed booleans.
@@ -197,6 +218,37 @@ struct iGenticReadOnlyDiagnosticsIntent: AppIntent {
             throw iGenticDiagnosticsIntentError.policyDenied
         }
         return .result(value: "iGentic diagnostics shortcut is available. This is a fixed demo response, not a device health check. No personal data was accessed.")
+    }
+}
+
+// Runs entirely in the owning iPhone app through Shortcuts or Siri.
+// It checks the system model's availability only: no generated text, model
+// download, prompts, personal records, networking or persistent mutation.
+@available(iOS 27.0, *)
+struct iGenticLocalModelReadinessIntent: AppIntent {
+    static let title: LocalizedStringResource = "Check iGentic Local AI"
+    static let description = IntentDescription(
+        "Checks whether Apple's on-device language model is currently ready for this device and preferred language."
+    )
+    static let supportedModes: IntentModes = .background
+
+    func perform() async throws -> some IntentResult & ReturnsValue<String> {
+        // System intents are not elevated authorities: use the same local-only
+        // read permission gate as the fixed diagnostics Shortcut.
+        let decision = PolicyEngine().decide(
+            PolicyRequest(
+                privacyMode: .localOnly,
+                dataClassification: .publicDefault,
+                actionRisk: .read,
+                requestedDelegationTarget: .localDevice
+            )
+        )
+        guard decision.isAllowed, !decision.requiresApproval else {
+            throw iGenticDiagnosticsIntentError.policyDenied
+        }
+        return .result(value: OnDeviceModelReadiness.summary(
+            for: AppleFoundationModelsRuntime().availability
+        ))
     }
 }
 
@@ -560,6 +612,15 @@ struct iGenticChatGPTFollowUpIntent: AppIntent {
 // building blocks in the Shortcuts editor for owner-configured AI workflows.
 struct iGenticDiagnosticsShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
+        AppShortcut(
+            intent: iGenticLocalModelReadinessIntent(),
+            phrases: [
+                "Check local AI in \(.applicationName)",
+                "Check iGentic AI in \(.applicationName)"
+            ],
+            shortTitle: "Check Local AI",
+            systemImageName: "cpu"
+        )
         AppShortcut(
             intent: iGenticChatGPTFollowUpIntent(),
             phrases: ["Starte eine ChatGPT Beispielaufgabe mit \(.applicationName)"],

@@ -79,12 +79,12 @@ export function callSitesTool(name, args) {
       schema: 1, status: 'owner-manual-setup-instructions',
       actionExecuted: false, shortcutCreated: false, iPhoneConnected: 'not-checked',
       shortcutName: 'iGentic KI Loop', requiresSignedIPhoneApp: true,
-      requiresOwnerSetup: true, requiresChatGPTExtension: true,
+      requiresOwnerSetup: true, requiresChatGPTExtension: false,
       steps: [
-        'Starte iGentic KI-Auftrags-ID lesen und speichere die unveränderte Auftrags-ID als Kurzbefehle-Variable.',
-        'Lies iGentic KI-Prompt aus dem lokal vorbereiteten iGentic-Auftrag.',
-        'Nutze in Apple Kurzbefehle die ChatGPT-Aktion Modell verwenden mit der Prompt-Variable.',
-        'Übergib Modellantwort und unveränderte Auftrags-ID an iGentic KI-Antwort übernehmen.',
+        'Starte iGentic KI-Auftragspaket lesen und lies das Ergebnis als JSON-Wörterbuch.',
+        'Merke taskId und prompt aus demselben Wörterbuch als Kurzbefehle-Variablen.',
+        'Nutze Modell verwenden mit ausschließlich dem Feldwert prompt; wähle ChatGPT nur bei Bedarf als verfügbares Modell.',
+        'Übergib Modellantwort und unveränderte taskId aus Schritt 2 an iGentic KI-Antwort übernehmen.',
         'Öffne iGentic Diagnose und prüfe KI-Antwort prüfen vor jedem weiteren Schritt.'
       ],
       projectChat: {

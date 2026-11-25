@@ -113,7 +113,7 @@ test('built Worker serves the fixed page and MCP without network, secrets or dev
     loader: { '.html': 'text', '.txt': 'text' }, metafile: true
   });
   assert.equal(bundle.outputFiles.length, 1);
-  assert.equal(Object.keys(bundle.metafile.inputs).length, 7);
+  assert.equal(Object.keys(bundle.metafile.inputs).length, 8);
   for (const file of Object.keys(bundle.metafile.inputs))
     assert.doesNotMatch(file, /native-coredevice|node_modules|oauth|server\.mjs/);
   const { default: worker } = await import('data:text/javascript;base64,' +
@@ -123,6 +123,29 @@ test('built Worker serves the fixed page and MCP without network, secrets or dev
   assert.match(page.headers.get('content-security-policy'), /default-src 'none'/);
   const html = await page.text();
   assert.equal([...html.matchAll(/href="igentic:\/\/handoff\/v1\//g)].length, 3);
+  const guide = await worker.fetch(new Request('https://owner-site.invalid/ki-loop'));
+  assert.equal(guide.status, 200);
+  assert.match(guide.headers.get('content-security-policy'), /connect-src 'none'/);
+  assert.match(guide.headers.get('content-security-policy'), /frame-ancestors 'none'/);
+  assert.equal(guide.headers.get('cache-control'), 'no-store');
+  assert.equal(guide.headers.get('referrer-policy'), 'no-referrer');
+  const guideBody = await guide.text();
+  const attributed = await worker.fetch(new Request('https://owner-site.invalid/ki-loop?utm_source=chatgpt.com'));
+  assert.equal(attributed.status, 200);
+  assert.equal(await attributed.text(), guideBody);
+  assert.deepEqual([...guideBody.matchAll(/href="([^"]+)"/g)].map(x => x[1]), [
+    'igentic://handoff/v1/diagnostics', 'shortcuts://run-shortcut?name=iGentic%20KI%20Loop', '/'
+  ]);
+  assert.doesNotMatch(guideBody, /<script\b|<form\b|<iframe\b|<img\b|http[s]?:\/\//i);
+  assert.match(guideBody, /iGentic KI-Antwort übernehmen/);
+  for (const query of ['?private=1', '?utm_source=chatgpt.com&private=1',
+                       '?utm_source=evil', '?utm_source=chatgpt.com&utm_source=chatgpt.com']) {
+    const rejected = await worker.fetch(new Request('https://owner-site.invalid/ki-loop' + query));
+    assert.equal(rejected.status, 404);
+    assert.equal(await rejected.text(), 'Not found');
+  }
+  assert.equal((await worker.fetch(new Request('https://owner-site.invalid/ki-loop',
+    { method: 'POST' }))).status, 404);
   const consolePage = await worker.fetch(new Request('https://owner-site.invalid/console'));
   assert.equal(consolePage.status, 200);
   assert.match(consolePage.headers.get('content-security-policy'), /connect-src 'self'/);

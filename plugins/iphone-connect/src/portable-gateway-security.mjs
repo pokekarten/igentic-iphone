@@ -59,7 +59,7 @@ export function hasBoundedJSONBody(req, maxLength = 65536) {
   return 'ok';
 }
 
-export async function hasValidOAuthAccess(req, oauth) {
+export async function verifiedOAuthAccess(req, oauth) {
   const header = req.headers.authorization;
   const match = typeof header === 'string'
     ? /^Bearer ([^\s]{16,8192})$/i.exec(header) : null;
@@ -80,7 +80,7 @@ export async function hasValidOAuthAccess(req, oauth) {
       && aud.includes(oauth.resource)
       && Number.isFinite(claims.exp) && claims.exp > now
       && (claims.nbf === undefined || Number.isFinite(claims.nbf) && claims.nbf <= now)
-      && scopes.includes(oauth.scope);
+      && scopes.includes(oauth.scope) ? claims : false;
   } catch {
     return false;
   }
@@ -93,4 +93,8 @@ export function protectedResourceMetadata(oauth) {
     scopes_supported: [oauth.scope],
     bearer_methods_supported: ['header']
   };
+}
+
+export async function hasValidOAuthAccess(req, oauth) {
+  return Boolean(await verifiedOAuthAccess(req, oauth));
 }

@@ -27,10 +27,10 @@ This directory contains the smallest installable iOS application wrapper for the
   during ordinary app launch.
 - No third-party mobile runtime or model provider.
 - No personal-data persistence. A fixed, nonpersonal iGentic bridge receipt is atomically replaced.
-- One **read-only, fixed-output App Intent** and discoverable App Shortcuts are included; no live diagnostic data, user data, model-driven calls, or privileged tool execution.
-- No model calls or model weights.
+- App Intents and discoverable App Shortcuts support fixed diagnostics, bounded local status, model readiness and owner-configured task previews. These are not arbitrary device execution or a remote authority.
+- The wrapper does not bundle model weights. The readiness intent does not generate model text; other explicitly configured local or Shortcuts model flows are separate.
 - No Apple account, team identifier, certificate, provisioning profile or device identifier is stored in the repository.
-- No physical-device validation is claimed.
+- Physical acceptance is tracked separately by exact build and observed action; simulator tests are not physical-device evidence.
 
 ## Local owner steps
 
@@ -76,13 +76,29 @@ A successful simulator smoke test proves that the built app can be installed, la
 
 After repository validation succeeds, the remaining steps are local owner actions: choose the production bundle identifier, select the Apple Developer Team, configure signing and execute the committed physical-device checklist.
 
+## iPhone-only local AI readiness Shortcut
+
+`iGenticLocalModelReadinessIntent` evaluates the already-existing
+`AppleFoundationModelsRuntime().availability` directly on the iOS device.
+It uses the same local-only, read-risk `PolicyEngine` gate as the existing
+read-only diagnostic intent. It returns only one fixed readiness code (e.g.
+`available`, `deviceNotEligible`, `appleIntelligenceNotEnabled`,
+`modelNotReady`, or `unsupportedLocale`) with a no-generation notice.
+It **does not** open a model session, send a prompt, download model weights,
+read device identifiers, change Apple Intelligence settings, or contact a Mac.
+This is a native on-device Shortcut entry point, not remote control of iOS.
+
+The Shortcuts label is **Check Local AI**. Simulator validation checks the
+registration and system dispatch; actual hardware availability must be
+verified on a signed physical iPhone and may vary by device or language.
+
 ## iOS 27 system App Intent integration test
 
 The separate `iGenticDiagnosticsUITests` target uses Apple's `AppIntentsTesting`
 from an **out-of-process UI test**. It runs
 `iGenticReadOnlyDiagnosticsIntent` through the same App Intents system path
 used by Shortcuts/Siri and asserts that the exact privacy-safe static response
-is returned on **three consecutive system-dispatched invocations**. This is stronger than inspecting `Metadata.appintents` or launching
+is returned on **three consecutive system-dispatched invocations**. The model readiness intent is also dispatched twice and checked against its bounded status contract. This is stronger than inspecting `Metadata.appintents` or launching
 the app, but it does **not** demonstrate a spoken Siri trigger or physical-device
 behavior.
 

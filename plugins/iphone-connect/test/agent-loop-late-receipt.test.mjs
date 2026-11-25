@@ -112,3 +112,36 @@ test('an acknowledged delivery that expired cannot become a late receipt', () =>
     /invalidAgentLoopTransition/);
   assert.equal(f.loop.snapshot().actionExecuted, false);
 });
+
+
+test('receipt verification crossing expiry never authenticates or reopens the window', () => {
+  for (const outcome of ['transport-acknowledged', 'sent-unconfirmed']) {
+    for (const expiryRead of [2, 3]) {
+      const ownerKey = randomBytes(32), receiptKey = randomBytes(32);
+      let armed = false, reads = 0;
+      const envelope = prepareSignedReadOnlyProposal({key:ownerKey, issuedAt:T});
+      const requestId = envelope.body.requestId;
+      // Simulate one clock reading at the deadline, followed by rollback.
+      const nowSeconds = () => armed && ++reads === expiryRead
+        ? envelope.body.expiresAt : T;
+      const loop = createTransportNeutralAgentLoop({
+        admission: createOwnerProposalAdmission({key:ownerKey, nowSeconds}),
+        receiptKey, nowSeconds
+      });
+      loop.start({envelope, entryPoint:'chatgpt-site'});
+      const prepared = loop.prepareDelivery({requestId, route:'cellular-foreground'});
+      loop.recordTransport({requestId, outcome});
+      const receipt = signReadOnlyDeviceKeyReceipt({
+        key:receiptKey, requestId, nonce:prepared.receiptNonce, observedAt:T
+      });
+      armed = true;
+      const result = loop.acceptKeyReceipt(receipt);
+      assert.equal(result.state, 'outcome-unknown');
+      assert.equal(result.receiptKeyAuthenticated, false);
+      assert.equal(result.actionExecuted, false);
+      assert.equal(result.automaticRetryAllowed, false);
+      assert.throws(() => loop.acceptKeyReceipt(receipt), /invalidAgentLoopTransition/);
+      assert.equal(loop.snapshot().state, 'outcome-unknown');
+    }
+  }
+});

@@ -256,3 +256,31 @@ foreign, or inflated response cannot reveal a manually prepared handoff
 link or enable a compatibility report. This is same-origin response
 consistency, not cryptographic server attestation or device execution
 verification.
+
+## Manual KI Loop guide (/ki-loop)
+
+The static guide supports GET /ki-loop and the exact ChatGPT attribution
+query ?utm_source=chatgpt.com. Other query data and methods fail closed.
+It uses the fixed native diagnostics link and owner-configured shortcut name
+from AgentLoopShortcutSetup. It does not create a shortcut, transfer prompt
+text, call a model, check a phone or return a receipt. This guide matches the
+help URL returned by the existing private deployed plugin; deployment and
+authenticated mobile opening still require separate owner acceptance. The
+three canonical own-app handoff actions remain unchanged.
+
+### Private publication verified on 2026-11-25
+
+Site version 7 was deployed from Site-source commit
+`4f1e329849918aa16ea9d4b199ecb926dd76d9be`. The deployed Worker
+uses the KI Loop guide from integration commit `0a747c6`, while
+preserving the existing single-tool contract and three action-guide
+routes. The repository reference also contains additional tools and
+console routes. The private publication has one allowed user, zero
+allowed groups and zero external visitors.
+
+All four calls to the installed handoff tool returned the expected
+links and `actionExecuted=false`. The signed-in Mac browser rendered
+the deployed `/ki-loop` with and without `?utm_source=chatgpt.com`.
+CoreDevice reported one physical record and no active tunnel. Shortcut
+execution, Siri and a result returned to the originating ChatGPT
+conversation still require physical verification.

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { createServer as createHttpsServer } from 'node:https';
-import { chmod, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import { chmod, link, mkdtemp, readFile, rm, symlink, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -145,6 +145,12 @@ test('key path must be a private regular file; symlink is not followed',async t=
   await symlink(secret,alias);
   assert.deepEqual(await readPrivatePairingKey(secret),key);
   await assert.rejects(readPrivatePairingKey(alias));
+  const hardAlias=join(tls.dir,'hard-alias.key');
+  await link(secret,hardAlias);
+  await assert.rejects(readPrivatePairingKey(secret));
+  await assert.rejects(readPrivatePairingKey(hardAlias));
+  await unlink(hardAlias);
+  assert.deepEqual(await readPrivatePairingKey(secret),key);
   await writeFile(join(tls.dir,'oversized.key'),'x'.repeat(8192),{mode:0o600});
   await assert.rejects(readPrivatePairingKey(join(tls.dir,'oversized.key')));
   await chmod(secret,0o644);
@@ -157,6 +163,19 @@ test('key path must be a private regular file; symlink is not followed',async t=
   });
   assert.equal(report.status,'blocked');
   assert.equal(report.reason,'privatePairingKeyRequired');
+});
+
+test('private pairing file rejects FIFO without blocking and accepts exact base64 without newline', async t => {
+  const dir=await mkdtemp(join(tmpdir(),'igentic-key-type-'));
+  t.after(()=>rm(dir,{recursive:true,force:true}));
+  const secret=join(dir,'exact.key');
+  await writeFile(secret,key.toString('base64'),{mode:0o600});
+  assert.deepEqual(await readPrivatePairingKey(secret),key);
+  if (process.platform !== 'win32') {
+    const fifo=join(dir,'fifo');
+    assert.equal(spawnSync('mkfifo',['-m','600',fifo],{timeout:5000}).status,0);
+    await assert.rejects(readPrivatePairingKey(fifo));
+  }
 });
 
 test('unconfigured CLI prints only fixed blocked status, never host or secrets', () => {
