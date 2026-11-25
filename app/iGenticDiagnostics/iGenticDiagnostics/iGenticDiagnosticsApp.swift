@@ -511,20 +511,39 @@ struct iGenticAdvanceStatusLoopIntent: AppIntent {
 
     @MainActor
     func perform() async throws -> some IntentResult & ReturnsValue<String> {
-        let decision = PolicyEngine().decide(PolicyRequest(
-            privacyMode: .localOnly,
-            dataClassification: DataClassification(
-                level: .contextualPrivateData,
-                reason: "Fixed on-device status observation for an owner Shortcuts task."
-            ),
-            actionRisk: .read,
-            requestedDelegationTarget: .localDevice
-        ))
-        guard decision.isAllowed, !decision.requiresApproval else {
-            throw iGenticDiagnosticsIntentError.policyDenied
-        }
+        try checkLocalStatusReadPolicy()
         return .result(value: try AgentLoopStatusShortcutStore().advance(
             taskID: taskID, modelReply: modelReply, finishAfterRead: finishAfterRead,
+            statusReader: { AgentLoopDeviceStatusReader.read() }
+        ))
+    }
+}
+
+private func checkLocalStatusReadPolicy() throws {
+    let decision = PolicyEngine().decide(PolicyRequest(
+        privacyMode: .localOnly,
+        dataClassification: DataClassification(
+            level: .contextualPrivateData,
+            reason: "Fixed on-device status observation for an owner Shortcuts task."
+        ),
+        actionRisk: .read,
+        requestedDelegationTarget: .localDevice
+    ))
+    guard decision.isAllowed, !decision.requiresApproval else {
+        throw iGenticDiagnosticsIntentError.policyDenied
+    }
+}
+
+@available(iOS 27.0, *)
+struct iGenticRunLocalStatusLoopIntent: AppIntent {
+    static let title: LocalizedStringResource = "iGentic Status-Loop"
+    static let description = IntentDescription("Liest einmal den lokalen Gerätestatus und schließt den Auftrag ab.")
+    static let supportedModes: IntentModes = .background
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ReturnsValue<String> {
+        try checkLocalStatusReadPolicy()
+        return .result(value: try AgentLoopStatusShortcutStore().runDeterministicStatusLoop(
             statusReader: { AgentLoopDeviceStatusReader.read() }
         ))
     }
@@ -612,6 +631,12 @@ struct iGenticChatGPTFollowUpIntent: AppIntent {
 // building blocks in the Shortcuts editor for owner-configured AI workflows.
 struct iGenticDiagnosticsShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
+        AppShortcut(
+            intent: iGenticRunLocalStatusLoopIntent(),
+            phrases: ["Starte den Status-Loop mit \(.applicationName)"],
+            shortTitle: "iGentic Status-Loop",
+            systemImageName: "checklist"
+        )
         AppShortcut(
             intent: iGenticLocalModelReadinessIntent(),
             phrases: [

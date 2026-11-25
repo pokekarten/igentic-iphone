@@ -25,11 +25,8 @@ final class AgentLoopStatusShortcutStoreTests: XCTestCase {
             defer { try? FileManager.default.removeItem(at: dir) }
             let file = dir.appendingPathComponent("journal.json")
             let store = AgentLoopStatusShortcutStore(fileURL: file)
-            let id = try XCTUnwrap(try jsonDictionary(store.begin())["taskId"] as? String)
-            let result = try jsonDictionary(store.advance(
-                taskID: id, modelReply: #"{"action":"status.read"}"#,
-                finishAfterRead: true, statusReader: demoShortcutsStatus
-            ))
+            let result = try jsonDictionary(store.runDeterministicStatusLoop(statusReader: demoShortcutsStatus))
+            let id = try XCTUnwrap(result["taskId"] as? String)
             XCTAssertEqual(result["stage"] as? String, "finished")
             XCTAssertNotNil(result["observation"])
             XCTAssertNil(result["nextPrompt"])

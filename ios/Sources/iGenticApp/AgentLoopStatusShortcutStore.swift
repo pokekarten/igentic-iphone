@@ -115,6 +115,16 @@ public final class AgentLoopStatusShortcutStore {
     /// Only fixed non-personal instructions are returned for a Shortcut's
     /// optional "Use Model" action. The task ID is not inserted in the prompt.
     public func begin() throws -> String {
+        try encode(AgentLoopStatusShortcutTicket(taskId: beginTask()))
+    }
+
+    public func runDeterministicStatusLoop(statusReader: () -> AgentLoopLocalStatus) throws -> String {
+        let taskID = try beginTask()
+        return try advance(taskID: taskID, modelReply: #"{"action":"status.read"}"#,
+                           finishAfterRead: true, statusReader: statusReader)
+    }
+
+    private func beginTask() throws -> String {
         try withClaim {
             let now = clock()
             guard now.timeIntervalSince1970.isFinite else {
@@ -132,9 +142,7 @@ public final class AgentLoopStatusShortcutStore {
                 schema: 1, id: UUID(), createdAt: now, stage: .awaitingStatus
             )
             try save(journal)
-            return try encode(AgentLoopStatusShortcutTicket(
-                taskId: journal.id.uuidString.lowercased()
-            ))
+            return journal.id.uuidString.lowercased()
         }
     }
 
