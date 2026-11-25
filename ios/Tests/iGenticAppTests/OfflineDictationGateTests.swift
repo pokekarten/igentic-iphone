@@ -61,6 +61,20 @@ final class OfflineDictationGateTests: XCTestCase {
         }
     }
 
+    func testLatePermissionCannotActivateMicrophone() {
+        for current in [false, true] {
+            for cancelled in [false, true] {
+                for active in [false, true] {
+                    XCTAssertEqual(
+                        OfflineDictationGate.mayActivateCapture(
+                            isCurrentAttempt: current, cancelled: cancelled, foregroundActive: active
+                        ), current && !cancelled && active
+                    )
+                }
+            }
+        }
+    }
+
     func testNoNetworkOrModelOverrideExistsInGate() {
         let disabled = OfflineDictationGate.decide(
             supportsOnDevice: false, recognizerAvailable: true,

@@ -1,5 +1,6 @@
 #if os(iOS) && canImport(AVFoundation) && canImport(Speech) && canImport(SwiftUI)
 import AVFoundation
+import Combine
 import Speech
 import SwiftUI
 import UIKit
@@ -28,7 +29,8 @@ private final class OfflineDictationController: ObservableObject {
     )?
 
     func start() async {
-        guard !recording, !starting else { return }
+        guard !recording, !starting, !Task.isCancelled,
+              UIApplication.shared.applicationState == .active else { return }
         starting = true
         let id = UUID()
         generation = id
@@ -54,7 +56,11 @@ private final class OfflineDictationController: ObservableObject {
         }
 
         let microphoneAllowed = await AVAudioApplication.requestRecordPermission()
-        guard generation == id, !Task.isCancelled else { return }
+        guard OfflineDictationGate.mayActivateCapture(
+            isCurrentAttempt: generation == id,
+            cancelled: Task.isCancelled,
+            foregroundActive: UIApplication.shared.applicationState == .active
+        ) else { return }
         guard microphoneAllowed else {
             status = "Mikrofon nicht freigegeben."
             return
@@ -179,7 +185,8 @@ private final class OfflineDictationController: ObservableObject {
         speechRequest = nil
         engine = nil
         recording = false
-        starting = false
+        // The pending authorization continuation still owns the startup slot.
+        // Only start()'s defer releases it; never allow overlapping prompts.
         let session = AVAudioSession.sharedInstance()
         if audioSessionActivated {
             audioSessionActivated = false
@@ -199,6 +206,11 @@ private final class OfflineDictationController: ObservableObject {
         status = transcript.isEmpty ? "Aufnahme beendet – kein Text erkannt." : "Aufnahme beendet. Text kann kopiert werden."
     }
 
+    func leaveView() {
+        stop()
+        transcript = ""
+    }
+
     private enum OfflineDictationError: Error {
         case audioFormatUnavailable
     }
@@ -207,6 +219,7 @@ private final class OfflineDictationController: ObservableObject {
 public struct OfflineDictationView: View {
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var dictation = OfflineDictationController()
+    @State private var startupTask: Task<Void, Never>?
     public init() {}
 
     public var body: some View {
@@ -218,13 +231,17 @@ public struct OfflineDictationView: View {
 
                 HStack {
                     Button(dictation.starting ? "Wird gestartet …" : "Aufnahme starten") {
-                        Task { await dictation.start() }
+                        guard scenePhase == .active, startupTask == nil else { return }
+                        startupTask = Task { @MainActor in
+                            defer { startupTask = nil }
+                            await dictation.start()
+                        }
                     }
-                    .disabled(dictation.starting || dictation.recording)
+                    .disabled(startupTask != nil || dictation.starting || dictation.recording || scenePhase != .active)
                     .accessibilityIdentifier("igentic-dictation-start")
 
-                    Button("Stoppen") { dictation.stop() }
-                        .disabled(!dictation.recording && !dictation.starting)
+                    Button("Stoppen") { startupTask?.cancel(); dictation.stop() }
+                        .disabled(startupTask == nil && !dictation.recording && !dictation.starting)
                         .accessibilityIdentifier("igentic-dictation-stop")
                 }
                 ScrollView {
@@ -235,7 +252,8 @@ public struct OfflineDictationView: View {
                 .frame(minHeight: 110)
                 .accessibilityIdentifier("igentic-dictation-result")
                 Button("Text kopieren") {
-                    UIPasteboard.general.string = dictation.transcript
+                    UIPasteboard.general.setItems([["public.utf8-plain-text": dictation.transcript]],
+                                                      options: [.localOnly: true])
                 }
                 .disabled(dictation.transcript.isEmpty)
                 .accessibilityIdentifier("igentic-dictation-copy")
@@ -247,12 +265,21 @@ public struct OfflineDictationView: View {
             .font(.footnote)
         }
         .navigationTitle("Sprache offline")
-        .onDisappear { dictation.stop() }
+        .onDisappear { startupTask?.cancel(); dictation.leaveView() }
+        .onReceive(NotificationCenter.default.publisher(for: AVAudioSession.interruptionNotification)
+            .receive(on: RunLoop.main)) { notice in
+            if let raw = notice.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
+               AVAudioSession.InterruptionType(rawValue: raw) == .began {
+                startupTask?.cancel()
+                dictation.stopOnBackground()
+            }
+        }
         .onChange(of: scenePhase) { _, next in
             // Permission alerts can temporarily set .inactive; don't abort
             // a pending consent flow. But a recording must stop immediately
             // on inactivity (lock/Control Center), before backgrounding.
             if next == .background || (next == .inactive && dictation.recording) {
+                startupTask?.cancel()
                 dictation.stopOnBackground()
             }
         }

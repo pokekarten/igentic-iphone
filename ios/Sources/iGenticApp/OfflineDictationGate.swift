@@ -23,6 +23,16 @@ public enum OfflineDictationGate {
         recording || starting || hasEngine || hasRecognitionTask || hasRequest || ownsAudioSession
     }
 
+    /// Check again after async system consent; an obsolete permission result
+    /// must not activate a microphone in an inactive application.
+    public static func mayActivateCapture(
+        isCurrentAttempt: Bool,
+        cancelled: Bool,
+        foregroundActive: Bool
+    ) -> Bool {
+        isCurrentAttempt && !cancelled && foregroundActive
+    }
+
     public static func decide(
         supportsOnDevice: Bool,
         recognizerAvailable: Bool,
