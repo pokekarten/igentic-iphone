@@ -45,12 +45,21 @@ def checked(argv: list[str], *, cwd: Path | None = None,
     return p.stdout.strip()
 
 
+def reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict:
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise OfflineStackError("duplicate manifest JSON field")
+        result[key] = value
+    return result
+
+
 def manifest_entries(path: Path) -> list[dict]:
     try:
-        doc = json.loads(path.read_text(encoding="utf-8"))
+        doc = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=reject_duplicate_keys)
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         raise OfflineStackError("manifest unavailable or malformed") from exc
-    if not isinstance(doc, dict) or doc.get("schema") != 1:
+    if not isinstance(doc, dict) or type(doc.get("schema")) is not int or doc["schema"] != 1:
         raise OfflineStackError("unknown manifest schema")
     entries = doc.get("branches")
     if not isinstance(entries, list) or not 2 <= len(entries) <= 12:
@@ -63,8 +72,8 @@ def manifest_entries(path: Path) -> list[dict]:
         if type(pr) is not int or pr < 1 or pr > 100_000:
             raise OfflineStackError("invalid PR number")
         if not isinstance(ref, str) or not GIT_REF.fullmatch(ref) \
-                or ".." in ref or ref.endswith(("/", ".", ".lock")) \
-                or "/." in ref or ref.startswith("-"):
+                or ".." in ref or "//" in ref or ref.endswith(("/", ".", ".lock")) \
+                or "/." in ref or any(part.endswith(".lock") for part in ref.split("/")):
             raise OfflineStackError("invalid PR branch ref")
         if not isinstance(sha, str) or not HEX40.fullmatch(sha):
             raise OfflineStackError("unverified PR SHA format")

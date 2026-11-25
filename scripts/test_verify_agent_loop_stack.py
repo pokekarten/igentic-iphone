@@ -37,6 +37,30 @@ class PinnedStackManifestTests(unittest.TestCase):
         with self.assertRaises(OfflineStackError):
             self.parse(m)
 
+    def test_deny_boolean_and_fractional_schema(self):
+        for schema in (True, 1.0):
+            m = sample()
+            m["schema"] = schema
+            with self.subTest(schema=schema), self.assertRaises(OfflineStackError):
+                self.parse(m)
+
+    def test_deny_duplicate_json_keys(self):
+        with tempfile.TemporaryDirectory(prefix="igentic-stack-manifest-") as tmp:
+            path = Path(tmp) / "manifest.json"
+            raw = json.dumps(sample())
+            for malformed in (raw.replace('"schema": 1', '"schema": 1, "schema": 1'),
+                              raw.replace('"pr": 420', '"pr": 420, "pr": 420')):
+                with self.subTest(raw=malformed), self.assertRaises(OfflineStackError):
+                    path.write_text(malformed, encoding="utf-8")
+                    manifest_entries(path)
+
+    def test_deny_empty_or_lock_path_component(self):
+        for ref in ("feature//topic", "feature.lock/topic", "feature/topic.lock/next"):
+            m = sample()
+            m["branches"][0]["ref"] = ref
+            with self.subTest(ref=ref), self.assertRaises(OfflineStackError):
+                self.parse(m)
+
     def test_deny_duplicate_pr(self):
         m = sample()
         m["branches"][1]["pr"] = 420
