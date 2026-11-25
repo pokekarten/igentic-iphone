@@ -25,10 +25,10 @@
   <h2>2. Kurzbefehl einmalig selbst einrichten</h2>
   <p>Nenne den Kurzbefehl exakt „iGentic KI Loop“ und füge in Apple Kurzbefehle diese Aktionen in der angegebenen Reihenfolge hinzu:</p>
   <ol>
-    <li>iGentic KI-Auftrags-ID lesen – Ergebnis als Variable Auftrags-ID merken.</li>
-    <li>iGentic KI-Prompt lesen.</li>
-    <li>Modell verwenden: Erweiterungsmodell ChatGPT; Eingabe KI-Prompt. Falls verfügbar, Nachfragen deaktivieren.</li>
-    <li>iGentic KI-Antwort übernehmen: Modellantwort aus Schritt 3, unveränderte Auftrags-ID aus Schritt 1.</li>
+    <li>iGentic KI-Auftragspaket lesen und das Ergebnis als Wörterbuch lesen.</li>
+    <li>Die Felder taskId und prompt aus demselben Wörterbuch als Variablen merken.</li>
+    <li>Modell verwenden: Nur den Feldwert prompt übergeben. ChatGPT bei Bedarf als Modell wählen.</li>
+    <li>iGentic KI-Antwort übernehmen: Modellantwort aus Schritt 3, unveränderte taskId aus Schritt 2.</li>
     <li>App öffnen: iGentic Diagnostics; anschließend KI-Antwort prüfen.</li>
   </ol>
   <p>Wenn eine Aktion fehlt oder ChatGPT nicht als Modell verfügbar ist, halte an. Kein automatischer Ersatz oder Wiederholungsversuch.</p>

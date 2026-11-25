@@ -59,10 +59,10 @@ public enum AgentLoopShortcutSetup {
     // These are names/actions the owner can find in the system Shortcuts editor.
     // We cannot query or silently populate a user's private Shortcut library.
     public static let actions = [
-        "1. iGentic KI-Auftrags-ID lesen → Ergebnis als Variable „Auftrags-ID“ merken",
-        "2. iGentic KI-Prompt lesen",
-        "3. Modell verwenden: Erweiterungsmodell → ChatGPT; Eingabe: KI-Prompt; Nachfragen deaktivieren",
-        "4. iGentic KI-Antwort übernehmen: Modellantwort aus Schritt 3, Auftrags-ID aus Schritt 1",
+        "1. iGentic KI-Auftragspaket lesen → JSON als Wörterbuch lesen",
+        "2. taskId und prompt aus demselben Wörterbuch als Variablen merken",
+        "3. Modell verwenden: nur den Feldwert prompt übergeben; ChatGPT bei Bedarf als Modell wählen",
+        "4. iGentic KI-Antwort übernehmen: Modellantwort aus Schritt 3 und unveränderte taskId aus Schritt 2",
         "5. App öffnen → iGentic Diagnostics; dann „KI-Antwort prüfen“"
     ]
 

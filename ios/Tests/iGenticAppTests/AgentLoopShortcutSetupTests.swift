@@ -67,11 +67,11 @@ final class AgentLoopShortcutSetupTests: XCTestCase {
 
     func testStepsRequireActualModelAndNativeReturn() {
         XCTAssertEqual(AgentLoopShortcutSetup.actions.count, 5)
-        XCTAssertTrue(AgentLoopShortcutSetup.actions[0].contains("Auftrags-ID lesen"))
-        XCTAssertTrue(AgentLoopShortcutSetup.actions[1].contains("KI-Prompt lesen"))
+        XCTAssertTrue(AgentLoopShortcutSetup.actions[0].contains("Auftragspaket lesen"))
+        XCTAssertTrue(AgentLoopShortcutSetup.actions[1].contains("taskId und prompt"))
         XCTAssertTrue(AgentLoopShortcutSetup.actions[2].contains("ChatGPT"))
         XCTAssertTrue(AgentLoopShortcutSetup.actions[3].contains("KI-Antwort übernehmen"))
-        XCTAssertTrue(AgentLoopShortcutSetup.actions[3].contains("Auftrags-ID"))
+        XCTAssertTrue(AgentLoopShortcutSetup.actions[3].contains("taskId"))
         XCTAssertTrue(AgentLoopShortcutSetup.actions[4].contains("App öffnen"))
     }
 
