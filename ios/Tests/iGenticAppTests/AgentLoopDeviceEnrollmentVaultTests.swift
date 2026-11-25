@@ -107,6 +107,18 @@ private actor EnrollmentClaimProbe {
     func isWaiting() -> Bool { continuation != nil }
 }
 
+private actor ReceiptUploadProbe {
+    private(set) var calls = 0
+    private(set) var matched = false
+    func record(port: Int, device: Data, proof: Data, id: String) {
+        calls += 1
+        let expected = #"{"body":{"schema":1,"kind":"read-only-device-key-ack","requestId":"11111111-2222-4333-8444-555555555555","capability":"igentic.own_app.status.read","nonce":"22222222-3333-4444-8555-666666666666","observedAt":2000000000,"status":"key-holder-reports-read"},"signature":"27ecb277fcdcf0c6591740d8bb58f9885bdacc54e986748116f77842ddec3a6e"}"#
+        matched = port == 12345 && device == Data((32..<64).map(UInt8.init))
+            && id == "11111111-2222-4333-8444-555555555555"
+            && proof == Data(expected.utf8)
+    }
+}
+
 extension AgentLoopDeviceEnrollmentVaultTests {
     @MainActor
     func testEnrolledClaimUsesDistinctKeysAndRejectsRevocationDuringIO() async throws {
@@ -231,6 +243,59 @@ extension AgentLoopDeviceEnrollmentVaultTests {
             XCTAssertThrowsError(try session.readAfterSeparateLocalReviewAction())
             XCTAssertThrowsError(try session.prepareProofAfterSeparateLocalShareAction())
             XCTAssertEqual(reads, ["revoked", "local-only"].contains(scenario) ? 0 : 1)
+        }
+    }
+
+    @MainActor
+    func testReceiptUploadIsBoundToClaimAndNeverRepeated() async throws {
+        for scenario in ["accepted", "uncertain", "revoked", "local-only"] {
+            let backend = EnrollmentMemoryBackend()
+            let vault = AgentLoopDeviceEnrollmentVault(backend: backend, separateReplayKey: Self.key(96))
+            let enrollment = AgentLoopDeviceEnrollment(id: UUID(), deviceAccessKey: Self.key(32),
+                proposalKey: Self.key(0), receiptKey: Self.key(64))
+            try vault.enrollExplicitly(enrollment)
+            let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+            try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: false,
+                                                     attributes: [.posixPermissions: 0o700])
+            defer { try? FileManager.default.removeItem(at: dir) }
+            let id = "11111111-2222-4333-8444-555555555555"
+            let wire = #"{"body":{"schema":1,"kind":"read-only-task-proposal","requestId":"11111111-2222-4333-8444-555555555555","issuedAt":2000000000,"expiresAt":2000000060,"capability":"igentic.own_app.status.read","parameters":{}},"signature":"5109a32fd50436db89b96cd4970abd29626f0d0fd786fd71f79e0855821093b2"}"#
+            let claim = AgentLoopRelayClaim(canonicalWire: Data(wire.utf8), requestID: id,
+                receiptNonce: "22222222-3333-4444-8555-666666666666", expiresAt: 2_000_000_060)
+            var mode = PrivacyMode.externalAI
+            let probe = ReceiptUploadProbe()
+            let gate = AgentLoopSignedOwnerStatusGate(
+                replayJournal: try AgentLoopLocalReplayJournal(directory: dir, key: Self.key(96)),
+                clockSeconds: { 2_000_000_000 }, statusReader: {
+                    AgentLoopLocalStatus(batteryFraction: 0.64, lowPowerModeEnabled: true, osVersion: "27.2")
+                })
+            let session = AgentLoopEnrolledClaimSession(vault: vault, currentPrivacyMode: { mode },
+                upload: { port, device, proof, requestID in
+                    await probe.record(port: port, device: device, proof: proof, id: requestID)
+                    if scenario == "uncertain" { throw AgentLoopRelayClaimError.transportUncertain }
+                }) { _, _, _ in claim }
+            _ = try await session.stageClaimAfterLocalAction(port: 12345, gate: gate)
+            _ = try session.readAfterSeparateLocalReviewAction()
+            if scenario == "revoked" { try vault.revokeExplicitly(id: enrollment.id) }
+            if scenario == "local-only" { mode = .localOnly }
+            do {
+                let accepted = try await session.submitProofAfterSeparateLocalShareAction()
+                XCTAssertEqual(scenario, "accepted")
+                XCTAssertEqual(accepted, id)
+            } catch {
+                XCTAssertNotEqual(scenario, "accepted")
+            }
+            mode = .externalAI
+            do {
+                _ = try await session.submitProofAfterSeparateLocalShareAction()
+                XCTFail("Repeated upload")
+            } catch { XCTAssertEqual(error as? AgentLoopEnrolledClaimSession.Failure, .proofUnavailable) }
+            let calls = await probe.calls
+            XCTAssertEqual(calls, ["accepted", "uncertain"].contains(scenario) ? 1 : 0)
+            if calls == 1 {
+                let matched = await probe.matched
+                XCTAssertTrue(matched)
+            }
         }
     }
 

@@ -16,12 +16,19 @@ final class AgentLoopEnrolledClaimSession {
     private let currentPrivacyMode: @MainActor () -> PrivacyMode
     private let transport: @Sendable (Int, Data, Data) async throws -> AgentLoopRelayClaim?
     private var attempted = false
-    private var pendingReview: (gate: AgentLoopSignedOwnerStatusGate, enrollment: AgentLoopDeviceEnrollment)?
-    private var completedReview: (gate: AgentLoopSignedOwnerStatusGate, enrollment: AgentLoopDeviceEnrollment)?
+    private typealias Review = (gate: AgentLoopSignedOwnerStatusGate,
+                                enrollment: AgentLoopDeviceEnrollment, port: Int, requestID: String)
+    private let upload: @Sendable (Int, Data, Data, String) async throws -> Void
+    private var pendingReview: Review?
+    private var completedReview: Review?
 
     init(vault: AgentLoopDeviceEnrollmentVault,
          currentPrivacyMode: @escaping @MainActor () -> PrivacyMode,
+         upload: @escaping @Sendable (Int, Data, Data, String) async throws -> Void = { _, _, _, _ in
+             throw AgentLoopRelayClaimError.invalidConfiguration
+         },
          transport: @escaping @Sendable (Int, Data, Data) async throws -> AgentLoopRelayClaim?) {
+        self.upload = upload
         self.vault = vault
         self.currentPrivacyMode = currentPrivacyMode
         self.transport = transport
@@ -30,7 +37,9 @@ final class AgentLoopEnrolledClaimSession {
     convenience init(vault: AgentLoopDeviceEnrollmentVault,
                      currentPrivacyMode: @escaping @MainActor () -> PrivacyMode) {
         let client = AgentLoopRelayClaimClient()
-        self.init(vault: vault, currentPrivacyMode: currentPrivacyMode) { port, device, proposal in
+        self.init(vault: vault, currentPrivacyMode: currentPrivacyMode, upload: { port, device, proof, id in
+            try await client.submitReceipt(port: port, deviceAccessKey: device, proof: proof, requestID: id)
+        }) { port, device, proposal in
             try await client.claim(port: port, deviceAccessKey: device, proposalKey: proposal)
         }
     }
@@ -77,7 +86,7 @@ final class AgentLoopEnrolledClaimSession {
             statusClassification: DataClassification(level: .contextualPrivateData,
                 reason: "Bounded owner-app status; no external observation sharing."))
         if review.stage == .awaitingOwnerReview {
-            pendingReview = (gate, claimed.enrollment)
+            pendingReview = (gate, claimed.enrollment, port, claim.requestID)
         }
         return review
     }
@@ -104,6 +113,22 @@ final class AgentLoopEnrolledClaimSession {
     /// acknowledgement. Never returns status text and never sends it here.
     /// Consume this opportunity even if policy, enrollment or signing fails.
     func prepareProofAfterSeparateLocalShareAction() throws -> Data {
+        try consumeReviewedProof().proof
+    }
+
+    /// The explicit sharing action consumes signing and sending together.
+    /// An ambiguous HTTP outcome is never a reason to resend or reread.
+    /// Return only the request correlation, not the raw proof or status.
+    func submitProofAfterSeparateLocalShareAction() async throws -> String {
+        let prepared = try consumeReviewedProof()
+        try checkEnrollment(prepared.review.enrollment)
+        try await upload(prepared.review.port, prepared.review.enrollment.deviceAccessKey,
+                         prepared.proof, prepared.review.requestID)
+        try checkEnrollment(prepared.review.enrollment)
+        return prepared.review.requestID
+    }
+
+    private func consumeReviewedProof() throws -> (proof: Data, review: Review) {
         guard let completed = completedReview else { throw Failure.proofUnavailable }
         completedReview = nil
         try checkEnrollment(completed.enrollment)
@@ -111,7 +136,7 @@ final class AgentLoopEnrolledClaimSession {
             receiptKey: completed.enrollment.receiptKey, currentPrivacyMode: currentPrivacyMode()
         ) else { throw Failure.proofUnavailable }
         try checkEnrollment(completed.enrollment)
-        return proof
+        return (proof, completed)
     }
 
     private func checkEnrollment(_ expected: AgentLoopDeviceEnrollment) throws {

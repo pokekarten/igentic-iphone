@@ -96,8 +96,9 @@ No status observation is included. Nonce substitution, replay, expiration,
 clock rollback after expiration and Local Only mode cannot yield a new proof.
 The macOS fixture sends a synthetic proof over loopback HTTPS. The fixture
 entry points remain DEBUG-only; the internal encoder is available in Release.
-A production sender, native approval UI and actual owner-device enrollment
-are still open. An independent synthetic HMAC vector is checked in tests.
+The loopback-only receipt sender is described below. A remotely reachable
+transport, native approval UI and actual owner-device enrollment are still
+open. An independent synthetic HMAC vector is checked in tests.
 
 ## macOS native HTTPS interoperability
 
@@ -224,6 +225,27 @@ The proof contains only the request ID, nonce, fixed capability, read time
 and fixed acknowledgement label, plus an HMAC. It proves possession of
 the configured receipt key, not hardware attestation or remote execution.
 No private status observation, owner-consent attestation, or device
-identity is included. No UI, receipt upload, remote endpoint, real
-enrollment exchange or physical-device acceptance is added. Tests use
-synthetic claim responses and in-memory enrollment, not real owner keys.
+identity is included. Tests use synthetic claim responses and in-memory
+enrollment, not real owner keys.
+
+## One-use native loopback acknowledgement upload
+
+A separate explicit sharing action now consumes the prepared read, signs
+the fixed proof and submits it to the original claim's loopback HTTPS port
+using the same device access role. The native client binds a successful
+claim to its port, access key, request ID and nonce. Its request encoder
+accepts only the exact bounded acknowledgement wire format. Its response
+parser accepts only the exact correlated key-authenticated acknowledgement;
+HTTP 200 alone, an unknown outcome or inflated execution claims do not
+qualify. It uses normal system TLS trust, no redirects and bounded I/O.
+The enrolled session checks current mode, cancellation and enrollment
+before sending and before returning the correlation ID. A failed or
+ambiguous send consumes the sharing opportunity; neither a reread nor an
+automatic resend is permitted. Revocation while I/O is in flight cannot
+recall already transmitted bytes. The synthetic Mac integration uses
+process-local certificate trust and independently retrieves the same
+request's result through the MCP SDK. The server's existing transport label
+is not evidence of cellular connectivity.
+No native approval UI, remote endpoint, actual enrollment exchange or
+physical-device acceptance is added. Do not expose or tunnel this loopback
+development endpoint as a remote service.
