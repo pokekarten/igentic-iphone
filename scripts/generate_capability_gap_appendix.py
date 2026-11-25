@@ -6,10 +6,23 @@ an allowlisted report. Does not clone or execute upstreams.
 from pathlib import Path
 import re
 import sys
+import os
+import tempfile
 
+def require(condition, message):
+    if not condition:
+        raise SystemExit(message)
+
+
+require(len(sys.argv) == 3, "Usage: generate_capability_gap_appendix.py ATLAS REPORT")
 source = Path(sys.argv[1])
 dest = Path(sys.argv[2])
-atlas = source.read_text()
+root = Path(__file__).resolve().parents[1]
+allowed = root / "docs/reports/agent-tool-coverage-gap-audit-2026-11-23.md"
+require(allowed.resolve() == allowed and dest.resolve() == allowed
+        and not dest.is_symlink() and dest.is_file(), "Destination is not the allowlisted report")
+require(source.resolve() != allowed, "Atlas and report must be distinct")
+atlas = source.read_text(encoding="utf-8")
 a = atlas.index("### Reuse decision for the complete indexed corpus")
 b = atlas.index("### What to combine first", a)
 group_for = {}
@@ -25,12 +38,13 @@ all_repos = sorted(
     set(re.findall(r"https://github.com/([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)", atlas)),
     key=str.lower
 )
-assert len(all_repos) == 99
+require(len(all_repos) == 99, "Unexpected linked repository count")
 explicit_external = [repo for repo in all_repos if repo.lower() != "pokekarten/igentic-iphone"]
 cross_reference_only = sorted(set(group_for) - {r.lower() for r in all_repos})
 external = sorted(set(explicit_external) | set(cross_reference_only), key=str.lower)
-assert len(explicit_external) == 98 and len(cross_reference_only) == 9
-assert len(external) == 107 and all(r.lower() in group_for for r in external)
+require(len(explicit_external) == 98 and len(cross_reference_only) == 9, "Unexpected corpus partition")
+require(len(external) == 107 and len({r.lower() for r in external}) == 107
+        and all(r.lower() in group_for for r in external), "Invalid corpus coverage")
 gaps = {
     "Host device adapters": "General AX/screenshot/tap/swipe/typing; our adapter deliberately scopes operations to the own app. Requires Mac/host.",
     "Harness, persistence and sandbox components": "Durable loop, effect journal and isolated execution; current kernel routes metadata and memory is in-process.",
@@ -52,7 +66,7 @@ lines = atlas.splitlines()
 by_group = {}
 for repo in external:
     by_group.setdefault(group_for[repo.lower()], []).append(repo)
-assert len(by_group) == 14
+require(set(by_group) == set(gaps), "Invalid capability groups")
 missing_details = {
     "a-ghorbani/pocketpal-ai": "Phone-local LLM chat application, local model download and use.",
     "javichulvi/hermit": "Local model/assistant interface reference; verify current platform and model support before adoption.",
@@ -105,8 +119,24 @@ for group in sorted(by_group):
 out += ["", "---", "",
         "**Scope closure:** all 107 external upstream identities (98 linked in the frozen atlas + 9 additional catalog cross-references) appear exactly once. "
         "This is classification of source projects, not verified readiness, licensing clearance or installation.", ""]
-prior = dest.read_text()
+prior = allowed.read_text(encoding="utf-8")
 marker = "## Appendix: full atlas-to-gap coverage (107 external repositories)"
-assert prior.count(marker) == 1
-dest.write_text(prior[:prior.index(marker) + len(marker)] + "\n" + "\n".join(out))
-print("appendix_groups=", len(by_group), "external_upstreams=", len(external), "report_bytes=", dest.stat().st_size)
+require(prior.count(marker) == 1, "Missing or duplicate appendix marker")
+updated = prior[:prior.index(marker) + len(marker)] + "\n" + "\n".join(out)
+if updated != prior:
+    # Atomic replacement avoids modifying another file through a hard link.
+    # Only this generator's temporary file is removed on failure.
+    tmp = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=allowed.parent,
+                                         prefix=".capability-appendix-", delete=False) as output:
+            tmp = Path(output.name)
+            output.write(updated)
+        os.chmod(tmp, allowed.stat().st_mode & 0o777)
+        require(allowed.resolve() == allowed and not allowed.is_symlink(),
+                "Destination changed")
+        os.replace(tmp, allowed)
+    finally:
+        if tmp is not None:
+            tmp.unlink(missing_ok=True)
+print("appendix_groups=", len(by_group), "external_upstreams=", len(external), "report_bytes=", allowed.stat().st_size)
