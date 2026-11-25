@@ -128,7 +128,12 @@ def train():
 
 def predict(model, text):
     fallback = {"route": "clarify", "reason": "insufficient_signal"}
-    if not isinstance(text, str) or len(text.encode("utf-8")) > MAX_BYTES:
+    if not isinstance(text, str) or len(text) > MAX_BYTES:
+        return fallback
+    try:
+        if len(text.encode("utf-8")) > MAX_BYTES:
+            return fallback
+    except UnicodeEncodeError:
         return fallback
     known = set(model["vocabulary"])
     observed = {k: v for k, v in features(text).items() if k in known}
@@ -150,9 +155,15 @@ def predict(model, text):
 def evaluate(model):
     results = Counter()
     for expected, text in DEV:
-        guess = predict(model, text)["route"]
+        prediction = predict(model, text)
+        guess = prediction["route"]
         results["correct"] += guess == expected
-        results["abstained"] += guess == "clarify"
+        results["wrong"] += guess != expected
+        results["abstained"] += prediction["reason"] == "insufficient_signal"
+        results["classified_clarify"] += (
+            guess == "clarify" and prediction["reason"] == "classifier_suggestion"
+        )
+        results["clarify_routes"] += guess == "clarify"
         results["wrong_nonclarify"] += guess != expected and guess != "clarify"
     return {"cases": len(DEV), **results}
 

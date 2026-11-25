@@ -32,7 +32,25 @@ class TinyDecisionTests(unittest.TestCase):
     def test_smoke_accounting(self):
         result = model.evaluate(model.train())
         self.assertEqual(result["cases"], 16)
-        self.assertLessEqual(result["correct"], result["cases"])
+        self.assertEqual(result["correct"], 16)
+        self.assertEqual(result["wrong"], 0)
+        self.assertEqual(result["wrong_nonclarify"], 0)
+        self.assertEqual(result["clarify_routes"], 4)
+        self.assertEqual(result["correct"] + result["wrong"], result["cases"])
+        self.assertEqual(result["abstained"] + result["classified_clarify"],
+                         result["clarify_routes"])
+
+    def test_fallback_is_not_a_classified_clarify(self):
+        fitted = model.train()
+        self.assertEqual(model.predict(fitted, "")["reason"], "insufficient_signal")
+        self.assertEqual(model.predict(fitted, model.TRAIN["clarify"][0]),
+                         {"route": "clarify", "reason": "classifier_suggestion"})
+
+    def test_unicode_input_bounds(self):
+        fitted = model.train()
+        for sample in ("\ud800", "ä" * 513, "x" * 1025):
+            self.assertEqual(model.predict(fitted, sample),
+                             {"route": "clarify", "reason": "insufficient_signal"})
 
     def test_training_counts(self):
         fitted = model.train()
