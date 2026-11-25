@@ -217,6 +217,9 @@ public struct AgentHomePrototypeView: View {
 
                 Text("Direkt öffnen").font(.headline)
                 VStack(alignment: .leading, spacing: 12) {
+                    #if canImport(Vision) && canImport(FoundationModels) && canImport(PhotosUI)
+                    NavigationLink("Dokumenten-Agent") { AgentLoopDocumentView() }
+                    #endif
                     NavigationLink("Offline-Werkzeuge") { OfflineToolsView() }
                     #if canImport(EventKit)
                     NavigationLink("Erinnerungsentwurf") { CreateReminderTaskView() }

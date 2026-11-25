@@ -111,6 +111,17 @@ struct iGenticDiagnosticsApp: App {
             }
             #if DEBUG
             .task {
+                guard ProcessInfo.processInfo.arguments.contains("--igentic-document-agent-smoke") else { return }
+                let report = await AgentLoopDocumentWorkflow.runOnDevice(image: AgentLoopDocumentWorkflow.syntheticImage())
+                let matched = report.excerpts.contains(where: { $0.contains("Room Cedar") })
+                    && report.excerpts.contains(where: { $0.contains("14:30") })
+                let result = "PHYSICAL_DOCUMENT_AGENT=\(report.outcome.rawValue); lines=\(report.sourceLineCount); excerpts=\(report.excerpts.count); expectedFacts=\(matched)"
+                print(result)
+                physicalProbeStatus = result
+            }
+            #endif
+            #if DEBUG
+            .task {
                 guard ProcessInfo.processInfo.arguments.contains("--igentic-local-agent-diagnostic-smoke") else { return }
                 let goal: AgentLoopDiagnosticGoal = ProcessInfo.processInfo.arguments.contains("--igentic-agent-extended") ? .extended : .basic
                 let report = await AgentLoopLocalDiagnosticWorkflow.runOnDevice(goal: goal)
