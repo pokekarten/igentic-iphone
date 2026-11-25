@@ -88,7 +88,15 @@ test('actual RSA signature, issuer, audience, freshness and read-only scope prot
 
   // Integration is a real MCP SDK POST, using real signature validation and
   // only a disposable local keyset. No real issuer, password or API key.
+  const requestId = '11111111-2222-4333-8444-555555555555';
+  let lookups = 0;
+  const ownerResults = { issuer, subject: 'fixture-person', lookup: async id => {
+    lookups++;
+    return id === requestId ? { requestId, actionExecuted: false } : null;
+  }};
+  await assert.rejects(startPortableGateway({ ownerResults }), /invalidOwnerResultConfig/);
   const gateway = await startPortableGateway({
+    ownerResults,
     oauth: {
       resource, authorizationServers: [issuer],
       verifyAccessToken: (token, ctx) => {
@@ -118,4 +126,17 @@ test('actual RSA signature, issuer, audience, freshness and read-only scope prot
   assert.equal(response.structuredContent.data.actionExecuted, false);
   assert.equal(response.structuredContent.data.iPhoneConnected, 'not-checked');
   assert.doesNotMatch(JSON.stringify(response), /fixture-person|igentic-unit-rsa-1/);
+  const name = 'iphone_owner_task_result';
+  assert.ok((await client.listTools()).tools.some(tool => tool.name === name));
+  assert.deepEqual((await client.callTool({ name, arguments: { requestId } })).structuredContent,
+    { data: { result: { requestId, actionExecuted: false } } });
+  const other = new Client({ name: 'other-fixture', version: '1' });
+  t.after(() => other.close());
+  await other.connect(new StreamableHTTPClientTransport(new URL(endpoint), {
+    requestInit: { headers: { authorization: 'Bearer ' + await sign({ sub: 'other-person' }) } }
+  }));
+  assert.ok(!(await other.listTools()).tools.some(tool => tool.name === name));
+  await other.callTool({ name, arguments: { requestId } }).catch(() => {});
+  assert.equal(lookups, 1);
+
 });

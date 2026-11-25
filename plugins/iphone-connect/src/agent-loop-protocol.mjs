@@ -90,7 +90,9 @@ export function createTransportNeutralAgentLoop({
     if (!Number.isSafeInteger(t) || t < 0) throw Error('invalidAgentLoopClock');
     return t;
   };
-  const snapshot = () => Object.freeze({
+  const snapshot = () => {
+    expire();
+    return Object.freeze({
     schema: 1,
     requestId: task?.requestId ?? null,
     capability: task?.capability ?? null,
@@ -105,11 +107,13 @@ export function createTransportNeutralAgentLoop({
     iPhoneConnected: 'not-checked',
     deviceReceipt: authenticatedReceipt ? 'key-authenticated-not-device-attested' : 'none',
     automaticRetryAllowed: false
-  });
+    });
+  };
   const match = id => task && typeof id === 'string' && id === task.requestId;
-  const expire = () => {
+  const expire = (sampledTime) => {
     if (!task) return false;
-    if (now() < task.expiresAt) return false;
+    const currentTime = sampledTime ?? now();
+    if (currentTime >= task.issuedAt && currentTime < task.expiresAt) return false;
     lateReceiptAllowed = false;
     if (!['receipt-key-authenticated', 'cancelled-local', 'outcome-unknown',
           'expired-before-send'].includes(state)) {
@@ -164,6 +168,9 @@ export function createTransportNeutralAgentLoop({
       transport = route;
       attemptCount += 1;
       state = 'delivery-prepared-not-sent';
+      // Persistence can cross the deadline. Keep the durable uncertainty
+      // boundary, but never release an already expired payload to an adapter.
+      if (expire()) invalid();
       // This intentionally does not expose an executable command or private
       // input. A separate adapter must do the actual transport.
       return Object.freeze({
@@ -201,14 +208,21 @@ export function createTransportNeutralAgentLoop({
           || typeof envelope.signature !== 'string' || !MAC.test(envelope.signature))
         receiptInvalid();
       const body = normalizeReceipt(envelope.body);
+      const receiptCheckTime = now();
+      // Close the receipt window on any observed expiry, even if a later
+      // clock reading rolls back into the original validity interval.
+      if (expire(receiptCheckTime)) return snapshot();
       if (!match(body.requestId) || body.nonce !== task.receiptNonce
           || body.observedAt < task.issuedAt
-          || body.observedAt > now() + 5
+          || body.observedAt > receiptCheckTime + 5
           || body.observedAt >= task.expiresAt) receiptInvalid();
       const supplied = Buffer.from(envelope.signature, 'hex');
       const expected = Buffer.from(signBody(trustedReceiptKey, body), 'hex');
       if (supplied.length !== expected.length
           || !timingSafeEqual(supplied, expected)) receiptInvalid();
+      // A valid signature cannot revive a task whose deadline passed
+      // during verification. Commit the receipt only inside its TTL.
+      if (expire()) return snapshot();
       authenticatedReceipt = true;
       lateReceiptAllowed = false;
       state = 'receipt-key-authenticated';

@@ -103,6 +103,15 @@ jobs:
         working-directory: ios
         run: swift test
 
+      - name: Test native relay and MCP roundtrip on macOS
+        if: ${{ hashFiles('plugins/iphone-connect/test/owner-device-relay-https.test.mjs') != '' }}
+        working-directory: plugins/iphone-connect
+        run: |
+          set -euo pipefail
+          node -e 'if (process.platform !== "darwin" || Number(process.versions.node.split(".")[0]) < 22) process.exit(1)'
+          npm ci --ignore-scripts --no-audit --no-fund
+          node --test test/owner-device-relay-https.test.mjs test/oauth-jwks.test.mjs
+
   apple-foundation-baseline-compile:
     name: Compile Apple Foundation baseline host
     runs-on: xcode-27

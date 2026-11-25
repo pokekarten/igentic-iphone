@@ -357,3 +357,82 @@ final class AgentLoopSignedOwnerStatusGateTests: XCTestCase {
     }
 }
 #endif
+
+#if DEBUG && canImport(CryptoKit) && canImport(Darwin)
+extension AgentLoopSignedOwnerStatusGateTests {
+    func testRelayFixtureProofRequiresBoundClaimLocalReadAndSeparateReview() async throws {
+        try await MainActor.run {
+            let dir = try newPrivateReplayDirectory()
+            defer { try? FileManager.default.removeItem(at: dir) }
+            let journal = try AgentLoopLocalReplayJournal(directory: dir, key: signedTaskKey())
+            let receiptKey = Data((32..<64).map(UInt8.init))
+            let id = "11111111-2222-4333-8444-555555555555"
+            let nonce = "22222222-3333-4444-8555-666666666666"
+            var time = 2_000_000_000
+            var reads = 0
+            let gate = AgentLoopSignedOwnerStatusGate(replayJournal: journal,
+                clockSeconds: { time }, statusReader: { reads += 1; return syntheticSignedStatus() })
+            let claim = AgentLoopRelayClaim(canonicalWire: Data(signedTaskFixture.utf8),
+                requestID: id, receiptNonce: nonce, expiresAt: 2_000_000_060)
+            XCTAssertEqual(gate.stageRelayClaimFixture(claim, relayKey: signedTaskKey(),
+                privacyMode: .externalAI, statusClassification: .publicDefault).stage, .awaitingOwnerReview)
+            XCTAssertNil(gate.prepareTestOnlyProofAfterSeparateLocalReview(
+                receiptKey: receiptKey, currentPrivacyMode: .externalAI))
+            // A second claim cannot substitute a different nonce.
+            let replacement = AgentLoopRelayClaim(canonicalWire: claim.canonicalWire,
+                requestID: id, receiptNonce: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee", expiresAt: claim.expiresAt)
+            _ = gate.stageRelayClaimFixture(replacement, relayKey: signedTaskKey(),
+                privacyMode: .externalAI, statusClassification: .publicDefault)
+            time += 10
+            XCTAssertEqual(gate.readAfterLocalReviewAction().stage, .locallyRead)
+            XCTAssertNil(gate.prepareTestOnlyProofAfterSeparateLocalReview(
+                receiptKey: receiptKey, currentPrivacyMode: .localOnly))
+            XCTAssertNil(gate.prepareTestOnlyProofAfterSeparateLocalReview(
+                receiptKey: signedTaskKey(), currentPrivacyMode: .externalAI))
+            let proof = try XCTUnwrap(gate.prepareTestOnlyProofAfterSeparateLocalReview(
+                receiptKey: receiptKey, currentPrivacyMode: .externalAI))
+            // Independent Node-generated synthetic proof.
+            XCTAssertEqual(String(decoding: proof, as: UTF8.self), #"{"body":{"schema":1,"kind":"read-only-device-key-ack","requestId":"11111111-2222-4333-8444-555555555555","capability":"igentic.own_app.status.read","nonce":"22222222-3333-4444-8555-666666666666","observedAt":2000000010,"status":"key-holder-reports-read"},"signature":"2f9c5be2f21b504b19059f3e91e1e6e515c67b6a71301be1b48fd06b5507f858"}"#)
+            XCTAssertFalse(String(decoding: proof, as: UTF8.self).contains("64 %"))
+            XCTAssertFalse(gate.snapshot().externalDataShared)
+            XCTAssertFalse(gate.snapshot().ownerConsentAttested)
+            XCTAssertFalse(gate.snapshot().remoteActionExecuted)
+            XCTAssertNil(gate.prepareTestOnlyProofAfterSeparateLocalReview(
+                receiptKey: receiptKey, currentPrivacyMode: .externalAI))
+            XCTAssertEqual(reads, 1)
+        }
+    }
+
+    func testRelayFixtureProofCannotBeIssuedAfterExpiryOrFromUnboundRead() async throws {
+        try await MainActor.run {
+            for bound in [false, true] {
+                let dir = try newPrivateReplayDirectory()
+                defer { try? FileManager.default.removeItem(at: dir) }
+                var time = 2_000_000_000
+                let gate = AgentLoopSignedOwnerStatusGate(
+                    replayJournal: try AgentLoopLocalReplayJournal(directory: dir, key: signedTaskKey()),
+                    clockSeconds: { time }, statusReader: { syntheticSignedStatus() })
+                let wire = Data(signedTaskFixture.utf8)
+                if bound {
+                    let claim = AgentLoopRelayClaim(canonicalWire: wire,
+                        requestID: "11111111-2222-4333-8444-555555555555",
+                        receiptNonce: "22222222-3333-4444-8555-666666666666", expiresAt: 2_000_000_060)
+                    _ = gate.stageRelayClaimFixture(claim, relayKey: signedTaskKey(),
+                        privacyMode: .externalAI, statusClassification: .publicDefault)
+                } else {
+                    _ = gate.stageSignedTaskForOwnerReview(wire, relayKey: signedTaskKey(),
+                        privacyMode: .externalAI, statusClassification: .publicDefault)
+                }
+                XCTAssertEqual(gate.readAfterLocalReviewAction().stage, .locallyRead)
+                if bound { time = 2_000_000_060 }
+                let key = Data((32..<64).map(UInt8.init))
+                XCTAssertNil(gate.prepareTestOnlyProofAfterSeparateLocalReview(
+                    receiptKey: key, currentPrivacyMode: .externalAI))
+                time = 2_000_000_001
+                XCTAssertNil(gate.prepareTestOnlyProofAfterSeparateLocalReview(
+                    receiptKey: key, currentPrivacyMode: .externalAI))
+            }
+        }
+    }
+}
+#endif
