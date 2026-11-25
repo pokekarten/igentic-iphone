@@ -192,6 +192,15 @@ public struct AgentHomePrototypeView: View {
                     }
                     .disabled(diagnosticRun != nil)
                     .accessibilityIdentifier("igentic-agent-diagnostic-start")
+                    Button("Erweiterten Fähigkeitsbericht erstellen") {
+                        diagnosticReport = nil
+                        diagnosticRun = Task { @MainActor in
+                            diagnosticReport = await AgentLoopLocalDiagnosticWorkflow.runOnDevice(goal: .extended)
+                            diagnosticRun = nil
+                        }
+                    }
+                    .disabled(diagnosticRun != nil)
+                    .accessibilityIdentifier("igentic-agent-diagnostic-extended")
                     if diagnosticRun != nil {
                         ProgressView("Lokale Planung läuft")
                         Button("Abbrechen") { diagnosticRun?.cancel() }

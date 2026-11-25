@@ -112,7 +112,8 @@ struct iGenticDiagnosticsApp: App {
             #if DEBUG
             .task {
                 guard ProcessInfo.processInfo.arguments.contains("--igentic-local-agent-diagnostic-smoke") else { return }
-                let report = await AgentLoopLocalDiagnosticWorkflow.runOnDevice()
+                let goal: AgentLoopDiagnosticGoal = ProcessInfo.processInfo.arguments.contains("--igentic-agent-extended") ? .extended : .basic
+                let report = await AgentLoopLocalDiagnosticWorkflow.runOnDevice(goal: goal)
                 let result = "PHYSICAL_AGENT_WORKFLOW=\(report.outcome.rawValue); turns=\(report.modelTurns); steps=\(report.steps.map(\.rawValue).joined(separator: ",")); reportPrepared=\(report.localReport != nil)"
                 print(result)
                 physicalProbeStatus = result

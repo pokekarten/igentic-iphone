@@ -57,3 +57,41 @@ final class AgentLoopLocalDiagnosticWorkflowTests: XCTestCase {
         XCTAssertNil(report.localReport)
     }
 }
+
+extension AgentLoopLocalDiagnosticWorkflowTests {
+    @MainActor
+    func testExtendedGoalUsesRegisteredCapabilitiesAndFeedsEvidenceBack() async {
+        let choices = ["capabilities.read","status.read","model.readiness","finish"]
+        var seen: [AgentLoopDiagnosticProgress] = []
+        var inventoryReads = 0
+        let report = await AgentLoopLocalDiagnosticWorkflow.run(goal: .extended, propose: { p in
+            defer { seen.append(p) }
+            return choices[seen.count]
+        }, readStatus: {
+            .init(batteryFraction: 0.5, lowPowerModeEnabled: false, osVersion: "27")
+        }, checkModel: { true }, inspectCapabilities: {
+            inventoryReads += 1
+            return 4
+        }, elapsed: { 1 })
+        XCTAssertEqual(report.outcome,.completed)
+        XCTAssertEqual(report.modelTurns,4)
+        XCTAssertEqual(inventoryReads,1)
+        XCTAssertEqual(seen[1].capabilityCount,4)
+        XCTAssertEqual(seen[1].remainingReads,[.readStatus,.checkModel])
+        XCTAssertTrue(seen[3].remainingReads.isEmpty)
+        XCTAssertTrue(report.localReport?.contains("Navigationsmöglichkeiten: 4") == true)
+    }
+
+    @MainActor
+    func testBasicGoalCannotDispatchExtendedReader() async {
+        let report = await AgentLoopLocalDiagnosticWorkflow.run(propose: { _ in
+            "capabilities.read"
+        }, readStatus: {
+            XCTFail("Unexpected read")
+            return .init(batteryFraction: 0, lowPowerModeEnabled: false, osVersion: "27")
+        }, checkModel: { XCTFail("Unexpected readiness"); return false },
+        inspectCapabilities: { XCTFail("Out-of-goal capability"); return 4 }, elapsed: { 1 })
+        XCTAssertEqual(report.outcome,.rejectedProposal)
+        XCTAssertNil(report.localReport)
+    }
+}
