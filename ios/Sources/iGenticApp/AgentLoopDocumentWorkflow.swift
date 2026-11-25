@@ -52,6 +52,7 @@ public enum AgentLoopDocumentWorkflow {
         func result(_ outcome: AgentLoopDocumentResult.Outcome, _ excerpts: [String] = []) -> AgentLoopDocumentResult {
             .init(outcome: outcome, sourceLineCount: count, excerpts: excerpts)
         }
+        // Admission deadline, not a promise to interrupt synchronous Vision work.
         func stopped() -> AgentLoopDocumentResult.Outcome? {
             if Task.isCancelled { return .cancelled }
             let age = elapsed()
@@ -130,7 +131,10 @@ extension AgentLoopDocumentWorkflow {
             return Double(d.seconds) + Double(d.attoseconds) / 1e18
         }
         return await run(recognize: {
-            try await Task.detached(priority: .userInitiated) {
+            // Forward cancellation to the unstructured OCR worker. Vision may
+            // still finish synchronous work; cancelled results are never admitted.
+            let worker = Task.detached(priority: .userInitiated) {
+                try Task.checkCancellation()
                 // Reject extreme decompressed dimensions before Vision work.
                 guard let source = CGImageSourceCreateWithData(image as CFData, nil),
                       CGImageSourceGetCount(source) == 1,
@@ -144,9 +148,16 @@ extension AgentLoopDocumentWorkflow {
                 let request = VNRecognizeTextRequest()
                 request.recognitionLevel = .accurate
                 request.usesLanguageCorrection = false
+                try Task.checkCancellation()
                 try VNImageRequestHandler(data: image).perform([request])
+                try Task.checkCancellation()
                 return request.results?.compactMap { $0.topCandidates(1).first?.string } ?? []
-            }.value
+            }
+            return try await withTaskCancellationHandler {
+                try await worker.value
+            } onCancel: {
+                worker.cancel()
+            }
         }, select: { lines in
             if let additionalFocus {
                 return try await selectPerQuestion(questions: [focus, additionalFocus], lines: lines,

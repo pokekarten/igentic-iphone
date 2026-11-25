@@ -26,7 +26,7 @@ public struct AgentLoopDocumentView: View {
                 Text("Bei zwei Fragen sucht die lokale KI getrennt nach jeweils einer Quellzeile. Fehlende Antworten stoppen die Auswahl.")
                     .font(.caption)
                 Button("Dokument lokal auswerten") { start() }
-                    .disabled(selection == nil || job != nil || focus.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .disabled(selection == nil || job != nil || scenePhase != .active || focus.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     .accessibilityIdentifier("igentic-document-agent-start")
                 if job != nil {
                     ProgressView("OCR und lokale KI laufen")
@@ -53,16 +53,18 @@ public struct AgentLoopDocumentView: View {
     private func stop() {
         generation = UUID()
         job?.cancel()
-        job = nil
+        // Do not start another OCR/model operation until this one returns.
+        result = nil
     }
     private func start() {
-        guard job == nil, let item = selection else { return }
+        guard job == nil, scenePhase == .active, let item = selection else { return }
         result = nil
         let query = focus
         let second = additionalFocus.trimmingCharacters(in: .whitespacesAndNewlines)
         let token = UUID()
         generation = token
         job = Task { @MainActor in
+            defer { job = nil }
             let outcome: AgentLoopDocumentResult
             if let data = try? await item.loadTransferable(type: Data.self) {
                 if Task.isCancelled || generation != token { return }
@@ -70,9 +72,8 @@ public struct AgentLoopDocumentView: View {
             } else {
                 outcome = .init(outcome: .inputRejected, sourceLineCount: 0, excerpts: [])
             }
-            guard !Task.isCancelled, generation == token else { return }
+            guard !Task.isCancelled, generation == token, scenePhase == .active else { return }
             result = outcome
-            job = nil
         }
     }
 }

@@ -17,6 +17,7 @@ public struct AgentHomePrototypeView: View {
     @State private var diagnosticReport: AgentLoopDiagnosticReport?
     private let loopStore = AgentLoopShortcutExchangeStore()
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
 
     public init() {}
 
@@ -184,26 +185,18 @@ public struct AgentHomePrototypeView: View {
                     Text("Das Apple-Sprachmodell plant mehrere lokale Schritte. iGentic prüft und führt ausschließlich eigene Status- und KI-Bereitschaftsabfragen aus und erstellt daraus einen Bericht.")
                         .font(.footnote)
                     Button("Lokalen KI-Agenten starten") {
-                        diagnosticReport = nil
-                        diagnosticRun = Task { @MainActor in
-                            diagnosticReport = await AgentLoopLocalDiagnosticWorkflow.runOnDevice()
-                            diagnosticRun = nil
-                        }
+                        startDiagnostic(.basic)
                     }
-                    .disabled(diagnosticRun != nil)
+                    .disabled(diagnosticRun != nil || scenePhase != .active)
                     .accessibilityIdentifier("igentic-agent-diagnostic-start")
                     Button("Erweiterten Fähigkeitsbericht erstellen") {
-                        diagnosticReport = nil
-                        diagnosticRun = Task { @MainActor in
-                            diagnosticReport = await AgentLoopLocalDiagnosticWorkflow.runOnDevice(goal: .extended)
-                            diagnosticRun = nil
-                        }
+                        startDiagnostic(.extended)
                     }
-                    .disabled(diagnosticRun != nil)
+                    .disabled(diagnosticRun != nil || scenePhase != .active)
                     .accessibilityIdentifier("igentic-agent-diagnostic-extended")
                     if diagnosticRun != nil {
                         ProgressView("Lokale Planung läuft")
-                        Button("Abbrechen") { diagnosticRun?.cancel() }
+                        Button("Abbrechen") { stopDiagnostic() }
                     }
                     if let result = diagnosticReport {
                         Text(result.localReport ?? "Gestoppt: \(result.outcome.rawValue)")
@@ -213,7 +206,10 @@ public struct AgentHomePrototypeView: View {
                             .font(.caption)
                     }
                 }
-                .onDisappear { diagnosticRun?.cancel() }
+                .onDisappear { stopDiagnostic() }
+                .onChange(of: scenePhase) { _, phase in
+                    if phase != .active { stopDiagnostic() }
+                }
 
                 Text("Direkt öffnen").font(.headline)
                 VStack(alignment: .leading, spacing: 12) {
@@ -253,6 +249,23 @@ public struct AgentHomePrototypeView: View {
             } else {
                 loopReady = false
             }
+        }
+    }
+
+    private func stopDiagnostic() {
+        diagnosticReport = nil
+        // Keep the task occupied until its awaited provider returns.
+        diagnosticRun?.cancel()
+    }
+
+    private func startDiagnostic(_ goal: AgentLoopDiagnosticGoal) {
+        guard diagnosticRun == nil, scenePhase == .active else { return }
+        diagnosticReport = nil
+        diagnosticRun = Task { @MainActor in
+            defer { diagnosticRun = nil }
+            let report = await AgentLoopLocalDiagnosticWorkflow.runOnDevice(goal: goal)
+            guard !Task.isCancelled, scenePhase == .active else { return }
+            diagnosticReport = report
         }
     }
 

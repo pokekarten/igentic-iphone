@@ -44,6 +44,37 @@ final class AgentLoopLocalDiagnosticWorkflowTests: XCTestCase {
     }
 
     @MainActor
+    func testCancelledProposalCannotExecuteTool() async {
+        let task = Task { @MainActor in
+            await AgentLoopLocalDiagnosticWorkflow.run(propose: { _ in
+                withUnsafeCurrentTask { $0?.cancel() }
+                return "status.read"
+            }, readStatus: {
+                XCTFail("Cancelled proposal executed")
+                return .init(batteryFraction: 0, lowPowerModeEnabled: false, osVersion: "27")
+            }, checkModel: { false }, elapsed: { 1 })
+        }
+        let report = await task.value
+        XCTAssertEqual(report.outcome, .cancelled)
+        XCTAssertTrue(report.steps.isEmpty)
+        XCTAssertNil(report.localReport)
+    }
+
+    @MainActor
+    func testExpiredThrowIsNotMisclassifiedAsProviderFailure() async {
+        var time: TimeInterval = 0
+        let report = await AgentLoopLocalDiagnosticWorkflow.run(propose: { _ in
+            time = 60
+            throw CancellationError()
+        }, readStatus: {
+            XCTFail("Expired proposal executed")
+            return .init(batteryFraction: 0, lowPowerModeEnabled: false, osVersion: "27")
+        }, checkModel: { false }, elapsed: { time })
+        XCTAssertEqual(report.outcome, .expired)
+        XCTAssertNil(report.localReport)
+    }
+
+    @MainActor
     func testExpiredModelResultCannotExecuteTool() async {
         var time: TimeInterval = 0
         let report = await AgentLoopLocalDiagnosticWorkflow.run(propose: { _ in

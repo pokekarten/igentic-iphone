@@ -76,6 +76,7 @@ public enum AgentLoopLocalDiagnosticWorkflow {
         func receipt(_ outcome: AgentLoopDiagnosticReport.Outcome, _ report: String? = nil) -> AgentLoopDiagnosticReport {
             .init(outcome: outcome, steps: steps, modelTurns: turns, localReport: report)
         }
+        // Admission deadline: a suspended model call can return after the budget.
         func currentFailure() -> AgentLoopDiagnosticReport.Outcome? {
             if Task.isCancelled { return .cancelled }
             let age = elapsed()
@@ -90,7 +91,7 @@ public enum AgentLoopLocalDiagnosticWorkflow {
                 raw = try await propose(.init(completed: steps, statusAvailable: status != nil,
                                               localModelAvailable: readiness, capabilityCount: capabilityCount, remainingReads: remaining))
             } catch {
-                return receipt(Task.isCancelled ? .cancelled : .failed)
+                return receipt(currentFailure() ?? .failed)
             }
             if let failure = currentFailure() { return receipt(failure) }
             guard let step = AgentLoopDiagnosticStep(rawValue: raw), !steps.contains(step) else {
