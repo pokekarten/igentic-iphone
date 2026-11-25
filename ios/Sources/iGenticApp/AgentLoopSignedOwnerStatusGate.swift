@@ -196,12 +196,11 @@ public final class AgentLoopSignedOwnerStatusGate {
         return receipt()
     }
 
-    #if DEBUG
-    /// Development-only bridge from a decoded Relay claim to the existing
-    /// durable native review gate. No production enrollment or TLS origin
-    /// attestation is implied. Never bind an alternate nonce to an admitted task.
+    /// Internal bridge for a decoded relay claim. Recheck the signed task
+    /// and outer claim correlation before reserving the durable review marker.
+    /// No receipt authority, network request or local read is granted here.
     @discardableResult
-    func stageRelayClaimFixture(
+    func stageRelayClaimForOwnerReview(
         _ claim: AgentLoopRelayClaim, relayKey: Data,
         privacyMode: PrivacyMode, statusClassification: DataClassification
     ) -> AgentLoopSignedStatusGateReceipt {
@@ -214,8 +213,21 @@ public final class AgentLoopSignedOwnerStatusGate {
             stage = .denied
             return receipt()
         }
-        let staged = stageSignedTaskForOwnerReview(claim.canonicalWire,
+        return stageSignedTaskForOwnerReview(claim.canonicalWire,
             relayKey: relayKey, privacyMode: privacyMode, statusClassification: statusClassification)
+    }
+
+    #if DEBUG
+    /// Bind the DEBUG-only proof to the original claim; never substitute a
+    /// nonce after admission. Production proof signing stays unavailable.
+    @discardableResult
+    func stageRelayClaimFixture(
+        _ claim: AgentLoopRelayClaim, relayKey: Data,
+        privacyMode: PrivacyMode, statusClassification: DataClassification
+    ) -> AgentLoopSignedStatusGateReceipt {
+        guard stage == .empty else { return snapshot() }
+        let staged = stageRelayClaimForOwnerReview(claim, relayKey: relayKey,
+            privacyMode: privacyMode, statusClassification: statusClassification)
         if staged.stage == .awaitingOwnerReview {
             fixtureBinding = (claim.receiptNonce, Data(SHA256.hash(data: relayKey)))
         }

@@ -147,6 +147,69 @@ extension AgentLoopDeviceEnrollmentVaultTests {
     }
 
     @MainActor
+    func testClaimStagesReviewAndRequiresSeparateReadWithLiveEnrollment() async throws {
+        for scenario in ["success", "revoked", "local-only", "mismatched-claim"] {
+            let backend = EnrollmentMemoryBackend()
+            let vault = AgentLoopDeviceEnrollmentVault(backend: backend, separateReplayKey: Self.key(96))
+            let enrollment = AgentLoopDeviceEnrollment(id: UUID(), deviceAccessKey: Self.key(32),
+                proposalKey: Self.key(0), receiptKey: Self.key(64))
+            try vault.enrollExplicitly(enrollment)
+            let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+            try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: false,
+                                                     attributes: [.posixPermissions: 0o700])
+            defer { try? FileManager.default.removeItem(at: dir) }
+            let wire = #"{"body":{"schema":1,"kind":"read-only-task-proposal","requestId":"11111111-2222-4333-8444-555555555555","issuedAt":2000000000,"expiresAt":2000000060,"capability":"igentic.own_app.status.read","parameters":{}},"signature":"5109a32fd50436db89b96cd4970abd29626f0d0fd786fd71f79e0855821093b2"}"#
+            let claim = AgentLoopRelayClaim(canonicalWire: Data(wire.utf8),
+                requestID: scenario == "mismatched-claim" ? UUID().uuidString.lowercased() : "11111111-2222-4333-8444-555555555555",
+                receiptNonce: "22222222-3333-4444-8555-666666666666", expiresAt: 2_000_000_060)
+            var mode = PrivacyMode.externalAI
+            var reads = 0
+            let gate = AgentLoopSignedOwnerStatusGate(
+                replayJournal: try AgentLoopLocalReplayJournal(directory: dir, key: Self.key(96)),
+                clockSeconds: { 2_000_000_000 }, statusReader: {
+                    reads += 1
+                    return AgentLoopLocalStatus(batteryFraction: 0.64, lowPowerModeEnabled: true, osVersion: "27.2")
+                })
+            let session = AgentLoopEnrolledClaimSession(vault: vault, currentPrivacyMode: { mode }) {
+                _, _, _ in claim
+            }
+            XCTAssertThrowsError(try session.readAfterSeparateLocalReviewAction())
+            let staged = try await session.stageClaimAfterLocalAction(port: 12345, gate: gate)
+            XCTAssertEqual(reads, 0)
+            XCTAssertNil(staged?.ownerAppObservation)
+            if scenario == "mismatched-claim" {
+                XCTAssertEqual(staged?.stage, .denied)
+                XCTAssertThrowsError(try session.readAfterSeparateLocalReviewAction())
+                XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: dir.path).count, 0)
+                continue
+            }
+            XCTAssertEqual(staged?.stage, .awaitingOwnerReview)
+            XCTAssertEqual(staged?.remoteActionExecuted, false)
+            if scenario == "revoked" {
+                try vault.revokeExplicitly(id: enrollment.id)
+                XCTAssertThrowsError(try session.readAfterSeparateLocalReviewAction()) {
+                    XCTAssertEqual($0 as? AgentLoopEnrolledClaimSession.Failure, .enrollmentChanged)
+                }
+            } else if scenario == "local-only" {
+                mode = .localOnly
+                XCTAssertThrowsError(try session.readAfterSeparateLocalReviewAction()) {
+                    XCTAssertEqual($0 as? AgentLoopEnrolledClaimSession.Failure, .privacyDenied)
+                }
+                mode = .externalAI
+            } else {
+                let result = try session.readAfterSeparateLocalReviewAction()
+                XCTAssertEqual(result.stage, .locallyRead)
+                XCTAssertTrue(result.localReadCompleted)
+                XCTAssertFalse(result.externalDataShared)
+                XCTAssertFalse(result.remoteActionExecuted)
+                XCTAssertEqual(result.independentDeviceReceipt, "none")
+            }
+            XCTAssertThrowsError(try session.readAfterSeparateLocalReviewAction())
+            XCTAssertEqual(reads, scenario == "success" ? 1 : 0)
+        }
+    }
+
+    @MainActor
     func testLocalOnlyAndMissingEnrollmentDoNotContactTransport() async throws {
         let backend = EnrollmentMemoryBackend()
         let vault = AgentLoopDeviceEnrollmentVault(backend: backend, separateReplayKey: Self.key(96))

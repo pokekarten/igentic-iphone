@@ -201,3 +201,18 @@ Existing ledgers without this schema fail closed, not auto-migrate.
 No existing owner files are modified by these tests. This binds configured
 roles, not a physical device identity or an OAuth account; actual enrollment
 exchange, rotation, backup rollback protection and UI remain separate.
+
+## Enrollment-to-native-review integration
+
+The internal enrolled claim session now stages the verified, correlated
+claim directly in a fresh native status gate with a durable replay
+journal. A separate local review action can consume this session's
+pending review exactly once. It rechecks the current external-AI mode,
+cancellation and the exact existing enrollment before the local read
+and before returning the local result. Revocation or mode changes block
+the session's result; a failed review is not automatically retried.
+The gate and journal must be supplied by trusted native code.
+No UI, production signing, receipt upload, remote endpoint or
+physical-device acceptance is added. The DEBUG synthetic proof remains
+a separate fixture-only mechanism. Tests use injected loopback claim
+responses and in-memory enrollment, not real owner keys.
