@@ -56,7 +56,12 @@ test('Shortcut guide describes real owner-controlled action names without constr
   assert.equal(guide.actionExecuted, false);
   assert.equal(guide.iPhoneConnected, 'not-checked');
   assert.equal(guide.steps.length, 5);
-  assert.match(guide.steps.join(' '), /KI-Auftrags-ID lesen/);
+  assert.equal(guide.requiresChatGPTExtension, false);
+  assert.match(guide.steps[0], /KI-Auftragspaket lesen/);
+  assert.match(guide.steps[1], /taskId und prompt aus demselben Wörterbuch/);
+  assert.match(guide.steps[2], /ausschließlich dem Feldwert prompt/);
+  assert.match(guide.steps[3], /unveränderte taskId aus Schritt 2/);
+  assert.doesNotMatch(guide.steps.join(' '), /KI-Auftrags-ID lesen|KI-Prompt lesen/);
   assert.match(guide.steps.join(' '), /Modell verwenden|Use Model/);
   assert.match(guide.steps.join(' '), /KI-Antwort übernehmen/);
   assert.match(guide.steps.join(' '), /Starte|Nutze|Öffne/);
