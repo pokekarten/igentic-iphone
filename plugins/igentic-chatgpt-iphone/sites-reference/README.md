@@ -256,3 +256,14 @@ foreign, or inflated response cannot reveal a manually prepared handoff
 link or enable a compatibility report. This is same-origin response
 consistency, not cryptographic server attestation or device execution
 verification.
+
+## Manual KI Loop guide (/ki-loop)
+
+The static guide supports GET /ki-loop and the exact ChatGPT attribution
+query ?utm_source=chatgpt.com. Other query data and methods fail closed.
+It uses the fixed native diagnostics link and owner-configured shortcut name
+from AgentLoopShortcutSetup. It does not create a shortcut, transfer prompt
+text, call a model, check a phone or return a receipt. This guide matches the
+help URL returned by the existing private deployed plugin; deployment and
+authenticated mobile opening still require separate owner acceptance. The
+three canonical own-app handoff actions remain unchanged.
