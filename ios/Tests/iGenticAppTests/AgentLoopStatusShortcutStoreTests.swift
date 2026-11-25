@@ -25,11 +25,8 @@ final class AgentLoopStatusShortcutStoreTests: XCTestCase {
             defer { try? FileManager.default.removeItem(at: dir) }
             let file = dir.appendingPathComponent("journal.json")
             let store = AgentLoopStatusShortcutStore(fileURL: file)
-            let id = try XCTUnwrap(try jsonDictionary(store.begin())["taskId"] as? String)
-            let result = try jsonDictionary(store.advance(
-                taskID: id, modelReply: #"{"action":"status.read"}"#,
-                finishAfterRead: true, statusReader: demoShortcutsStatus
-            ))
+            let result = try jsonDictionary(store.runDeterministicStatusLoop(statusReader: demoShortcutsStatus))
+            let id = try XCTUnwrap(result["taskId"] as? String)
             XCTAssertEqual(result["stage"] as? String, "finished")
             XCTAssertNotNil(result["observation"])
             XCTAssertNil(result["nextPrompt"])
@@ -38,6 +35,42 @@ final class AgentLoopStatusShortcutStoreTests: XCTestCase {
                 taskID: id, modelReply: #"{"action":"status.read"}"#,
                 finishAfterRead: true, statusReader: { XCTFail("Unexpected second read"); return demoShortcutsStatus() }
             )) { XCTAssertEqual($0 as? AgentLoopStatusShortcutError, .alreadyFinished) }
+        }
+    }
+
+    func testDelayedReplayPreservesCompletedAndRejectedJournal() async throws {
+        try await MainActor.run {
+            for terminal in [AgentLoopStatusShortcutStage.finished, .rejected] {
+                let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+                defer { try? FileManager.default.removeItem(at: dir) }
+                let file = dir.appendingPathComponent("journal.json")
+                let start = Date(timeIntervalSince1970: 1_800_000_000)
+                var clock = start
+                let store = AgentLoopStatusShortcutStore(fileURL: file, clock: { clock })
+                let id = try XCTUnwrap(jsonDictionary(store.begin())["taskId"] as? String)
+                var reads = 0
+                let reader = { reads += 1; return demoShortcutsStatus() }
+                if terminal == .finished {
+                    _ = try store.advance(taskID: id, modelReply: #"{"action":"status.read"}"#,
+                                          finishAfterRead: true, statusReader: reader)
+                } else {
+                    XCTAssertThrowsError(try store.advance(taskID: id,
+                        modelReply: #"{"action":"finish"}"#, statusReader: reader))
+                }
+                let original = try Data(contentsOf: file)
+                for offset in [AgentLoopStatusShortcutStore.ttl, -1] {
+                    clock = start.addingTimeInterval(offset)
+                    let reopened = AgentLoopStatusShortcutStore(fileURL: file, clock: { clock })
+                    XCTAssertThrowsError(try reopened.advance(taskID: id,
+                        modelReply: #"{"action":"status.read"}"#, statusReader: reader)) {
+                        XCTAssertEqual($0 as? AgentLoopStatusShortcutError,
+                                       terminal == .finished ? .alreadyFinished : .rejected)
+                    }
+                    XCTAssertEqual(try reopened.stageForOwner(), terminal)
+                    XCTAssertEqual(try Data(contentsOf: file), original)
+                }
+                XCTAssertEqual(reads, terminal == .finished ? 1 : 0)
+            }
         }
     }
 

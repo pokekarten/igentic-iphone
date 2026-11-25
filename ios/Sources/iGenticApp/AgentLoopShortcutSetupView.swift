@@ -83,7 +83,10 @@ public struct AgentLoopShortcutSetupView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Neu: echter lokaler Zwei-Schritt-Status-Loop").font(.headline)
+                    Text("Lokaler Status-Loop").font(.headline)
+                    Text("Unter App-Kurzbefehle → iGentic Diagnostics startet „iGentic Status-Loop“ eine einzelne lokale Statusabfrage mit Abschluss. Der App-Kurzbefehl gehört zum Build und braucht keinen Import und kein KI-Modell.")
+                        .font(.subheadline)
+                    Text("Optional: eigener Kurzbefehl mit Modellvorschlag").font(.headline)
                     Text("Dieser unabhängige Test verarbeitet einen Modellvorschlag, liest danach auf dem iPhone nur Akku, Stromsparmodus und iOS-Version und akzeptiert anschließend ausschließlich den Abschluss. Der Zustand bleibt über getrennte Kurzbefehle-Aufrufe erhalten.")
                         .font(.subheadline)
                     ForEach(AgentLoopShortcutSetup.statusLoopActions.indices, id: \.self) { index in

@@ -80,13 +80,11 @@ private enum NativeRelayClaimSmoke {
               claim.requestID == fixture.requestID else { throw Failure.invalidClaim }
 
         let proof = try await reviewedFixtureProof(for: claim, fixture: fixture)
-        var receiptRequest = request
-        receiptRequest.url = request.url?.deletingLastPathComponent().appendingPathComponent("receipt")
-        var body = Data(#"{"proof":"#.utf8)
-        body.append(proof)
-        body.append(contentsOf: "}".utf8)
-        receiptRequest.httpBody = body
-        _ = try await send(receiptRequest, session: session, delegate: delegate)
+        let receiptRequest = try AgentLoopRelayClaimProtocol.receiptRequest(
+            port: fixture.port, deviceAccessKey: fixture.deviceKey,
+            proof: proof, expectedClaim: claim)
+        let ack = try await send(receiptRequest, session: session, delegate: delegate)
+        try AgentLoopRelayClaimProtocol.verifyReceiptAcknowledgement(ack, requestID: claim.requestID)
         // The owner independently reads the result using the original request ID.
     }
 

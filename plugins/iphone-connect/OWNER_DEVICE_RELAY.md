@@ -78,25 +78,27 @@ attempt per instance. It bounds the response to 2048 bytes and verifies
 the exact response shape, nonce syntax, signed canonical wire, request ID,
 expiration and issuance time using the existing native verifier. A failed
 transport is uncertain, never a reason for automatic retry. The parsed
-claim is a preview only; it is not wired to an App Intent, owner approval
-button or receipt signer. Swift package tests use an independent Node-generated
+claim is a preview only; it is not wired to an App Intent or owner approval
+button. The internal enrolled review session is described below. Swift package tests use an independent Node-generated
 wire fixture. The macOS HTTPS integration test below exercises the live relay. No system trust settings are
 changed. The native client still needs actual TLS/owner-device enrollment,
 a production endpoint and owner-reviewed execution before physical use.
 
 ## Owner-gated synthetic receipt fixture
 
-In DEBUG builds only, the native signed owner status gate can bind a decoded
-claim to its receipt nonce and independently recheck the signed proposal.
-The existing durable replay reservation and separate local read transition
-still apply. A second explicit local review transition may prepare a single
-synthetic key proof, with a different receipt key, current external-sharing
-policy and an unexpired read. No status observation is included. Replacing
-the nonce, reusing the proof transition, rolling the clock back after expiry,
-or using Local Only mode cannot issue a new proof. The macOS test sends the synthetic proof over loopback HTTPS.
-A production sender, native approval UI and enrolled signing key are still open. Release
-builds contain no such proof-generation method. A Node-generated independent
-synthetic HMAC vector is checked by the native regression tests.
+The DEBUG fixture exercises the same internal fixed key-holder proof encoder
+and native signed owner status gate used by the enrolled review session.
+The gate binds a decoded claim to its receipt nonce, rechecks the signed
+proposal and reserves a durable replay marker before local review.
+A separate sharing review may prepare one acknowledgement after an unexpired
+local read, using a distinct receipt key and current external-sharing policy.
+No status observation is included. Nonce substitution, replay, expiration,
+clock rollback after expiration and Local Only mode cannot yield a new proof.
+The macOS fixture sends a synthetic proof over loopback HTTPS. The fixture
+entry points remain DEBUG-only; the internal encoder is available in Release.
+The loopback-only receipt sender is described below. A remotely reachable
+transport, native approval UI and actual owner-device enrollment are still
+open. An independent synthetic HMAC vector is checked in tests.
 
 ## macOS native HTTPS interoperability
 
@@ -160,9 +162,10 @@ trusted-device identity binding yet. It reads existing enrollment before I/O,
 then checks cancellation, current mode and exact enrollment again before
 returning a preview. Revocation while the network request is in flight blocks
 its result, not the already transmitted request. The attempt is consumed
-before I/O; no implicit enrollment, retry, receipt signing, UI or production
-endpoint is enabled. Native gate review remains separate. Tests use synthetic
-credentials and an injected transport; no actual Keychain changes are made.
+before I/O; no implicit enrollment, retry, UI or production endpoint is
+enabled. Native gate review and proof preparation remain separate transitions.
+Tests use synthetic credentials and an injected transport; no actual
+Keychain changes are made.
 
 The loopback Streamable HTTP gateway also accepts an explicit
 `ownerResults` configuration with `issuer`, `subject` and `lookup`.
@@ -201,3 +204,48 @@ Existing ledgers without this schema fail closed, not auto-migrate.
 No existing owner files are modified by these tests. This binds configured
 roles, not a physical device identity or an OAuth account; actual enrollment
 exchange, rotation, backup rollback protection and UI remain separate.
+
+## Enrollment-to-native-review integration
+
+The internal enrolled claim session now stages the verified, correlated
+claim directly in a fresh native status gate with a durable replay
+journal. A separate local review action can consume this session's
+pending review exactly once. It rechecks the current external-AI mode,
+cancellation and the exact existing enrollment before the local read
+and before returning the local result. Revocation or mode changes block
+the session's result; a failed review is not automatically retried.
+The gate and journal must be supplied by trusted native code.
+After a successful read within this same session, a third explicit native
+owner action can prepare a one-use, signed key-holder acknowledgement.
+The session consumes the sharing opportunity before checking policy and
+the exact live enrollment, and checks both again before returning the
+proof. A read outside the session cannot qualify. Revocation, a change to
+Local Only, expiry, or a duplicate sharing attempt prevents proof return.
+The proof contains only the request ID, nonce, fixed capability, read time
+and fixed acknowledgement label, plus an HMAC. It proves possession of
+the configured receipt key, not hardware attestation or remote execution.
+No private status observation, owner-consent attestation, or device
+identity is included. Tests use synthetic claim responses and in-memory
+enrollment, not real owner keys.
+
+## One-use native loopback acknowledgement upload
+
+A separate explicit sharing action now consumes the prepared read, signs
+the fixed proof and submits it to the original claim's loopback HTTPS port
+using the same device access role. The native client binds a successful
+claim to its port, access key, request ID and nonce. Its request encoder
+accepts only the exact bounded acknowledgement wire format. Its response
+parser accepts only the exact correlated key-authenticated acknowledgement;
+HTTP 200 alone, an unknown outcome or inflated execution claims do not
+qualify. It uses normal system TLS trust, no redirects and bounded I/O.
+The enrolled session checks current mode, cancellation and enrollment
+before sending and before returning the correlation ID. A failed or
+ambiguous send consumes the sharing opportunity; neither a reread nor an
+automatic resend is permitted. Revocation while I/O is in flight cannot
+recall already transmitted bytes. The synthetic Mac integration uses
+process-local certificate trust and independently retrieves the same
+request's result through the MCP SDK. The server's existing transport label
+is not evidence of cellular connectivity.
+No native approval UI, remote endpoint, actual enrollment exchange or
+physical-device acceptance is added. Do not expose or tunnel this loopback
+development endpoint as a remote service.

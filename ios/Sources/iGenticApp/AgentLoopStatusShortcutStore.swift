@@ -115,6 +115,16 @@ public final class AgentLoopStatusShortcutStore {
     /// Only fixed non-personal instructions are returned for a Shortcut's
     /// optional "Use Model" action. The task ID is not inserted in the prompt.
     public func begin() throws -> String {
+        try encode(AgentLoopStatusShortcutTicket(taskId: beginTask()))
+    }
+
+    public func runDeterministicStatusLoop(statusReader: () -> AgentLoopLocalStatus) throws -> String {
+        let taskID = try beginTask()
+        return try advance(taskID: taskID, modelReply: #"{"action":"status.read"}"#,
+                           finishAfterRead: true, statusReader: statusReader)
+    }
+
+    private func beginTask() throws -> String {
         try withClaim {
             let now = clock()
             guard now.timeIntervalSince1970.isFinite else {
@@ -132,9 +142,7 @@ public final class AgentLoopStatusShortcutStore {
                 schema: 1, id: UUID(), createdAt: now, stage: .awaitingStatus
             )
             try save(journal)
-            return try encode(AgentLoopStatusShortcutTicket(
-                taskId: journal.id.uuidString.lowercased()
-            ))
+            return journal.id.uuidString.lowercased()
         }
     }
 
@@ -156,21 +164,21 @@ public final class AgentLoopStatusShortcutStore {
             // A crash may occur after readAttempted was persisted and after
             // the status reader observed a real device. Its uncertainty takes
             // priority over TTL, and must not be rewritten as simple expiry.
-            if state.stage == .readAttempted {
-                throw AgentLoopStatusShortcutError.uncertainRead
-            }
-            let age = clock().timeIntervalSince(state.createdAt)
-            guard age >= 0, age < Self.ttl else {
-                state.stage = .expired
-                try save(state)
-                throw AgentLoopStatusShortcutError.expired
-            }
+            // Terminal outcomes are historical facts, not actionable tickets.
+            // A delayed response or clock rollback must never rewrite a
+            // completed or rejected task to expired.
             switch state.stage {
             case .readAttempted: throw AgentLoopStatusShortcutError.uncertainRead
             case .finished: throw AgentLoopStatusShortcutError.alreadyFinished
             case .rejected: throw AgentLoopStatusShortcutError.rejected
             case .expired: throw AgentLoopStatusShortcutError.expired
             case .awaitingStatus, .awaitingFinish: break
+            }
+            let age = clock().timeIntervalSince(state.createdAt)
+            guard age >= 0, age < Self.ttl else {
+                state.stage = .expired
+                try save(state)
+                throw AgentLoopStatusShortcutError.expired
             }
 
             let checked = AgentLoopModelHandoff.review(

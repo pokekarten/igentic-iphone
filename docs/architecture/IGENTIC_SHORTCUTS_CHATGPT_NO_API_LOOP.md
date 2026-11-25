@@ -383,3 +383,24 @@ Physical test: the signed build installed and launched over Wi-Fi. Invoking
 this featured action via the personal run-shortcut URL by display name opened
 Shortcuts, which reported that the shortcut could not be found. Use the native
 App Shortcuts picker for the featured action. Siri invocation remains unverified.
+
+### Bundled local Status Loop
+
+The `iGentic Status-Loop` App Shortcut ships with the iOS app. It uses
+the existing local journal and policy, supplies the fixed status-read
+proposal and finishes after one observation. A pending or uncertain task
+prevents a new start. For Siri, the configured phrase is „Starte den
+Status-Loop mit“ followed by the app name. Physical availability and
+Siri recognition require verification after installing the build.
+
+The Mac Shortcuts CLI can list, view, run and sign exports. The current
+iGentic Diagnostics target supports iPhoneOS and iOS Simulator. The Mac
+library check found no personal iGentic shortcuts. No export, import or
+cross-device sync has been verified for the project and AI shortcuts.
+
+Simulator smoke for `544cd7d`: an isolated iPhone Air on iOS 27.2
+accepted the build. iGentic and Apple Shortcuts both launched, and the
+build contains metadata for the Status Loop intent. Apple Shortcuts
+showed its first-launch introduction. The UI driver timed out during
+initialization, leaving system invocation unverified. The physical
+CoreDevice check still reported no active tunnel.

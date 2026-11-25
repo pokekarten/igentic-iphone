@@ -1,6 +1,6 @@
 import AgentCore
 import Foundation
-#if DEBUG && canImport(CryptoKit)
+#if canImport(CryptoKit)
 import CryptoKit
 #endif
 
@@ -51,10 +51,8 @@ public final class AgentLoopSignedOwnerStatusGate {
     private var readCompletedAtSeconds: Int?
     private var lastReadExpiresAt: Int?
     private var observed: String?
-    #if DEBUG
-    private var fixtureBinding: (nonce: String, proposalKeyHash: Data)?
-    private var fixtureProofConsumed = false
-    #endif
+    private var proofBinding: (nonce: String, proposalKeyHash: Data)?
+    private var proofConsumed = false
 
     public init(
         replayJournal: AgentLoopLocalReplayJournal,
@@ -196,12 +194,11 @@ public final class AgentLoopSignedOwnerStatusGate {
         return receipt()
     }
 
-    #if DEBUG
-    /// Development-only bridge from a decoded Relay claim to the existing
-    /// durable native review gate. No production enrollment or TLS origin
-    /// attestation is implied. Never bind an alternate nonce to an admitted task.
+    /// Internal bridge for a decoded relay claim. Recheck the signed task
+    /// and outer claim correlation before reserving the durable review marker.
+    /// No receipt authority, network request or local read is granted here.
     @discardableResult
-    func stageRelayClaimFixture(
+    func stageRelayClaimForOwnerReview(
         _ claim: AgentLoopRelayClaim, relayKey: Data,
         privacyMode: PrivacyMode, statusClassification: DataClassification
     ) -> AgentLoopSignedStatusGateReceipt {
@@ -217,19 +214,39 @@ public final class AgentLoopSignedOwnerStatusGate {
         let staged = stageSignedTaskForOwnerReview(claim.canonicalWire,
             relayKey: relayKey, privacyMode: privacyMode, statusClassification: statusClassification)
         if staged.stage == .awaitingOwnerReview {
-            fixtureBinding = (claim.receiptNonce, Data(SHA256.hash(data: relayKey)))
+            proofBinding = (claim.receiptNonce, Data(SHA256.hash(data: relayKey)))
         }
         return staged
     }
 
-    /// Separate explicit local review transition, AFTER the local read.
-    /// This emits only a DEBUG synthetic key-holder proof, never private
-    /// observation text, an owner attestation, or a network request.
-    /// Production signing remains unavailable until protected enrollment.
+    #if DEBUG
+    /// Bind the DEBUG-only proof to the original claim; never substitute a
+    /// nonce after admission. Production proof signing stays unavailable.
+    @discardableResult
+    func stageRelayClaimFixture(
+        _ claim: AgentLoopRelayClaim, relayKey: Data,
+        privacyMode: PrivacyMode, statusClassification: DataClassification
+    ) -> AgentLoopSignedStatusGateReceipt {
+        guard stage == .empty else { return snapshot() }
+        return stageRelayClaimForOwnerReview(claim, relayKey: relayKey,
+            privacyMode: privacyMode, statusClassification: statusClassification)
+    }
+
     func prepareTestOnlyProofAfterSeparateLocalReview(
         receiptKey: Data, currentPrivacyMode: PrivacyMode
     ) -> Data? {
-        guard !fixtureProofConsumed, let binding = fixtureBinding,
+        prepareReadOnlyKeyProofAfterSeparateLocalReview(
+            receiptKey: receiptKey, currentPrivacyMode: currentPrivacyMode)
+    }
+    #endif
+
+    /// Internal native review primitive. The enrolled session supplies its
+    /// current protected receipt key after a separate explicit owner action.
+    /// Encodes fixed metadata only; no status, attestation or network I/O.
+    func prepareReadOnlyKeyProofAfterSeparateLocalReview(
+        receiptKey: Data, currentPrivacyMode: PrivacyMode
+    ) -> Data? {
+        guard !proofConsumed, let binding = proofBinding,
               snapshot().stage == .locallyRead,
               let requestID = trackedRequestID,
               let observedAt = readCompletedAtSeconds,
@@ -243,8 +260,8 @@ public final class AgentLoopSignedOwnerStatusGate {
             actionRisk: .externalShare, requestedDelegationTarget: .externalProvider))
         guard policy.isAllowed && policy.requiresApproval else { return nil }
         // Consume before signing; no re-issuance after any uncertain attempt.
-        fixtureProofConsumed = true
-        guard let proof = AgentLoopReadOnlyReceiptFixture.makeTestOnlyProof(
+        proofConsumed = true
+        guard let proof = AgentLoopReadOnlyKeyProof.encode(
             secret: receiptKey, requestID: requestID,
             receiptNonce: binding.nonce, observedAt: observedAt) else { return nil }
         let now = clockSeconds()
@@ -255,7 +272,6 @@ public final class AgentLoopSignedOwnerStatusGate {
         }
         return proof
     }
-    #endif
 
     private func receipt() -> AgentLoopSignedStatusGateReceipt {
         AgentLoopSignedStatusGateReceipt(
