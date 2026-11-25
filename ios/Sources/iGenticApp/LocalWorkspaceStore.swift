@@ -99,7 +99,10 @@ public struct LocalWorkspaceStore {
         guard isAllowedText(preview.proposed),
               preview.proposed.utf8.count <= Self.maximumTextBytes
         else { throw LocalWorkspaceError.invalidText }
-        guard try read(name: preview.name) == preview.previous else {
+        // Swift String equality is Unicode-canonical, not byte-exact. A file
+        // changed to a different UTF-8 representation must invalidate the preview.
+        let current = try read(name: preview.name)
+        guard current.map({ Data($0.utf8) }) == preview.previous.map({ Data($0.utf8) }) else {
             throw LocalWorkspaceError.stalePreview
         }
         let url = fileURL(preview.name)

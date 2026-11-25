@@ -40,6 +40,34 @@ final class LocalWorkspaceStoreTests: XCTestCase {
         }
     }
 
+    func testCanonicallyEquivalentByteChangeInvalidatesPreview() throws {
+        try withStore { store, dir in
+            let composed = "caf\u{00E9}"
+            let decomposed = "cafe\u{0301}"
+            XCTAssertEqual(composed, decomposed)
+            XCTAssertNotEqual(Data(composed.utf8), Data(decomposed.utf8))
+            try store.apply(try store.preview(name: "note", text: composed), confirmedByOwner: true)
+            let stale = try store.preview(name: "note", text: "replacement")
+            let url = dir.appendingPathComponent("note.txt")
+            try Data(decomposed.utf8).write(to: url)
+            XCTAssertThrowsError(try store.apply(stale, confirmedByOwner: true)) {
+                XCTAssertEqual($0 as? LocalWorkspaceError, .stalePreview)
+            }
+            XCTAssertEqual(try Data(contentsOf: url), Data(decomposed.utf8))
+        }
+    }
+
+    func testMissingNotePreviewDoesNotOverwriteNewEmptyNote() throws {
+        try withStore { store, _ in
+            let stale = try store.preview(name: "note", text: "replacement")
+            try store.apply(try store.preview(name: "note", text: ""), confirmedByOwner: true)
+            XCTAssertThrowsError(try store.apply(stale, confirmedByOwner: true)) {
+                XCTAssertEqual($0 as? LocalWorkspaceError, .stalePreview)
+            }
+            XCTAssertEqual(try store.read(name: "note"), "")
+        }
+    }
+
     func testRejectsTraversalControlCharactersAndLargeFiles() throws {
         try withStore { store, _ in
             for name in ["../private", "a/b", ".hidden", "älter", "", String(repeating: "a", count: 33)] {
