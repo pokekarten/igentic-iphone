@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, writeFile, rm, chmod } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { loadConfig, MobileBackend, hasUsablePhysicalTunnel } from '../src/backend.mjs';
+import { loadConfig, MobileBackend, hasUsablePhysicalTunnel, physicalConnectionState, physicalConnectionPath, discoveryControlRef } from '../src/backend.mjs';
 import { run } from '../src/process.mjs';
 
 test('unconfigured physical mode never silently falls back to fixture', async () => {
@@ -76,4 +76,98 @@ test('only an actively paired physical Xcode tunnel is considered available', ()
     assert.equal(hasUsablePhysicalTunnel(wrongDevice), false, `${key} must identify a real iPhone`);
   }
   assert.equal(hasUsablePhysicalTunnel(null), false);
+});
+
+test('connection diagnostics emit fixed codes and never device metadata', () => {
+  const fixture = (pairingState, tunnelState, reality = 'physical') => ({
+    hardwareProperties: {
+      reality, platform: 'iOS', deviceType: 'iPhone',
+      udid: 'DO-NOT-REVEAL-IDENTIFIER'
+    },
+    connectionProperties: {
+      pairingState, tunnelState, transportType: 'secret-transport-metadata'
+    },
+    privateNote: 'DO-NOT-REVEAL-PRIVATE-NOTE'
+  });
+  const samples = [
+    [fixture('paired', 'connected'), 'xcode-tunnel-available', true],
+    [fixture('paired', 'available'), 'xcode-tunnel-available', true],
+    [fixture('paired', 'unavailable'), 'no-active-tunnel', false],
+    [fixture('paired', 'connecting'), 'no-active-tunnel', false],
+    [fixture('paired', undefined), 'no-active-tunnel', false],
+    [fixture('unpaired', 'connected'), 'pairing-required', false],
+    [fixture(undefined, 'connected'), 'pairing-required', false],
+    [fixture('paired', 'connected', 'simulated'), 'unsupported-device', false],
+    [null, 'unsupported-device', false]
+  ];
+  for (const [device, expectedCode, shouldBeAvailable] of samples) {
+    const code = physicalConnectionState(device);
+    assert.equal(code, expectedCode);
+    assert.equal(hasUsablePhysicalTunnel(device), shouldBeAvailable);
+    assert.match(code, /^[a-z-]+$/);
+    assert.ok(!code.includes('DO-NOT-REVEAL'));
+    assert.ok(!code.includes('secret-transport'));
+  }
+});
+
+test('bounded discovery selector accepts an exact SwiftUI Link or Button only', () => {
+  const labelLink = { type: 'Link', label: 'Open local discovery', ref: '@e12', enabled: true };
+  const nativeLink = { type: 'XCUIElementTypeLink',
+    identifier: 'igentic-open-local-discovery', label: 'Localized discovery', ref: 'e9' };
+  const button = { type: 'button', label: 'Open local discovery', ref: 'e8' };
+  assert.equal(discoveryControlRef([{ children: [labelLink] }]), '@e12');
+  assert.equal(discoveryControlRef([nativeLink]), 'e9');
+  assert.equal(discoveryControlRef([button]), 'e8');
+});
+
+test('discovery selector fails closed on wrong, disabled, duplicate or oversized elements', () => {
+  const valid = { type: 'Link', identifier: 'igentic-open-local-discovery',
+    label: 'Open local discovery', ref: '@e11' };
+  const rejected = [
+    [],
+    null,
+    [{ ...valid, enabled: false }],
+    [{ ...valid, type: 'StaticText' }],
+    [{ ...valid, label: 'Other app', identifier: 'unknown' }],
+    [{ ...valid, ref: '0; send message' }],
+    [valid, { ...valid, ref: 'e13' }],
+    [{ children: 'unexpected-private-payload' }],
+    [{ ...valid, children: [valid] }],
+    [{ children: Array.from({ length: 3001 }, () => ({ type: 'StaticText' })) }],
+  ];
+  for (const tree of rejected) {
+    assert.throws(() => discoveryControlRef(tree), /navigationTargetUnavailable/);
+  }
+});
+
+
+test('connection path is a fixed projection of the live physical CoreDevice tunnel only', () => {
+  const device = (transportType, tunnelState = 'connected', reality = 'physical', pairingState = 'paired') => ({
+    hardwareProperties: { reality, platform: 'iOS', deviceType: 'iPhone' },
+    connectionProperties: { transportType, tunnelState, pairingState,
+      privateNetworkName: 'DO-NOT-RETURN' }
+  });
+  const cases = [
+    [device('wired'), 'usb-coredevice'],
+    [device('usb'), 'usb-coredevice'],
+    [device('wireless'), 'network-coredevice'],
+    [device('network'), 'network-coredevice'],
+    [device('localNetwork'), 'network-coredevice'],
+    [device('wifi'), 'network-coredevice'],
+    [device('network', 'disconnected'), 'none'],
+    [device('localNetwork', 'disconnected'), 'none'],
+    [device('wired', 'unavailable'), 'none'],
+    [device('wired', 'connected', 'simulated'), 'none'],
+    [device('network', 'connected', 'physical', 'unpaired'), 'none'],
+    [device('VPN-only'), 'coredevice-transport-unclassified'],
+    [device('wireless;DO-NOT-RETURN'), 'coredevice-transport-unclassified'],
+    [device(undefined), 'coredevice-transport-unclassified'],
+    [null, 'none']
+  ];
+  for (const [input, expected] of cases) {
+    const result = physicalConnectionPath(input);
+    assert.equal(result, expected);
+    assert.doesNotMatch(result, /DO-NOT-RETURN|VPN-only|privateNetworkName/);
+    assert.ok(['usb-coredevice','network-coredevice','coredevice-transport-unclassified','none'].includes(result));
+  }
 });

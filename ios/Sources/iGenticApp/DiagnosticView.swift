@@ -6,8 +6,14 @@ public struct DiagnosticView: View {
     private let state: DiagnosticViewState
     private let approvalPolicyStore: AppActionApprovalPolicyStore?
     private let setupConfirmationStore: AppActionApprovalPolicySetupConfirmationStore?
+    private let nativeBridgeOpenDiscovery: Bool
+    private let nativeBridgeScreenObserved: ((String) -> Void)?
+    private let handoffPreviewObserved: ((ChatGPTHandoffRoute) -> Void)?
     @State private var approvalPolicy: AppActionApprovalPolicy
     @State private var isInitialSetupPresented: Bool
+    @State private var nativeBridgeDiscoveryPresented = false
+    @State private var chatGPTHandoff: ChatGPTHandoffRoute?
+    @State private var queuedChatGPTHandoff: ChatGPTHandoffRoute?
     @State private var isReminderApprovalPresented: Bool
     @State private var reminderApprovalOutcome: String
 
@@ -16,11 +22,17 @@ public struct DiagnosticView: View {
         approvalPolicy: AppActionApprovalPolicy = .default,
         approvalPolicyStore: AppActionApprovalPolicyStore? = nil,
         setupConfirmationStore: AppActionApprovalPolicySetupConfirmationStore? = nil,
-        requiresInitialSetupConfirmation: Bool = false
+        requiresInitialSetupConfirmation: Bool = false,
+        nativeBridgeOpenDiscovery: Bool = false,
+        nativeBridgeScreenObserved: ((String) -> Void)? = nil,
+        handoffPreviewObserved: ((ChatGPTHandoffRoute) -> Void)? = nil
     ) {
         self.state = state
         self.approvalPolicyStore = approvalPolicyStore
         self.setupConfirmationStore = setupConfirmationStore
+        self.nativeBridgeOpenDiscovery = nativeBridgeOpenDiscovery
+        self.nativeBridgeScreenObserved = nativeBridgeScreenObserved
+        self.handoffPreviewObserved = handoffPreviewObserved
         self._approvalPolicy = State(initialValue: approvalPolicy)
         self._isInitialSetupPresented = State(
             initialValue: requiresInitialSetupConfirmation
@@ -43,10 +55,41 @@ public struct DiagnosticView: View {
                     }
                     .accessibilityIdentifier("igentic-open-local-discovery")
 
+                    #if os(iOS)
+                    NavigationLink("Mobilfunk Companion (optional)") {
+                        CellularCompanionView()
+                    }
+                    .accessibilityIdentifier("igentic-cellular-companion")
+                    #endif
+
                     Text("Bundled sample content only. No network or model execution.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
+
+                #if os(iOS)
+                // The prototype is iOS-only; the shared package also builds on macOS.
+                // No device-control test marker is moved or replaced.
+                Section("iGentic Agent") {
+                    NavigationLink("Agenten-Prototyp öffnen") {
+                        AgentHomePrototypeView()
+                    }
+                    .accessibilityIdentifier("igentic-open-agent-home")
+                    Text("Chat-ähnliche, regelbasierte Vorschau mit Links zu eigenen sicheren Funktionen.")
+                        .font(.footnote)
+                }
+                #endif
+
+                #if os(iOS)
+                Section("Offline-Basisfunktionen") {
+                    NavigationLink("Offline-Werkzeuge") {
+                        OfflineToolsView()
+                    }
+                    .accessibilityIdentifier("igentic-offline-tools")
+                    Text("Textentwurf, lokales Vorlesen und Bildtexterkennung – ohne Mac, ChatGPT-Plugin oder externe Anbieter.")
+                        .font(.footnote)
+                }
+                #endif
 
                 #if canImport(EventKit)
                 Section("Aufgaben") {
@@ -129,6 +172,17 @@ public struct DiagnosticView: View {
                 }
             }
             .navigationTitle("iGentic Diagnostics")
+            .navigationDestination(isPresented: $nativeBridgeDiscoveryPresented) {
+                ExploreView()
+                    .onAppear { nativeBridgeScreenObserved?("discovery") }
+            }
+            .onAppear {
+                if nativeBridgeOpenDiscovery {
+                    nativeBridgeDiscoveryPresented = true
+                } else {
+                    nativeBridgeScreenObserved?("diagnostics")
+                }
+            }
         }
         .sheet(isPresented: $isInitialSetupPresented) {
             if let approvalPolicyStore, let setupConfirmationStore {
@@ -162,6 +216,63 @@ public struct DiagnosticView: View {
                 }
                 isReminderApprovalPresented = false
             }
+        }
+        // The external URL is not trusted, even when its source is ChatGPT.
+        // Never route it into any write/approval or device-control callback.
+        .onOpenURL { url in
+            // A cold-start URL is not an approval. Show the local setup first;
+            // queue at most one allowlisted navigation-only route in memory.
+            guard let route = ChatGPTHandoffRoute.parse(url) else { return }
+            if isInitialSetupPresented {
+                queuedChatGPTHandoff = route
+            } else {
+                chatGPTHandoff = route
+            }
+        }
+        .onChange(of: isInitialSetupPresented) { _, presenting in
+            guard !presenting, let route = queuedChatGPTHandoff else { return }
+            queuedChatGPTHandoff = nil
+            chatGPTHandoff = route
+        }
+        .sheet(item: $chatGPTHandoff) { route in
+            NavigationStack {
+                Form {
+                    Section("ChatGPT-Übergabe") {
+                        Text("Du hast diesen Link auf dem iPhone geöffnet. Es wurde keine Aktion ausgeführt oder freigegeben.")
+                        Text("Die Auswahl unten öffnet ausschließlich einen Bereich der iGentic-App.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                    Section("Manuell fortfahren") {
+                        switch route {
+                        case .diagnostics:
+                            Text("Diagnostics ist bereits geöffnet.")
+                        case .discovery:
+                            NavigationLink("Lokale Entdeckungen öffnen") {
+                                ExploreView()
+                            }
+                            .accessibilityIdentifier("igentic-handoff-open-discovery")
+                        case .reminderDraft:
+                            #if canImport(EventKit)
+                            NavigationLink("Erinnerungsentwurf prüfen") {
+                                CreateReminderTaskView()
+                            }
+                            #else
+                            Text("Erinnerungen sind auf diesem Gerät nicht verfügbar.")
+                            #endif
+                        }
+                    }
+                }
+                .navigationTitle(route.title)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Schließen") { chatGPTHandoff = nil }
+                    }
+                }
+            }
+            // A link alone is not a UI result. Only the actual SwiftUI sheet
+            // lifecycle emits this tiny, independently readable observation.
+            .onAppear { handoffPreviewObserved?(route) }
         }
     }
 }

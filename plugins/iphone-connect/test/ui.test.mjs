@@ -15,7 +15,12 @@ test('MCP Apps browser handshake, refresh and stop controls', { skip: !chrome },
     const frame=document.querySelector('iframe'); window.calls=[];
     const bridge=new AppBridge(null,{name:'acceptance-host',version:'1.0.0'},{serverTools:{}});window.testBridge=bridge;
     bridge.oncalltool=async p=>{window.calls.push(p.name);return {content:[],structuredContent:{data:
-      p.name==='iphone_stop_session'?{stopped:true}:{backend:'fixture',markers:['Explore']}}};};
+      p.name==='iphone_stop_session'?{stopped:true}:p.name==='iphone_connection_report'
+      ?{backend:'fixture',deviceStatus:'synthetic-only',actionReadiness:'not-verified',
+        routes:[{id:'usb-c',state:'not-verified'},{id:'wifi',state:'not-verified'},
+          {id:'cellular',state:'companion-readiness-not-verified'},
+          {id:'on-device',state:'separate-native-app'},{id:'simulator',state:'fixture-only'}]}
+      :{backend:'fixture',markers:['Explore']}}};};
     bridge.oninitialized=async()=>{
       await bridge.sendToolInput({arguments:{sessionId:'10000000-0000-4000-8000-000000000001'}});
       await bridge.sendToolResult({content:[],structuredContent:{data:{backend:'fixture',mode:'diagnostics-only',
@@ -40,12 +45,19 @@ test('MCP Apps browser handshake, refresh and stop controls', { skip: !chrome },
   const frame = page.frameLocator('iframe');
   await frame.getByRole('button', { name: 'Refresh status' }).waitFor();
   await page.waitForFunction(() => document.querySelector('iframe').contentDocument.querySelector('#observe').disabled === false);
+  await frame.getByRole('button', { name: 'Check connections' }).click();
+  await frame.getByText('Connection report · synthetic-only', { exact: true }).waitFor();
+  await frame.getByText('usb-c: not-verified', { exact: false }).waitFor();
   await frame.getByRole('button', { name: 'Refresh status' }).click();
   await frame.getByText('Explore', { exact: true }).waitFor();
   await page.screenshot({ path: '/tmp/igentic-plugin-dashboard.png' });
   await frame.getByRole('button', { name: 'Stop session' }).click();
   await frame.getByText('Session stopped', { exact: true }).waitFor();
-  assert.deepEqual(await page.evaluate(() => window.calls), ['iphone_observe', 'iphone_stop_session']);
+  assert.deepEqual(await page.evaluate(() => window.calls),
+    ['iphone_connection_report', 'iphone_observe', 'iphone_stop_session']);
+  await frame.getByRole('button', { name: 'Check connections' }).click();
+  await frame.getByText('Connection report · synthetic-only', { exact: true }).waitFor();
+  assert.equal(await frame.getByRole('button', { name: 'Stop session' }).isDisabled(), true);
   assert.equal(await frame.getByRole('button', { name: 'Stop session' }).isDisabled(), true);
   // A physical backend's configuration is not a successfully connected phone.
   await page.evaluate(async () => window.testBridge.sendToolResult({ content: [],

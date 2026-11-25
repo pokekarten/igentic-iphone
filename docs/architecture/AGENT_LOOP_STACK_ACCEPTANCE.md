@@ -1,9 +1,21 @@
 # iGentic Agent Loop — reproducible pinned offline stack acceptance
 
 **Scope:** Reviewer-owned, test-only composition of already open Draft
-branches. This does **not** deploy the private ChatGPT Site, merge to main,
+branches at the time of the original review. This does **not** deploy the private ChatGPT Site, merge to main,
 access a phone, enable a transport, issue a device command or prove execution
 of a Siri/ChatGPT task.
+
+## Status on 2026-11-25
+
+This is a historical stack reproducibility tool, not the acceptance
+contract for the current consolidated integration branch (#436).
+The eight pinned refs were checked again: six still matched, while
+#416 moved to `eaf44d5375f347f093905e92d12b885a424b9c03` and #422
+to `9f6f9b84118bbc0e2f4843cd5ad3c61d89db453b`. Both observed heads
+are ancestors of integration commit `206e80868dea387494ffe873f91451a4161de208`.
+The old manifest therefore correctly fails closed; it was not repinned.
+Its 13 local contract tests passed. This does not rerun the historical
+stack or replace current integrated CI and physical acceptance.
 
 ## Why this is necessary
 
@@ -32,7 +44,7 @@ never pushed anywhere.
 
 ## Commands
 
-From a clone with authenticated read-only access to the private repository:
+From a clone with read-only access to the repository:
 
     python3 -m unittest discover -s scripts -p test_verify_agent_loop_stack.py
     python3 scripts/verify_agent_loop_stack.py --mode heads
@@ -57,7 +69,7 @@ integrated source** (Xcode required, no simulator launch or App Intents
 system dispatch). Full and full-ios may fetch standard npm dependencies
 but use NO paid or model OpenAI API. They do not contact a real iPhone.
 
-This test tool belongs only to existing Draft integration PR #395.
+This historical test tool originated in integration PR #395.
 Source conflicts, missing branches and stale SHAs are real failures;
 do not add an allow-drift bypass.
 
@@ -88,5 +100,5 @@ replay, write-ahead marker and simulated receipt parity. Native iOS
 signing/Keychain provisioning, separately configured Siri/Shortcuts
 execution, ChatGPT Project-chat continuity, a genuine authenticated
 Site-to-device transport and physical-device attestation remain
-**unverified**. Keep all PRs Draft; never promote synthetic receipts
+**unverified** in the historical composition. Never promote synthetic receipts
 to confirmed physical execution.
