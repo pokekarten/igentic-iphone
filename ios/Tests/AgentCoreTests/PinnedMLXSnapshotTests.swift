@@ -36,6 +36,14 @@ final class PinnedMLXSnapshotTests: XCTestCase {
         XCTAssertEqual(PinnedMLXSnapshot.granite350ResearchRevision.count, 40)
     }
 
+    func testMiniCPM5ResearchManifest() {
+        XCTAssertEqual(PinnedMLXSnapshot.miniCPM5ResearchFiles.count, 10)
+        XCTAssertEqual(Set(PinnedMLXSnapshot.miniCPM5ResearchFiles.map(\.name)).count, 10)
+        XCTAssertTrue(PinnedMLXSnapshot.miniCPM5ResearchFiles.contains { $0.name == "UPSTREAM_MODEL_CARD.md" })
+        XCTAssertEqual(PinnedMLXSnapshot.miniCPM5ResearchFiles.reduce(Int64(0)) { $0 + $1.bytes }, 618_039_803)
+        XCTAssertEqual(PinnedMLXSnapshot.miniCPM5ResearchRevision.count, 40)
+    }
+
     func testFixtureAndRejections() throws {
         let fm = FileManager.default
         let root = fm.temporaryDirectory.appendingPathComponent(UUID().uuidString)

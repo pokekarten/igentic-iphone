@@ -121,6 +121,31 @@ public enum PinnedMLXSnapshot {
         }
     }
 
+    public static let miniCPM5ResearchModelID = "openbmb/MiniCPM5-1B-MLX"
+    public static let miniCPM5ResearchRevision = "c973e24a2c77861038301f4e27d1b34a5931fc91"
+    public static let miniCPM5UpstreamRevision = "ac83f813ba7da263c51a9f3ec37c2072597e54af"
+    static let miniCPM5ResearchFiles: [Entry] = [
+        .init(name: "README-cn.md", bytes: 22081, digest: "14b8a1c5c12ddd401ac2ede03720817804629049757ca5b71006856d5c1f08aa"),
+        .init(name: "README.md", bytes: 23408, digest: "4e006b78e93d9e3fb2a1dd494900b5a63e269935b94173ec492f70bb380a0150"),
+        .init(name: "UPSTREAM_MODEL_CARD.md", bytes: 23436, digest: "2676ec151c565465c7321d69455d67fffb7e8361012e783ab8f1cd1742d2c81f"),
+        .init(name: "chat_template.jinja", bytes: 9062, digest: "7451a05cf1e28a79d97d7c0bc951028c0b1915119bf9046acd06a0e3d931f47c"),
+        .init(name: "config.json", bytes: 926, digest: "b579f8c12b692af13bb90402c704c3a235d183c0410b37537447c17975a8ddcc"),
+        .init(name: "generation_config.json", bytes: 201, digest: "3fd3b57f068f133267d97a1e06d7209aaeab546010e7ec71bace0d3fabd1f755"),
+        .init(name: "model.safetensors", bytes: 608026621, digest: "a23e0c5c79944a0b2cc92cb9ab79376b4dce41e2312383727e21ee43fe19cb4f"),
+        .init(name: "model.safetensors.index.json", bytes: 39380, digest: "b9f00d16700ba0dd01bbd72d270080757355ddf41fbe678620a93dc39d5c8639"),
+        .init(name: "tokenizer.json", bytes: 9894271, digest: "3e065a558a034185fe299917b398685c1facd0169a9eea1e629eb30c171fed81"),
+        .init(name: "tokenizer_config.json", bytes: 417, digest: "3f18b805749e5e506321c6d231f0e760c44cc030c80b4b0544e41cb3ecb16846"),
+    ]
+
+    /// Private research candidate. Apache-2.0 metadata and model card;
+    /// no separate upstream LICENSE file. No production admission.
+    public static func verifyMiniCPM5Research(directory: URL) -> Result<Receipt, Rejection> {
+        verify(directory: directory, entries: miniCPM5ResearchFiles).map {
+            Receipt(modelID: miniCPM5ResearchModelID, revision: miniCPM5ResearchRevision,
+                    fileCount: miniCPM5ResearchFiles.count, totalBytes: $0)
+        }
+    }
+
     /// The caller must retain exclusive control of this private model directory
     /// until loading finishes. This is a byte check, not a runtime attestation.
     public static func verifyQwen3(directory: URL) -> Result<Receipt, Rejection> {

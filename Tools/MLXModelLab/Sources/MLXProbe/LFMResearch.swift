@@ -8,7 +8,7 @@ import HuggingFace
 
 /// Research-only classifier benchmark. No tool dispatch or journal mutation.
 public enum LFMResearch {
-    public enum Candidate: Sendable { case lfm, qwen, qwen35, granite350 }
+    public enum Candidate: Sendable { case lfm, qwen, qwen35, granite350, miniCPM5 }
     private struct Fixture {
         let prompt: String
         let expected: String
@@ -37,6 +37,7 @@ public enum LFMResearch {
         case .qwen: prefix = "QWEN_CLASS"
         case .qwen35: prefix = "QWEN35_CLASS"
         case .granite350: prefix = "GRANITE350_CLASS"
+        case .miniCPM5: prefix = "MINICPM5_CLASS"
         }
         do {
             let admission: Result<PinnedMLXSnapshot.Receipt, PinnedMLXSnapshot.Rejection>
@@ -45,6 +46,7 @@ public enum LFMResearch {
             case .qwen: admission = PinnedMLXSnapshot.verifyQwen3(directory: modelDirectory)
             case .qwen35: admission = PinnedMLXSnapshot.verifyQwen35Research(directory: modelDirectory)
             case .granite350: admission = PinnedMLXSnapshot.verifyGranite350Research(directory: modelDirectory)
+            case .miniCPM5: admission = PinnedMLXSnapshot.verifyMiniCPM5Research(directory: modelDirectory)
             }
             guard case .success(let receipt) = admission else {
                 return "\(prefix)_RESEARCH=integrityRejected; actionsExecuted=0"
