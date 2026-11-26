@@ -11,6 +11,15 @@ final class PinnedMLXSnapshotTests: XCTestCase {
         XCTAssertEqual(PinnedMLXSnapshot.license, "Apache-2.0")
     }
 
+    func testLFMResearchManifest() {
+        XCTAssertEqual(PinnedMLXSnapshot.lfmResearchFiles.count, 9)
+        XCTAssertEqual(Set(PinnedMLXSnapshot.lfmResearchFiles.map(\.name)).count, 9)
+        XCTAssertTrue(PinnedMLXSnapshot.lfmResearchFiles.contains { $0.name == "LICENSE" })
+        XCTAssertEqual(PinnedMLXSnapshot.lfmResearchFiles.reduce(Int64(0)) { $0 + $1.bytes }, 226583972)
+        XCTAssertEqual(PinnedMLXSnapshot.lfmResearchRevision.count, 40)
+        XCTAssertEqual(PinnedMLXSnapshot.lfmResearchLicenseRevision.count, 40)
+    }
+
     func testFixtureAndRejections() throws {
         let fm = FileManager.default
         let root = fm.temporaryDirectory.appendingPathComponent(UUID().uuidString)

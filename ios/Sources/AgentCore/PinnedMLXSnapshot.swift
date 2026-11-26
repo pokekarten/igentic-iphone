@@ -41,6 +41,32 @@ public enum PinnedMLXSnapshot {
         .init(name: "vocab.json", bytes: 2776833, digest: "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"),
     ]
 
+    public static let lfmResearchModelID = "LiquidAI/LFM2.5-350M-MLX-4bit"
+    public static let lfmResearchRevision = "f6cb4e006bb7a2d8a6afa14ec0a53e0586f65a5b"
+    // The pinned original model supplies the license text missing in this export.
+    public static let lfmResearchLicenseRevision = "9921cd4d82c0e3986887aa4b376f9446729ef8a3"
+    public static let lfmResearchLicense = "LFM Open License v1.0"
+    static let lfmResearchFiles: [Entry] = [
+        .init(name: "LICENSE", bytes: 10574, digest: "4d28ca14dedc0b3d0fcc2b3339f0e79931faa33874f3d24f522183a8fc70068c"),
+        .init(name: "README.md", bytes: 2329, digest: "90060ba684dfe9716d391782396bf2084a3941b5bcdb31f1ef6d1b5a5934814e"),
+        .init(name: "chat_template.jinja", bytes: 2607, digest: "1a2d8281b5477abb5bb1cebd69d7d1ee389e074656ca5f5e0ef6ae56d6ae65c1"),
+        .init(name: "config.json", bytes: 1714, digest: "9a8d76fffac255e7aeba7f154fd493e5b42c55b8bf150cc3478484adec6a98ed"),
+        .init(name: "generation_config.json", bytes: 132, digest: "1c72d35bb46c5102537eb114fea9a5c10ef928cc813401c3c12aef399c1f8e5d"),
+        .init(name: "model.safetensors", bytes: 221809325, digest: "f17b51362f7aa11a8dffafa6f44c625d5d695b2f76122eed11525104810ae809"),
+        .init(name: "model.safetensors.index.json", bytes: 23413, digest: "be372bf2e03a849a8f01821a2e35ffc44840a86d3132ad7e8f2cef5ea655b50f"),
+        .init(name: "tokenizer.json", bytes: 4733389, digest: "df1d8d5ec5d091b460562ffd545e4a5e91d17d4a0db7ebe733be34ed374377bd"),
+        .init(name: "tokenizer_config.json", bytes: 489, digest: "75c287923e252b08b0a0f1c367bbe557ab23a681d0b71c5a34e0932ddbe2f5ee"),
+    ]
+
+    /// Research-only byte verification. A valid snapshot is not authorization
+    /// for commercial use, production routing or any tool execution.
+    public static func verifyLFM25Research(directory: URL) -> Result<Receipt, Rejection> {
+        verify(directory: directory, entries: lfmResearchFiles).map {
+            Receipt(modelID: lfmResearchModelID, revision: lfmResearchRevision,
+                    fileCount: lfmResearchFiles.count, totalBytes: $0)
+        }
+    }
+
     /// The caller must retain exclusive control of this private model directory
     /// until loading finishes. This is a byte check, not a runtime attestation.
     public static func verifyQwen3(directory: URL) -> Result<Receipt, Rejection> {
