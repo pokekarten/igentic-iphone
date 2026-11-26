@@ -1,14 +1,27 @@
 import copy
+import stat
+import tempfile
+from pathlib import Path
 import plistlib
 import unittest
-from status_loop_factory import ADVANCE, START, check_metadata, workflow
+from status_loop_factory import ADVANCE, START, check_metadata, workflow, write_private_candidate
+
+
+def primitive(kind):
+    return {"primitive": {"wrapper": {"typeIdentifier": kind}}}
+
+
+def param(name):
+    return {"name": name, "isOptional": False,
+            "valueType": primitive(1 if name == "finishAfterRead" else 0)}
 
 
 def fixture():
+    common = {"isDiscoverable": True, "outputType": primitive(0), "supportedModes": 1}
     return {"actions": {
-        START: {"identifier": START, "isDiscoverable": True, "parameters": []},
-        ADVANCE: {"identifier": ADVANCE, "isDiscoverable": True,
-                  "parameters": [{"name": n} for n in ("taskID", "modelReply", "finishAfterRead")]},
+        START: {**common, "identifier": START, "parameters": []},
+        ADVANCE: {**copy.deepcopy(common), "identifier": ADVANCE,
+                  "parameters": [param(n) for n in ("taskID", "modelReply", "finishAfterRead")]},
     }}
 
 
@@ -22,7 +35,7 @@ class FactoryTests(unittest.TestCase):
     def test_schema_drift_or_duplicate(self):
         for names in (["taskID", "modelReply"], ["taskID", "modelReply", "finishAfterRead", "taskID"]):
             data = fixture()
-            data["actions"][ADVANCE]["parameters"] = [{"name": n} for n in names]
+            data["actions"][ADVANCE]["parameters"] = [param(n) for n in names]
             with self.assertRaisesRegex(ValueError, "Parameter contract"):
                 check_metadata(data)
 
@@ -48,6 +61,33 @@ class FactoryTests(unittest.TestCase):
                           "is.workflow.actions.getvalueforkey", "example.test."+ADVANCE,
                           "example.test."+ADVANCE])
         self.assertEqual(result, workflow(fixture(), "example.test", "AAAAAAAAAA"))
+
+    def test_type_mode_and_optional_drift(self):
+        for mutate in (
+            lambda d: d[START].update(outputType=primitive(1)),
+            lambda d: d[START].update(supportedModes=2),
+            lambda d: d[ADVANCE]["parameters"][0].update(valueType=primitive(1)),
+            lambda d: d[ADVANCE]["parameters"][1].update(isOptional=True),
+            lambda d: d[ADVANCE]["parameters"][2].update(valueType=primitive(True)),
+        ):
+            data = fixture()
+            mutate(data["actions"])
+            with self.assertRaisesRegex(ValueError, "Invalid"):
+                check_metadata(data)
+
+    def test_private_exclusive_output(self):
+        with tempfile.TemporaryDirectory() as directory:
+            p = Path(directory) / "candidate.shortcut"
+            write_private_candidate(p, b"candidate")
+            self.assertEqual(stat.S_IMODE(p.stat().st_mode), 0o600)
+            with self.assertRaises(FileExistsError):
+                write_private_candidate(p, b"overwrite")
+            self.assertEqual(p.read_bytes(), b"candidate")
+            symlink = Path(directory) / "link.shortcut"
+            symlink.symlink_to(p)
+            with self.assertRaises(FileExistsError):
+                write_private_candidate(symlink, b"overwrite")
+            self.assertEqual(p.read_bytes(), b"candidate")
 
     def test_no_unsigned_identity(self):
         with self.assertRaisesRegex(ValueError, "signing identity"):

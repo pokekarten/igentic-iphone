@@ -12,3 +12,5 @@ This is the first local-only authoring slice, not an installed Shortcut. It targ
 The five actions are Start, parse JSON dictionary, extract taskId, Advance with fixed `status.read`, Advance with fixed `finish`. No model call, external observation sharing, arbitrary action or write to personal data is included. This is intentionally separate from the ChatGPT model action. The subsequent model-backed flow must send only the approved prompt, never automatically send the private local status observation.
 
 Tests: `python3 -m unittest discover -s scripts/shortcuts -p 'test_*.py'`. Fixture success is not a physical acceptance pass. The generated unsigned plist contains a local signing-team identifier, so keep it private.
+
+The preflight also checks the observed Xcode 27 String/Bool parameter and return types, non-optional parameters and background mode. The repository audit runs these fixture tests. Output is created exclusively with mode 0600; no existing file or symlink is overwritten.

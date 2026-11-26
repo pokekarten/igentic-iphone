@@ -7,6 +7,7 @@ acceptance on iOS; a valid plist is not evidence of a working shortcut.
 """
 import argparse
 import json
+import os
 import plistlib
 import re
 import subprocess
@@ -18,6 +19,18 @@ START = "iGenticStartStatusLoopIntent"
 ADVANCE = "iGenticAdvanceStatusLoopIntent"
 EXPECTED = {START: set(), ADVANCE: {"taskID", "modelReply", "finishAfterRead"}}
 NAME = "iGentic Status-Loop Zwei-Schritt Test"
+# Xcode 27 metadata observed in the actual iPhoneOS build: String=0, Bool=1.
+PARAM_TYPES = {"taskID": 0, "modelReply": 0, "finishAfterRead": 1}
+
+def primitive(value):
+    if not isinstance(value, dict):
+        return None
+    try:
+        kind = value["primitive"]["wrapper"]["typeIdentifier"]
+        return kind if type(kind) is int else None
+    except (KeyError, TypeError):
+        return None
+
 
 
 def check_metadata(metadata):
@@ -30,6 +43,10 @@ def check_metadata(metadata):
             raise ValueError(f"Missing intent: {identifier}; rebuild current iGentic")
         if intent.get("isDiscoverable") is not True:
             raise ValueError(f"Intent not discoverable: {identifier}")
+        if primitive(intent.get("outputType")) != 0:
+            raise ValueError(f"Invalid output type: {identifier}")
+        if type(intent.get("supportedModes")) is not int or intent["supportedModes"] != 1:
+            raise ValueError(f"Invalid background mode: {identifier}")
         params = intent.get("parameters")
         if not isinstance(params, list):
             raise ValueError(f"Invalid parameters: {identifier}")
@@ -41,6 +58,9 @@ def check_metadata(metadata):
             if not isinstance(name, str) or not name:
                 raise ValueError("Unknown metadata parameter encoding")
             names.append(name)
+            if name in expected and (primitive(p.get("valueType")) != PARAM_TYPES[name]
+                                     or p.get("isOptional") is not False):
+                raise ValueError(f"Invalid parameter type or optionality: {identifier}")
         if set(names) != expected or len(names) != len(expected):
             raise ValueError(f"Parameter contract mismatch: {identifier}")
     return True
@@ -114,6 +134,13 @@ def app_identity(app):
     return info["CFBundleIdentifier"], match.group(1)
 
 
+def write_private_candidate(path, data):
+    # Exclusive creation: never overwrite existing files or follow an output symlink.
+    # The candidate embeds a local team identifier, so set private mode at creation.
+    with os.fdopen(os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), "wb") as file:
+        file.write(data)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     source = parser.add_mutually_exclusive_group(required=True)
@@ -130,8 +157,7 @@ def main():
         if args.output:
             bundle, team = app_identity(args.app)
             data = plistlib.dumps(workflow(metadata, bundle, team), fmt=plistlib.FMT_BINARY)
-            with args.output.open("xb") as file:
-                file.write(data)
+            write_private_candidate(args.output, data)
         print(json.dumps({"metadataReady": True, "candidateCreated": bool(args.output),
                           "signed": False, "imported": False, "physicalVerified": False}))
         return 0
