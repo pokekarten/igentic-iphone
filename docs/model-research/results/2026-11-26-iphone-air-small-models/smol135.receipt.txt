@@ -1,0 +1,15 @@
+SMOL135_CLASS_INTEGRITY=verified; files=10; bytes=79221815
+SMOL135_CLASS_LOAD=completed; milliseconds=219
+SMOL135_CLASS_CASE=1; outcome=reject; tokens=16; milliseconds=1531
+SMOL135_CLASS_CASE=2; outcome=reject; tokens=16; milliseconds=172
+SMOL135_CLASS_CASE=3; outcome=reject; tokens=16; milliseconds=174
+SMOL135_CLASS_CASE=4; outcome=reject; tokens=16; milliseconds=178
+SMOL135_CLASS_CASE=5; outcome=reject; tokens=16; milliseconds=175
+SMOL135_CLASS_CASE=6; outcome=reject; tokens=16; milliseconds=168
+SMOL135_CLASS_CASE=7; outcome=reject; tokens=16; milliseconds=168
+SMOL135_CLASS_CASE=8; outcome=reject; tokens=16; milliseconds=170
+SMOL135_CLASS_CASE=9; outcome=reject; tokens=16; milliseconds=166
+SMOL135_CLASS_CASE=10; outcome=reject; tokens=16; milliseconds=170
+SMOL135_CLASS_CASE=11; outcome=reject; tokens=16; milliseconds=170
+SMOL135_CLASS_CASE=12; outcome=reject; tokens=16; milliseconds=176
+SMOL135_CLASS_RESEARCH=completed; passed=0; total=12; holdout=0; actionsExecuted=0

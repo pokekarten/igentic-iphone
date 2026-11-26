@@ -1,0 +1,7 @@
+MINICPM5_DEV_CASE=1; pass=true; tokens=1
+MINICPM5_DEV_CASE=2; pass=false; tokens=16
+MINICPM5_DEV_CASE=3; pass=false; tokens=13
+MINICPM5_DEV_CASE=4; pass=false; tokens=1
+MINICPM5_DEV_CASE=5; pass=false; tokens=16
+MINICPM5_DEV_CASE=6; pass=false; tokens=16
+MINICPM5_DEV=completed; passed=1; total=6; capped=3; actionsExecuted=0

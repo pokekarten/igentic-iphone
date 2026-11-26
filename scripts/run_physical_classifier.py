@@ -26,6 +26,8 @@ LAUNCH = {
     "qwen35": ("--qwen35-classification-probe", "qwen35-08b"),
     "granite350": ("--granite350-classification-probe", "granite350"),
     "minicpm5": ("--minicpm5-classification-probe", "minicpm5-1b"),
+    "falcon90": ("--falcon90-classification-probe", "falcon90"),
+    "smol135": ("--smol135-classification-probe", "smol135"),
 }
 
 def collect(device: str, candidate: str):

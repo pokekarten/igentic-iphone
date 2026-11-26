@@ -8,7 +8,7 @@ import HuggingFace
 
 /// Research-only classifier benchmark. No tool dispatch or journal mutation.
 public enum LFMResearch {
-    public enum Candidate: Sendable { case lfm, qwen, qwen35, granite350, miniCPM5 }
+    public enum Candidate: Sendable { case lfm, qwen, qwen35, granite350, miniCPM5, falcon90, smol135 }
     private struct Fixture {
         let prompt: String
         let expected: String
@@ -30,6 +30,43 @@ public enum LFMResearch {
         .init(prompt: "End this task without any additional reads.", expected: "B", german: false)
     ]
 
+    /// Development-only MiniCPM5 condition; never report these six cases as a holdout.
+    public static func runMiniCPM5Development(modelDirectory: URL) async -> String {
+        do {
+            guard case .success = PinnedMLXSnapshot.verifyMiniCPM5Research(directory: modelDirectory) else {
+                return "MINICPM5_DEV=integrityRejected; actionsExecuted=0"
+            }
+            let model = try await LLMModelFactory.shared.loadContainer(from: modelDirectory, using: #huggingFaceTokenizerLoader())
+            var passed = 0, capped = 0
+            for (index, fixture) in fixtures.prefix(6).enumerated() {
+                let instructions = fixture.german
+                    ? "Ordne die Aufgabe zu. A = Gerätestatus oder Akku lesen. B = Aufgabe beenden, keine weitere Aktion. Antworte nur A oder B."
+                    : "Classify the request: A = read device status or battery; B = stop or finish without another action. Reply with exactly A or B."
+                let session = ChatSession(model, instructions: instructions,
+                    generateParameters: .init(maxTokens: 16, temperature: 0), additionalContext: ["enable_thinking": false])
+                var reply = "", invalid = false
+                var completion: GenerateCompletionInfo?
+                for try await event in session.streamDetails(to: fixture.prompt) {
+                    switch event {
+                    case .chunk(let text):
+                        if reply.utf8.count + text.utf8.count <= 16 { reply += text } else { invalid = true }
+                    case .info(let info):
+                        if completion != nil { invalid = true }; completion = info
+                    default: invalid = true
+                    }
+                }
+                let natural: Bool
+                if case .some(.stop) = completion?.stopReason { natural = true } else { natural = false }
+                let n = completion?.generationTokenCount ?? -1
+                let correct = !invalid && natural && (1..<16).contains(n) && reply.trimmingCharacters(in: .whitespacesAndNewlines) == fixture.expected
+                if correct { passed += 1 }
+                if n >= 16 { capped += 1 }
+                print("MINICPM5_DEV_CASE=\(index+1); pass=\(correct); tokens=\(n)")
+            }
+            return "MINICPM5_DEV=completed; passed=\(passed); total=6; capped=\(capped); actionsExecuted=0"
+        } catch { return "MINICPM5_DEV=failed; actionsExecuted=0" }
+    }
+
     public static func run(modelDirectory: URL, candidate: Candidate = .lfm) async -> String {
         let prefix: String
         switch candidate {
@@ -38,6 +75,8 @@ public enum LFMResearch {
         case .qwen35: prefix = "QWEN35_CLASS"
         case .granite350: prefix = "GRANITE350_CLASS"
         case .miniCPM5: prefix = "MINICPM5_CLASS"
+        case .falcon90: prefix = "FALCON90_CLASS"
+        case .smol135: prefix = "SMOL135_CLASS"
         }
         do {
             let admission: Result<PinnedMLXSnapshot.Receipt, PinnedMLXSnapshot.Rejection>
@@ -47,6 +86,8 @@ public enum LFMResearch {
             case .qwen35: admission = PinnedMLXSnapshot.verifyQwen35Research(directory: modelDirectory)
             case .granite350: admission = PinnedMLXSnapshot.verifyGranite350Research(directory: modelDirectory)
             case .miniCPM5: admission = PinnedMLXSnapshot.verifyMiniCPM5Research(directory: modelDirectory)
+            case .falcon90: admission = PinnedMLXSnapshot.verifyFalcon90Research(directory: modelDirectory)
+            case .smol135: admission = PinnedMLXSnapshot.verifySmol135Research(directory: modelDirectory)
             }
             guard case .success(let receipt) = admission else {
                 return "\(prefix)_RESEARCH=integrityRejected; actionsExecuted=0"

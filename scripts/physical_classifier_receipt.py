@@ -22,6 +22,8 @@ REGISTRY = {
     "qwen35": ("QWEN35_CLASS", "qwen35ResearchFiles", "mlx-community/Qwen3.5-0.8B-4bit", "da28692b5f139cb0ec58a356b437486b7dac7462"),
     "granite350": ("GRANITE350_CLASS", "granite350ResearchFiles", "mlx-community/granite-4.0-h-350m-4bit", "2b96c1f68e5349bcaec2a498a68cc177537e46d1"),
     "minicpm5": ("MINICPM5_CLASS", "miniCPM5ResearchFiles", "openbmb/MiniCPM5-1B-MLX", "c973e24a2c77861038301f4e27d1b34a5931fc91"),
+    "falcon90": ("FALCON90_CLASS", "falcon90ResearchFiles", "mlx-community/Falcon-H1-Tiny-Tool-Calling-90M-4bit", "d4c8aa7bf106d80fefea8b316d7c70b0844b8a1b"),
+    "smol135": ("SMOL135_CLASS", "smol135ResearchFiles", "mlx-community/SmolLM-135M-Instruct-4bit", "642e06afe3fab57fd6cc518637c471af0a569e1e"),
 }
 
 def manifest(candidate):

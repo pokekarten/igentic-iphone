@@ -146,6 +146,53 @@ public enum PinnedMLXSnapshot {
         }
     }
 
+    public static let falcon90ResearchModelID = "mlx-community/Falcon-H1-Tiny-Tool-Calling-90M-4bit"
+    public static let falcon90ResearchRevision = "d4c8aa7bf106d80fefea8b316d7c70b0844b8a1b"
+    public static let falcon90UpstreamRevision = "fc099d791a229464b995fdd2fd24e8ffd2d699e8"
+    static let falcon90ResearchFiles: [Entry] = [
+        .init(name: "README.md", bytes: 1094, digest: "c48eb0ad71458c9b7517f602dafffb541de579076d09a4dc1d037998c6c330d2"),
+        .init(name: "UPSTREAM_MODEL_CARD.md", bytes: 3251, digest: "45b9d6ccccb730ae85d829717fbf6056d4bb6a75c929e1e6b041c607873f8d9b"),
+        .init(name: "chat_template.jinja", bytes: 1727, digest: "d3aff4b6198c753a363b325790cb79baa04262b8e0c2b2fb731aa4dc5374264b"),
+        .init(name: "config.json", bytes: 1912, digest: "a5f580a85260b92898383e52da9d553c14209187966c865a313237a6d01ac8a1"),
+        .init(name: "generation_config.json", bytes: 133, digest: "1276a6816b459607f3a498bd5b49ae41841c73dbad01b7aef1a2676e0c897f31"),
+        .init(name: "model.safetensors", bytes: 51543169, digest: "3faf6d4c7db88e17cc141204655d67132b1b9a700ef1edd5f12020c39072551c"),
+        .init(name: "model.safetensors.index.json", bytes: 58385, digest: "987c3540a1f656926ca9044b548c54e3925a7cfd5cc1fc4424f77fd544a03678"),
+        .init(name: "tokenizer.json", bytes: 2351347, digest: "0902fa32c40b313add9406a81f908d86f65a0387679486544d4fadbe0e08a22a"),
+        .init(name: "tokenizer_config.json", bytes: 7545, digest: "7fa3919ae9d7e638678b7bc8bdc50f73e49c5c1c04eabfdefcc59688ca2f2ba5"),
+    ]
+
+    /// Private research only; no production routing or redistribution clearance.
+    public static func verifyFalcon90Research(directory: URL) -> Result<Receipt, Rejection> {
+        verify(directory: directory, entries: falcon90ResearchFiles).map {
+            Receipt(modelID: falcon90ResearchModelID, revision: falcon90ResearchRevision,
+                    fileCount: falcon90ResearchFiles.count, totalBytes: $0)
+        }
+    }
+
+    public static let smol135ResearchModelID = "mlx-community/SmolLM-135M-Instruct-4bit"
+    public static let smol135ResearchRevision = "642e06afe3fab57fd6cc518637c471af0a569e1e"
+    public static let smol135UpstreamRevision = "b5f4b394abe60fe0e4d666139e57bfce520302a9"
+    static let smol135ResearchFiles: [Entry] = [
+        .init(name: "README.md", bytes: 638, digest: "c932a31b7de83869e2db8bb4622752ef350ded20a7212822a278506fd70a4465"),
+        .init(name: "UPSTREAM_MODEL_CARD.md", bytes: 5623, digest: "d8b24f2d845a8a2544d8bc9b29dbf71ae11e918439fc568ab54667f81e9eea16"),
+        .init(name: "config.json", bytes: 803, digest: "4bc9881d39ef7fce3df804d194558e29bd974d965437dc1e6a8f9f7a0939b80d"),
+        .init(name: "merges.txt", bytes: 466391, digest: "0b54e8aa4e53d5383e2e4bc635a56b43f9647f7b13832d5d9ecd8f82dac4f510"),
+        .init(name: "model.safetensors", bytes: 75789919, digest: "e91560ee24b13eee6ddeb14879d728a90780053d69057b15ff199ccadfcfe33b"),
+        .init(name: "model.safetensors.index.json", bytes: 48978, digest: "2aa3391702d20c3c886cc6148d210c843bfb4dfde32b71fe859f1c744ce35dd3"),
+        .init(name: "special_tokens_map.json", bytes: 655, digest: "2b7379f3ae813529281a5c602bc5a11c1d4e0a99107aaa597fe936c1e813ca52"),
+        .init(name: "tokenizer.json", bytes: 2104556, digest: "9ca9acddb6525a194ec8ac7a87f24fbba7232a9a15ffa1af0c1224fcd888e47c"),
+        .init(name: "tokenizer_config.json", bytes: 3590, digest: "75668bda11eb0d5ece137b4eb3fb2ad679f847fd19846b726369a26d92f9f28e"),
+        .init(name: "vocab.json", bytes: 800662, digest: "82b84012e3add4d01d12ba14442026e49b8cbbaead1f79ecf3d919784f82dc79"),
+    ]
+
+    /// Private research only; no production routing or redistribution clearance.
+    public static func verifySmol135Research(directory: URL) -> Result<Receipt, Rejection> {
+        verify(directory: directory, entries: smol135ResearchFiles).map {
+            Receipt(modelID: smol135ResearchModelID, revision: smol135ResearchRevision,
+                    fileCount: smol135ResearchFiles.count, totalBytes: $0)
+        }
+    }
+
     /// The caller must retain exclusive control of this private model directory
     /// until loading finishes. This is a byte check, not a runtime attestation.
     public static func verifyQwen3(directory: URL) -> Result<Receipt, Rejection> {
