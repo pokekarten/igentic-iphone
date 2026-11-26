@@ -14,3 +14,11 @@ The five actions are Start, parse JSON dictionary, extract taskId, Advance with 
 Tests: `python3 -m unittest discover -s scripts/shortcuts -p 'test_*.py'`. Fixture success is not a physical acceptance pass. The generated unsigned plist contains a local signing-team identifier, so keep it private.
 
 The preflight also checks the observed Xcode 27 String/Bool parameter and return types, non-optional parameters and background mode. The repository audit runs these fixture tests. Output is created exclusively with mode 0600; no existing file or symlink is overwritten.
+
+## Setup Manager
+
+Run the read-only status check with explicit paths to the signed app, private artifact directory and private iCloud folder:
+
+    python3 scripts/shortcuts/setup_manager.py --app /path/to/iGentic.app --local /private/artifacts --cloud '/path/to/iCloud Drive/iGentic Setup'
+
+Add `--prepare` to generate and Apple-sign missing local files, recording their digests; add `--publish` to stage the recorded signed artifact without replacing a conflicting file. Existing unrecorded artifacts can be inspected but are not automatically republished. The manager returns only fixed booleans and the next setup gate, not private library names or signing identifiers. The local manifest records the factory run and bytes; it is not an independent Apple signature attestation. iCloud upload is checked through Foundation metadata. A Mac library match is not proof of iPhone import; system import, owner authorization and the physical two-turn acceptance remain separate gates. The manager never invokes the Shortcut, accepts dialogs or modifies the Shortcuts database.
