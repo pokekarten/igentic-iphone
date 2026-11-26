@@ -43,3 +43,24 @@ Optional physical UI fallback (local operator only):
 - Set `IGENTIC_OIU_PYTHON` to that environment's absolute Python executable.
 - `npm run control -- ax` opens our own diagnostic app under its existing lease and reads only fixed accessibility markers.
 - `npm run control -- touch` is a separate explicit physical test. It checks Wi-Fi, policy, fresh before/after screenshots, exactly one known own-app target, AX root/target process identity against the installed executable, and live AX admission, sends one touch, and verifies navigation. The authenticated CoreDevice display/HID session is still needed; continuous video delivery is not required for this bounded test. No raw image/tree leaves the local process. Never automatically repeat an unknown input outcome. No general cross-app control or permissions bypass is provided.
+
+### Physical built-in App Shortcut (no iCloud import)
+
+`npm run control -- shortcut` is an explicit local operator acceptance mode
+using the same optional adapter environment. It verifies the installed
+iGentic app name, the Apple Shortcuts process and the system library's Apps
+section, enters the iGentic group, checks the exact registered read-only
+`iGentic Status-Loop` tile and its known sibling actions, then taps that tile
+once. It refuses to overwrite a pending task, accepts no permission dialogs,
+and does not run custom shortcuts or an external model.
+
+The baseline is an exact app-container journal or a successful targeted
+directory listing showing its absence. A new finished UUID and bounded
+creation time are required; the independent local MCP client then requests
+`iphone_shortcut_result` with that exact UUID. Only fixed booleans leave the
+local test process. No raw library, task ID, device identifiers or observation
+text are exported. The local lease serializes cooperating tools, not human
+activity; this is local device evidence, not cryptographic remote attestation.
+If input was attempted but its result is unknown, stop and inspect, never
+automatically re-tap. This does not verify custom Shortcut import, a model
+reply, Siri voice, or a ChatGPT-account roundtrip.

@@ -14,6 +14,7 @@ const plans = Object.freeze({
   screen: ['nativeScreen'],
   ax: ['nativeAx'],
   touch: ['nativeTouch'],
+  shortcut: ['systemShortcut'],
   'wifi-ui': ['wirelessReadiness', 'legacyUi'],
 });
 
@@ -26,13 +27,13 @@ export function parseMode(args) {
 export function evidence(name, result) {
   // Subprocess output may contain private paths or identifiers: never echo it.
   if (result.error?.code === 'ETIMEDOUT') return { step: name, status: 'unknown', reason: 'timeout-no-retry' };
-  if (['nativeAx','nativeTouch'].includes(name) && result.status !== 0 && !result.error && !result.signal) {
+  if (['nativeAx','nativeTouch','systemShortcut'].includes(name) && result.status !== 0 && !result.error && !result.signal) {
     try {
       const report=JSON.parse(String(result.stdout).trim().split('\n').at(-1));
       if (report.status==='unknown') return {step:name,status:'unknown',reason:'input-outcome-not-verified-no-retry'};
     } catch {}
   }
-  if (name==='nativeTouch' && (result.error || result.signal || (result.status !== 0 && !result.stdout)))
+  if (['nativeTouch','systemShortcut'].includes(name) && (result.error || result.signal || (result.status !== 0 && !result.stdout)))
     return {step:name,status:'unknown',reason:'input-outcome-not-verified-no-retry'};
   if (result.error || result.signal || result.status !== 0)
     return { step: name, status: name === 'dependencies' ? 'failed' : 'blocked', reason: 'command-did-not-complete' };
@@ -70,6 +71,10 @@ export function evidence(name, result) {
         data?.screenAfter === true && data?.navigationVerified === true :
         data?.inputAttempted === false && data?.hidAuthorized === false && data?.navigationVerified === false);
     scope = touch ? 'physical-wifi-one-fixed-own-app-hid-navigation' : 'physical-wifi-own-app-ax-read-only';
+  } else if (name === 'systemShortcut') {
+    ok = data?.status === 'pass' && ['physicalWifi','systemAppVerified','appGroupVerified','nativeShortcutVisible','baselineKnown','inputAttempted','freshFinishedJournal','independentMcpReceipt'].every(k=>data[k]===true) &&
+      ['rawLibraryExported','modelCalled','permissionDialogAccepted'].every(k=>data[k]===false);
+    scope = 'physical-system-app-shortcut-fresh-local-status-journal-not-model';
   } else if (name === 'nativeScreen') {
     ok = data?.physicalWifi === true && data?.ownAppReceipt === true &&
       data?.screenshotCaptured === true && data?.rawImageExported === false &&
@@ -109,6 +114,7 @@ function execute(name) {
     nativeScreen: ['scripts/smoke-screen-wifi.mjs'],
     nativeAx: ['scripts/smoke-ui-wifi.mjs','ax'],
     nativeTouch: ['scripts/smoke-ui-wifi.mjs','touch'],
+    systemShortcut: ['scripts/smoke-system-shortcut-wifi.mjs'],
     legacyUi: ['scripts/smoke.mjs'],
   };
   if (name === 'fixtureRoundtrip') clean.IGENTIC_IPHONE_BACKEND = 'fixture';
@@ -134,7 +140,7 @@ const osTmp = tmpdir();
 export function run(mode, runner = execute, platform = process.platform) {
   if (!Object.hasOwn(plans, mode)) throw new Error('invalidMode');
   if (mode === 'plan') return { mode, steps: [], manual: ['system-permissions', 'owner-authentication', 'shortcut-import', 'chatgpt-account-roundtrip'], dependencyLock: existsSync(join(root, 'package-lock.json')) };
-  if (['doctor','wifi','wifi-ui','preview','screen','ax','touch'].includes(mode) && platform !== 'darwin')
+  if (['doctor','wifi','wifi-ui','preview','screen','ax','touch','shortcut'].includes(mode) && platform !== 'darwin')
     return { mode, steps: [{ step: 'platform', status: 'blocked', reason: 'macos-required' }] };
   const steps = [];
   for (const name of plans[mode]) {
@@ -151,5 +157,5 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     const report = run(parseMode(process.argv.slice(2)));
     console.log(JSON.stringify(report));
     if (report.steps.some(s => s.status !== 'pass')) process.exitCode = 2;
-  } catch { console.error('Usage: control-center.mjs plan|prepare|doctor|fixture|wifi|wifi-ui|preview|screen|ax|touch'); process.exitCode = 2; }
+  } catch { console.error('Usage: control-center.mjs plan|prepare|doctor|fixture|wifi|wifi-ui|preview|screen|ax|touch|shortcut'); process.exitCode = 2; }
 }
