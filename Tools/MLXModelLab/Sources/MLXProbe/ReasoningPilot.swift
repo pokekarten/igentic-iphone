@@ -52,9 +52,16 @@ public enum ReasoningPilot {
             case .lfm12: admission = PinnedMLXSnapshot.verifyLFM12Research(directory: modelDirectory)
             }
             guard case .success = admission else { return "\(prefix)=integrityRejected; actionsExecuted=0" }
+            if candidate == .qwen2b && !LargeModelPreflight.canLoad(weightBytes: 1_722_271_785) {
+                return "\(prefix)=memoryOrThermalBlocked; actionsExecuted=0"
+            }
             let model = try await LLMModelFactory.shared.loadContainer(from: modelDirectory, using: #huggingFaceTokenizerLoader())
             var exact = 0, capped = 0, completed = 0
+            var resourceStopped = false
             for (index, fixture) in fixtures.enumerated() {
+                if candidate == .qwen2b && !LargeModelPreflight.canContinue() {
+                    resourceStopped = true; break
+                }
                 let thermal = ProcessInfo.processInfo.thermalState
                 if thermal == .serious || thermal == .critical { break }
                 let session = ChatSession(model, instructions: instructions, generateParameters: .init(maxTokens: 96, temperature: 0),
@@ -79,7 +86,7 @@ public enum ReasoningPilot {
                 completed += 1
                 print("\(prefix)_CASE=\(index+1); category=\(fixture.category); pass=\(pass); tokens=\(n); milliseconds=\(Int((ProcessInfo.processInfo.systemUptime-start)*1000))")
             }
-            return "\(prefix)=\(completed==16 ? "completed" : "thermalStopped"); passed=\(exact); completed=\(completed); total=16; capped=\(capped); actionsExecuted=0"
+            return "\(prefix)=\(completed==16 ? "completed" : (resourceStopped ? "resourceStopped" : "thermalStopped")); passed=\(exact); completed=\(completed); total=16; capped=\(capped); actionsExecuted=0"
         } catch { return "\(prefix)=failed; actionsExecuted=0" }
     }
     @MainActor public static func runApple() async -> String {

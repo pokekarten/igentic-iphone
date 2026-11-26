@@ -23,4 +23,12 @@ class PilotTests(unittest.TestCase):
         lines=fixture().splitlines();lines=lines[:7]+["AGENT_V1_QWEN35=thermalStopped; passed=6; positive=6; negative=0; falseCalls=0; capped=0; completed=6; total=24; actionsExecuted=0"]
         lines[-2]=lines[-2].replace("thermal=nominal","thermal=serious")
         r=normalize("qwen35","\n".join(lines)+"\n");self.assertEqual(r["status"],"thermalStopped");self.assertEqual(r["summary"]["completed"],6)
+    def test_resource_stop_not_completed(self):
+        lines=fixture("qwen2b").splitlines()
+        lines=lines[:7]+["AGENT_V1_QWEN2B=resourceStopped; passed=6; positive=6; negative=0; falseCalls=0; capped=0; completed=6; total=24; actionsExecuted=0"]
+        r=normalize("qwen2b","\n".join(lines)+"\n")
+        self.assertEqual(r["status"],"resourceStopped")
+        self.assertEqual(r["summary"]["completed"],6)
+        with self.assertRaises(ValueError):
+            normalize("qwen35","\n".join(line.replace("QWEN2B","QWEN35") for line in lines)+"\n")
 if __name__=="__main__":unittest.main()

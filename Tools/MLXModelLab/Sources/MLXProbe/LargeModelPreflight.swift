@@ -10,6 +10,16 @@ public enum LargeModelPreflight {
         guard nominal, available >= minimumReserve else { return false }
         return weightBytes <= available - minimumReserve
     }
+    static func canLoad(weightBytes: UInt64) -> Bool {
+        allowed(weightBytes: weightBytes, available: UInt64(os_proc_available_memory()),
+                nominal: ProcessInfo.processInfo.thermalState == .nominal)
+    }
+
+    static func canContinue() -> Bool {
+        ProcessInfo.processInfo.thermalState == .nominal &&
+            UInt64(os_proc_available_memory()) >= 536_870_912
+    }
+
     public static func report() -> String {
         let thermal = ProcessInfo.processInfo.thermalState
         let nominal = thermal == .nominal

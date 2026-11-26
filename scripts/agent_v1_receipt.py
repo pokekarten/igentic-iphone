@@ -67,7 +67,7 @@ def normalize(candidate, raw):
     neg=sum(r["passed"] and r["category"]!="positive" for r in rows)
     bad=sum(r["category"]!="positive" and (r["calls"]>0 or r["parser_rejected"]) for r in rows)
     capped=sum(r["tokens"] is not None and r["tokens"]>=96 for r in rows)
-    state="completed" if len(rows)==24 else "thermalStopped"
+    state="completed" if len(rows)==24 else ("resourceStopped" if candidate=="qwen2b" and lines[-1].startswith(prefix+"=resourceStopped;") else "thermalStopped")
     if lines[-1]!=f"{prefix}={state}; passed={pos+neg}; positive={pos}; negative={neg}; falseCalls={bad}; capped={capped}; completed={len(rows)}; total=24; actionsExecuted=0":
         raise ValueError("aggregate or action mismatch")
     samples=[v for v in [number(l[4]),number(l[5]),*[r["footprint_bytes"] for r in rows]] if v is not None]

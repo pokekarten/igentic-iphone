@@ -100,10 +100,17 @@ public enum AgentBenchmarkV1 {
             let startThermal = thermal()
             guard startThermal == "nominal" || startThermal == "fair" else { return "\(prefix)=thermalBlocked; actionsExecuted=0" }
             let before = mem(), t = ProcessInfo.processInfo.systemUptime
+            if candidate == .qwen2b && !LargeModelPreflight.canLoad(weightBytes: 1_722_271_785) {
+                return "\(prefix)=memoryOrThermalBlocked; actionsExecuted=0"
+            }
             let model = try await LLMModelFactory.shared.loadContainer(from: modelDirectory, using: #huggingFaceTokenizerLoader())
             print("\(prefix)_LOAD=completed; files=\(receipt.fileCount); bytes=\(receipt.totalBytes); milliseconds=\(ms(ProcessInfo.processInfo.systemUptime-t)); footprintBefore=\(before); footprintAfter=\(mem()); thermal=\(thermal())")
             var exact = 0, positive = 0, negative = 0, falseCalls = 0, capped = 0, completed = 0
+            var resourceStopped = false
             for (index, fixture) in cases.enumerated() {
+                if candidate == .qwen2b && !LargeModelPreflight.canContinue() {
+                    resourceStopped = true; break
+                }
                 let state = thermal()
                 guard state == "nominal" || state == "fair" else { break }
                 let session = ChatSession(model, instructions: """
@@ -147,7 +154,7 @@ public enum AgentBenchmarkV1 {
                 completed += 1
                 print("\(prefix)_CASE=\(index+1); category=\(fixture.category); pass=\(pass); calls=\(calls.count); rejected=\(rejected); tokens=\(n); promptTokens=\(completion?.totalPromptTokenCount ?? -1); prefillMs=\(completion.map{ms($0.promptTime)} ?? -1); decodeMs=\(completion.map{ms($0.generateTime)} ?? -1); firstEventMs=\(first ?? -1); milliseconds=\(ms(ProcessInfo.processInfo.systemUptime-start)); footprint=\(mem()); thermal=\(thermal())")
             }
-            let status = completed == cases.count ? "completed" : "thermalStopped"
+            let status = completed == cases.count ? "completed" : (resourceStopped ? "resourceStopped" : "thermalStopped")
             return "\(prefix)=\(status); passed=\(exact); positive=\(positive); negative=\(negative); falseCalls=\(falseCalls); capped=\(capped); completed=\(completed); total=24; actionsExecuted=0"
         } catch { return "\(prefix)=failed; actionsExecuted=0" }
     }
