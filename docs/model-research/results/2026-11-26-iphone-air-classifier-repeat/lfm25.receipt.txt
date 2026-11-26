@@ -1,0 +1,15 @@
+LFM_INTEGRITY=verified; files=9; bytes=226583972
+LFM_LOAD=completed; milliseconds=318
+LFM_CASE=1; outcome=pass; tokens=1; milliseconds=59
+LFM_CASE=2; outcome=pass; tokens=1; milliseconds=38
+LFM_CASE=3; outcome=pass; tokens=1; milliseconds=36
+LFM_CASE=4; outcome=pass; tokens=1; milliseconds=38
+LFM_CASE=5; outcome=pass; tokens=1; milliseconds=38
+LFM_CASE=6; outcome=pass; tokens=1; milliseconds=38
+LFM_CASE=7; outcome=pass; tokens=1; milliseconds=38
+LFM_CASE=8; outcome=reject; tokens=1; milliseconds=39
+LFM_CASE=9; outcome=reject; tokens=1; milliseconds=38
+LFM_CASE=10; outcome=reject; tokens=1; milliseconds=38
+LFM_CASE=11; outcome=pass; tokens=1; milliseconds=39
+LFM_CASE=12; outcome=reject; tokens=1; milliseconds=38
+LFM_RESEARCH=completed; passed=8; total=12; holdout=2; actionsExecuted=0
