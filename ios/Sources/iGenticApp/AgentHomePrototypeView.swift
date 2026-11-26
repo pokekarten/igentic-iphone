@@ -51,6 +51,13 @@ public struct AgentHomePrototypeView: View {
                         .font(.caption).foregroundStyle(.secondary)
                 }
 
+                NavigationLink("Gerätesteuerung – direkt auf dem iPhone") {
+                    StandaloneDeviceToolsView()
+                }
+                .accessibilityIdentifier("igentic-agent-device-tools")
+                Text("Eigene Gerätefunktionen bleiben auch ohne externe KI verfügbar.")
+                    .font(.caption).foregroundStyle(.secondary)
+
                 VStack(alignment: .leading, spacing: 10) {
                     TextField("Zum Beispiel: Erinnere mich morgen an die Pflanze", text: $input, axis: .vertical)
                         .lineLimit(2...4)
