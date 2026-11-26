@@ -45,3 +45,22 @@ test('preview requires structured physical evidence, not successful exit alone',
 test('doctor reads device discovery even when a lease notice follows', () => {
   assert.equal(evidence('nativeDoctor',{status:0,stdout:'{"configured":true,"devices":[{"kind":"physical","available":true}]}\n{"lease":"active"}'}).status,'pass');
 });
+
+test('screen acceptance requires physical evidence and no exported image or touch claim', () => {
+  const x = {physicalWifi:true,ownAppReceipt:true,screenshotCaptured:true,width:1260,height:2736,rawImageExported:false,touchTested:false,visibleAppVerified:false,streamVerified:false};
+  assert.equal(evidence('nativeScreen',result(x)).status,'pass');
+  for (const change of [{physicalWifi:false},{ownAppReceipt:false},{width:0},{rawImageExported:true},{touchTested:true},{visibleAppVerified:true},{streamVerified:true}])
+    assert.equal(evidence('nativeScreen',result({...x,...change})).status,'blocked');
+  assert.equal(run('screen',()=>result(x),'linux').steps[0].reason,'macos-required');
+});
+
+test('touch proof cannot be inferred from AX, screenshot, or uncertain input', () => {
+  const x={mode:'touch',status:'pass',physicalWifi:true,ownAppReceipt:true,
+    ownAppPidVerified:true,accessibilityBefore:true,targetUnique:true,rawContentExported:false,screenBefore:true,
+    hidAuthorized:true,inputAttempted:true,screenAfter:true,navigationVerified:true};
+  assert.equal(evidence('nativeTouch',result(x)).status,'pass');
+  for(const key of ['ownAppPidVerified','screenBefore','hidAuthorized','inputAttempted','screenAfter','navigationVerified','targetUnique'])
+    assert.equal(evidence('nativeTouch',result({...x,[key]:false})).status,'blocked');
+  assert.equal(evidence('nativeTouch',{status:2,stdout:JSON.stringify({status:'unknown',private:'not returned'})}).status,'unknown');
+  assert.equal(evidence('nativeAx',result({...x,mode:'ax'})).status,'blocked');
+});

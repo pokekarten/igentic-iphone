@@ -14,6 +14,7 @@ From `plugins/iphone-connect`, with Node 22+:
 | `npm run control -- fixture` | Isolated fixture roundtrip; never counts as physical evidence |
 | `npm run control -- wifi` | Explicit operator-run native physical Wi-Fi process launch, then own-app navigation/receipt test through an exclusive MCP session |
 | `npm run control -- wifi-ui` | Independent legacy discovery gate, then existing bounded own-app MobileCLI smoke; not arbitrary UI control |
+| `npm run control -- screen` | Explicit local physical Wi-Fi screenshot metadata test; no image retained or exported; no touch, live stream or visible-app claim |
 | `npm run control -- preview` | Separate operator-run physical first-party preview acceptance; only when no other agent is operating the app |
 
 Use the physical modes only on the owner's configured iPhone and with the
@@ -33,3 +34,12 @@ System permissions, account login, code signing/provisioning, actual Shortcut
 import and the live ChatGPT model action remain explicit owner/system gates.
 Do not use the CLI to bypass them. No public remote service or new API
 credentials are necessary for the local modes.
+
+The screen mode starts only the configured own app via the existing MCP lease, checks fresh native view receipts and Wi-Fi before/after, then uses Xcode 27's documented screenshot command. A raw screen capture may contain personal data if the foreground changes; it is confined to a temporary local directory and removed in normal cleanup. It is not a general MCP capability.
+
+Optional physical UI fallback (local operator only):
+
+- Use a separate Python environment with [Open iPhone Use v0.2.0](https://github.com/semsturgut/open-iphone-use/tree/658a806a744502beb4181cca547aa590147ceeaf) (source pin) installed; do not register or expose its unrestricted server.
+- Set `IGENTIC_OIU_PYTHON` to that environment's absolute Python executable.
+- `npm run control -- ax` opens our own diagnostic app under its existing lease and reads only fixed accessibility markers.
+- `npm run control -- touch` is a separate explicit physical test. It checks Wi-Fi, policy, fresh before/after screenshots, exactly one known own-app target, AX root/target process identity against the installed executable, and live AX admission, sends one touch, and verifies navigation. The authenticated CoreDevice display/HID session is still needed; continuous video delivery is not required for this bounded test. No raw image/tree leaves the local process. Never automatically repeat an unknown input outcome. No general cross-app control or permissions bypass is provided.
