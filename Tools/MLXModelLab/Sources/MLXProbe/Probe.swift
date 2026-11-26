@@ -8,6 +8,35 @@ import Tokenizers
 import HuggingFace
 
 public enum MLXProbe {
+    /// Select a provider before starting a journaled attempt. Explicit lab-only
+    /// opt-in permits the pinned Qwen candidate; the production app is unchanged.
+    @MainActor
+    public static func runRoutedAgent(modelDirectory: URL,
+                                      preference: DiagnosticModelRouter.Preference,
+                                      qwenOptIn: Bool) async -> String {
+        let appleReady = AppleFoundationModelsRuntime().assess(.init(
+            capability: .structuredProposal, dataSensitivity: .publicData,
+            allowedExecutionKinds: [.system])).isAccepted
+        let needsQwen = preference == .qwen || (preference == .automatic && !appleReady)
+        let admitted: Bool
+        if qwenOptIn && needsQwen,
+           case .success = PinnedMLXSnapshot.verifyQwen3(directory: modelDirectory) {
+            admitted = true
+        } else { admitted = false }
+        let selected = DiagnosticModelRouter.select(preference: preference,
+            appleReady: appleReady, qwenOptIn: qwenOptIn, qwenArtifactAdmitted: admitted)
+        print("MLX_ROUTE=\(selected.rawValue); appleReady=\(appleReady); qwenAdmitted=\(admitted)")
+        do {
+            return try await DiagnosticModelRouter.dispatch(selected, apple: {
+                let start = ProcessInfo.processInfo.systemUptime
+                let report = try await DiagnosticModelRouter.runSystem()
+                return "MLX_AGENT=\(report.outcome.rawValue); turns=\(report.modelTurns); steps=\(report.steps.map(\.rawValue).joined(separator: ",")); reportPrepared=\(report.localReport != nil); milliseconds=\(Int((ProcessInfo.processInfo.systemUptime-start)*1000))"
+            }, qwen: {
+                await runAgent(modelDirectory: modelDirectory)
+            }) ?? "MLX_AGENT=blocked"
+        } catch { return "MLX_AGENT=blocked" }
+    }
+
     @MainActor
     public static func runAgent(modelDirectory: URL) async -> String {
         do {
