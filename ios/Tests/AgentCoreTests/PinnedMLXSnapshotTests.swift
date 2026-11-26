@@ -58,6 +58,20 @@ final class PinnedMLXSnapshotTests: XCTestCase {
         XCTAssertTrue(PinnedMLXSnapshot.smol135ResearchFiles.contains { $0.name == "UPSTREAM_MODEL_CARD.md" })
     }
 
+    func testLFM12ResearchManifest() {
+        XCTAssertEqual(PinnedMLXSnapshot.lfm12ResearchFiles.count, 11)
+        XCTAssertEqual(Set(PinnedMLXSnapshot.lfm12ResearchFiles.map(\.name)).count, 11)
+        XCTAssertEqual(PinnedMLXSnapshot.lfm12ResearchFiles.reduce(Int64(0)) { $0 + $1.bytes }, 663422439)
+        XCTAssertTrue(PinnedMLXSnapshot.lfm12ResearchFiles.contains { $0.name == "UPSTREAM_MODEL_CARD.md" })
+    }
+
+    func testQwen2BResearchManifest() {
+        XCTAssertEqual(PinnedMLXSnapshot.qwen2bResearchFiles.count, 13)
+        XCTAssertEqual(Set(PinnedMLXSnapshot.qwen2bResearchFiles.map(\.name)).count, 13)
+        XCTAssertEqual(PinnedMLXSnapshot.qwen2bResearchFiles.reduce(Int64(0)) { $0 + $1.bytes }, 1749154715)
+        XCTAssertTrue(PinnedMLXSnapshot.qwen2bResearchFiles.contains { $0.name == "UPSTREAM_MODEL_CARD.md" })
+    }
+
     func testFixtureAndRejections() throws {
         let fm = FileManager.default
         let root = fm.temporaryDirectory.appendingPathComponent(UUID().uuidString)

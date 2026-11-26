@@ -193,6 +193,58 @@ public enum PinnedMLXSnapshot {
         }
     }
 
+    public static let lfm12ResearchModelID = "LiquidAI/LFM2.5-1.2B-Instruct-MLX-4bit"
+    public static let lfm12ResearchRevision = "7ccafdb04c36936f4f1c4685198c6c9a40275932"
+    public static let lfm12UpstreamRevision = "b9d816ab510f9a28dca37cb182e9da8b0226e13c"
+    static let lfm12ResearchFiles: [Entry] = [
+        .init(name: "LICENSE", bytes: 10644, digest: "61d7e939a05911c765b7e98ffaa1ab5ca6c0174a65350766c25cb10197d19fc8"),
+        .init(name: "README.md", bytes: 2220, digest: "116777890bc3b8cdb8cee2356a3f7f30902b40d9fcabbff5d0914a2c3812618b"),
+        .init(name: "UPSTREAM_MODEL_CARD.md", bytes: 16323, digest: "b685a20de8241fc8de6a2562e57134697f0cd2b524cc2868570c6a3a1f6c43f6"),
+        .init(name: "chat_template.jinja", bytes: 1836, digest: "3acb41f339d069a43037e6b9a9715cbeece8874eb25a7cabf1a33903d7724d6d"),
+        .init(name: "config.json", bytes: 1572, digest: "3201758c1b68e92a8102583626b0d76f70ff4c6fc2e2b99d32e96cdbe6788cea"),
+        .init(name: "generation_config.json", bytes: 132, digest: "5ffd97da1dec4308543894569662d96e923ed01f7a9d8c7ff5aea7f800738cbd"),
+        .init(name: "model.safetensors", bytes: 658540250, digest: "d837f243744bbdbe7dd032f90b482a1c45d5b6035b25c1d7804d0f4c74b5c004"),
+        .init(name: "model.safetensors.index.json", bytes: 23414, digest: "3074009e9be56358bf8edc25354572cbca2b5a625e02f8a2c2789a656f51f5a1"),
+        .init(name: "special_tokens_map.json", bytes: 434, digest: "742aefe2b7dec496e8caffdba03a75d0c1a9925d53bd3f3e0d388c96b591b6f4"),
+        .init(name: "tokenizer.json", bytes: 4733389, digest: "df1d8d5ec5d091b460562ffd545e4a5e91d17d4a0db7ebe733be34ed374377bd"),
+        .init(name: "tokenizer_config.json", bytes: 92225, digest: "2a52ec012d3df831ba434b081bef3726a6ee22501f062ad8353c557a0cfa0d01"),
+    ]
+
+    /// Research-only pin. No inference or production admission implied.
+    public static func verifyLFM12Research(directory: URL) -> Result<Receipt, Rejection> {
+        verify(directory: directory, entries: lfm12ResearchFiles).map {
+            Receipt(modelID: lfm12ResearchModelID, revision: lfm12ResearchRevision,
+                    fileCount: lfm12ResearchFiles.count, totalBytes: $0)
+        }
+    }
+
+    public static let qwen2bResearchModelID = "mlx-community/Qwen3.5-2B-4bit"
+    public static let qwen2bResearchRevision = "674aaa7240b91e8012fcad5d791b7dfe5ba90207"
+    public static let qwen2bUpstreamRevision = "15852e8c16360a2fea060d615a32b45270f8a8fc"
+    static let qwen2bResearchFiles: [Entry] = [
+        .init(name: "LICENSE", bytes: 11544, digest: "bbedc3fda3305820b977265f01b8619d87570a6739de3a5582c3464840f1e57a"),
+        .init(name: "README.md", bytes: 666, digest: "25ccef130ebab05aed7798f4aee3b829a80e6c67c0f20b7d68dea8a4a103a071"),
+        .init(name: "UPSTREAM_MODEL_CARD.md", bytes: 62814, digest: "c0e83a849c776e6fa843d011f023132d942a0f0140d903205bf1c363adad2275"),
+        .init(name: "chat_template.jinja", bytes: 7755, digest: "273d8e0e683b885071fb17e08d71e5f2a5ddfb5309756181681de4f5a1822d80"),
+        .init(name: "config.json", bytes: 3113, digest: "beb7fc5a6e0405fe332821cf1a8ef7b69bb390a8c8933171647de5579debf949"),
+        .init(name: "model.safetensors", bytes: 1722271785, digest: "713fe7e5d3c3965f7106b0d0ee17615f7869c23c8d327996df8c1196fbcf07d5"),
+        .init(name: "model.safetensors.index.json", bytes: 81722, digest: "8294c05cca7d53a6c33e3db2b379539bd296d054e0b689711b16b6ac93c7e49d"),
+        .init(name: "preprocessor_config.json", bytes: 390, digest: "27225450ac9c6529872ee1924fcb0962ff5634834f817040f444118116f4e516"),
+        .init(name: "processor_config.json", bytes: 1300, digest: "14932921ca485d458a04dafd8069fbb0a4505622a48208d19ed247115801385b"),
+        .init(name: "tokenizer.json", bytes: 19989343, digest: "87a7830d63fcf43bf241c3c5242e96e62dd3fdc29224ca26fed8ea333db72de4"),
+        .init(name: "tokenizer_config.json", bytes: 1139, digest: "e98f1901ac6f0adff67b1d540bfa0c36ac1a0cf59eb72ed78146ef89aafa1182"),
+        .init(name: "video_preprocessor_config.json", bytes: 385, digest: "7768af27c1fafa9cc9011c1dc20067e03f8915e03b63504550e11d5066986d13"),
+        .init(name: "vocab.json", bytes: 6722759, digest: "ce99b4cb2983d118806ce0a8b777a35b093e2000a503ebde25853284c9dfa003"),
+    ]
+
+    /// Research-only pin. No inference or production admission implied.
+    public static func verifyQwen2BResearch(directory: URL) -> Result<Receipt, Rejection> {
+        verify(directory: directory, entries: qwen2bResearchFiles).map {
+            Receipt(modelID: qwen2bResearchModelID, revision: qwen2bResearchRevision,
+                    fileCount: qwen2bResearchFiles.count, totalBytes: $0)
+        }
+    }
+
     /// The caller must retain exclusive control of this private model directory
     /// until loading finishes. This is a byte check, not a runtime attestation.
     public static func verifyQwen3(directory: URL) -> Result<Receipt, Rejection> {
