@@ -8,7 +8,7 @@ import HuggingFace
 
 /// Research-only classifier benchmark. No tool dispatch or journal mutation.
 public enum LFMResearch {
-    public enum Candidate: Sendable { case lfm, qwen }
+    public enum Candidate: Sendable { case lfm, qwen, qwen35 }
     private struct Fixture {
         let prompt: String
         let expected: String
@@ -31,9 +31,14 @@ public enum LFMResearch {
     ]
 
     public static func run(modelDirectory: URL, candidate: Candidate = .lfm) async -> String {
-        let prefix = candidate == .lfm ? "LFM" : "QWEN_CLASS"
+        let prefix = candidate == .lfm ? "LFM" : (candidate == .qwen ? "QWEN_CLASS" : "QWEN35_CLASS")
         do {
-            let admission = candidate == .lfm ? AgentCore.PinnedMLXSnapshot.verifyLFM25Research(directory: modelDirectory) : AgentCore.PinnedMLXSnapshot.verifyQwen3(directory: modelDirectory)
+            let admission: Result<PinnedMLXSnapshot.Receipt, PinnedMLXSnapshot.Rejection>
+            switch candidate {
+            case .lfm: admission = PinnedMLXSnapshot.verifyLFM25Research(directory: modelDirectory)
+            case .qwen: admission = PinnedMLXSnapshot.verifyQwen3(directory: modelDirectory)
+            case .qwen35: admission = PinnedMLXSnapshot.verifyQwen35Research(directory: modelDirectory)
+            }
             guard case .success(let receipt) = admission else {
                 return "\(prefix)_RESEARCH=integrityRejected; actionsExecuted=0"
             }
@@ -48,7 +53,7 @@ public enum LFMResearch {
                     ? "Ordne die Aufgabe zu. A = Gerätestatus oder Akku lesen. B = Aufgabe beenden, keine weitere Aktion. Antworte nur A oder B."
                     : "Classify the request: A = read device status or battery; B = stop or finish without another action. Reply with exactly A or B."
                 let session = ChatSession(model, instructions: instructions,
-                    generateParameters: .init(maxTokens: 16, temperature: 0), additionalContext: candidate == .qwen ? ["enable_thinking": false] : [:])
+                    generateParameters: .init(maxTokens: 16, temperature: 0), additionalContext: candidate != .lfm ? ["enable_thinking": false] : [:])
                 var response = ""
                 var invalid = false
                 var completion: GenerateCompletionInfo?

@@ -20,6 +20,14 @@ final class PinnedMLXSnapshotTests: XCTestCase {
         XCTAssertEqual(PinnedMLXSnapshot.lfmResearchLicenseRevision.count, 40)
     }
 
+    func testQwen35ResearchManifest() {
+        XCTAssertEqual(PinnedMLXSnapshot.qwen35ResearchFiles.count, 12)
+        XCTAssertEqual(Set(PinnedMLXSnapshot.qwen35ResearchFiles.map(\.name)).count, 12)
+        XCTAssertTrue(PinnedMLXSnapshot.qwen35ResearchFiles.contains { $0.name == "LICENSE" })
+        XCTAssertEqual(PinnedMLXSnapshot.qwen35ResearchFiles.reduce(Int64(0)) { $0 + $1.bytes }, 652039365)
+        XCTAssertEqual(PinnedMLXSnapshot.qwen35ResearchRevision.count, 40)
+    }
+
     func testFixtureAndRejections() throws {
         let fm = FileManager.default
         let root = fm.temporaryDirectory.appendingPathComponent(UUID().uuidString)

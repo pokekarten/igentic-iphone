@@ -76,6 +76,35 @@ class DecisionKnowledgeTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 ev.validate_cases(cases)
 
+    def test_candidate_pins_and_weight_validation(self):
+        import hashlib
+        import tempfile
+        from pathlib import Path
+        self.assertEqual(set(ev.CANDIDATES), set(ev.WEIGHT_PINS))
+        self.assertEqual(len(ev.CANDIDATES), 3)
+        for size, digest in ev.WEIGHT_PINS.values():
+            self.assertGreater(size, 0)
+            self.assertRegex(digest, r"^[0-9a-f]{64}$")
+        with tempfile.TemporaryDirectory() as d:
+            path = Path(d) / "model.safetensors"
+            pin = (3, hashlib.sha256(b"abc").hexdigest())
+            with self.assertRaises(RuntimeError):
+                ev.verify_weights(path, pin)
+            path.write_bytes(b"abc")
+            self.assertEqual(ev.verify_weights(path, pin), pin[1])
+            path.write_bytes(b"abd")
+            with self.assertRaises(RuntimeError):
+                ev.verify_weights(path, pin)
+            path.write_bytes(b"abcd")
+            with self.assertRaises(RuntimeError):
+                ev.verify_weights(path, pin)
+
+    def test_candidate_selection_does_not_implicitly_infer(self):
+        for candidate in ev.CANDIDATES:
+            with patch("sys.argv", ["eval", "--candidate", candidate]), patch.object(ev, "run_mlx") as run:
+                self.assertEqual(ev.main(), 0)
+                run.assert_not_called()
+
     def test_default_does_not_infer(self):
         with patch("sys.argv", ["eval"]), patch.object(ev, "run_mlx") as run:
             self.assertEqual(ev.main(), 0)

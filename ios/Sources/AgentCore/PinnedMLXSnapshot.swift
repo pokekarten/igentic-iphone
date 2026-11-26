@@ -67,6 +67,33 @@ public enum PinnedMLXSnapshot {
         }
     }
 
+    public static let qwen35ResearchModelID = "mlx-community/Qwen3.5-0.8B-4bit"
+    public static let qwen35ResearchRevision = "da28692b5f139cb0ec58a356b437486b7dac7462"
+    public static let qwen35ResearchLicenseRevision = "2fc06364715b967f1860aea9cf38778875588b17"
+    static let qwen35ResearchFiles: [Entry] = [
+        .init(name: "LICENSE", bytes: 11544, digest: "bbedc3fda3305820b977265f01b8619d87570a6739de3a5582c3464840f1e57a"),
+        .init(name: "README.md", bytes: 678, digest: "5614ff1cdf39fd970ade36d9499d99024c089e7add90931e018b8cd8de6dd265"),
+        .init(name: "chat_template.jinja", bytes: 7755, digest: "273d8e0e683b885071fb17e08d71e5f2a5ddfb5309756181681de4f5a1822d80"),
+        .init(name: "config.json", bytes: 3112, digest: "ba7770da23eae5ebd6827571f086e331956b33f4442a9e876fb4aa10969a6772"),
+        .init(name: "model.safetensors", bytes: 625229487, digest: "f5a0d9dd3efa73510542a8023d610ff26be2b4b020d181cfc4bedaa1fcc5dd9e"),
+        .init(name: "model.safetensors.index.json", bytes: 71473, digest: "6e48f2fa5d6f033a6d77bf833abfa9698ca24d1715ecea4c67447bcfaee44650"),
+        .init(name: "preprocessor_config.json", bytes: 390, digest: "27225450ac9c6529872ee1924fcb0962ff5634834f817040f444118116f4e516"),
+        .init(name: "processor_config.json", bytes: 1300, digest: "14932921ca485d458a04dafd8069fbb0a4505622a48208d19ed247115801385b"),
+        .init(name: "tokenizer.json", bytes: 19989343, digest: "87a7830d63fcf43bf241c3c5242e96e62dd3fdc29224ca26fed8ea333db72de4"),
+        .init(name: "tokenizer_config.json", bytes: 1139, digest: "e98f1901ac6f0adff67b1d540bfa0c36ac1a0cf59eb72ed78146ef89aafa1182"),
+        .init(name: "video_preprocessor_config.json", bytes: 385, digest: "7768af27c1fafa9cc9011c1dc20067e03f8915e03b63504550e11d5066986d13"),
+        .init(name: "vocab.json", bytes: 6722759, digest: "ce99b4cb2983d118806ce0a8b777a35b093e2000a503ebde25853284c9dfa003"),
+    ]
+
+    /// Research-only pin. Weights must pass byte verification before loading.
+    /// This does not establish text or multimodal runtime compatibility.
+    public static func verifyQwen35Research(directory: URL) -> Result<Receipt, Rejection> {
+        verify(directory: directory, entries: qwen35ResearchFiles).map {
+            Receipt(modelID: qwen35ResearchModelID, revision: qwen35ResearchRevision,
+                    fileCount: qwen35ResearchFiles.count, totalBytes: $0)
+        }
+    }
+
     /// The caller must retain exclusive control of this private model directory
     /// until loading finishes. This is a byte check, not a runtime attestation.
     public static func verifyQwen3(directory: URL) -> Result<Receipt, Rejection> {
