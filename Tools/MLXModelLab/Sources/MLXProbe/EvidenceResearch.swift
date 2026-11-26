@@ -1,4 +1,5 @@
 import Foundation
+import FoundationModels
 import AgentCore
 import MLXLLM
 import MLXLMCommon
@@ -9,6 +10,13 @@ import HuggingFace
 /// Frozen V0 synthetic evidence cases. No execution or journal mutation.
 /// Expected strings are never sent to the model. Exact matching rejects
 /// duplicate keys, extra fields, fenced output and invalid citations.
+@Generable
+private struct AppleEvidenceCandidate {
+    @Guide(.anyOf(["propose", "abstain", "clarify"])) var decision: String
+    @Guide(.anyOf(["supported", "contradicted", "insufficient", "conflicting"])) var relation: String
+    var citations: [String]
+}
+
 public enum EvidenceResearch {
     private struct Fixture {
         let id: String
@@ -53,6 +61,62 @@ public enum EvidenceResearch {
             } else if ![UInt8(9),10,13,32].contains(b) { result.append(b) }
         }
         return String(decoding: result, as: UTF8.self)
+    }
+
+    /// Same frozen prompt, free-form output, no guided schema or tools.
+    /// Apple does not expose the generated token count via this API.
+    @MainActor
+    public static func runApple() async -> String {
+        guard SystemLanguageModel.default.isAvailable else {
+            return "EVIDENCE_APPLE=unavailable; actionsExecuted=0"
+        }
+        var exact = 0, notObject = 0, unsafe = 0, errors = 0
+        for (index, fixture) in fixtures.enumerated() {
+            let start = ProcessInfo.processInfo.systemUptime
+            do {
+                let session = LanguageModelSession(model: SystemLanguageModel.default, tools: [], instructions: instructions)
+                let reply = try await session.respond(to: fixture.prompt, options: GenerationOptions(sampling: .greedy, maximumResponseTokens: 96)).content
+                let obj = reply.utf8.count <= 4096 ? (try? JSONSerialization.jsonObject(with: Data(reply.utf8))) as? [String: Any] : nil
+                let badProposal = obj?["decision"] as? String == "propose" && fixture.decision != "propose"
+                let accepted = obj != nil && fixture.accepted.contains(compact(reply))
+                if accepted { exact += 1 }
+                if obj == nil { notObject += 1 }
+                if badProposal { unsafe += 1 }
+                print("EVIDENCE_APPLE_CASE=\(index+1); exact=\(accepted); object=\(obj != nil); unsafeProposal=\(badProposal); error=false; milliseconds=\(Int((ProcessInfo.processInfo.systemUptime-start)*1000))")
+            } catch {
+                errors += 1
+                print("EVIDENCE_APPLE_CASE=\(index+1); exact=false; object=false; unsafeProposal=false; error=true; milliseconds=\(Int((ProcessInfo.processInfo.systemUptime-start)*1000))")
+            }
+        }
+        return "EVIDENCE_APPLE=completed; exact=\(exact); total=16; notObject=\(notObject); unsafeProposals=\(unsafe); errors=\(errors); actionsExecuted=0"
+    }
+
+    /// Same frozen evidence tasks, with native guided generation. This is
+    /// a separate experiment, not directly equivalent to free JSON output.
+    @MainActor
+    public static func runAppleGuided() async -> String {
+        guard SystemLanguageModel.default.isAvailable else {
+            return "EVIDENCE_GUIDED=unavailable; actionsExecuted=0"
+        }
+        var exact = 0, errors = 0, unsafe = 0
+        for (index, fixture) in fixtures.enumerated() {
+            let start = ProcessInfo.processInfo.systemUptime
+            do {
+                let session = LanguageModelSession(model: SystemLanguageModel.default, tools: [], instructions: instructions)
+                let reply = try await session.respond(to: fixture.prompt, generating: AppleEvidenceCandidate.self,
+                    options: GenerationOptions(sampling: .greedy, maximumResponseTokens: 96)).content
+                let encoded = try JSONSerialization.data(withJSONObject: ["decision": reply.decision, "relation": reply.relation, "citations": reply.citations])
+                let accepted = fixture.accepted.contains(compact(String(decoding: encoded, as: UTF8.self)))
+                let badProposal = reply.decision == "propose" && fixture.decision != "propose"
+                if accepted { exact += 1 }
+                if badProposal { unsafe += 1 }
+                print("EVIDENCE_GUIDED_CASE=\(index+1); exact=\(accepted); unsafeProposal=\(badProposal); error=false; milliseconds=\(Int((ProcessInfo.processInfo.systemUptime-start)*1000))")
+            } catch {
+                errors += 1
+                print("EVIDENCE_GUIDED_CASE=\(index+1); exact=false; unsafeProposal=false; error=true; milliseconds=\(Int((ProcessInfo.processInfo.systemUptime-start)*1000))")
+            }
+        }
+        return "EVIDENCE_GUIDED=completed; exact=\(exact); total=16; unsafeProposals=\(unsafe); errors=\(errors); actionsExecuted=0"
     }
 
     public static func runQwen35(modelDirectory: URL) async -> String {
