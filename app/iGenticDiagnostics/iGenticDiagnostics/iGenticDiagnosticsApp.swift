@@ -190,6 +190,7 @@ struct iGenticDiagnosticsApp: App {
 
 private enum iGenticDiagnosticsIntentError: Error {
     case policyDenied
+    case localAgentRunBlocked
 }
 
 // System-facing, read-only demonstration. No device status, user records, model
@@ -549,6 +550,27 @@ struct iGenticRunLocalStatusLoopIntent: AppIntent {
     }
 }
 
+// Owner-invoked fixed read-only local agent. No arbitrary task text, model
+// callbacks, remote provider, or private observation is returned to Shortcuts.
+@available(iOS 27.0, *)
+struct iGenticRunLocalDiagnosticAgentIntent: AppIntent {
+    static let title: LocalizedStringResource = "iGentic Lokaler KI-Agent"
+    static let description = IntentDescription("Runs the bounded local diagnostic agent using the on-device model; returns execution metadata only.")
+    static let supportedModes: IntentModes = .background
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ReturnsValue<String> {
+        try checkLocalStatusReadPolicy()
+        do {
+            let report = try await AgentLoopLocalDiagnosticWorkflow.runJournaledOnDevice()
+            return .result(value: report.shortcutReceipt)
+        } catch {
+            // Do not leak file errors or assume that a failed run did no work.
+            throw iGenticDiagnosticsIntentError.localAgentRunBlocked
+        }
+    }
+}
+
 // Shortcuts asks iGentic for a new anonymous correlation token before asking
 // ChatGPT. No user content is stored, and this token is NOT authentication.
 @available(iOS 27.0, *)
@@ -631,6 +653,12 @@ struct iGenticChatGPTFollowUpIntent: AppIntent {
 // building blocks in the Shortcuts editor for owner-configured AI workflows.
 struct iGenticDiagnosticsShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
+        AppShortcut(
+            intent: iGenticRunLocalDiagnosticAgentIntent(),
+            phrases: ["Starte den lokalen KI-Agenten mit \(.applicationName)"],
+            shortTitle: "iGentic Lokaler KI-Agent",
+            systemImageName: "brain"
+        )
         AppShortcut(
             intent: iGenticRunLocalStatusLoopIntent(),
             phrases: ["Starte den Status-Loop mit \(.applicationName)"],
