@@ -28,6 +28,14 @@ final class PinnedMLXSnapshotTests: XCTestCase {
         XCTAssertEqual(PinnedMLXSnapshot.qwen35ResearchRevision.count, 40)
     }
 
+    func testGranite350ResearchManifest() {
+        XCTAssertEqual(PinnedMLXSnapshot.granite350ResearchFiles.count, 12)
+        XCTAssertEqual(Set(PinnedMLXSnapshot.granite350ResearchFiles.map(\.name)).count, 12)
+        XCTAssertTrue(PinnedMLXSnapshot.granite350ResearchFiles.contains { $0.name == "UPSTREAM_MODEL_CARD.md" })
+        XCTAssertEqual(PinnedMLXSnapshot.granite350ResearchFiles.reduce(Int64(0)) { $0 + $1.bytes }, 201_810_115)
+        XCTAssertEqual(PinnedMLXSnapshot.granite350ResearchRevision.count, 40)
+    }
+
     func testFixtureAndRejections() throws {
         let fm = FileManager.default
         let root = fm.temporaryDirectory.appendingPathComponent(UUID().uuidString)

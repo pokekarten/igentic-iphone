@@ -37,10 +37,16 @@ public enum MLXProbe {
         } catch { return "MLX_AGENT=blocked" }
     }
 
+    public enum DiagnosticCandidate: Sendable { case qwen3, qwen35Research }
+
     @MainActor
-    public static func runAgent(modelDirectory: URL) async -> String {
+    public static func runAgent(modelDirectory: URL, candidate: DiagnosticCandidate = .qwen3) async -> String {
         do {
-            guard case .success = AgentCore.PinnedMLXSnapshot.verifyQwen3(directory: modelDirectory) else { return "MLX_AGENT=integrityRejected" }
+            // Explicit lab-only candidate. Never changes the automatic router.
+            let admission = candidate == .qwen3
+                ? AgentCore.PinnedMLXSnapshot.verifyQwen3(directory: modelDirectory)
+                : AgentCore.PinnedMLXSnapshot.verifyQwen35Research(directory: modelDirectory)
+            guard case .success = admission else { return "MLX_AGENT=integrityRejected" }
             let model = try await LLMModelFactory.shared.loadContainer(from: modelDirectory, using: #huggingFaceTokenizerLoader())
             let start = ProcessInfo.processInfo.systemUptime
             let report = try await AgentLoopLocalDiagnosticWorkflow.runJournaledLocalAdapter(goal: .extended) { request in

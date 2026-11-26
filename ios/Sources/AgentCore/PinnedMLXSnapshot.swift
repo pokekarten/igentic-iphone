@@ -94,6 +94,33 @@ public enum PinnedMLXSnapshot {
         }
     }
 
+    public static let granite350ResearchModelID = "mlx-community/granite-4.0-h-350m-4bit"
+    public static let granite350ResearchRevision = "2b96c1f68e5349bcaec2a498a68cc177537e46d1"
+    public static let granite350UpstreamRevision = "3b17b717b8f2f5d305b0a92c1491e239aeda19c8"
+    static let granite350ResearchFiles: [Entry] = [
+        .init(name: "README.md", bytes: 904, digest: "7a03391eb3f4df30673b008f24d40951319d1b80e17e6dcec07fe001833cb326"),
+        .init(name: "UPSTREAM_MODEL_CARD.md", bytes: 33196, digest: "df1afd6b94ea2cb8e9948c5c78646500499516186f73eb5217add80305011b5f"),
+        .init(name: "chat_template.jinja", bytes: 6418, digest: "9524df67b77a7b25a2dfee898f75b316a157eb9d855b51e32aeac79d7c8a83ce"),
+        .init(name: "config.json", bytes: 2145, digest: "4e24aa441f7afe9050da9cfff33db40d496e7bc4e60b74851990b52f215020ae"),
+        .init(name: "generation_config.json", bytes: 147, digest: "7c04cb9d2ba771f7528fba5a7104999cdaf7566d02b5fbd58472829f62716177"),
+        .init(name: "merges.txt", bytes: 916646, digest: "b6fe424e334903f7fb84d3a106d9730455f4744b9fe3c21ee136d97a00e72502"),
+        .init(name: "model.safetensors", bytes: 192015950, digest: "808cf0214a3d615539667f73fb315ae37c2218e69e8e7316f8d3b22e053988ed"),
+        .init(name: "model.safetensors.index.json", bytes: 50346, digest: "ff1f5f88a93dd86bfa9f316f0e89e934f7eab1064ca023ed048a894a7204a2ea"),
+        .init(name: "special_tokens_map.json", bytes: 579, digest: "c08676c49fd7969a3130f72be6d4bf34da66aa484a6e21dffe359893a1bd5f2e"),
+        .init(name: "tokenizer.json", bytes: 7153421, digest: "e2bad66439538cb4d5a7580680932432ed9ece9d3b8577e675512bdf11599253"),
+        .init(name: "tokenizer_config.json", bytes: 17659, digest: "a5ec5daab12ba090a90f3dd169c8f9c275557013a87b9c1258dc7cb497a35c86"),
+        .init(name: "vocab.json", bytes: 1612704, digest: "8af71076de8b0b626eed0f4c984faf0a7c062479164b2a31308a948524d4f69c"),
+    ]
+
+    /// Private research candidate. Upstream model card states Apache-2.0;
+    /// standalone upstream license file is absent. No production admission.
+    public static func verifyGranite350Research(directory: URL) -> Result<Receipt, Rejection> {
+        verify(directory: directory, entries: granite350ResearchFiles).map {
+            Receipt(modelID: granite350ResearchModelID, revision: granite350ResearchRevision,
+                    fileCount: granite350ResearchFiles.count, totalBytes: $0)
+        }
+    }
+
     /// The caller must retain exclusive control of this private model directory
     /// until loading finishes. This is a byte check, not a runtime attestation.
     public static func verifyQwen3(directory: URL) -> Result<Receipt, Rejection> {
