@@ -126,3 +126,20 @@ extension AgentLoopLocalDiagnosticWorkflowTests {
         XCTAssertNil(report.localReport)
     }
 }
+
+
+extension AgentLoopLocalDiagnosticWorkflowTests {
+    @MainActor
+    func testLocalAdapterMenuContainsOnlyRemainingActions() async {
+        var menus: [AgentLoopLocalDiagnosticWorkflow.LocalDecisionRequest] = []
+        let report = await AgentLoopLocalDiagnosticWorkflow.run(goal: .extended, propose: { progress in
+            let request = AgentLoopLocalDiagnosticWorkflow.decisionRequest(progress)
+            menus.append(request)
+            return request.allowedActions.last ?? "abort"
+        }, readStatus: { .init(batteryFraction: 0.7, lowPowerModeEnabled: true, osVersion: "27") },
+        checkModel: { false }, inspectCapabilities: { 3 }, elapsed: { 1 })
+        XCTAssertEqual(report.outcome, .completed)
+        XCTAssertEqual(menus.map(\.allowedActions), [["status.read", "model.readiness", "capabilities.read"], ["status.read", "model.readiness"], ["status.read"], ["finish"]])
+        XCTAssertEqual(menus.last?.completedActions, ["capabilities.read", "model.readiness", "status.read"])
+    }
+}

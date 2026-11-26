@@ -134,7 +134,39 @@ public enum AgentLoopLocalDiagnosticWorkflow {
         return receipt(.rejectedProposal)
     }
 
+    /// Local model adapter sees only the remaining action names, not device values,
+    /// prompts from the owner, or the local report. No external provider is supplied.
+    public struct LocalDecisionRequest: Sendable, Equatable {
+        public let allowedActions: [String]
+        public let completedActions: [String]
+    }
+
+    static func decisionRequest(_ progress: AgentLoopDiagnosticProgress) -> LocalDecisionRequest {
+        .init(allowedActions: progress.remainingReads.isEmpty ? ["finish"] : progress.remainingReads.map(\.rawValue),
+              completedActions: progress.completed.map(\.rawValue))
+    }
+
     #if os(iOS) && canImport(UIKit)
+    /// Explicit local-only adapter entry. The app supplies trusted, in-process
+    /// inference code. Model strings never grant tool authority or bypass the journal.
+    public static func runJournaledLocalAdapter(
+        goal: AgentLoopDiagnosticGoal = .extended,
+        propose: @MainActor (LocalDecisionRequest) async throws -> String
+    ) async throws -> AgentLoopDiagnosticReport {
+        let runtime = AppleFoundationModelsRuntime()
+        let start = ContinuousClock.now
+        return try await AgentLoopDiagnosticJournal().run(goal: goal) { checkpoint in
+            await run(goal: goal, propose: { progress in
+                try await propose(decisionRequest(progress))
+            }, readStatus: { AgentLoopDeviceStatusReader.read() },
+            checkModel: { runtime.availability == .available },
+            elapsed: {
+                let d = start.duration(to: .now).components
+                return Double(d.seconds) + Double(d.attoseconds) / 1e18
+            }, checkpoint: checkpoint)
+        }
+    }
+
     /// Native UI/explicit debug test entry, with the actual Apple system model.
     /// No fallback to a hosted provider and no model-controlled tool callbacks.
     public static func runOnDevice(goal: AgentLoopDiagnosticGoal = .basic,
