@@ -27,19 +27,44 @@ export function parseMode(args) {
 export function evidence(name, result) {
   // Subprocess output may contain private paths or identifiers: never echo it.
   if (result.error?.code === 'ETIMEDOUT') return { step: name, status: 'unknown', reason: 'timeout-no-retry' };
-  if (['nativeAx','nativeTouch','systemShortcut'].includes(name) && result.status !== 0 && !result.error && !result.signal) {
+  const physicalInput = ['nativeTouch', 'systemShortcut'].includes(name);
+  const unknownInput = () => ({step:name,status:'unknown',reason:'input-outcome-not-verified-no-retry'});
+  let finalInputReport;
+  if (physicalInput) {
+    // A successful exit or unrelated stdout is not evidence that no input ran.
+    // Only the final report from the fixed local harness can establish outcome.
+    if (result.error || result.signal) return unknownInput();
+    try {
+      finalInputReport = JSON.parse(String(result.stdout ?? '').trim().split('\n').at(-1));
+    } catch { return unknownInput(); }
+    const r = finalInputReport;
+    if (!r || typeof r !== 'object' || Array.isArray(r)) return unknownInput();
+    if (result.status !== 0) {
+      // A complete projected pre-input report is the only blocked evidence.
+      // Minimal catch reports, malformed output and contradictory flags remain unknown.
+      const fields = name === 'nativeTouch'
+        ? ['physicalWifi','ownAppPidVerified','screenBefore','accessibilityBefore','targetUnique','hidAuthorized','inputAttempted','screenAfter','navigationVerified','rawContentExported','ownAppReceipt']
+        : ['physicalWifi','systemAppVerified','appGroupVerified','nativeShortcutVisible','baselineKnown','inputAttempted','freshFinishedJournal','rawLibraryExported','modelCalled','permissionDialogAccepted','independentMcpReceipt'];
+      const safe = name === 'nativeTouch'
+        ? r.mode === 'touch' && r.rawContentExported === false && r.navigationVerified === false
+        : r.rawLibraryExported === false && r.modelCalled === false && r.permissionDialogAccepted === false && r.freshFinishedJournal === false && r.independentMcpReceipt === false;
+      if (result.status === 2 && r.status === 'blocked' && r.inputAttempted === false &&
+          fields.every(k => typeof r[k] === 'boolean') && safe)
+        return {step:name,status:'blocked',reason:'verified-no-input-attempt'};
+      return unknownInput();
+    }
+  }
+  if (name === 'nativeAx' && result.status !== 0 && !result.error && !result.signal) {
     try {
       const report=JSON.parse(String(result.stdout).trim().split('\n').at(-1));
       if (report.status==='unknown') return {step:name,status:'unknown',reason:'input-outcome-not-verified-no-retry'};
     } catch {}
   }
-  if (['nativeTouch','systemShortcut'].includes(name) && (result.error || result.signal || (result.status !== 0 && !result.stdout)))
-    return {step:name,status:'unknown',reason:'input-outcome-not-verified-no-retry'};
   if (result.error || result.signal || result.status !== 0)
     return { step: name, status: name === 'dependencies' ? 'failed' : 'blocked', reason: 'command-did-not-complete' };
   if (name === 'dependencies') return { step: name, status: 'pass', scope: 'lockfile-install-no-lifecycle-scripts' };
-  let data;
-  for (const line of String(result.stdout ?? '').split('\n').reverse()) {
+  let data = finalInputReport;
+  for (const line of physicalInput ? [] : String(result.stdout ?? '').split('\n').reverse()) {
     try {
       const candidate = JSON.parse(line);
       if (name === 'nativeDoctor' && !Object.hasOwn(candidate, 'configured')) continue;
@@ -94,6 +119,7 @@ export function evidence(name, result) {
       data?.crossAppControl === false && data?.privateContentReturned === false;
     scope = 'physical-own-app-preview-local-mcp-not-chatgpt';
   }
+  if (physicalInput && !ok) return unknownInput();
   return { step: name, status: ok ? 'pass' : 'blocked', scope,
     ...(ok && name === 'nativeScreen' ? { width: data.width, height: data.height } : {}) };
 }

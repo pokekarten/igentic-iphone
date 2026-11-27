@@ -60,7 +60,48 @@ test('touch proof cannot be inferred from AX, screenshot, or uncertain input', (
     hidAuthorized:true,inputAttempted:true,screenAfter:true,navigationVerified:true};
   assert.equal(evidence('nativeTouch',result(x)).status,'pass');
   for(const key of ['ownAppPidVerified','screenBefore','hidAuthorized','inputAttempted','screenAfter','navigationVerified','targetUnique'])
-    assert.equal(evidence('nativeTouch',result({...x,[key]:false})).status,'blocked');
+    assert.equal(evidence('nativeTouch',result({...x,[key]:false})).status,'unknown');
   assert.equal(evidence('nativeTouch',{status:2,stdout:JSON.stringify({status:'unknown',private:'not returned'})}).status,'unknown');
   assert.equal(evidence('nativeAx',result({...x,mode:'ax'})).status,'blocked');
+});
+
+test('physical input missing or malformed final report is unknown, never retried', () => {
+  for (const name of ['nativeTouch','systemShortcut']) {
+    for (const report of [
+      {status:0,stdout:''}, {status:0,stdout:'not JSON'}, {status:0,stdout:'null'},
+      {status:0,stdout:'{}'}, {status:2,stdout:'unrelated stdout'},
+      {status:2,stdout:JSON.stringify({status:'blocked'})},
+      {status:2,stdout:JSON.stringify({status:'blocked',inputAttempted:false})},
+      {status:0,stdout:JSON.stringify({status:'unknown',inputAttempted:true})},
+      {status:2,stdout:JSON.stringify({status:'blocked',inputAttempted:true})}
+    ]) {
+      let calls=0;
+      const mode=name==='nativeTouch'?'touch':'shortcut';
+      const r=run(mode,()=>{calls++;return report},'darwin');
+      assert.equal(r.steps[0].status,'unknown');
+      assert.equal(calls,1);
+      assert.equal(r.chatGPTAccountRoundtripVerified,false);
+    }
+  }
+});
+test('only full consistent pre-input block report is blocked', () => {
+  const x={mode:'touch',status:'blocked',physicalWifi:true,ownAppReceipt:true,
+    ownAppPidVerified:true,accessibilityBefore:false,targetUnique:false,rawContentExported:false,
+    screenBefore:false,hidAuthorized:false,inputAttempted:false,screenAfter:false,navigationVerified:false};
+  const y={status:'blocked',physicalWifi:true,systemAppVerified:true,appGroupVerified:false,
+    nativeShortcutVisible:false,baselineKnown:false,inputAttempted:false,freshFinishedJournal:false,
+    rawLibraryExported:false,modelCalled:false,permissionDialogAccepted:false,independentMcpReceipt:false};
+  for (const [name,r] of [['nativeTouch',x],['systemShortcut',y]]) {
+    assert.equal(evidence(name,{status:2,stdout:JSON.stringify(r)}).status,'blocked');
+    assert.equal(evidence(name,{status:2,stdout:JSON.stringify({...r,inputAttempted:true})}).status,'unknown');
+    assert.equal(evidence(name,{status:0,stdout:JSON.stringify(r)}).status,'unknown');
+  }
+});
+test('verified shortcut passes only with complete evidence and final report', () => {
+  const r={status:'pass',physicalWifi:true,systemAppVerified:true,appGroupVerified:true,
+    nativeShortcutVisible:true,baselineKnown:true,inputAttempted:true,freshFinishedJournal:true,
+    rawLibraryExported:false,modelCalled:false,permissionDialogAccepted:false,independentMcpReceipt:true};
+  assert.equal(evidence('systemShortcut',result(r)).status,'pass');
+  assert.equal(evidence('systemShortcut',{status:0,stdout:JSON.stringify(r)+'\nunrelated final line'}).status,'unknown');
+  assert.equal(evidence('systemShortcut',{status:2,stdout:JSON.stringify(r)}).status,'unknown');
 });
