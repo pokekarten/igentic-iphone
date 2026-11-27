@@ -12,6 +12,7 @@ import plistlib
 import re
 import subprocess
 import sys
+import tempfile
 import uuid
 from pathlib import Path
 
@@ -179,10 +180,20 @@ def app_identity(app):
 
 
 def write_private_candidate(path, data):
-    # Exclusive creation: never overwrite existing files or follow an output symlink.
-    # The candidate embeds a local team identifier, so set private mode at creation.
-    with os.fdopen(os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), "wb") as file:
-        file.write(data)
+    # The caller selects an existing, trusted parent directory. Stage privately
+    # on the same filesystem so a partial write never appears at the final path.
+    # Hard-link publication is atomic and exclusive, including existing symlinks.
+    # Filesystems without hard-link support fail closed; no overwrite fallback.
+    path = Path(path)
+    with tempfile.TemporaryDirectory(prefix=".igentic-candidate-", dir=path.parent,
+                                     ignore_cleanup_errors=True) as directory:
+        staged = Path(directory) / "candidate"
+        with os.fdopen(os.open(staged, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), "wb") as file:
+            if file.write(data) != len(data):
+                raise OSError("Incomplete candidate write")
+            file.flush()
+            os.fsync(file.fileno())
+        os.link(staged, path, follow_symlinks=False)
 
 
 def main():
