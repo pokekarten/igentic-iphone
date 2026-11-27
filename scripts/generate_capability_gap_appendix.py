@@ -32,7 +32,9 @@ for line in atlas[a:b].splitlines():
     parts = [x.strip() for x in line.split("|")]
     if len(parts) > 4:
         for repo in re.findall(r"`([\w.-]+/[\w.-]+)`", parts[2]):
-            group_for[repo.lower()] = parts[1]
+            key = repo.lower()
+            require(key not in group_for, f'Duplicate corpus assignment: {repo}')
+            group_for[key] = parts[1]
 
 all_repos = sorted(
     set(re.findall(r"https://github.com/([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)", atlas)),
