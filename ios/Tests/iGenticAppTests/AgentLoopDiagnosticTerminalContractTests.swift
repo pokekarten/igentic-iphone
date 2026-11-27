@@ -174,6 +174,9 @@ final class AgentLoopDiagnosticTerminalContractTests: XCTestCase {
             localReport: "synthetic", attemptID: id)))
         var stopped = completed
         stopped.stage = .stopped
+        // A finish checkpoint alone cannot substantiate a terminal report.
+        XCTAssertFalse(stopped.matchesTerminalReport(.init(
+            outcome: .failed, steps: steps, modelTurns: 0, localReport: nil, attemptID: id)))
         stopped.steps = [.readStatus]
         XCTAssertFalse(stopped.matchesTerminalReport(.init(
             outcome: .failed, steps: stopped.steps, modelTurns: 0,
