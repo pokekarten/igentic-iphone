@@ -19,6 +19,40 @@ private func jsonDictionary(_ text: String) throws -> [String: Any] {
 }
 
 final class AgentLoopStatusShortcutStoreTests: XCTestCase {
+    func testOwnerSnapshotCorrelatesTwoSerialStatusLoops() async throws {
+        try await MainActor.run {
+            let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+            defer { try? FileManager.default.removeItem(at: dir) }
+            let file = dir.appendingPathComponent("journal.json")
+            let store = AgentLoopStatusShortcutStore(fileURL: file)
+            XCTAssertNil(try store.snapshotForOwner())
+            var previousID: String?
+            var reads = 0
+            for _ in 0..<2 {
+                let result = try jsonDictionary(store.runDeterministicStatusLoop(statusReader: {
+                    reads += 1
+                    return demoShortcutsStatus()
+                }))
+                let id = try XCTUnwrap(result["taskId"] as? String)
+                let reopened = AgentLoopStatusShortcutStore(fileURL: file)
+                let snapshot = try XCTUnwrap(reopened.snapshotForOwner())
+                XCTAssertEqual(snapshot.taskID, id)
+                XCTAssertEqual(snapshot.stage, .finished)
+                XCTAssertNotEqual(previousID, id)
+                if let previousID {
+                    XCTAssertThrowsError(try reopened.advance(taskID: previousID,
+                        modelReply: #"{"action":"status.read"}"#, statusReader: {
+                            XCTFail("Stale task executed")
+                            return demoShortcutsStatus()
+                        })) { XCTAssertEqual($0 as? AgentLoopStatusShortcutError, .taskMismatch) }
+                    XCTAssertEqual(try reopened.snapshotForOwner(), snapshot)
+                }
+                previousID = id
+            }
+            XCTAssertEqual(reads, 2)
+        }
+    }
+
     func testLocalCompletionPersistsAndPreventsASecondRead() async throws {
         try await MainActor.run {
             let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
