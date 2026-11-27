@@ -9,7 +9,7 @@ import HuggingFace
 
 /// Independent closed-answer reasoning smoke. Original synthetic inputs; no tools.
 public enum ReasoningPilot {
-    public enum Candidate: String, Sendable { case qwen35, qwen3, miniCPM5, qwen2b, lfm12 }
+    public enum Candidate: String, Sendable { case qwen35, qwen3, miniCPM5, qwen2b, lfm12, qwen3text4b }
     private struct Fixture {
         let prompt: String
         let expected: String
@@ -50,22 +50,23 @@ public enum ReasoningPilot {
             case .miniCPM5: admission = PinnedMLXSnapshot.verifyMiniCPM5Research(directory: modelDirectory)
             case .qwen2b: admission = PinnedMLXSnapshot.verifyQwen2BResearch(directory: modelDirectory)
             case .lfm12: admission = PinnedMLXSnapshot.verifyLFM12Research(directory: modelDirectory)
+            case .qwen3text4b: admission = PinnedMLXSnapshot.verifyQwen3Text4BResearch(directory: modelDirectory)
             }
             guard case .success = admission else { return "\(prefix)=integrityRejected; actionsExecuted=0" }
-            if candidate == .qwen2b && !LargeModelPreflight.canLoad(weightBytes: 1_722_271_785) {
+            if (candidate == .qwen2b || candidate == .qwen3text4b) && !LargeModelPreflight.canLoad(weightBytes: candidate == .qwen2b ? 1_722_271_785 : 2_263_022_417) {
                 return "\(prefix)=memoryOrThermalBlocked; actionsExecuted=0"
             }
             let model = try await LLMModelFactory.shared.loadContainer(from: modelDirectory, using: #huggingFaceTokenizerLoader())
             var exact = 0, capped = 0, completed = 0
             var resourceStopped = false
             for (index, fixture) in fixtures.enumerated() {
-                if candidate == .qwen2b && !LargeModelPreflight.canContinue() {
+                if (candidate == .qwen2b || candidate == .qwen3text4b) && !LargeModelPreflight.canContinue() {
                     resourceStopped = true; break
                 }
                 let thermal = ProcessInfo.processInfo.thermalState
                 if thermal == .serious || thermal == .critical { break }
                 let session = ChatSession(model, instructions: instructions, generateParameters: .init(maxTokens: 96, temperature: 0),
-                    additionalContext: candidate == .lfm12 ? nil : ["enable_thinking": false])
+                    additionalContext: (candidate == .lfm12 || candidate == .qwen3text4b) ? nil : ["enable_thinking": false])
                 var text = "", unexpected = false
                 var completion: GenerateCompletionInfo?
                 let start = ProcessInfo.processInfo.systemUptime

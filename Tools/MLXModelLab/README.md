@@ -85,3 +85,5 @@ Qwen3.5 2B full 13-file snapshot recovered on physical iPhone (1749154715 bytes,
 ### Physical Qwen3 4B Instruct acceptance smoke
 
 2026-11-27: 34 parts transferred, native SHA-256 assembly and all 14 files verified in 3470 ms. Actual 4B inference completed 3/3 exact short tasks, 842 ms load, nominal thermal samples, available process memory 3529423176 before load / 1179136576 after load / 1101312528 after final case. Signed Debug isolated lab; no production qualification or primary app replacement. Receipts in docs/model-research/results/2026-11-27-iphone-air-4b-smoke.
+
+4B follow-up: same frozen 16-case reasoning pilot completed 6/16 (0 arithmetic, 2 planning, 0 state, 4 evidence), one cap, 19003 ms launch and cleanup. Fresh resource checks before load and each case; no actions. See docs/model-research/results/2026-11-27-iphone-air-4b-reasoning. Strict short-answer format, not a pure reasoning score. Primary app unchanged.
