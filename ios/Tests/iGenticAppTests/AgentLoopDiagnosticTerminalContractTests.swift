@@ -120,4 +120,63 @@ final class AgentLoopDiagnosticTerminalContractTests: XCTestCase {
         XCTAssertTrue(result.shortcutReceipt.hasSuffix("; attemptID=" + saved.id.uuidString.lowercased()))
         XCTAssertNil(result.localReport)
     }
+
+    @MainActor func testVisibleReportMatchesOnlyCurrentTerminalCheckpoint() async throws {
+        let (dir, journal) = try fixture()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let steps: [AgentLoopDiagnosticStep] = [.readStatus, .checkModel, .finish]
+        let result = try await journal.run(goal: .basic) { checkpoint in
+            do {
+                for i in 1...steps.count { try checkpoint(Array(steps.prefix(i))) }
+            } catch { XCTFail("Unexpected checkpoint failure") }
+            return .init(outcome: .completed, steps: steps, modelTurns: 0,
+                         localReport: "synthetic complete report")
+        }
+        let saved = try XCTUnwrap(journal.snapshot())
+        XCTAssertTrue(saved.matchesTerminalReport(result))
+        let ticket = try journal.enqueue(goal: .extended)
+        let queued = try XCTUnwrap(journal.snapshot())
+        XCTAssertEqual(queued.id, ticket)
+        XCTAssertEqual(queued.stage, .queued)
+        XCTAssertFalse(queued.matchesTerminalReport(result))
+        let next = try await journal.run(goal: .extended, queuedID: ticket) { _ in
+            .init(outcome: .modelUnavailable, steps: [], modelTurns: 0, localReport: nil)
+        }
+        let stopped = try XCTUnwrap(journal.snapshot())
+        XCTAssertTrue(stopped.matchesTerminalReport(next))
+        XCTAssertFalse(stopped.matchesTerminalReport(result))
+    }
+
+    func testVisibleReportRejectsUnboundOrContradictoryEvidence() {
+        let id = UUID()
+        let steps: [AgentLoopDiagnosticStep] = [.readStatus, .checkModel, .finish]
+        let completed = AgentLoopDiagnosticCheckpoint(schema: 1, id: id, goal: .basic,
+                                                      steps: steps, stage: .completed)
+        for attemptID in [nil, UUID()] as [UUID?] {
+            XCTAssertFalse(completed.matchesTerminalReport(.init(
+                outcome: .completed, steps: steps, modelTurns: 0,
+                localReport: "synthetic", attemptID: attemptID)))
+        }
+        for payload in [nil, ""] as [String?] {
+            XCTAssertFalse(completed.matchesTerminalReport(.init(
+                outcome: .completed, steps: steps, modelTurns: 0,
+                localReport: payload, attemptID: id)))
+        }
+        XCTAssertFalse(completed.matchesTerminalReport(.init(
+            outcome: .completed, steps: [.readStatus], modelTurns: 0,
+            localReport: "synthetic", attemptID: id)))
+        XCTAssertFalse(completed.matchesTerminalReport(.init(
+            outcome: .failed, steps: steps, modelTurns: 0, localReport: nil, attemptID: id)))
+        var running = completed
+        running.stage = .running
+        XCTAssertFalse(running.matchesTerminalReport(.init(
+            outcome: .completed, steps: steps, modelTurns: 0,
+            localReport: "synthetic", attemptID: id)))
+        var stopped = completed
+        stopped.stage = .stopped
+        stopped.steps = [.readStatus]
+        XCTAssertFalse(stopped.matchesTerminalReport(.init(
+            outcome: .failed, steps: stopped.steps, modelTurns: 0,
+            localReport: "synthetic", attemptID: id)))
+    }
 }
