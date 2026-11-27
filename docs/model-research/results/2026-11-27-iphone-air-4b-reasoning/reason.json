@@ -1,0 +1,155 @@
+{
+  "actions_executed": 0,
+  "build_configuration": "Debug",
+  "by_category": {
+    "arithmetic": 0,
+    "evidence": 4,
+    "planning": 2,
+    "state": 0
+  },
+  "candidate": "qwen3text4b",
+  "capped": 1,
+  "capture_date": "2026-11-27",
+  "cases": [
+    {
+      "case": 1,
+      "category": "arithmetic",
+      "elapsed_ms": 867,
+      "language": "en",
+      "passed": false,
+      "tokens": 13
+    },
+    {
+      "case": 2,
+      "category": "arithmetic",
+      "elapsed_ms": 1304,
+      "language": "de",
+      "passed": false,
+      "tokens": 25
+    },
+    {
+      "case": 3,
+      "category": "arithmetic",
+      "elapsed_ms": 2035,
+      "language": "en",
+      "passed": false,
+      "tokens": 44
+    },
+    {
+      "case": 4,
+      "category": "arithmetic",
+      "elapsed_ms": 1580,
+      "language": "de",
+      "passed": false,
+      "tokens": 32
+    },
+    {
+      "case": 5,
+      "category": "planning",
+      "elapsed_ms": 387,
+      "language": "en",
+      "passed": true,
+      "tokens": 3
+    },
+    {
+      "case": 6,
+      "category": "planning",
+      "elapsed_ms": 474,
+      "language": "de",
+      "passed": true,
+      "tokens": 3
+    },
+    {
+      "case": 7,
+      "category": "planning",
+      "elapsed_ms": 303,
+      "language": "en",
+      "passed": false,
+      "tokens": 1
+    },
+    {
+      "case": 8,
+      "category": "planning",
+      "elapsed_ms": 303,
+      "language": "de",
+      "passed": false,
+      "tokens": 1
+    },
+    {
+      "case": 9,
+      "category": "state",
+      "elapsed_ms": 1657,
+      "language": "en",
+      "passed": false,
+      "tokens": 34
+    },
+    {
+      "case": 10,
+      "category": "state",
+      "elapsed_ms": 3982,
+      "language": "de",
+      "passed": false,
+      "tokens": 96
+    },
+    {
+      "case": 11,
+      "category": "state",
+      "elapsed_ms": 1438,
+      "language": "en",
+      "passed": false,
+      "tokens": 28
+    },
+    {
+      "case": 12,
+      "category": "state",
+      "elapsed_ms": 447,
+      "language": "de",
+      "passed": false,
+      "tokens": 2
+    },
+    {
+      "case": 13,
+      "category": "evidence",
+      "elapsed_ms": 401,
+      "language": "en",
+      "passed": true,
+      "tokens": 1
+    },
+    {
+      "case": 14,
+      "category": "evidence",
+      "elapsed_ms": 415,
+      "language": "de",
+      "passed": true,
+      "tokens": 1
+    },
+    {
+      "case": 15,
+      "category": "evidence",
+      "elapsed_ms": 403,
+      "language": "en",
+      "passed": true,
+      "tokens": 1
+    },
+    {
+      "case": 16,
+      "category": "evidence",
+      "elapsed_ms": 425,
+      "language": "de",
+      "passed": true,
+      "tokens": 1
+    }
+  ],
+  "device_model": "iPhone Air (iPhone18,4)",
+  "hardware_attestation": false,
+  "launch_and_cleanup_ms": 19003,
+  "median_case_ms": 460.5,
+  "model": "mlx-community/Qwen3-4B-Instruct-2507-4bit",
+  "passed": 6,
+  "receipt_sha256": "aa8d77e857a5bba9b32dc16e72614810c6c04a347dd7cf046a289e6f66a46ee6",
+  "reference_source_sha256": "2dcd3f90a8f59ee5cf00b34dd1ac22aaff01d0fab68edeb76b347784476d6eb9",
+  "revision": "50d427756c6b1b2fe0c0a10f67fbda1fc8e82c1b",
+  "runtime_source_revision": "026d599e52f3a2cebbecbd5b3f318b800a73ff02",
+  "schema": "igentic.reason.pilot.v1",
+  "total": 16
+}

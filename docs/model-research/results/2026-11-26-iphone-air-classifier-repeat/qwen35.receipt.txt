@@ -1,0 +1,15 @@
+QWEN35_CLASS_INTEGRITY=verified; files=12; bytes=652039365
+QWEN35_CLASS_LOAD=completed; milliseconds=1261
+QWEN35_CLASS_CASE=1; outcome=pass; tokens=1; milliseconds=135
+QWEN35_CLASS_CASE=2; outcome=pass; tokens=1; milliseconds=99
+QWEN35_CLASS_CASE=3; outcome=pass; tokens=1; milliseconds=78
+QWEN35_CLASS_CASE=4; outcome=pass; tokens=1; milliseconds=77
+QWEN35_CLASS_CASE=5; outcome=pass; tokens=1; milliseconds=100
+QWEN35_CLASS_CASE=6; outcome=pass; tokens=1; milliseconds=99
+QWEN35_CLASS_CASE=7; outcome=pass; tokens=1; milliseconds=76
+QWEN35_CLASS_CASE=8; outcome=pass; tokens=1; milliseconds=78
+QWEN35_CLASS_CASE=9; outcome=pass; tokens=1; milliseconds=78
+QWEN35_CLASS_CASE=10; outcome=pass; tokens=1; milliseconds=78
+QWEN35_CLASS_CASE=11; outcome=pass; tokens=1; milliseconds=77
+QWEN35_CLASS_CASE=12; outcome=pass; tokens=1; milliseconds=78
+QWEN35_CLASS_RESEARCH=completed; passed=12; total=12; holdout=6; actionsExecuted=0

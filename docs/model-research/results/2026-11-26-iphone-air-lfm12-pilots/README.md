@@ -1,0 +1,3 @@
+# Physical iPhone Air — LFM2.5 1.2B Instruct
+
+Complete 11-file snapshot (663422439 bytes) staged and natively verified. Same existing 24-case agent pilot and 16-case closed-answer reasoning pilot. Agent: 7/24, 0/12 positive, 7/12 negative, 0/12 negative parsed-call or rejection events, no caps, 329 ms load, all sampled thermal states nominal. Reasoning: 3/16, all three in evidence, no caps. All 40 cases completed. Default LFM template, no dispatcher, no actual action. Strict output format and native parser affect score; not pure reasoning or general capability. Signed Debug lab, main app and seven prior model inventories preserved. No production qualification; LFM license conditions apply. Raw model output not retained. No true peak RAM or power measurement.

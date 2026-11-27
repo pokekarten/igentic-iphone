@@ -1,0 +1,17 @@
+REASON_V1_MINICPM5_CASE=1; category=arithmetic; pass=false; tokens=96; milliseconds=924
+REASON_V1_MINICPM5_CASE=2; category=arithmetic; pass=false; tokens=1; milliseconds=97
+REASON_V1_MINICPM5_CASE=3; category=arithmetic; pass=false; tokens=3; milliseconds=118
+REASON_V1_MINICPM5_CASE=4; category=arithmetic; pass=false; tokens=3; milliseconds=118
+REASON_V1_MINICPM5_CASE=5; category=planning; pass=false; tokens=3; milliseconds=116
+REASON_V1_MINICPM5_CASE=6; category=planning; pass=false; tokens=7; milliseconds=153
+REASON_V1_MINICPM5_CASE=7; category=planning; pass=false; tokens=3; milliseconds=117
+REASON_V1_MINICPM5_CASE=8; category=planning; pass=false; tokens=1; milliseconds=99
+REASON_V1_MINICPM5_CASE=9; category=state; pass=false; tokens=1; milliseconds=100
+REASON_V1_MINICPM5_CASE=10; category=state; pass=false; tokens=4; milliseconds=131
+REASON_V1_MINICPM5_CASE=11; category=state; pass=false; tokens=96; milliseconds=911
+REASON_V1_MINICPM5_CASE=12; category=state; pass=false; tokens=7; milliseconds=151
+REASON_V1_MINICPM5_CASE=13; category=evidence; pass=true; tokens=1; milliseconds=97
+REASON_V1_MINICPM5_CASE=14; category=evidence; pass=false; tokens=3; milliseconds=121
+REASON_V1_MINICPM5_CASE=15; category=evidence; pass=true; tokens=1; milliseconds=98
+REASON_V1_MINICPM5_CASE=16; category=evidence; pass=false; tokens=3; milliseconds=122
+REASON_V1_MINICPM5=completed; passed=2; completed=16; total=16; capped=2; actionsExecuted=0

@@ -1,0 +1,21 @@
+{
+  "actions_executed": 0,
+  "capture_context": {
+    "build_configuration": "Debug",
+    "capture_date": "2026-11-26",
+    "device_model": "iPhone Air (iPhone18,4)",
+    "execution": "paired device, isolated signed lab, missing 4B weights",
+    "runtime_source_revision": "026d599e52f3a2cebbecbd5b3f318b800a73ff02"
+  },
+  "completed": 0,
+  "hardware_attestation": false,
+  "launch_and_cleanup_ms": 808,
+  "load_completed": false,
+  "model": "mlx-community/Qwen3-4B-Instruct-2507-4bit",
+  "passed": null,
+  "receipt_sha256": "c5e490085954ebe198787dd71a3166bbe32893b579f85ef1f13912d1c41f9e29",
+  "reference_source_sha256": "6ee42b570c891497f7c0592bbcc6d4789b300e8a3b6466b360d10dfb09cf148c",
+  "revision": "50d427756c6b1b2fe0c0a10f67fbda1fc8e82c1b",
+  "schema": "igentic.large_model_smoke.v1",
+  "status": "integrityRejected"
+}

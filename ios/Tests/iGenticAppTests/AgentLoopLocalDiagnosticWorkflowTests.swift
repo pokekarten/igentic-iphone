@@ -126,3 +126,87 @@ extension AgentLoopLocalDiagnosticWorkflowTests {
         XCTAssertNil(report.localReport)
     }
 }
+
+
+extension AgentLoopLocalDiagnosticWorkflowTests {
+    @MainActor
+    func testLocalAdapterMenuContainsOnlyRemainingActions() async {
+        var menus: [AgentLoopLocalDiagnosticWorkflow.LocalDecisionRequest] = []
+        let report = await AgentLoopLocalDiagnosticWorkflow.run(goal: .extended, propose: { progress in
+            let request = AgentLoopLocalDiagnosticWorkflow.decisionRequest(progress)
+            menus.append(request)
+            return request.allowedActions.last ?? "abort"
+        }, readStatus: { .init(batteryFraction: 0.7, lowPowerModeEnabled: true, osVersion: "27") },
+        checkModel: { false }, inspectCapabilities: { 3 }, elapsed: { 1 })
+        XCTAssertEqual(report.outcome, .completed)
+        XCTAssertEqual(menus.map(\.allowedActions), [["status.read", "model.readiness", "capabilities.read"], ["status.read", "model.readiness"], ["status.read"], ["finish"]])
+        XCTAssertEqual(menus.last?.completedActions, ["capabilities.read", "model.readiness", "status.read"])
+    }
+}
+
+// The result can be consumed by an external Shortcut; local report text must
+// never be serialized into this boundary.
+extension AgentLoopLocalDiagnosticWorkflowTests {
+    func testShortcutReceiptContainsOnlyExecutionMetadata() {
+        let report = AgentLoopDiagnosticReport(outcome: .completed,
+            steps: [.readStatus, .checkModel, .inspectCapabilities, .finish],
+            modelTurns: 4, localReport: "PRIVATE FIXTURE status observation")
+        XCTAssertEqual(report.shortcutReceipt,
+            "outcome=completed; modelTurns=4; steps=status.read,model.readiness,capabilities.read,finish; reportPrepared=true")
+        XCTAssertFalse(report.shortcutReceipt.contains("PRIVATE FIXTURE"))
+        let blocked = AgentLoopDiagnosticReport(outcome: .modelUnavailable, steps: [],
+            modelTurns: 0, localReport: nil)
+        XCTAssertEqual(blocked.shortcutReceipt,
+            "outcome=modelUnavailable; modelTurns=0; steps=; reportPrepared=false")
+    }
+}
+
+extension AgentLoopLocalDiagnosticWorkflowTests {
+    @MainActor
+    func testDeterministicExtendedWorksWithoutAvailableModel() async {
+        var reads = 0, checks = 0, capabilities = 0
+        var persisted: [[AgentLoopDiagnosticStep]] = []
+        let result = await AgentLoopLocalDiagnosticWorkflow.runDeterministic(
+            goal: .extended, readStatus: {
+                reads += 1
+                return .init(batteryFraction: 0.6, lowPowerModeEnabled: true, osVersion: "27")
+            }, checkModel: { checks += 1; return false },
+            inspectCapabilities: { capabilities += 1; return 4 }, elapsed: { 1 },
+            checkpoint: { persisted.append($0) })
+        XCTAssertEqual(result.outcome, .completed)
+        XCTAssertEqual(result.steps, [.readStatus,.checkModel,.inspectCapabilities,.finish])
+        XCTAssertEqual(result.modelTurns, 0)
+        XCTAssertEqual(reads, 1)
+        XCTAssertEqual(checks, 1)
+        XCTAssertEqual(capabilities, 1)
+        XCTAssertEqual(persisted, (1...4).map { Array(result.steps.prefix($0)) })
+        XCTAssertTrue(result.localReport?.contains("nicht bereit") == true)
+        XCTAssertFalse(result.shortcutReceipt.contains("60 %"))
+    }
+
+    @MainActor
+    func testDeterministicBasicStopsOnJournalFailure() async {
+        let result = await AgentLoopLocalDiagnosticWorkflow.runDeterministic(
+            goal: .basic, readStatus: {
+                .init(batteryFraction: 0.6, lowPowerModeEnabled: false, osVersion: "27")
+            }, checkModel: { XCTFail("Must stop after checkpoint failure"); return false },
+            inspectCapabilities: { XCTFail("Not in goal"); return 0 }, elapsed: { 1 },
+            checkpoint: { _ in throw CancellationError() })
+        XCTAssertEqual(result.outcome, .failed)
+        XCTAssertEqual(result.modelTurns, 0)
+        XCTAssertTrue(result.steps.isEmpty)
+        XCTAssertNil(result.localReport)
+    }
+
+    @MainActor
+    func testDeterministicExpiredDoesNotRead() async {
+        let result = await AgentLoopLocalDiagnosticWorkflow.runDeterministic(
+            goal: .extended, readStatus: {
+                XCTFail("Expired read")
+                return .init(batteryFraction: 0, lowPowerModeEnabled: false, osVersion: "27")
+            }, checkModel: { XCTFail("Expired check"); return false }, elapsed: { 60 })
+        XCTAssertEqual(result.outcome, .expired)
+        XCTAssertEqual(result.modelTurns, 0)
+        XCTAssertTrue(result.steps.isEmpty)
+    }
+}

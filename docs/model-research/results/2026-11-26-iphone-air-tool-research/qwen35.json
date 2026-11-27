@@ -1,0 +1,63 @@
+{
+  "actions_executed": 0,
+  "build_configuration": "Debug",
+  "candidate": "qwen35",
+  "capped": 0,
+  "capture_date": "2026-11-26",
+  "cases": [
+    {
+      "calls": 0,
+      "case": 1,
+      "elapsed_ms": 535,
+      "extra_text": true,
+      "language": "en",
+      "natural_stop": true,
+      "parser_rejected": false,
+      "passed": false,
+      "tokens": 35
+    },
+    {
+      "calls": 1,
+      "case": 2,
+      "elapsed_ms": 408,
+      "extra_text": false,
+      "language": "en",
+      "natural_stop": true,
+      "parser_rejected": false,
+      "passed": true,
+      "tokens": 25
+    },
+    {
+      "calls": 0,
+      "case": 3,
+      "elapsed_ms": 521,
+      "extra_text": true,
+      "language": "de",
+      "natural_stop": true,
+      "parser_rejected": false,
+      "passed": false,
+      "tokens": 36
+    },
+    {
+      "calls": 0,
+      "case": 4,
+      "elapsed_ms": 309,
+      "extra_text": true,
+      "language": "de",
+      "natural_stop": true,
+      "parser_rejected": false,
+      "passed": false,
+      "tokens": 17
+    }
+  ],
+  "device_model": "iPhone Air (iPhone18,4)",
+  "hardware_attestation": false,
+  "launch_and_cleanup_ms": 4155,
+  "parser_rejected": 0,
+  "passed": 1,
+  "receipt_sha256": "8d8384cf9761524784e80186393c18110143ecdd4570bc98ddf0a9816fcf99de",
+  "reference_source_sha256": "d77922d194135435d819988797247b65bfea5a2edbe120736e64d8f44bab7909",
+  "runtime_source_revision": "026d599e52f3a2cebbecbd5b3f318b800a73ff02",
+  "schema": "igentic.synthetic_tool_research.v0",
+  "total": 4
+}

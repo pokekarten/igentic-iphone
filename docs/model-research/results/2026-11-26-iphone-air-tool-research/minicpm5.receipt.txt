@@ -1,0 +1,5 @@
+TOOL_RESEARCH_MINICPM5_CASE=1; pass=true; calls=1; rejected=false; extraText=false; natural=true; tokens=15; milliseconds=291
+TOOL_RESEARCH_MINICPM5_CASE=2; pass=true; calls=1; rejected=false; extraText=false; natural=true; tokens=15; milliseconds=278
+TOOL_RESEARCH_MINICPM5_CASE=3; pass=true; calls=1; rejected=false; extraText=false; natural=true; tokens=14; milliseconds=267
+TOOL_RESEARCH_MINICPM5_CASE=4; pass=true; calls=1; rejected=false; extraText=false; natural=true; tokens=14; milliseconds=267
+TOOL_RESEARCH_MINICPM5=completed; passed=4; total=4; parserRejected=0; capped=0; actionsExecuted=0

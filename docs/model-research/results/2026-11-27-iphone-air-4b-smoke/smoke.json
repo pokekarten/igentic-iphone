@@ -1,0 +1,51 @@
+{
+  "actions_executed": 0,
+  "available_after_bytes": 1179136576,
+  "available_before_bytes": 3529423176,
+  "capture_context": {
+    "build_configuration": "Debug",
+    "capture_date": "2026-11-27",
+    "device_model": "iPhone Air (iPhone18,4)",
+    "hardware_attestation": false,
+    "runtime_source_revision": "026d599e52f3a2cebbecbd5b3f318b800a73ff02"
+  },
+  "cases": [
+    {
+      "available_bytes": 1101541904,
+      "case": 1,
+      "elapsed_ms": 358,
+      "nominal": true,
+      "passed": true,
+      "tokens": 2
+    },
+    {
+      "available_bytes": 1101312528,
+      "case": 2,
+      "elapsed_ms": 522,
+      "nominal": true,
+      "passed": true,
+      "tokens": 1
+    },
+    {
+      "available_bytes": 1101312528,
+      "case": 3,
+      "elapsed_ms": 384,
+      "nominal": true,
+      "passed": true,
+      "tokens": 3
+    }
+  ],
+  "completed": 3,
+  "hardware_attestation": false,
+  "launch_and_cleanup_ms": 4422,
+  "load_completed": true,
+  "load_ms": 842,
+  "model": "mlx-community/Qwen3-4B-Instruct-2507-4bit",
+  "passed": 3,
+  "receipt_sha256": "a4930ecff0251a86850a2b708106f8508c98e77d4e64f1b00e22e1b8074d0d23",
+  "reference_source_sha256": "6ee42b570c891497f7c0592bbcc6d4789b300e8a3b6466b360d10dfb09cf148c",
+  "revision": "50d427756c6b1b2fe0c0a10f67fbda1fc8e82c1b",
+  "schema": "igentic.large_model_smoke.v1",
+  "status": "completed",
+  "total": 3
+}
