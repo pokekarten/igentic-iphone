@@ -152,6 +152,24 @@ public enum AgentLoopLocalDiagnosticWorkflow {
               completedActions: progress.completed.map(\.rawValue))
     }
 
+    /// Portable execution boundary for an explicitly selected in-process adapter.
+    /// Only action names cross the planner boundary; the native workflow owns
+    /// all observations, tool admission, deadlines, and checkpointing.
+    static func runLocalAdapter(
+        goal: AgentLoopDiagnosticGoal,
+        propose: @MainActor (LocalDecisionRequest) async throws -> String,
+        readStatus: @MainActor () -> AgentLoopLocalStatus,
+        checkModel: @MainActor () -> Bool,
+        inspectCapabilities: @MainActor () -> Int = { AgentHomeCapabilityCatalog.navigationTools().count },
+        elapsed: @MainActor () -> TimeInterval,
+        checkpoint: @MainActor ([AgentLoopDiagnosticStep]) throws -> Void = { _ in }
+    ) async -> AgentLoopDiagnosticReport {
+        await run(goal: goal, propose: { progress in
+            try await propose(decisionRequest(progress))
+        }, readStatus: readStatus, checkModel: checkModel,
+        inspectCapabilities: inspectCapabilities, elapsed: elapsed, checkpoint: checkpoint)
+    }
+
     #if os(iOS) && canImport(UIKit)
     /// Explicit local-only adapter entry. The app supplies trusted, in-process
     /// inference code. Model strings never grant tool authority or bypass the journal.
@@ -162,9 +180,8 @@ public enum AgentLoopLocalDiagnosticWorkflow {
         let runtime = AppleFoundationModelsRuntime()
         let start = ContinuousClock.now
         return try await AgentLoopDiagnosticJournal().run(goal: goal) { checkpoint in
-            await run(goal: goal, propose: { progress in
-                try await propose(decisionRequest(progress))
-            }, readStatus: { AgentLoopDeviceStatusReader.read() },
+            await runLocalAdapter(goal: goal, propose: propose,
+                readStatus: { AgentLoopDeviceStatusReader.read() },
             checkModel: { runtime.availability == .available },
             elapsed: {
                 let d = start.duration(to: .now).components
