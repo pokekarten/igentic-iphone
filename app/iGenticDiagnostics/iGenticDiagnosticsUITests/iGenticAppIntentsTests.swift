@@ -8,7 +8,7 @@ final class iGenticAppIntentsTests: XCTestCase {
     @MainActor
     func testReadOnlyDeviceStatusIntentRunsThroughSystem() async throws {
         let app = XCUIApplication()
-        app.launch()
+        app.activate()
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15))
         let definitions = IntentDefinitions(bundleIdentifier: "org.example.iGenticDiagnostics")
         let status = definitions.intents["iGenticDeviceStatusIntent"]
@@ -23,9 +23,11 @@ final class iGenticAppIntentsTests: XCTestCase {
     func testReadOnlyDiagnosticsIntentRunsThroughSystem() async throws {
         // Apple's AppIntentsTesting setup requires the owning app to have
         // launched before asking the system for its registered definitions.
+        // Activate the existing process if an earlier intent test left it
+        // running. A forced relaunch adds an unrelated termination gate.
         // This only opens our fixed read-only diagnostics app in the simulator.
         let app = XCUIApplication()
-        app.launch()
+        app.activate()
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15))
         // System metadata registration may lag the first foreground launch
         // on a cold simulator. Retry ONLY Apple's documented observed
@@ -57,7 +59,7 @@ final class iGenticAppIntentsTests: XCTestCase {
     @MainActor
     func testDeterministicLocalStatusLoopRunsThroughSystem() async throws {
         let app = XCUIApplication()
-        app.launch()
+        app.activate()
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15))
 
         // Exercise the real registered intent, not the Swift store directly.
@@ -90,7 +92,7 @@ final class iGenticAppIntentsTests: XCTestCase {
     @MainActor
     func testLocalDiagnosticAgentReturnsBoundedSystemReceipt() async throws {
         let app = XCUIApplication()
-        app.launch()
+        app.activate()
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15))
         let definitions = IntentDefinitions(bundleIdentifier: "org.example.iGenticDiagnostics")
         let intent = definitions.intents["iGenticRunLocalDiagnosticAgentIntent"]
@@ -134,7 +136,7 @@ final class iGenticAppIntentsTests: XCTestCase {
     func testLocalModelReadinessIntentRunsWithoutMacOrGeneration() async throws {
         // The actual system App Intents path, not an in-process direct perform().
         let app = XCUIApplication()
-        app.launch()
+        app.activate()
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15))
         let codes: Set<String> = [
             "available", "notConfigured", "disabledByPolicy", "unsupportedPlatform",
