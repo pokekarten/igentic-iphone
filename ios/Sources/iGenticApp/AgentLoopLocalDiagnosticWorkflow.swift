@@ -68,6 +68,7 @@ public enum AgentLoopLocalDiagnosticWorkflow {
     /// independently enforces the goal, sequence, budget and policy.
     static func run(
         goal: AgentLoopDiagnosticGoal = .basic,
+        usesModel: Bool = true,
         propose: @MainActor (AgentLoopDiagnosticProgress) async throws -> String,
         readStatus: @MainActor () -> AgentLoopLocalStatus,
         checkModel: @MainActor () -> Bool,
@@ -92,7 +93,7 @@ public enum AgentLoopLocalDiagnosticWorkflow {
         for _ in 0..<(goal.requiredReads.count + 1) {
             if let failure = currentFailure() { return receipt(failure) }
             let remaining = goal.requiredReads.filter { !steps.contains($0) }
-            turns += 1
+            if usesModel { turns += 1 }
             let raw: String
             do {
                 raw = try await propose(.init(completed: steps, statusAvailable: status != nil,
@@ -152,6 +153,22 @@ public enum AgentLoopLocalDiagnosticWorkflow {
               completedActions: progress.completed.map(\.rawValue))
     }
 
+    /// Explicit deterministic planner for the same bounded local report.
+    /// No model call or implicit fallback after a failed model attempt.
+    static func runDeterministic(
+        goal: AgentLoopDiagnosticGoal,
+        readStatus: @MainActor () -> AgentLoopLocalStatus,
+        checkModel: @MainActor () -> Bool,
+        inspectCapabilities: @MainActor () -> Int = { AgentHomeCapabilityCatalog.navigationTools().count },
+        elapsed: @MainActor () -> TimeInterval,
+        checkpoint: @MainActor ([AgentLoopDiagnosticStep]) throws -> Void = { _ in }
+    ) async -> AgentLoopDiagnosticReport {
+        await run(goal: goal, usesModel: false, propose: { progress in
+            (progress.remainingReads.first ?? .finish).rawValue
+        }, readStatus: readStatus, checkModel: checkModel,
+        inspectCapabilities: inspectCapabilities, elapsed: elapsed, checkpoint: checkpoint)
+    }
+
     /// Portable execution boundary for an explicitly selected in-process adapter.
     /// Only action names cross the planner boundary; the native workflow owns
     /// all observations, tool admission, deadlines, and checkpointing.
@@ -188,6 +205,22 @@ public enum AgentLoopLocalDiagnosticWorkflow {
                 return Double(d.seconds) + Double(d.attoseconds) / 1e18
             }, checkpoint: checkpoint)
         }
+    }
+
+    /// Local owner chooses this path before execution. Readiness is an
+    /// observation only, never a prerequisite for native tools.
+    public static func runDeterministicOnDevice(
+        goal: AgentLoopDiagnosticGoal = .extended,
+        checkpoint: @MainActor ([AgentLoopDiagnosticStep]) throws -> Void = { _ in }
+    ) async -> AgentLoopDiagnosticReport {
+        let start = ContinuousClock.now
+        return await runDeterministic(goal: goal,
+            readStatus: { AgentLoopDeviceStatusReader.read() },
+            checkModel: { AppleFoundationModelsRuntime().availability == .available },
+            elapsed: {
+                let d = start.duration(to: .now).components
+                return Double(d.seconds) + Double(d.attoseconds) / 1e18
+            }, checkpoint: checkpoint)
     }
 
     /// Native Shortcut entry uses the same durable exclusion and recovery

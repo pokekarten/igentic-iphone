@@ -185,3 +185,33 @@ extension AgentLoopDiagnosticJournalTests {
         XCTAssertEqual(try reopened.snapshot()?.queuedTickets.map(\.id),[second])
     }
 }
+
+extension AgentLoopDiagnosticJournalTests {
+    @MainActor
+    func testDeterministicQueueCompletesWithoutModelAndPersistsOnlyMetadata() async throws {
+        let (dir, url) = try fixture()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let journal = AgentLoopDiagnosticJournal(url: url)
+        let first = try journal.enqueue(goal: .basic)
+        let second = try journal.enqueue(goal: .extended)
+        let tickets = try XCTUnwrap(journal.snapshot()).queuedTickets
+        XCTAssertEqual(tickets.map(\.id), [first, second])
+        for ticket in tickets {
+            let report = try await journal.run(goal: ticket.goal, queuedID: ticket.id) { checkpoint in
+                await AgentLoopLocalDiagnosticWorkflow.runDeterministic(goal: ticket.goal,
+                    readStatus: { .init(batteryFraction: 0.42, lowPowerModeEnabled: false, osVersion: "27.2") },
+                    checkModel: { false }, inspectCapabilities: { 4 }, elapsed: { 1 }, checkpoint: checkpoint)
+            }
+            XCTAssertEqual(report.outcome, .completed)
+            XCTAssertEqual(report.modelTurns, 0)
+            XCTAssertEqual(try journal.snapshot()?.id, ticket.id)
+            XCTAssertEqual(try journal.snapshot()?.stage, .completed)
+        }
+        let reopened = try XCTUnwrap(AgentLoopDiagnosticJournal(url: url).snapshot())
+        XCTAssertTrue(reopened.queuedTickets.isEmpty)
+        XCTAssertEqual(reopened.steps, [.readStatus,.checkModel,.inspectCapabilities,.finish])
+        let content = try String(contentsOf: url, encoding: .utf8)
+        XCTAssertFalse(content.contains("27.2"))
+        XCTAssertFalse(content.contains("42 %"))
+    }
+}
