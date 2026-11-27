@@ -256,6 +256,13 @@ public struct AgentHomePrototypeView: View {
                                 startDiagnostic(saved.goal, restartID: saved.id, deterministic: true)
                             }
                             .disabled(diagnosticRun != nil || diagnosticJournalBlocked || scenePhase != .active)
+                            Button("Unterbrochenen Auftrag ohne Wiederholung beenden") {
+                                abandonDiagnostic(saved.id)
+                            }
+                            .disabled(diagnosticRun != nil || diagnosticJournalBlocked || scenePhase != .active)
+                            .accessibilityIdentifier("igentic-agent-abandon-interrupted")
+                            Text("Beenden führt keine Werkzeuge aus. Bestätigte Schritte und wartende Aufträge bleiben erhalten.")
+                                .font(.caption).foregroundStyle(.secondary)
                         }
                     }
                     if diagnosticRun != nil {
@@ -335,6 +342,18 @@ public struct AgentHomePrototypeView: View {
         } catch {
             diagnosticJournalBlocked = true
         }
+    }
+
+    private func abandonDiagnostic(_ id: UUID) {
+        guard diagnosticRun == nil, scenePhase == .active, !diagnosticJournalBlocked else { return }
+        diagnosticReport = nil
+        do {
+            try diagnosticJournal.abandonInterrupted(id: id)
+        } catch {
+            // A stale selection or competing lease must never affect a newer attempt.
+            diagnosticJournalBlocked = true
+        }
+        refreshDiagnosticJournal()
     }
 
     private func enqueueDiagnostic(_ goal: AgentLoopDiagnosticGoal) {

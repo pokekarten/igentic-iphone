@@ -95,6 +95,55 @@ final class AgentLoopDiagnosticJournalOfflineBoundaryTests: XCTestCase {
         XCTAssertFalse(try String(contentsOf: url, encoding: .utf8).contains("synthetic private report"))
     }
 
+    @MainActor func testAbandonInterruptedPreservesProgressAndLaterQueueWithoutReplay() async throws {
+        for steps: [AgentLoopDiagnosticStep] in [[.readStatus], [.readStatus, .checkModel, .finish]] {
+            let (dir, url) = try fixture()
+            defer { try? FileManager.default.removeItem(at: dir) }
+            let journal = AgentLoopDiagnosticJournal(url: url)
+            let first = try journal.enqueue(goal: .basic)
+            let next = try journal.enqueue(goal: .extended)
+            do {
+                _ = try await journal.run(goal: .basic, queuedID: first) { checkpoint in
+                    do {
+                        for i in 1...steps.count { try checkpoint(Array(steps.prefix(i))) }
+                    } catch { XCTFail("Unexpected checkpoint failure") }
+                    // Deliberately contradictory terminal receipt leaves an interrupted record.
+                    return .init(outcome: .failed, steps: [], modelTurns: 0, localReport: nil)
+                }
+                XCTFail("Invalid terminal receipt accepted")
+            } catch { XCTAssertEqual(error as? AgentLoopDiagnosticJournal.Failure, .invalid) }
+            let reopened = AgentLoopDiagnosticJournal(url: url)
+            let before = try Data(contentsOf: url)
+            XCTAssertThrowsError(try reopened.abandonInterrupted(id: next)) {
+                XCTAssertEqual($0 as? AgentLoopDiagnosticJournal.Failure, .staleRecovery)
+            }
+            XCTAssertEqual(try Data(contentsOf: url), before)
+            try reopened.abandonInterrupted(id: first)
+            let stopped = try XCTUnwrap(reopened.snapshot())
+            XCTAssertEqual(stopped.id, first)
+            XCTAssertEqual(stopped.stage, .stopped)
+            XCTAssertEqual(stopped.steps, steps)
+            XCTAssertEqual(stopped.queuedTickets.map(\.id), [next])
+            let after = try Data(contentsOf: url)
+            XCTAssertThrowsError(try reopened.abandonInterrupted(id: first)) {
+                XCTAssertEqual($0 as? AgentLoopDiagnosticJournal.Failure, .staleRecovery)
+            }
+            XCTAssertEqual(try Data(contentsOf: url), after)
+            var nextRuns = 0
+            let result = try await reopened.run(goal: .extended, queuedID: next) { _ in
+                nextRuns += 1
+                return .init(outcome: .modelUnavailable, steps: [], modelTurns: 0, localReport: nil)
+            }
+            XCTAssertEqual(nextRuns, 1)
+            XCTAssertEqual(result.attemptID, next)
+            XCTAssertTrue(try XCTUnwrap(reopened.snapshot()).queuedTickets.isEmpty)
+            XCTAssertThrowsError(try reopened.abandonInterrupted(id: first)) {
+                XCTAssertEqual($0 as? AgentLoopDiagnosticJournal.Failure, .staleRecovery)
+            }
+            XCTAssertEqual(try reopened.snapshot()?.id, next)
+        }
+    }
+
     @MainActor func testCompetingLeaseCannotChangeQueue() async throws {
         let (dir, url) = try fixture()
         defer { try? FileManager.default.removeItem(at: dir) }
@@ -106,6 +155,8 @@ final class AgentLoopDiagnosticJournalOfflineBoundaryTests: XCTestCase {
             do { _ = try second.enqueue(goal: .basic); XCTFail("Competing enqueue succeeded") }
             catch { XCTAssertEqual(error as? AgentLoopDiagnosticJournal.Failure, .busy) }
             do { try second.removeQueued(id: b); XCTFail("Competing removal succeeded") }
+            catch { XCTAssertEqual(error as? AgentLoopDiagnosticJournal.Failure, .busy) }
+            do { try second.abandonInterrupted(id: a); XCTFail("Active attempt was abandoned") }
             catch { XCTAssertEqual(error as? AgentLoopDiagnosticJournal.Failure, .busy) }
             return .init(outcome: .cancelled, steps: [], modelTurns: 0, localReport: nil)
         }
