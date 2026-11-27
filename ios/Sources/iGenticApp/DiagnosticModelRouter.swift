@@ -26,7 +26,11 @@ public enum DiagnosticModelRouter {
         _ selection: Selection,
         apple: @MainActor () async throws -> T,
         qwen: @MainActor () async throws -> T
-    ) async rethrows -> T? {
+    ) async throws -> T? {
+        // Do not start a provider (which may load weights or open a journal)
+        // for an attempt that was cancelled before dispatch. Never turn
+        // cancellation into unavailability or try another provider.
+        try Task.checkCancellation()
         switch selection {
         case .apple: return try await apple()
         case .qwen: return try await qwen()
