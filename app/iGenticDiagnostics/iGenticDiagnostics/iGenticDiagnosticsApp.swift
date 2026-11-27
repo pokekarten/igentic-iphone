@@ -111,6 +111,25 @@ struct iGenticDiagnosticsApp: App {
             }
             #if DEBUG
             .task {
+                // Explicit isolated model-lab acceptance, fixed local directory,
+                // no model execution or access to the owner's exchange data.
+                guard ProcessInfo.processInfo.arguments.contains("--igentic-qwen-integrity-smoke") else { return }
+                guard let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
+                let directory = documents.appendingPathComponent("qwen3-06b", isDirectory: true)
+                let admission = await Task.detached(priority: .utility) {
+                    PinnedMLXSnapshot.verifyQwen3(directory: directory)
+                }.value
+                switch admission {
+                case .success(let receipt):
+                    physicalProbeStatus = "PHYSICAL_QWEN_INTEGRITY=verified; files=\(receipt.fileCount); bytes=\(receipt.totalBytes); inference=false"
+                case .failure(let reason):
+                    physicalProbeStatus = "PHYSICAL_QWEN_INTEGRITY=rejected; reason=\(reason); inference=false"
+                }
+                print(physicalProbeStatus)
+            }
+            #endif
+            #if DEBUG
+            .task {
                 guard ProcessInfo.processInfo.arguments.contains("--igentic-document-agent-smoke") else { return }
                 let report = await AgentLoopDocumentWorkflow.runOnDevice(image: AgentLoopDocumentWorkflow.syntheticImage(), focus: "Meeting location", additionalFocus: "Meeting start time")
                 let matched = report.excerpts.contains(where: { $0.contains("Room Cedar") })
