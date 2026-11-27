@@ -10,6 +10,11 @@ class ReceiptTests(unittest.TestCase):
         s=S.replace("QWEN3","APPLE").replace("tokens=120","tokens=NA").replace("loadMs=300","loadMs=NA").replace("loaded=300","loaded=NA").replace("mlxPeak=400","mlxPeak=NA")
         self.assertIsNone(normalize("apple",s)["mlx_peak_active_bytes"])
         with self.assertRaises(ValueError):normalize("apple",S.replace("QWEN3","APPLE"))
+    def test_final_sample_included_in_available_minimum(self):
+        valid=S.replace("availableEnd=700","availableEnd=600")
+        self.assertEqual(normalize("qwen3",valid)["min_sampled_available_process_bytes"],600)
+        with self.assertRaises(ValueError):
+            normalize("qwen3",valid.replace("availableEnd=600","availableEnd=599"))
     def test_reject(self):
         for s in [S.replace("actionsExecuted=0","actionsExecuted=1"),S.replace("cases=3","cases=2"),S.replace("tokens=120","tokens=193"),S.replace("sampledPeak=500","sampledPeak=200"),S.replace("thermalMax=1","thermalMax=0")]:
             with self.assertRaises(ValueError):normalize("qwen3",s)
