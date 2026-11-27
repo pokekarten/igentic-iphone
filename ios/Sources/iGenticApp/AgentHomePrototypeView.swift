@@ -269,7 +269,9 @@ public struct AgentHomePrototypeView: View {
                         ProgressView("Lokale Planung läuft")
                         Button("Abbrechen") { stopDiagnostic() }
                     }
-                    if let result = diagnosticReport {
+                    if diagnosticRun == nil, !diagnosticJournalBlocked,
+                       let saved = diagnosticCheckpoint, let result = diagnosticReport,
+                       saved.matchesTerminalReport(result) {
                         Text(result.localReport ?? "Gestoppt: \(result.outcome.rawValue)")
                             .font(.footnote)
                             .accessibilityIdentifier("igentic-agent-diagnostic-report")
@@ -339,7 +341,14 @@ public struct AgentHomePrototypeView: View {
         do {
             diagnosticCheckpoint = try diagnosticJournal.snapshot()
             diagnosticJournalBlocked = false
+            if let result = diagnosticReport,
+               diagnosticCheckpoint?.matchesTerminalReport(result) != true {
+                diagnosticReport = nil
+            }
         } catch {
+            // A stale snapshot cannot substantiate the visible result.
+            diagnosticCheckpoint = nil
+            diagnosticReport = nil
             diagnosticJournalBlocked = true
         }
     }
@@ -380,6 +389,7 @@ public struct AgentHomePrototypeView: View {
             defer { diagnosticRun = nil; refreshDiagnosticJournal() }
             for ticket in tickets {
                 guard !Task.isCancelled, scenePhase == .active else { return }
+                diagnosticReport = nil
                 do {
                     let report = try await diagnosticJournal.run(goal: ticket.goal, queuedID: ticket.id) { checkpoint in
                         if deterministic {
