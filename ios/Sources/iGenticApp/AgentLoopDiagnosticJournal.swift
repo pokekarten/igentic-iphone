@@ -205,8 +205,19 @@ final class AgentLoopDiagnosticJournal {
             state = next
         }
         acceptingProgress = false
-        guard report.steps == state.steps, !Task.isCancelled || report.outcome != .completed else { throw Failure.invalid }
-        state.stage = report.outcome == .completed ? .completed : .stopped
+        // The operation is trusted local code, but its terminal receipt must
+        // still agree with durable progress and the bounded execution contract.
+        guard report.steps == state.steps,
+              (0...(goal.requiredReads.count + 1)).contains(report.modelTurns) else { throw Failure.invalid }
+        if report.outcome == .completed {
+            guard !Task.isCancelled, state.steps.last == .finish,
+                  let result = report.localReport, !result.isEmpty,
+                  report.modelTurns == 0 || report.modelTurns == state.steps.count else { throw Failure.invalid }
+            state.stage = .completed
+        } else {
+            guard report.localReport == nil, !state.steps.contains(.finish) else { throw Failure.invalid }
+            state.stage = .stopped
+        }
         try save(state)
         return report
     }
