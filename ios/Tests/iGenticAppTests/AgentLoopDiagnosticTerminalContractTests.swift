@@ -179,4 +179,46 @@ final class AgentLoopDiagnosticTerminalContractTests: XCTestCase {
             outcome: .failed, steps: stopped.steps, modelTurns: 0,
             localReport: "synthetic", attemptID: id)))
     }
+
+    @MainActor func testInterruptedAttemptRequiresFreshIdentityAndPreservesQueue() async throws {
+        let (dir, journal) = try fixture()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let first = try journal.enqueue(goal: .basic)
+        let second = try journal.enqueue(goal: .extended)
+        do {
+            _ = try await journal.run(goal: .basic, queuedID: first) { checkpoint in
+                do { try checkpoint([.readStatus]) }
+                catch { XCTFail("Unexpected checkpoint failure") }
+                return .init(outcome: .failed, steps: [], modelTurns: 0, localReport: nil)
+            }
+            XCTFail("Contradictory terminal report accepted")
+        } catch { XCTAssertEqual(error as? AgentLoopDiagnosticJournal.Failure, .invalid) }
+        let reopened = AgentLoopDiagnosticJournal(url: dir.appendingPathComponent("journal.json"))
+        let interrupted = try XCTUnwrap(reopened.snapshot())
+        XCTAssertEqual(interrupted.id, first)
+        XCTAssertEqual(interrupted.stage, .running)
+        XCTAssertEqual(interrupted.queuedTickets.map(\.id), [second])
+        let staleReport = AgentLoopDiagnosticReport(outcome: .failed, steps: [.readStatus],
+            modelTurns: 0, localReport: nil, attemptID: first)
+        XCTAssertFalse(interrupted.matchesTerminalReport(staleReport))
+        do {
+            _ = try await reopened.run(goal: .extended, queuedID: second) { _ in
+                XCTFail("Later ticket executed before explicit recovery")
+                return .init(outcome: .failed, steps: [], modelTurns: 0, localReport: nil)
+            }
+            XCTFail("Interrupted attempt bypassed")
+        } catch { XCTAssertEqual(error as? AgentLoopDiagnosticJournal.Failure, .staleTicket) }
+        let fresh = try await reopened.run(goal: .basic, restartID: first) { checkpoint in
+            do { try checkpoint([.readStatus]) }
+            catch { XCTFail("Unexpected checkpoint failure") }
+            return .init(outcome: .cancelled, steps: [.readStatus], modelTurns: 0, localReport: nil)
+        }
+        let stopped = try XCTUnwrap(reopened.snapshot())
+        XCTAssertNotEqual(stopped.id, first)
+        XCTAssertEqual(stopped.stage, .stopped)
+        XCTAssertEqual(stopped.queuedTickets.map(\.id), [second])
+        XCTAssertEqual(fresh.attemptID, stopped.id)
+        XCTAssertTrue(stopped.matchesTerminalReport(fresh))
+        XCTAssertFalse(stopped.matchesTerminalReport(staleReport))
+    }
 }
