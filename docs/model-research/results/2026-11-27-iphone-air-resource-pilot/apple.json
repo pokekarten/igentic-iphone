@@ -1,0 +1,39 @@
+{
+  "actions_executed": 0,
+  "available_process_end_bytes": 3525048552,
+  "available_process_start_bytes": 3528227072,
+  "baseline_app_footprint_bytes": 11765504,
+  "candidate": "apple",
+  "capture_context": {
+    "build_configuration": "Debug",
+    "capture_date": "2026-11-27",
+    "device_model": "iPhone Air (iPhone18,4)",
+    "hardware_attestation": false,
+    "runtime_source_revision": null
+  },
+  "completed": 3,
+  "elapsed_ms": 4086,
+  "generated_tokens": null,
+  "hardware_attestation": false,
+  "load_ms": null,
+  "loaded_app_footprint_bytes": null,
+  "max_sampled_app_footprint_bytes": 15484696,
+  "min_sampled_available_process_bytes": 3524507880,
+  "mlx_peak_active_bytes": null,
+  "receipt_sha256": "50bb4f4c5c35437b270129921c6e22305127dbdcd98d1a642c62cf2128b6ae38",
+  "reference_source_sha256": "8f2149422d858b19c8d6a62a322d2810dbeb347c7293d2e55a8db65c85287446",
+  "sample_count": 49,
+  "schema": "igentic.resource.pilot.v1",
+  "status": "completed",
+  "thermal_end": "nominal",
+  "thermal_max": "nominal",
+  "thermal_start": "nominal",
+  "total": 3,
+  "unmeasured": [
+    "actual_temperature_celsius",
+    "true_peak_app_ram",
+    "total_system_model_ram",
+    "energy",
+    "sustained_thermal_performance"
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "actions_executed": 0,
+  "artifact_bytes": 53968563,
+  "artifact_manifest_sha256": "78bcd6ebdab72b552dc84da1744391cd952707c8907ea1f92129922d60300029",
+  "available_process_end_bytes": 3425466528,
+  "available_process_start_bytes": 3530226016,
+  "baseline_app_footprint_bytes": 9766560,
+  "candidate": "falcon90",
+  "capture_context": {
+    "build_configuration": "Debug",
+    "capture_date": "2026-11-27",
+    "device_model": "iPhone Air (iPhone18,4)",
+    "hardware_attestation": false,
+    "runtime_source_revision": "026d599e52f3a2cebbecbd5b3f318b800a73ff02"
+  },
+  "completed": 3,
+  "elapsed_ms": 3887,
+  "generated_tokens": 192,
+  "hardware_attestation": false,
+  "load_ms": 211,
+  "loaded_app_footprint_bytes": 114476848,
+  "max_sampled_app_footprint_bytes": 199034720,
+  "min_sampled_available_process_bytes": 3340957856,
+  "mlx_peak_active_bytes": 108368796,
+  "model": "mlx-community/Falcon-H1-Tiny-Tool-Calling-90M-4bit",
+  "receipt_sha256": "96422f901caf222c114539e014ec1f6fb866c46e92f85e235fe03cd9c5718bf2",
+  "reference_source_sha256": "8f2149422d858b19c8d6a62a322d2810dbeb347c7293d2e55a8db65c85287446",
+  "revision": "d4c8aa7bf106d80fefea8b316d7c70b0844b8a1b",
+  "sample_count": 48,
+  "schema": "igentic.resource.pilot.v1",
+  "status": "completed",
+  "thermal_end": "nominal",
+  "thermal_max": "nominal",
+  "thermal_start": "nominal",
+  "total": 3,
+  "unmeasured": [
+    "actual_temperature_celsius",
+    "true_peak_app_ram",
+    "total_system_model_ram",
+    "energy",
+    "sustained_thermal_performance"
+  ]
+}

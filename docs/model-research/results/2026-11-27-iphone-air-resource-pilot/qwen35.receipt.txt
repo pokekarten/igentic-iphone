@@ -1,0 +1,1 @@
+RESOURCE_V1_QWEN35=completed; cases=3; total=3; tokens=192; elapsedMs=4171; loadMs=1541; baseline=9897680; loaded=533776632; sampledPeak=690882808; availableStart=3530094896; availableMin=2849109768; availableEnd=2928785160; mlxPeak=521939171; thermalStart=0; thermalMax=0; thermalEnd=0; samples=51; actionsExecuted=0

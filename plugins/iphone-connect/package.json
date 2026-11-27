@@ -12,6 +12,7 @@
     "start": "node src/server.mjs",
     "test": "node --test test/*.test.mjs",
     "doctor": "node scripts/doctor.mjs",
+    "control": "node scripts/control-center.mjs",
     "build:ui": "node scripts/build-ui.mjs",
     "smoke": "node scripts/smoke.mjs",
     "smoke:usb": "node scripts/smoke-native-transport.mjs --usb",

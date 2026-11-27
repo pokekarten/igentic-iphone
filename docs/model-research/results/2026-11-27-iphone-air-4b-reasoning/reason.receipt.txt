@@ -1,0 +1,17 @@
+REASON_V1_QWEN3TEXT4B_CASE=1; category=arithmetic; pass=false; tokens=13; milliseconds=867
+REASON_V1_QWEN3TEXT4B_CASE=2; category=arithmetic; pass=false; tokens=25; milliseconds=1304
+REASON_V1_QWEN3TEXT4B_CASE=3; category=arithmetic; pass=false; tokens=44; milliseconds=2035
+REASON_V1_QWEN3TEXT4B_CASE=4; category=arithmetic; pass=false; tokens=32; milliseconds=1580
+REASON_V1_QWEN3TEXT4B_CASE=5; category=planning; pass=true; tokens=3; milliseconds=387
+REASON_V1_QWEN3TEXT4B_CASE=6; category=planning; pass=true; tokens=3; milliseconds=474
+REASON_V1_QWEN3TEXT4B_CASE=7; category=planning; pass=false; tokens=1; milliseconds=303
+REASON_V1_QWEN3TEXT4B_CASE=8; category=planning; pass=false; tokens=1; milliseconds=303
+REASON_V1_QWEN3TEXT4B_CASE=9; category=state; pass=false; tokens=34; milliseconds=1657
+REASON_V1_QWEN3TEXT4B_CASE=10; category=state; pass=false; tokens=96; milliseconds=3982
+REASON_V1_QWEN3TEXT4B_CASE=11; category=state; pass=false; tokens=28; milliseconds=1438
+REASON_V1_QWEN3TEXT4B_CASE=12; category=state; pass=false; tokens=2; milliseconds=447
+REASON_V1_QWEN3TEXT4B_CASE=13; category=evidence; pass=true; tokens=1; milliseconds=401
+REASON_V1_QWEN3TEXT4B_CASE=14; category=evidence; pass=true; tokens=1; milliseconds=415
+REASON_V1_QWEN3TEXT4B_CASE=15; category=evidence; pass=true; tokens=1; milliseconds=403
+REASON_V1_QWEN3TEXT4B_CASE=16; category=evidence; pass=true; tokens=1; milliseconds=425
+REASON_V1_QWEN3TEXT4B=completed; passed=6; completed=16; total=16; capped=1; actionsExecuted=0
