@@ -207,7 +207,7 @@ final class AgentLoopDiagnosticJournal {
         acceptingProgress = false
         // The operation is trusted local code, but its terminal receipt must
         // still agree with durable progress and the bounded execution contract.
-        guard report.steps == state.steps,
+        guard report.attemptID == nil, report.steps == state.steps,
               (0...(goal.requiredReads.count + 1)).contains(report.modelTurns) else { throw Failure.invalid }
         if report.outcome == .completed {
             guard !Task.isCancelled, state.steps.last == .finish,
@@ -219,6 +219,8 @@ final class AgentLoopDiagnosticJournal {
             state.stage = .stopped
         }
         try save(state)
-        return report
+        return .init(outcome: report.outcome, steps: report.steps,
+                     modelTurns: report.modelTurns, localReport: report.localReport,
+                     attemptID: state.id)
     }
 }

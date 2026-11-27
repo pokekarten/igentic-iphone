@@ -54,11 +54,25 @@ public struct AgentLoopDiagnosticReport: Sendable, Equatable {
     public let modelTurns: Int
     /// Local UI only. Never send this report to a provider or console.
     public let localReport: String?
+    /// Random local attempt correlation, not an authorization or device receipt.
+    /// Only a successfully persisted journal result carries this identity.
+    public let attemptID: UUID?
+
+    init(outcome: Outcome, steps: [AgentLoopDiagnosticStep], modelTurns: Int,
+         localReport: String?, attemptID: UUID? = nil) {
+        self.outcome = outcome
+        self.steps = steps
+        self.modelTurns = modelTurns
+        self.localReport = localReport
+        self.attemptID = attemptID
+    }
 
     /// A Shortcuts caller may forward its output elsewhere. Return only
     /// bounded execution metadata, never the local observation or model text.
     public var shortcutReceipt: String {
-        "outcome=\(outcome.rawValue); modelTurns=\(modelTurns); steps=\(steps.map(\.rawValue).joined(separator: ",")); reportPrepared=\(localReport != nil)"
+        let metadata = "outcome=\(outcome.rawValue); modelTurns=\(modelTurns); steps=\(steps.map(\.rawValue).joined(separator: ",")); reportPrepared=\(localReport != nil)"
+        guard let attemptID else { return metadata }
+        return metadata + "; attemptID=" + attemptID.uuidString.lowercased()
     }
 }
 

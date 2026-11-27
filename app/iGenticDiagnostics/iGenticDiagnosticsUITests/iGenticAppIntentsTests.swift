@@ -99,12 +99,15 @@ final class iGenticAppIntentsTests: XCTestCase {
         // Dispatch only once; never retry a model call with uncertain outcome.
         let output = try await intent.makeIntent().run().value.as(String.self)
         let fields = output.components(separatedBy: "; ")
-        XCTAssertEqual(fields.count, 4)
-        guard fields.count == 4 else { return }
+        XCTAssertEqual(fields.count, 5)
+        guard fields.count == 5 else { return }
         XCTAssertTrue(fields[0].hasPrefix("outcome="))
         XCTAssertTrue(fields[1].hasPrefix("modelTurns="))
         XCTAssertTrue(fields[2].hasPrefix("steps="))
         XCTAssertTrue(fields[3].hasPrefix("reportPrepared="))
+        XCTAssertTrue(fields[4].hasPrefix("attemptID="))
+        let attemptID = String(fields[4].dropFirst("attemptID=".count))
+        XCTAssertEqual(UUID(uuidString: attemptID)?.uuidString.lowercased(), attemptID)
         let outcome = String(fields[0].dropFirst("outcome=".count))
         let turns = try XCTUnwrap(Int(fields[1].dropFirst("modelTurns=".count)))
         let steps = fields[2].dropFirst("steps=".count).split(separator: ",").map(String.init)

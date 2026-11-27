@@ -71,6 +71,7 @@ final class AgentLoopDiagnosticTerminalContractTests: XCTestCase {
     @MainActor func testValidDeterministicAndModelCompletionsRemainAccepted() async throws {
         let (dir, journal) = try fixture()
         defer { try? FileManager.default.removeItem(at: dir) }
+        var previousID: UUID?
         for turns in [0, 3] {
             let result = try await journal.run(goal: .basic) { checkpoint in
                 do {
@@ -81,7 +82,42 @@ final class AgentLoopDiagnosticTerminalContractTests: XCTestCase {
                 return .init(outcome: .completed, steps: [.readStatus, .checkModel, .finish], modelTurns: turns, localReport: "synthetic complete report")
             }
             XCTAssertEqual(result.outcome, .completed)
-            XCTAssertEqual(try journal.snapshot()?.stage, .completed)
+            let saved = try XCTUnwrap(journal.snapshot())
+            XCTAssertEqual(saved.stage, .completed)
+            XCTAssertEqual(result.attemptID, saved.id)
+            XCTAssertNotEqual(previousID, saved.id)
+            XCTAssertTrue(result.shortcutReceipt.hasSuffix("; attemptID=" + saved.id.uuidString.lowercased()))
+            XCTAssertFalse(result.shortcutReceipt.contains("synthetic complete report"))
+            previousID = saved.id
         }
+    }
+
+    @MainActor func testOperationCannotSupplyItsOwnAttemptIdentity() async throws {
+        let (dir, journal) = try fixture()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let suppliedID = UUID()
+        do {
+            _ = try await journal.run(goal: .basic) { _ in
+                .init(outcome: .failed, steps: [], modelTurns: 0,
+                      localReport: nil, attemptID: suppliedID)
+            }
+            XCTFail("Operation-supplied identity was accepted")
+        } catch { XCTAssertEqual(error as? AgentLoopDiagnosticJournal.Failure, .invalid) }
+        let saved = try XCTUnwrap(journal.snapshot())
+        XCTAssertEqual(saved.stage, .running)
+        XCTAssertNotEqual(saved.id, suppliedID)
+    }
+
+    @MainActor func testStoppedReportCarriesPersistedAttemptIdentity() async throws {
+        let (dir, journal) = try fixture()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let result = try await journal.run(goal: .basic) { _ in
+            .init(outcome: .modelUnavailable, steps: [], modelTurns: 0, localReport: nil)
+        }
+        let saved = try XCTUnwrap(journal.snapshot())
+        XCTAssertEqual(saved.stage, .stopped)
+        XCTAssertEqual(result.attemptID, saved.id)
+        XCTAssertTrue(result.shortcutReceipt.hasSuffix("; attemptID=" + saved.id.uuidString.lowercased()))
+        XCTAssertNil(result.localReport)
     }
 }

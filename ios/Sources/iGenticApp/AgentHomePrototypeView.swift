@@ -244,6 +244,9 @@ public struct AgentHomePrototypeView: View {
                         Text("Letzter Auftrag: \(saved.steps.count) bestätigte Schritte · " +
                              (saved.stage == .queued ? "wartet" : saved.stage == .running ? "unterbrochen" : saved.stage == .completed ? "abgeschlossen" : "gestoppt"))
                             .font(.caption)
+                        Text("Journal-ID: " + saved.id.uuidString.lowercased())
+                            .font(.caption)
+                            .accessibilityIdentifier("igentic-agent-journal-id")
                         if saved.stage == .running {
                             Button("Unterbrochene Diagnose neu starten") {
                                 startDiagnostic(saved.goal, restartID: saved.id)
@@ -263,6 +266,11 @@ public struct AgentHomePrototypeView: View {
                         Text(result.localReport ?? "Gestoppt: \(result.outcome.rawValue)")
                             .font(.footnote)
                             .accessibilityIdentifier("igentic-agent-diagnostic-report")
+                        if let attemptID = result.attemptID {
+                            Text("Ergebnis-ID: " + attemptID.uuidString.lowercased())
+                                .font(.caption)
+                                .accessibilityIdentifier("igentic-agent-report-id")
+                        }
                         Text("Bestätigte Schritte: \(result.steps.count) · Modellaufrufe: \(result.modelTurns) · Keine externe Übertragung")
                             .font(.caption)
                     }
