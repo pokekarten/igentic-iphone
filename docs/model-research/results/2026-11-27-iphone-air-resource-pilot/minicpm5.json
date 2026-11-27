@@ -1,0 +1,43 @@
+{
+  "actions_executed": 0,
+  "artifact_bytes": 618039803,
+  "artifact_manifest_sha256": "25a06d07957c7a28f23cebbf375515a0d30bfd3c9753c28e7452619ae086ff23",
+  "available_process_end_bytes": 2872882880,
+  "available_process_start_bytes": 3530144072,
+  "baseline_app_footprint_bytes": 9848504,
+  "candidate": "minicpm5",
+  "capture_context": {
+    "build_configuration": "Debug",
+    "capture_date": "2026-11-27",
+    "device_model": "iPhone Air (iPhone18,4)",
+    "hardware_attestation": false,
+    "runtime_source_revision": "026d599e52f3a2cebbecbd5b3f318b800a73ff02"
+  },
+  "completed": 3,
+  "elapsed_ms": 2691,
+  "generated_tokens": 183,
+  "hardware_attestation": false,
+  "load_ms": 806,
+  "loaded_app_footprint_bytes": 681314576,
+  "max_sampled_app_footprint_bytes": 765561152,
+  "min_sampled_available_process_bytes": 2774431424,
+  "mlx_peak_active_bytes": 704269620,
+  "model": "openbmb/MiniCPM5-1B-MLX",
+  "receipt_sha256": "ac70c13562731cd5b7cca90b85ee473547dded383e39d28499e564b35d721889",
+  "reference_source_sha256": "8f2149422d858b19c8d6a62a322d2810dbeb347c7293d2e55a8db65c85287446",
+  "revision": "c973e24a2c77861038301f4e27d1b34a5931fc91",
+  "sample_count": 36,
+  "schema": "igentic.resource.pilot.v1",
+  "status": "completed",
+  "thermal_end": "nominal",
+  "thermal_max": "nominal",
+  "thermal_start": "nominal",
+  "total": 3,
+  "unmeasured": [
+    "actual_temperature_celsius",
+    "true_peak_app_ram",
+    "total_system_model_ram",
+    "energy",
+    "sustained_thermal_performance"
+  ]
+}

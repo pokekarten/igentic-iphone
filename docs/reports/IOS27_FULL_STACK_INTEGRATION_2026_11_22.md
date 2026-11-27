@@ -87,3 +87,51 @@ standalone Mac build preflight. Exclusion does not mean those PRs are invalid.
   and independently verified result; separately test LAN/cellular afterward.
 - Treat all unverified, timed-out or interrupted actions as unknown, never
   retry an uncertain action without explicit reconciliation.
+
+## 2026-11-23: separate offline Agent Loop composition check
+
+This is **additional evidence from a separate temporary Mac checkout**. The
+record below does not claim that this older #395 integration head already
+contains the newer files, nor that these PRs are merged into `main`.
+
+| Applied in isolated checkout | Exact GitHub PR head | Scope |
+| --- | --- | --- |
+| #417 baseline | `69868dc1994c8febc4d0845e46fa4bc14d23d6e2` | Conservative write-ahead marker and #415/#413 lineage |
+| #414 | `d63d94999dba3b6077f4c95cde9d61bd1c79e920` | SQLite replay-row integrity |
+| #416 (latest at test time) | `6e66a0ab2546496bc4ef00856a7d23183e347381` | Native Swift task verifier, receipt parity and local replay journal |
+| #410 | `33bd175c56e607a3d5bfb7789af5dd584332c9a0` | Owner-private read-only Site MCP operator console with cancellation/timeout |
+| #409 | `155d787d4b2f8ae31f20bcf31e2e80bf65d00e6b` | Native Shortcuts/ChatGPT project chat and manual agent loop |
+
+All four merges after the #417 baseline completed **without source conflicts**.
+The final test-only local Git commit was
+`c8d1dba4009353ae6e6abbb1bf0fda5b43d004b8`, deliberately never pushed
+to a production or PR branch.
+
+Validated on that precise **isolated** source composition, with the physical
+iPhone explicitly unavailable over both Wi-Fi and USB-C:
+
+- `python3 scripts/validate_repo_structure.py`: PASS.
+- `cd plugins/iphone-connect && node --test --test-concurrency=1 test/*.test.mjs`:
+  **150 passed, 1 skipped, 0 failed (151 total)**.
+- `swift test --package-path ios --scratch-path <temporary-private-build> -j 1`:
+  **337 passed, 0 failed**.
+- Browser-console changes were also independently exercised on PR #410:
+  explicit cancellation, bounded 12-second timeout, ignoring late MCP
+  responses, and a real local Chrome test of three same-origin MCP calls.
+  Neither browser test creates or dispatches an iPhone task.
+
+**Limits and follow-up:** These checks establish offline source compatibility,
+not a working full bidirectional loop. No owner/device key enrollment, hosted
+authenticated task relay, real foreground iOS task polling, policy-approved
+execution, independently attestable iPhone receipt, mobile connectivity,
+live ChatGPT Site deployment, or actual Siri/ChatGPT end-to-end integration
+has been demonstrated. The private Site and `main` remain unchanged.
+The #410 console cannot issue an authenticated remote task, and the signed
+receipt fixture in #416 proves cryptographic format, not physical execution.
+Next integration gate: one authenticated, **read-only**, owner-enrolled
+task lifecycle across Site/relay/native foreground app with durable task state,
+then separate physical device acceptance once it is reachable.
+
+This update documents evidence only; do not auto-merge #395, its component PRs,
+or the temporary test composition. All owners must review independent PR
+dependencies and the latest exact heads before any release decision.

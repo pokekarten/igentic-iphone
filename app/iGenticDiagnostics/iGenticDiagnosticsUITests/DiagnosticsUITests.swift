@@ -50,13 +50,9 @@ final class DiagnosticsUITests: XCTestCase {
         XCTAssertTrue(preview.waitForExistence(timeout: 15))
         // No discovery screen until the owner makes a second local choice.
         XCTAssertFalse(app.navigationBars["Explore"].exists)
-        // Match the owned row's stable identifier rather than scanning every
-        // label with an NSPredicate (which can time out in iOS 27 snapshots).
-        // Keep the element type open: SwiftUI exposes NavigationLink differently
-        // across the supported simulator runtimes.
-        let openDiscovery = app.descendants(matching: .any)
-            .matching(identifier: "igentic-handoff-open-discovery")
-            .firstMatch
+        // A native Button with a fixed identifier is exposed in the
+        // preview. Avoid traversing the entire accessibility hierarchy.
+        let openDiscovery = app.buttons["igentic-handoff-open-discovery"]
         guard openDiscovery.waitForExistence(timeout: 10) else {
             XCTFail("Expected the manual handoff discovery control")
             return

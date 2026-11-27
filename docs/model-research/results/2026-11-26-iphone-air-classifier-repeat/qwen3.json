@@ -1,0 +1,152 @@
+{
+  "actions_executed": 0,
+  "artifact_bytes": 351383618,
+  "artifact_files": 9,
+  "artifact_manifest_sha256": "83f8435c7aa8c095e0bf5e51cec8932db3bde15384b3786442b18913d43c2111",
+  "capture_context": {
+    "build_configuration": "Debug",
+    "capture_date": "2026-11-26",
+    "device_model": "iPhone Air (iPhone18,4)",
+    "execution": "paired device, existing lab app, no reinstall",
+    "hardware_attestation": false,
+    "runtime_source_revision": "026d599e52f3a2cebbecbd5b3f318b800a73ff02"
+  },
+  "cases": [
+    {
+      "case": 1,
+      "elapsed_ms": 92,
+      "language": "en",
+      "passed": true,
+      "split": "development",
+      "token_cap_reached": false,
+      "tokens": 1
+    },
+    {
+      "case": 2,
+      "elapsed_ms": 75,
+      "language": "de",
+      "passed": true,
+      "split": "development",
+      "token_cap_reached": false,
+      "tokens": 1
+    },
+    {
+      "case": 3,
+      "elapsed_ms": 76,
+      "language": "de",
+      "passed": false,
+      "split": "development",
+      "token_cap_reached": false,
+      "tokens": 1
+    },
+    {
+      "case": 4,
+      "elapsed_ms": 71,
+      "language": "en",
+      "passed": true,
+      "split": "development",
+      "token_cap_reached": false,
+      "tokens": 1
+    },
+    {
+      "case": 5,
+      "elapsed_ms": 70,
+      "language": "de",
+      "passed": true,
+      "split": "development",
+      "token_cap_reached": false,
+      "tokens": 1
+    },
+    {
+      "case": 6,
+      "elapsed_ms": 76,
+      "language": "de",
+      "passed": false,
+      "split": "development",
+      "token_cap_reached": false,
+      "tokens": 1
+    },
+    {
+      "case": 7,
+      "elapsed_ms": 81,
+      "language": "en",
+      "passed": false,
+      "split": "additional",
+      "token_cap_reached": false,
+      "tokens": 2
+    },
+    {
+      "case": 8,
+      "elapsed_ms": 80,
+      "language": "en",
+      "passed": false,
+      "split": "additional",
+      "token_cap_reached": false,
+      "tokens": 2
+    },
+    {
+      "case": 9,
+      "elapsed_ms": 69,
+      "language": "de",
+      "passed": true,
+      "split": "additional",
+      "token_cap_reached": false,
+      "tokens": 1
+    },
+    {
+      "case": 10,
+      "elapsed_ms": 75,
+      "language": "de",
+      "passed": true,
+      "split": "additional",
+      "token_cap_reached": false,
+      "tokens": 1
+    },
+    {
+      "case": 11,
+      "elapsed_ms": 70,
+      "language": "en",
+      "passed": true,
+      "split": "additional",
+      "token_cap_reached": false,
+      "tokens": 1
+    },
+    {
+      "case": 12,
+      "elapsed_ms": 71,
+      "language": "en",
+      "passed": true,
+      "split": "additional",
+      "token_cap_reached": false,
+      "tokens": 1
+    }
+  ],
+  "launch_and_cleanup_ms": 3670,
+  "load_ms": 676,
+  "model": "mlx-community/Qwen3-0.6B-4bit",
+  "receipt_sha256": "6b23eb6b1bb822664a2e3c40a55a06bcbc7623a68d4b255ffc4a5074f19e8d3e",
+  "reference_classifier_source_sha256": "e1920b562eb9aae0fb7e984fb93241e8a30fa216c1fab37e60306c911c47f714",
+  "revision": "73e3e38d981303bc594367cd910ea6eb48349da8",
+  "runtime": "mlx_swift",
+  "schema": "igentic.physical.classifier.v0.receipt.v1",
+  "source": "native_metadata_receipt_not_hardware_attestation",
+  "status": "completed",
+  "suite": "bilingual_ab_v0",
+  "summary": {
+    "additional_passed": 4,
+    "additional_total": 6,
+    "de_passed": 4,
+    "en_passed": 4,
+    "median_case_ms": 75.0,
+    "passed": 8,
+    "token_caps": 0,
+    "total": 12
+  },
+  "unmeasured": [
+    "peak_physical_footprint",
+    "energy",
+    "thermal",
+    "prefill",
+    "ttft"
+  ]
+}

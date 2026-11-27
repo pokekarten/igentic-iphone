@@ -1,0 +1,43 @@
+{
+  "actions_executed": 0,
+  "artifact_bytes": 79221815,
+  "artifact_manifest_sha256": "8728f6ce307fe421ac2d1d03f71f80b6856b1257b9c07d1c12ada86bc413a4f6",
+  "available_process_end_bytes": 3394386032,
+  "available_process_start_bytes": 3530127688,
+  "baseline_app_footprint_bytes": 9864888,
+  "candidate": "smol135",
+  "capture_context": {
+    "build_configuration": "Debug",
+    "capture_date": "2026-11-27",
+    "device_model": "iPhone Air (iPhone18,4)",
+    "hardware_attestation": false,
+    "runtime_source_revision": "026d599e52f3a2cebbecbd5b3f318b800a73ff02"
+  },
+  "completed": 3,
+  "elapsed_ms": 2317,
+  "generated_tokens": 192,
+  "hardware_attestation": false,
+  "load_ms": 239,
+  "loaded_app_footprint_bytes": 121440096,
+  "max_sampled_app_footprint_bytes": 175163280,
+  "min_sampled_available_process_bytes": 3364829296,
+  "mlx_peak_active_bytes": 150824044,
+  "model": "mlx-community/SmolLM-135M-Instruct-4bit",
+  "receipt_sha256": "3c331ad48b12b2fddce42c8cdd57f5997713e17ca4ac687f034678c9c56a1cbb",
+  "reference_source_sha256": "8f2149422d858b19c8d6a62a322d2810dbeb347c7293d2e55a8db65c85287446",
+  "revision": "642e06afe3fab57fd6cc518637c471af0a569e1e",
+  "sample_count": 33,
+  "schema": "igentic.resource.pilot.v1",
+  "status": "completed",
+  "thermal_end": "nominal",
+  "thermal_max": "nominal",
+  "thermal_start": "nominal",
+  "total": 3,
+  "unmeasured": [
+    "actual_temperature_celsius",
+    "true_peak_app_ram",
+    "total_system_model_ram",
+    "energy",
+    "sustained_thermal_performance"
+  ]
+}

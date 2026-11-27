@@ -1,0 +1,7 @@
+# Physical iPhone Air — two compact models and MiniCPM5 development condition
+
+Two additional pinned MLX research candidates ran the existing bilingual 12-case V0 A/B classification suite on 2026-11-26. Native integrity receipts were validated; no tool calls were executed. Falcon-H1-Tiny Tool Calling 90M: 0/12 exact, 10 token caps, load 173 ms, median case 286 ms, launch and cleanup 5213 ms. SmolLM 135M Instruct: 0/12 exact, 12 token caps, load 219 ms, median 171 ms, launch and cleanup 4358 ms. Both completed all 12 generations. The Falcon model card primarily specifies English and tool calling; this classifier is not a native tool-call quality benchmark. Neither candidate is qualified for action routing.
+
+MiniCPM5 separate development-only condition: same first six V0 tasks and 16-token budget, explicit enable_thinking=false from its upstream template, unchanged strict decision validator. 1/6 exact, 3/6 token caps, 3508 ms launch and cleanup. Not a new holdout or an improvement claim beyond these six known cases. The original MiniCPM5 result remains unchanged.
+
+Signed isolated Debug lab, main app and all seven model inventories preserved. No RAM, energy, temperature or TTFT measurements. Raw receipt files contain allowlisted metadata only. Reference source hashes refer to the source used for the run, not device attestation; reproduce historical hashes from the corresponding commit. Weights and personal identifiers are not committed.

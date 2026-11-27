@@ -1,0 +1,43 @@
+{
+  "actions_executed": 0,
+  "artifact_bytes": 351383618,
+  "artifact_manifest_sha256": "83f8435c7aa8c095e0bf5e51cec8932db3bde15384b3786442b18913d43c2111",
+  "available_process_end_bytes": 3074340712,
+  "available_process_start_bytes": 3530078536,
+  "baseline_app_footprint_bytes": 9914040,
+  "candidate": "qwen3",
+  "capture_context": {
+    "build_configuration": "Debug",
+    "capture_date": "2026-11-27",
+    "device_model": "iPhone Air (iPhone18,4)",
+    "hardware_attestation": false,
+    "runtime_source_revision": "026d599e52f3a2cebbecbd5b3f318b800a73ff02"
+  },
+  "completed": 3,
+  "elapsed_ms": 2996,
+  "generated_tokens": 183,
+  "hardware_attestation": false,
+  "load_ms": 833,
+  "loaded_app_footprint_bytes": 417106000,
+  "max_sampled_app_footprint_bytes": 584730776,
+  "min_sampled_available_process_bytes": 2955261800,
+  "mlx_peak_active_bytes": 474841472,
+  "model": "mlx-community/Qwen3-0.6B-4bit",
+  "receipt_sha256": "027b6d6dd7ed4a48db4e2b9ed6a77c8246802914a7f20ab94960b1fe9a03a78b",
+  "reference_source_sha256": "8f2149422d858b19c8d6a62a322d2810dbeb347c7293d2e55a8db65c85287446",
+  "revision": "73e3e38d981303bc594367cd910ea6eb48349da8",
+  "sample_count": 39,
+  "schema": "igentic.resource.pilot.v1",
+  "status": "completed",
+  "thermal_end": "nominal",
+  "thermal_max": "nominal",
+  "thermal_start": "nominal",
+  "total": 3,
+  "unmeasured": [
+    "actual_temperature_celsius",
+    "true_peak_app_ram",
+    "total_system_model_ram",
+    "energy",
+    "sustained_thermal_performance"
+  ]
+}

@@ -1,0 +1,1 @@
+RESOURCE_V1_APPLE=completed; cases=3; total=3; tokens=NA; elapsedMs=4086; loadMs=NA; baseline=11765504; loaded=NA; sampledPeak=15484696; availableStart=3528227072; availableMin=3524507880; availableEnd=3525048552; mlxPeak=NA; thermalStart=0; thermalMax=0; thermalEnd=0; samples=49; actionsExecuted=0

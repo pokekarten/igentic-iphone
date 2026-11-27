@@ -2,6 +2,7 @@
 """Independent synthetic decision/evidence evaluation, never an action executor."""
 from __future__ import annotations
 import argparse
+import hashlib
 from collections import Counter
 import json
 import os
@@ -11,6 +12,18 @@ import time
 DATA = Path(__file__).resolve().parents[1] / "docs/model-research/igentic-decision-knowledge-eval-v0.jsonl"
 MODEL = "mlx-community/Qwen3-0.6B-4bit"
 REVISION = "73e3e38d981303bc594367cd910ea6eb48349da8"
+# Fixed comparison candidates. No arbitrary path or downloaded code is accepted.
+CANDIDATES = {
+    "qwen3": (MODEL, REVISION),
+    "lfm25": ("LiquidAI/LFM2.5-350M-MLX-4bit", "f6cb4e006bb7a2d8a6afa14ec0a53e0586f65a5b"),
+    "qwen35": ("mlx-community/Qwen3.5-0.8B-4bit", "da28692b5f139cb0ec58a356b437486b7dac7462"),
+}
+# SHA-256 and length from the LFS metadata of the exact revisions above.
+WEIGHT_PINS = {
+    "qwen3": (335450584, "392e8d466d56100ada00eb82031fb854297fc9e389b7d303eba3af114e87bce2"),
+    "lfm25": (221809325, "f17b51362f7aa11a8dffafa6f44c625d5d695b2f76122eed11525104810ae809"),
+    "qwen35": (625229487, "f5a0d9dd3efa73510542a8023d610ff26be2b4b020d181cfc4bedaa1fcc5dd9e"),
+}
 LIMIT = 96
 RELATIONS = {"supported": "propose", "contradicted": "abstain",
              "insufficient": "abstain", "conflicting": "clarify"}
@@ -141,12 +154,26 @@ def summarize(rows):
             for group in [[r for r in rows if lang == "all" or r["language"] == lang]]}
 
 
-def run_mlx(cases):
+def verify_weights(path, pin):
+    """Check weight bytes against independent, pinned metadata before inference."""
+    size, expected = pin
+    if not path.is_file() or path.stat().st_size != size:
+        raise RuntimeError("pinned weights missing or wrong size")
+    with path.open("rb") as handle:
+        digest = hashlib.file_digest(handle, "sha256").hexdigest()
+    if digest != expected:
+        raise RuntimeError("pinned weight digest mismatch")
+    return digest
+
+
+def run_mlx(cases, candidate="qwen3"):
     os.environ["HF_HUB_OFFLINE"] = "1"
     os.environ["TRANSFORMERS_OFFLINE"] = "1"
-    snapshot = Path.home() / ".cache/huggingface/hub/models--mlx-community--Qwen3-0.6B-4bit/snapshots" / REVISION
+    model_id, revision = CANDIDATES[candidate]
+    snapshot = Path.home() / ".cache/huggingface/hub" / ("models--" + model_id.replace("/", "--")) / "snapshots" / revision
     if not snapshot.is_dir():
         raise RuntimeError("snapshot missing")
+    digest = verify_weights(snapshot / "model.safetensors", WEIGHT_PINS[candidate])
     from mlx_lm import load, stream_generate
     from mlx_lm.sample_utils import make_sampler
     from importlib.metadata import version
@@ -165,20 +192,21 @@ def run_mlx(cases):
         rows.append({"id": case["id"], "language": case["language"], "tokens": tokens,
                      "seconds": round(time.monotonic()-start, 3),
                      **classify(raw, case, capped=tokens >= LIMIT)})
-    return {"model": MODEL, "revision": REVISION, "mlx": version("mlx"),
+    return {"model": model_id, "revision": revision, "weightsSHA256": digest, "mlx": version("mlx"),
             "mlx_lm": version("mlx-lm"), "summary": summarize(rows), "cases": rows}
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-mlx", action="store_true")
+    parser.add_argument("--candidate", choices=tuple(CANDIDATES), default="qwen3")
     args = parser.parse_args()
     cases = load_cases()
     if not args.run_mlx:
         print(json.dumps({"status": "fixtures_valid", "cases": len(cases)}))
         return 0
     try:
-        receipt = run_mlx(cases)
+        receipt = run_mlx(cases, args.candidate)
     except Exception:
         print(json.dumps({"status": "runtime_unavailable"}))
         return 2

@@ -1,0 +1,15 @@
+{
+  "bytes": 65536,
+  "date": "2026-11-26",
+  "device_model": "iPhone Air (iPhone18,4)",
+  "elapsed_ms": 3505,
+  "hardware_attestation": false,
+  "inference_performed": false,
+  "model": "mlx-community/Qwen3.5-2B-4bit",
+  "model_installed": false,
+  "offset": 1292921912,
+  "receipt_sha256": "872695fc43dba1eae8eaf22604a6fa92a867b0e125d5ed4d0e63ee8b01fe2378",
+  "revision": "674aaa7240b91e8012fcad5d791b7dfe5ba90207",
+  "schema": "igentic.native_model_range_probe.v1",
+  "sha256_verified": true
+}
