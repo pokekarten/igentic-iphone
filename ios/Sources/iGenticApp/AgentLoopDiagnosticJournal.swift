@@ -31,7 +31,8 @@ struct AgentLoopDiagnosticCheckpoint: Codable, Equatable, Sendable {
         case .completed:
             return report.outcome == .completed && report.localReport?.isEmpty == false
         case .stopped:
-            return report.outcome != .completed && report.localReport == nil
+            // An abandoned attempt may retain a finish checkpoint without a receipt.
+            return !steps.contains(.finish) && report.outcome != .completed && report.localReport == nil
         case .queued, .running:
             return false
         }
