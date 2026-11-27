@@ -29,7 +29,7 @@ def normalize(candidate, raw):
     if (status=="completed")!=(n==3) or d["samples"]<2 or d["samples"]>1520: raise ValueError("invalid completion or sample count")
     if any(not 0<=d[k]<=4 for k in ("thermalStart","thermalMax","thermalEnd")) or d["thermalMax"]<max(d["thermalStart"],d["thermalEnd"]): raise ValueError("thermal mismatch")
     if d["availableMin"]>min(d["availableStart"],d["availableEnd"]): raise ValueError("inconsistent sampled allowance")
-    if d["sampledPeak"] is not None and any(v is not None and v>d["sampledPeak"] for v in (d["baseline"],d["loaded"])): raise ValueError("inconsistent sampled peak")
+    if any(v is not None and (d["sampledPeak"] is None or v>d["sampledPeak"]) for v in (d["baseline"],d["loaded"])): raise ValueError("inconsistent sampled peak")
     if candidate=="apple":
         if any(d[k] is not None for k in ("tokens","loadMs","loaded","mlxPeak")): raise ValueError("invented Apple telemetry")
     else:

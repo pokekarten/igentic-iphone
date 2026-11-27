@@ -15,6 +15,14 @@ class ReceiptTests(unittest.TestCase):
         self.assertEqual(normalize("qwen3",valid)["min_sampled_available_process_bytes"],600)
         with self.assertRaises(ValueError):
             normalize("qwen3",valid.replace("availableEnd=600","availableEnd=599"))
+    def test_sampled_peak_requires_known_endpoints(self):
+        missing=S.replace("sampledPeak=500","sampledPeak=NA")
+        for invalid in (missing, missing.replace("baseline=100","baseline=NA"), missing.replace("loaded=300","loaded=NA")):
+            with self.subTest(receipt=invalid), self.assertRaises(ValueError):
+                normalize("qwen3",invalid)
+        unavailable=missing.replace("baseline=100","baseline=NA").replace("loaded=300","loaded=NA")
+        self.assertIsNone(normalize("qwen3",unavailable)["max_sampled_app_footprint_bytes"])
+        self.assertEqual(normalize("qwen3",unavailable.replace("sampledPeak=NA","sampledPeak=500"))["max_sampled_app_footprint_bytes"],500)
     def test_reject(self):
         for s in [S.replace("actionsExecuted=0","actionsExecuted=1"),S.replace("cases=3","cases=2"),S.replace("tokens=120","tokens=193"),S.replace("sampledPeak=500","sampledPeak=200"),S.replace("thermalMax=1","thermalMax=0")]:
             with self.assertRaises(ValueError):normalize("qwen3",s)
