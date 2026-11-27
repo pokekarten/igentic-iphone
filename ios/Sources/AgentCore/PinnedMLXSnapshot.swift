@@ -1,0 +1,354 @@
+import Foundation
+#if canImport(CryptoKit)
+import CryptoKit
+#endif
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#endif
+
+/// Byte admission for one reviewed, immutable MLX snapshot. No downloads,
+/// inference, model-generated manifests, or tool execution are performed.
+public enum PinnedMLXSnapshot {
+    public static let modelID = "mlx-community/Qwen3-0.6B-4bit"
+    public static let revision = "73e3e38d981303bc594367cd910ea6eb48349da8"
+    public static let license = "Apache-2.0"
+
+    public enum Rejection: Error, Equatable, Sendable {
+        case invalidDirectory, unexpectedFiles, invalidFile, sizeMismatch, digestMismatch, digestUnavailable
+    }
+    public struct Receipt: Equatable, Sendable {
+        public let modelID: String
+        public let revision: String
+        public let fileCount: Int
+        public let totalBytes: Int64
+    }
+    struct Entry: Sendable {
+        let name: String
+        let bytes: Int64
+        let digest: String
+    }
+    static let qwenFiles: [Entry] = [
+        .init(name: "added_tokens.json", bytes: 707, digest: "c0284b582e14987fbd3d5a2cb2bd139084371ed9acbae488829a1c900833c680"),
+        .init(name: "config.json", bytes: 937, digest: "15d3ac26c043ae477273ed5802ee0f0b33bb14f18c9d3dd70910c02d906e3f1f"),
+        .init(name: "merges.txt", bytes: 1671853, digest: "8831e4f1a044471340f7c0a83d7bd71306a5b867e95fd870f74d0c5308a904d5"),
+        .init(name: "model.safetensors", bytes: 335450584, digest: "392e8d466d56100ada00eb82031fb854297fc9e389b7d303eba3af114e87bce2"),
+        .init(name: "model.safetensors.index.json", bytes: 49731, digest: "7b294141456f6904936db03c00bca50fb5f6198f652fe8483f9cd2a1018accfb"),
+        .init(name: "special_tokens_map.json", bytes: 613, digest: "76862e765266b85aa9459767e33cbaf13970f327a0e88d1c65846c2ddd3a1ecd"),
+        .init(name: "tokenizer.json", bytes: 11422654, digest: "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4"),
+        .init(name: "tokenizer_config.json", bytes: 9706, digest: "253153d0738ceb4c668d2eff957714dd2bea0b56de772a9fdccd96cbf517e6a0"),
+        .init(name: "vocab.json", bytes: 2776833, digest: "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"),
+    ]
+
+    public static let lfmResearchModelID = "LiquidAI/LFM2.5-350M-MLX-4bit"
+    public static let lfmResearchRevision = "f6cb4e006bb7a2d8a6afa14ec0a53e0586f65a5b"
+    // The pinned original model supplies the license text missing in this export.
+    public static let lfmResearchLicenseRevision = "9921cd4d82c0e3986887aa4b376f9446729ef8a3"
+    public static let lfmResearchLicense = "LFM Open License v1.0"
+    static let lfmResearchFiles: [Entry] = [
+        .init(name: "LICENSE", bytes: 10574, digest: "4d28ca14dedc0b3d0fcc2b3339f0e79931faa33874f3d24f522183a8fc70068c"),
+        .init(name: "README.md", bytes: 2329, digest: "90060ba684dfe9716d391782396bf2084a3941b5bcdb31f1ef6d1b5a5934814e"),
+        .init(name: "chat_template.jinja", bytes: 2607, digest: "1a2d8281b5477abb5bb1cebd69d7d1ee389e074656ca5f5e0ef6ae56d6ae65c1"),
+        .init(name: "config.json", bytes: 1714, digest: "9a8d76fffac255e7aeba7f154fd493e5b42c55b8bf150cc3478484adec6a98ed"),
+        .init(name: "generation_config.json", bytes: 132, digest: "1c72d35bb46c5102537eb114fea9a5c10ef928cc813401c3c12aef399c1f8e5d"),
+        .init(name: "model.safetensors", bytes: 221809325, digest: "f17b51362f7aa11a8dffafa6f44c625d5d695b2f76122eed11525104810ae809"),
+        .init(name: "model.safetensors.index.json", bytes: 23413, digest: "be372bf2e03a849a8f01821a2e35ffc44840a86d3132ad7e8f2cef5ea655b50f"),
+        .init(name: "tokenizer.json", bytes: 4733389, digest: "df1d8d5ec5d091b460562ffd545e4a5e91d17d4a0db7ebe733be34ed374377bd"),
+        .init(name: "tokenizer_config.json", bytes: 489, digest: "75c287923e252b08b0a0f1c367bbe557ab23a681d0b71c5a34e0932ddbe2f5ee"),
+    ]
+
+    /// Research-only byte verification. A valid snapshot is not authorization
+    /// for commercial use, production routing or any tool execution.
+    public static func verifyLFM25Research(directory: URL) -> Result<Receipt, Rejection> {
+        verify(directory: directory, entries: lfmResearchFiles).map {
+            Receipt(modelID: lfmResearchModelID, revision: lfmResearchRevision,
+                    fileCount: lfmResearchFiles.count, totalBytes: $0)
+        }
+    }
+
+    public static let qwen35ResearchModelID = "mlx-community/Qwen3.5-0.8B-4bit"
+    public static let qwen35ResearchRevision = "da28692b5f139cb0ec58a356b437486b7dac7462"
+    public static let qwen35ResearchLicenseRevision = "2fc06364715b967f1860aea9cf38778875588b17"
+    static let qwen35ResearchFiles: [Entry] = [
+        .init(name: "LICENSE", bytes: 11544, digest: "bbedc3fda3305820b977265f01b8619d87570a6739de3a5582c3464840f1e57a"),
+        .init(name: "README.md", bytes: 678, digest: "5614ff1cdf39fd970ade36d9499d99024c089e7add90931e018b8cd8de6dd265"),
+        .init(name: "chat_template.jinja", bytes: 7755, digest: "273d8e0e683b885071fb17e08d71e5f2a5ddfb5309756181681de4f5a1822d80"),
+        .init(name: "config.json", bytes: 3112, digest: "ba7770da23eae5ebd6827571f086e331956b33f4442a9e876fb4aa10969a6772"),
+        .init(name: "model.safetensors", bytes: 625229487, digest: "f5a0d9dd3efa73510542a8023d610ff26be2b4b020d181cfc4bedaa1fcc5dd9e"),
+        .init(name: "model.safetensors.index.json", bytes: 71473, digest: "6e48f2fa5d6f033a6d77bf833abfa9698ca24d1715ecea4c67447bcfaee44650"),
+        .init(name: "preprocessor_config.json", bytes: 390, digest: "27225450ac9c6529872ee1924fcb0962ff5634834f817040f444118116f4e516"),
+        .init(name: "processor_config.json", bytes: 1300, digest: "14932921ca485d458a04dafd8069fbb0a4505622a48208d19ed247115801385b"),
+        .init(name: "tokenizer.json", bytes: 19989343, digest: "87a7830d63fcf43bf241c3c5242e96e62dd3fdc29224ca26fed8ea333db72de4"),
+        .init(name: "tokenizer_config.json", bytes: 1139, digest: "e98f1901ac6f0adff67b1d540bfa0c36ac1a0cf59eb72ed78146ef89aafa1182"),
+        .init(name: "video_preprocessor_config.json", bytes: 385, digest: "7768af27c1fafa9cc9011c1dc20067e03f8915e03b63504550e11d5066986d13"),
+        .init(name: "vocab.json", bytes: 6722759, digest: "ce99b4cb2983d118806ce0a8b777a35b093e2000a503ebde25853284c9dfa003"),
+    ]
+
+    /// Research-only pin. Weights must pass byte verification before loading.
+    /// This does not establish text or multimodal runtime compatibility.
+    public static func verifyQwen35Research(directory: URL) -> Result<Receipt, Rejection> {
+        verify(directory: directory, entries: qwen35ResearchFiles).map {
+            Receipt(modelID: qwen35ResearchModelID, revision: qwen35ResearchRevision,
+                    fileCount: qwen35ResearchFiles.count, totalBytes: $0)
+        }
+    }
+
+    public static let granite350ResearchModelID = "mlx-community/granite-4.0-h-350m-4bit"
+    public static let granite350ResearchRevision = "2b96c1f68e5349bcaec2a498a68cc177537e46d1"
+    public static let granite350UpstreamRevision = "3b17b717b8f2f5d305b0a92c1491e239aeda19c8"
+    static let granite350ResearchFiles: [Entry] = [
+        .init(name: "README.md", bytes: 904, digest: "7a03391eb3f4df30673b008f24d40951319d1b80e17e6dcec07fe001833cb326"),
+        .init(name: "UPSTREAM_MODEL_CARD.md", bytes: 33196, digest: "df1afd6b94ea2cb8e9948c5c78646500499516186f73eb5217add80305011b5f"),
+        .init(name: "chat_template.jinja", bytes: 6418, digest: "9524df67b77a7b25a2dfee898f75b316a157eb9d855b51e32aeac79d7c8a83ce"),
+        .init(name: "config.json", bytes: 2145, digest: "4e24aa441f7afe9050da9cfff33db40d496e7bc4e60b74851990b52f215020ae"),
+        .init(name: "generation_config.json", bytes: 147, digest: "7c04cb9d2ba771f7528fba5a7104999cdaf7566d02b5fbd58472829f62716177"),
+        .init(name: "merges.txt", bytes: 916646, digest: "b6fe424e334903f7fb84d3a106d9730455f4744b9fe3c21ee136d97a00e72502"),
+        .init(name: "model.safetensors", bytes: 192015950, digest: "808cf0214a3d615539667f73fb315ae37c2218e69e8e7316f8d3b22e053988ed"),
+        .init(name: "model.safetensors.index.json", bytes: 50346, digest: "ff1f5f88a93dd86bfa9f316f0e89e934f7eab1064ca023ed048a894a7204a2ea"),
+        .init(name: "special_tokens_map.json", bytes: 579, digest: "c08676c49fd7969a3130f72be6d4bf34da66aa484a6e21dffe359893a1bd5f2e"),
+        .init(name: "tokenizer.json", bytes: 7153421, digest: "e2bad66439538cb4d5a7580680932432ed9ece9d3b8577e675512bdf11599253"),
+        .init(name: "tokenizer_config.json", bytes: 17659, digest: "a5ec5daab12ba090a90f3dd169c8f9c275557013a87b9c1258dc7cb497a35c86"),
+        .init(name: "vocab.json", bytes: 1612704, digest: "8af71076de8b0b626eed0f4c984faf0a7c062479164b2a31308a948524d4f69c"),
+    ]
+
+    /// Private research candidate. Upstream model card states Apache-2.0;
+    /// standalone upstream license file is absent. No production admission.
+    public static func verifyGranite350Research(directory: URL) -> Result<Receipt, Rejection> {
+        verify(directory: directory, entries: granite350ResearchFiles).map {
+            Receipt(modelID: granite350ResearchModelID, revision: granite350ResearchRevision,
+                    fileCount: granite350ResearchFiles.count, totalBytes: $0)
+        }
+    }
+
+    public static let miniCPM5ResearchModelID = "openbmb/MiniCPM5-1B-MLX"
+    public static let miniCPM5ResearchRevision = "c973e24a2c77861038301f4e27d1b34a5931fc91"
+    public static let miniCPM5UpstreamRevision = "ac83f813ba7da263c51a9f3ec37c2072597e54af"
+    static let miniCPM5ResearchFiles: [Entry] = [
+        .init(name: "README-cn.md", bytes: 22081, digest: "14b8a1c5c12ddd401ac2ede03720817804629049757ca5b71006856d5c1f08aa"),
+        .init(name: "README.md", bytes: 23408, digest: "4e006b78e93d9e3fb2a1dd494900b5a63e269935b94173ec492f70bb380a0150"),
+        .init(name: "UPSTREAM_MODEL_CARD.md", bytes: 23436, digest: "2676ec151c565465c7321d69455d67fffb7e8361012e783ab8f1cd1742d2c81f"),
+        .init(name: "chat_template.jinja", bytes: 9062, digest: "7451a05cf1e28a79d97d7c0bc951028c0b1915119bf9046acd06a0e3d931f47c"),
+        .init(name: "config.json", bytes: 926, digest: "b579f8c12b692af13bb90402c704c3a235d183c0410b37537447c17975a8ddcc"),
+        .init(name: "generation_config.json", bytes: 201, digest: "3fd3b57f068f133267d97a1e06d7209aaeab546010e7ec71bace0d3fabd1f755"),
+        .init(name: "model.safetensors", bytes: 608026621, digest: "a23e0c5c79944a0b2cc92cb9ab79376b4dce41e2312383727e21ee43fe19cb4f"),
+        .init(name: "model.safetensors.index.json", bytes: 39380, digest: "b9f00d16700ba0dd01bbd72d270080757355ddf41fbe678620a93dc39d5c8639"),
+        .init(name: "tokenizer.json", bytes: 9894271, digest: "3e065a558a034185fe299917b398685c1facd0169a9eea1e629eb30c171fed81"),
+        .init(name: "tokenizer_config.json", bytes: 417, digest: "3f18b805749e5e506321c6d231f0e760c44cc030c80b4b0544e41cb3ecb16846"),
+    ]
+
+    /// Private research candidate. Apache-2.0 metadata and model card;
+    /// no separate upstream LICENSE file. No production admission.
+    public static func verifyMiniCPM5Research(directory: URL) -> Result<Receipt, Rejection> {
+        verify(directory: directory, entries: miniCPM5ResearchFiles).map {
+            Receipt(modelID: miniCPM5ResearchModelID, revision: miniCPM5ResearchRevision,
+                    fileCount: miniCPM5ResearchFiles.count, totalBytes: $0)
+        }
+    }
+
+    public static let falcon90ResearchModelID = "mlx-community/Falcon-H1-Tiny-Tool-Calling-90M-4bit"
+    public static let falcon90ResearchRevision = "d4c8aa7bf106d80fefea8b316d7c70b0844b8a1b"
+    public static let falcon90UpstreamRevision = "fc099d791a229464b995fdd2fd24e8ffd2d699e8"
+    static let falcon90ResearchFiles: [Entry] = [
+        .init(name: "README.md", bytes: 1094, digest: "c48eb0ad71458c9b7517f602dafffb541de579076d09a4dc1d037998c6c330d2"),
+        .init(name: "UPSTREAM_MODEL_CARD.md", bytes: 3251, digest: "45b9d6ccccb730ae85d829717fbf6056d4bb6a75c929e1e6b041c607873f8d9b"),
+        .init(name: "chat_template.jinja", bytes: 1727, digest: "d3aff4b6198c753a363b325790cb79baa04262b8e0c2b2fb731aa4dc5374264b"),
+        .init(name: "config.json", bytes: 1912, digest: "a5f580a85260b92898383e52da9d553c14209187966c865a313237a6d01ac8a1"),
+        .init(name: "generation_config.json", bytes: 133, digest: "1276a6816b459607f3a498bd5b49ae41841c73dbad01b7aef1a2676e0c897f31"),
+        .init(name: "model.safetensors", bytes: 51543169, digest: "3faf6d4c7db88e17cc141204655d67132b1b9a700ef1edd5f12020c39072551c"),
+        .init(name: "model.safetensors.index.json", bytes: 58385, digest: "987c3540a1f656926ca9044b548c54e3925a7cfd5cc1fc4424f77fd544a03678"),
+        .init(name: "tokenizer.json", bytes: 2351347, digest: "0902fa32c40b313add9406a81f908d86f65a0387679486544d4fadbe0e08a22a"),
+        .init(name: "tokenizer_config.json", bytes: 7545, digest: "7fa3919ae9d7e638678b7bc8bdc50f73e49c5c1c04eabfdefcc59688ca2f2ba5"),
+    ]
+
+    /// Private research only; no production routing or redistribution clearance.
+    public static func verifyFalcon90Research(directory: URL) -> Result<Receipt, Rejection> {
+        verify(directory: directory, entries: falcon90ResearchFiles).map {
+            Receipt(modelID: falcon90ResearchModelID, revision: falcon90ResearchRevision,
+                    fileCount: falcon90ResearchFiles.count, totalBytes: $0)
+        }
+    }
+
+    public static let smol135ResearchModelID = "mlx-community/SmolLM-135M-Instruct-4bit"
+    public static let smol135ResearchRevision = "642e06afe3fab57fd6cc518637c471af0a569e1e"
+    public static let smol135UpstreamRevision = "b5f4b394abe60fe0e4d666139e57bfce520302a9"
+    static let smol135ResearchFiles: [Entry] = [
+        .init(name: "README.md", bytes: 638, digest: "c932a31b7de83869e2db8bb4622752ef350ded20a7212822a278506fd70a4465"),
+        .init(name: "UPSTREAM_MODEL_CARD.md", bytes: 5623, digest: "d8b24f2d845a8a2544d8bc9b29dbf71ae11e918439fc568ab54667f81e9eea16"),
+        .init(name: "config.json", bytes: 803, digest: "4bc9881d39ef7fce3df804d194558e29bd974d965437dc1e6a8f9f7a0939b80d"),
+        .init(name: "merges.txt", bytes: 466391, digest: "0b54e8aa4e53d5383e2e4bc635a56b43f9647f7b13832d5d9ecd8f82dac4f510"),
+        .init(name: "model.safetensors", bytes: 75789919, digest: "e91560ee24b13eee6ddeb14879d728a90780053d69057b15ff199ccadfcfe33b"),
+        .init(name: "model.safetensors.index.json", bytes: 48978, digest: "2aa3391702d20c3c886cc6148d210c843bfb4dfde32b71fe859f1c744ce35dd3"),
+        .init(name: "special_tokens_map.json", bytes: 655, digest: "2b7379f3ae813529281a5c602bc5a11c1d4e0a99107aaa597fe936c1e813ca52"),
+        .init(name: "tokenizer.json", bytes: 2104556, digest: "9ca9acddb6525a194ec8ac7a87f24fbba7232a9a15ffa1af0c1224fcd888e47c"),
+        .init(name: "tokenizer_config.json", bytes: 3590, digest: "75668bda11eb0d5ece137b4eb3fb2ad679f847fd19846b726369a26d92f9f28e"),
+        .init(name: "vocab.json", bytes: 800662, digest: "82b84012e3add4d01d12ba14442026e49b8cbbaead1f79ecf3d919784f82dc79"),
+    ]
+
+    /// Private research only; no production routing or redistribution clearance.
+    public static func verifySmol135Research(directory: URL) -> Result<Receipt, Rejection> {
+        verify(directory: directory, entries: smol135ResearchFiles).map {
+            Receipt(modelID: smol135ResearchModelID, revision: smol135ResearchRevision,
+                    fileCount: smol135ResearchFiles.count, totalBytes: $0)
+        }
+    }
+
+    public static let lfm12ResearchModelID = "LiquidAI/LFM2.5-1.2B-Instruct-MLX-4bit"
+    public static let lfm12ResearchRevision = "7ccafdb04c36936f4f1c4685198c6c9a40275932"
+    public static let lfm12UpstreamRevision = "b9d816ab510f9a28dca37cb182e9da8b0226e13c"
+    static let lfm12ResearchFiles: [Entry] = [
+        .init(name: "LICENSE", bytes: 10644, digest: "61d7e939a05911c765b7e98ffaa1ab5ca6c0174a65350766c25cb10197d19fc8"),
+        .init(name: "README.md", bytes: 2220, digest: "116777890bc3b8cdb8cee2356a3f7f30902b40d9fcabbff5d0914a2c3812618b"),
+        .init(name: "UPSTREAM_MODEL_CARD.md", bytes: 16323, digest: "b685a20de8241fc8de6a2562e57134697f0cd2b524cc2868570c6a3a1f6c43f6"),
+        .init(name: "chat_template.jinja", bytes: 1836, digest: "3acb41f339d069a43037e6b9a9715cbeece8874eb25a7cabf1a33903d7724d6d"),
+        .init(name: "config.json", bytes: 1572, digest: "3201758c1b68e92a8102583626b0d76f70ff4c6fc2e2b99d32e96cdbe6788cea"),
+        .init(name: "generation_config.json", bytes: 132, digest: "5ffd97da1dec4308543894569662d96e923ed01f7a9d8c7ff5aea7f800738cbd"),
+        .init(name: "model.safetensors", bytes: 658540250, digest: "d837f243744bbdbe7dd032f90b482a1c45d5b6035b25c1d7804d0f4c74b5c004"),
+        .init(name: "model.safetensors.index.json", bytes: 23414, digest: "3074009e9be56358bf8edc25354572cbca2b5a625e02f8a2c2789a656f51f5a1"),
+        .init(name: "special_tokens_map.json", bytes: 434, digest: "742aefe2b7dec496e8caffdba03a75d0c1a9925d53bd3f3e0d388c96b591b6f4"),
+        .init(name: "tokenizer.json", bytes: 4733389, digest: "df1d8d5ec5d091b460562ffd545e4a5e91d17d4a0db7ebe733be34ed374377bd"),
+        .init(name: "tokenizer_config.json", bytes: 92225, digest: "2a52ec012d3df831ba434b081bef3726a6ee22501f062ad8353c557a0cfa0d01"),
+    ]
+
+    /// Research-only pin. No inference or production admission implied.
+    public static func verifyLFM12Research(directory: URL) -> Result<Receipt, Rejection> {
+        verify(directory: directory, entries: lfm12ResearchFiles).map {
+            Receipt(modelID: lfm12ResearchModelID, revision: lfm12ResearchRevision,
+                    fileCount: lfm12ResearchFiles.count, totalBytes: $0)
+        }
+    }
+
+    public static let qwen2bResearchModelID = "mlx-community/Qwen3.5-2B-4bit"
+    public static let qwen2bResearchRevision = "674aaa7240b91e8012fcad5d791b7dfe5ba90207"
+    public static let qwen2bUpstreamRevision = "15852e8c16360a2fea060d615a32b45270f8a8fc"
+    static let qwen2bResearchFiles: [Entry] = [
+        .init(name: "LICENSE", bytes: 11544, digest: "bbedc3fda3305820b977265f01b8619d87570a6739de3a5582c3464840f1e57a"),
+        .init(name: "README.md", bytes: 666, digest: "25ccef130ebab05aed7798f4aee3b829a80e6c67c0f20b7d68dea8a4a103a071"),
+        .init(name: "UPSTREAM_MODEL_CARD.md", bytes: 62814, digest: "c0e83a849c776e6fa843d011f023132d942a0f0140d903205bf1c363adad2275"),
+        .init(name: "chat_template.jinja", bytes: 7755, digest: "273d8e0e683b885071fb17e08d71e5f2a5ddfb5309756181681de4f5a1822d80"),
+        .init(name: "config.json", bytes: 3113, digest: "beb7fc5a6e0405fe332821cf1a8ef7b69bb390a8c8933171647de5579debf949"),
+        .init(name: "model.safetensors", bytes: 1722271785, digest: "713fe7e5d3c3965f7106b0d0ee17615f7869c23c8d327996df8c1196fbcf07d5"),
+        .init(name: "model.safetensors.index.json", bytes: 81722, digest: "8294c05cca7d53a6c33e3db2b379539bd296d054e0b689711b16b6ac93c7e49d"),
+        .init(name: "preprocessor_config.json", bytes: 390, digest: "27225450ac9c6529872ee1924fcb0962ff5634834f817040f444118116f4e516"),
+        .init(name: "processor_config.json", bytes: 1300, digest: "14932921ca485d458a04dafd8069fbb0a4505622a48208d19ed247115801385b"),
+        .init(name: "tokenizer.json", bytes: 19989343, digest: "87a7830d63fcf43bf241c3c5242e96e62dd3fdc29224ca26fed8ea333db72de4"),
+        .init(name: "tokenizer_config.json", bytes: 1139, digest: "e98f1901ac6f0adff67b1d540bfa0c36ac1a0cf59eb72ed78146ef89aafa1182"),
+        .init(name: "video_preprocessor_config.json", bytes: 385, digest: "7768af27c1fafa9cc9011c1dc20067e03f8915e03b63504550e11d5066986d13"),
+        .init(name: "vocab.json", bytes: 6722759, digest: "ce99b4cb2983d118806ce0a8b777a35b093e2000a503ebde25853284c9dfa003"),
+    ]
+
+    /// Research-only pin. No inference or production admission implied.
+    public static func verifyQwen2BResearch(directory: URL) -> Result<Receipt, Rejection> {
+        verify(directory: directory, entries: qwen2bResearchFiles).map {
+            Receipt(modelID: qwen2bResearchModelID, revision: qwen2bResearchRevision,
+                    fileCount: qwen2bResearchFiles.count, totalBytes: $0)
+        }
+    }
+
+    public static let qwen4bResearchModelID = "mlx-community/Qwen3.5-4B-MLX-4bit"
+    public static let qwen4bResearchRevision = "32f3e8ecf65426fc3306969496342d504bfa13f3"
+    public static let qwen4bUpstreamRevision = "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a"
+    static let qwen4bResearchFiles: [Entry] = [
+        .init(name: "LICENSE", bytes: 11544, digest: "bbedc3fda3305820b977265f01b8619d87570a6739de3a5582c3464840f1e57a"),
+        .init(name: "README.md", bytes: 2273, digest: "49c0a725bdd22705d2d34b93cfe20463b673e3339ce4de8b81a340c05cfef5bc"),
+        .init(name: "UPSTREAM_MODEL_CARD.md", bytes: 77661, digest: "1406be1b6b8fd8a6545870da516912804756593628a1d0fb0a7965211e82a7bb"),
+        .init(name: "chat_template.jinja", bytes: 7756, digest: "a4aee8afcf2e0711942cf848899be66016f8d14a889ff9ede07bca099c28f715"),
+        .init(name: "config.json", bytes: 3366, digest: "f3efc81b2ea8d96a45301037d3ccccbcccdef44a961845c87f286aaddbc6eaaa"),
+        .init(name: "model.safetensors", bytes: 3034300695, digest: "5fb9acd0246866381cf8c5c354c6db1019f6498eec4ccb4f5edcc71ffeacb2db"),
+        .init(name: "model.safetensors.index.json", bytes: 101944, digest: "52e534c41f7b97708329c85f762e5882bf48bd5955a422c6ae74eba321e6048a"),
+        .init(name: "preprocessor_config.json", bytes: 390, digest: "27225450ac9c6529872ee1924fcb0962ff5634834f817040f444118116f4e516"),
+        .init(name: "processor_config.json", bytes: 1300, digest: "14932921ca485d458a04dafd8069fbb0a4505622a48208d19ed247115801385b"),
+        .init(name: "tokenizer.json", bytes: 19989343, digest: "87a7830d63fcf43bf241c3c5242e96e62dd3fdc29224ca26fed8ea333db72de4"),
+        .init(name: "tokenizer_config.json", bytes: 1139, digest: "e98f1901ac6f0adff67b1d540bfa0c36ac1a0cf59eb72ed78146ef89aafa1182"),
+        .init(name: "video_preprocessor_config.json", bytes: 385, digest: "7768af27c1fafa9cc9011c1dc20067e03f8915e03b63504550e11d5066986d13"),
+        .init(name: "vocab.json", bytes: 6722759, digest: "ce99b4cb2983d118806ce0a8b777a35b093e2000a503ebde25853284c9dfa003"),
+    ]
+
+    /// Research only; artifact verification does not imply memory admission.
+    public static func verifyQwen4BResearch(directory: URL) -> Result<Receipt, Rejection> {
+        verify(directory: directory, entries: qwen4bResearchFiles).map {
+            Receipt(modelID: qwen4bResearchModelID, revision: qwen4bResearchRevision,
+                    fileCount: qwen4bResearchFiles.count, totalBytes: $0)
+        }
+    }
+
+    public static let qwen3text4bResearchModelID = "mlx-community/Qwen3-4B-Instruct-2507-4bit"
+    public static let qwen3text4bResearchRevision = "50d427756c6b1b2fe0c0a10f67fbda1fc8e82c1b"
+    public static let qwen3text4bUpstreamRevision = "cdbee75f17c01a7cc42f958dc650907174af0554"
+    static let qwen3text4bResearchFiles: [Entry] = [
+        .init(name: "LICENSE", bytes: 11343, digest: "832dd9e00a68dd83b3c3fb9f5588dad7dcf337a0db50f7d9483f310cd292e92e"),
+        .init(name: "README.md", bytes: 969, digest: "7b17ce562d7ea121c86d2ffdf660eed3726ac5b52cacfa9f1de11a65969f5657"),
+        .init(name: "UPSTREAM_MODEL_CARD.md", bytes: 8168, digest: "8e3dd0c3b5b11897cc71092ccfe517bb7a9783479baa3665aad73c8d1a2041cd"),
+        .init(name: "added_tokens.json", bytes: 707, digest: "c0284b582e14987fbd3d5a2cb2bd139084371ed9acbae488829a1c900833c680"),
+        .init(name: "chat_template.jinja", bytes: 4040, digest: "40c21f34cf67d8c760ef72f8ad3ae5afad514299d4b06e91dd9a8d705af7b541"),
+        .init(name: "config.json", bytes: 938, digest: "574349e5a343236546fda55e4744a76e181f534182d7dc60ff1bad7e7a502849"),
+        .init(name: "generation_config.json", bytes: 238, digest: "835fffe355c9438e7a25be099b3fccaa98350b83451f9fd2d99512e74f1ade48"),
+        .init(name: "merges.txt", bytes: 1671853, digest: "8831e4f1a044471340f7c0a83d7bd71306a5b867e95fd870f74d0c5308a904d5"),
+        .init(name: "model.safetensors", bytes: 2263022417, digest: "2a73c6c248601ab904e035548abd8e6abb65ea27dcb5f342fb0a8910eb44173f"),
+        .init(name: "model.safetensors.index.json", bytes: 63964, digest: "388d811b8b7c2608dd04cce1bcb04a8bf715d19b42790894e6d3427ff429a777"),
+        .init(name: "special_tokens_map.json", bytes: 613, digest: "76862e765266b85aa9459767e33cbaf13970f327a0e88d1c65846c2ddd3a1ecd"),
+        .init(name: "tokenizer.json", bytes: 11422654, digest: "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4"),
+        .init(name: "tokenizer_config.json", bytes: 5440, digest: "4397cc477eb6d79715ccd2000accd6b3531928f30029665832fa1b255f24d2b9"),
+        .init(name: "vocab.json", bytes: 2776833, digest: "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"),
+    ]
+
+    /// Research only; artifact verification does not imply memory admission.
+    public static func verifyQwen3Text4BResearch(directory: URL) -> Result<Receipt, Rejection> {
+        verify(directory: directory, entries: qwen3text4bResearchFiles).map {
+            Receipt(modelID: qwen3text4bResearchModelID, revision: qwen3text4bResearchRevision,
+                    fileCount: qwen3text4bResearchFiles.count, totalBytes: $0)
+        }
+    }
+
+    /// The caller must retain exclusive control of this private model directory
+    /// until loading finishes. This is a byte check, not a runtime attestation.
+    public static func verifyQwen3(directory: URL) -> Result<Receipt, Rejection> {
+        verify(directory: directory, entries: qwenFiles).map {
+            Receipt(modelID: modelID, revision: revision, fileCount: qwenFiles.count, totalBytes: $0)
+        }
+    }
+
+    static func verify(directory: URL, entries: [Entry]) -> Result<Int64, Rejection> {
+        #if canImport(CryptoKit) && (canImport(Darwin) || canImport(Glibc))
+        guard directory.isFileURL else { return .failure(.invalidDirectory) }
+        let dir = open(directory.path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW)
+        guard dir >= 0 else { return .failure(.invalidDirectory) }
+        defer { _ = close(dir) }
+        guard let names = try? FileManager.default.contentsOfDirectory(atPath: directory.path),
+              Set(names) == Set(entries.map(\.name)), names.count == entries.count else {
+            return .failure(.unexpectedFiles)
+        }
+        var total: Int64 = 0
+        for entry in entries {
+            let fd = openat(dir, entry.name, O_RDONLY | O_NOFOLLOW | O_NONBLOCK)
+            guard fd >= 0 else { return .failure(.invalidFile) }
+            defer { _ = close(fd) }
+            var info = stat()
+            guard fstat(fd, &info) == 0, (info.st_mode & mode_t(S_IFMT)) == mode_t(S_IFREG), info.st_nlink == 1 else {
+                return .failure(.invalidFile)
+            }
+            guard info.st_size == entry.bytes else { return .failure(.sizeMismatch) }
+            var hash = SHA256()
+            var buffer = [UInt8](repeating: 0, count: 1_048_576)
+            var count: Int64 = 0
+            while true {
+                let n = read(fd, &buffer, buffer.count)
+                guard n >= 0 else { return .failure(.invalidFile) }
+                if n == 0 { break }
+                count += Int64(n)
+                guard count <= entry.bytes else { return .failure(.sizeMismatch) }
+                hash.update(data: Data(buffer.prefix(n)))
+            }
+            guard count == entry.bytes, fstat(fd, &info) == 0, info.st_size == entry.bytes else {
+                return .failure(.sizeMismatch)
+            }
+            let digest = hash.finalize().map { String(format: "%02x", $0) }.joined()
+            guard digest == entry.digest else { return .failure(.digestMismatch) }
+            total += count
+        }
+        return .success(total)
+        #else
+        return .failure(.digestUnavailable)
+        #endif
+    }
+}

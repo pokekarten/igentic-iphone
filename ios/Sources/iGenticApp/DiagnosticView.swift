@@ -235,44 +235,59 @@ public struct DiagnosticView: View {
             chatGPTHandoff = route
         }
         .sheet(item: $chatGPTHandoff) { route in
-            NavigationStack {
-                Form {
-                    Section("ChatGPT-Übergabe") {
-                        Text("Du hast diesen Link auf dem iPhone geöffnet. Es wurde keine Aktion ausgeführt oder freigegeben.")
-                        Text("Die Auswahl unten öffnet ausschließlich einen Bereich der iGentic-App.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
-                    Section("Manuell fortfahren") {
-                        switch route {
-                        case .diagnostics:
-                            Text("Diagnostics ist bereits geöffnet.")
-                        case .discovery:
-                            NavigationLink("Lokale Entdeckungen öffnen") {
-                                ExploreView()
-                            }
-                            .accessibilityIdentifier("igentic-handoff-open-discovery")
-                        case .reminderDraft:
-                            #if canImport(EventKit)
-                            NavigationLink("Erinnerungsentwurf prüfen") {
-                                CreateReminderTaskView()
-                            }
-                            #else
-                            Text("Erinnerungen sind auf diesem Gerät nicht verfügbar.")
-                            #endif
-                        }
-                    }
-                }
-                .navigationTitle(route.title)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Schließen") { chatGPTHandoff = nil }
-                    }
-                }
-            }
+            ChatGPTHandoffPreviewView(route: route, close: { chatGPTHandoff = nil })
+                .id(route.id)
             // A link alone is not a UI result. Only the actual SwiftUI sheet
             // lifecycle emits this tiny, independently readable observation.
             .onAppear { handoffPreviewObserved?(route) }
+        }
+    }
+}
+
+/// Navigation state is scoped to the current preview. An incoming URL
+/// never sets this state; only the explicit local discovery button can.
+private struct ChatGPTHandoffPreviewView: View {
+    let route: ChatGPTHandoffRoute
+    let close: () -> Void
+    @State private var discoveryPresented = false
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("ChatGPT-Übergabe") {
+                    Text("Du hast diesen Link auf dem iPhone geöffnet. Es wurde keine Aktion ausgeführt oder freigegeben.")
+                    Text("Die Auswahl unten öffnet ausschließlich einen Bereich der iGentic-App.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                Section("Manuell fortfahren") {
+                    switch route {
+                    case .diagnostics:
+                        Text("Diagnostics ist bereits geöffnet.")
+                    case .discovery:
+                        Button("Lokale Entdeckungen öffnen") {
+                            discoveryPresented = true
+                        }
+                        .buttonStyle(.bordered)
+                        .accessibilityIdentifier("igentic-handoff-open-discovery")
+                    case .reminderDraft:
+                        #if canImport(EventKit)
+                        NavigationLink("Erinnerungsentwurf prüfen") {
+                            CreateReminderTaskView()
+                        }
+                        #else
+                        Text("Erinnerungen sind auf diesem Gerät nicht verfügbar.")
+                        #endif
+                    }
+                }
+            }
+            .navigationDestination(isPresented: $discoveryPresented) { ExploreView() }
+            .navigationTitle(route.title)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Schließen", action: close)
+                }
+            }
         }
     }
 }

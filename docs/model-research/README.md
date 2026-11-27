@@ -127,3 +127,7 @@ Unknown values stay `unknown` or `unverified`. Do not infer iPhone Air readiness
 - Do not silently replace source links, licenses, benchmark expectations or model revisions.
 - Open one narrow reconciliation issue when durable documents conflict.
 - Keep current PR, check and lane state out of this directory.
+
+### Pinned native MLX artifact admission
+
+`AgentCore.PinnedMLXSnapshot.verifyQwen3(directory:)` checks all nine files in the exact Apache-2.0 `mlx-community/Qwen3-0.6B-4bit` snapshot `73e3e38d981303bc594367cd910ea6eb48349da8` (351,383,618 bytes). It rejects missing/extra files, symlinks, nonregular files, size and digest mismatches. SHA-256 is streamed using CryptoKit; unsupported hosts fail closed. No weights are committed. The caller must maintain exclusive control of the private directory through model loading. Admission does not establish successful inference, quality, runtime availability, or permission to execute a tool. The native MLX adapter is still experimental.

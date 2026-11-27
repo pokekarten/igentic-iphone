@@ -111,6 +111,25 @@ struct iGenticDiagnosticsApp: App {
             }
             #if DEBUG
             .task {
+                // Explicit isolated model-lab acceptance, fixed local directory,
+                // no model execution or access to the owner's exchange data.
+                guard ProcessInfo.processInfo.arguments.contains("--igentic-qwen-integrity-smoke") else { return }
+                guard let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
+                let directory = documents.appendingPathComponent("qwen3-06b", isDirectory: true)
+                let admission = await Task.detached(priority: .utility) {
+                    PinnedMLXSnapshot.verifyQwen3(directory: directory)
+                }.value
+                switch admission {
+                case .success(let receipt):
+                    physicalProbeStatus = "PHYSICAL_QWEN_INTEGRITY=verified; files=\(receipt.fileCount); bytes=\(receipt.totalBytes); inference=false"
+                case .failure(let reason):
+                    physicalProbeStatus = "PHYSICAL_QWEN_INTEGRITY=rejected; reason=\(reason); inference=false"
+                }
+                print(physicalProbeStatus)
+            }
+            #endif
+            #if DEBUG
+            .task {
                 guard ProcessInfo.processInfo.arguments.contains("--igentic-document-agent-smoke") else { return }
                 let report = await AgentLoopDocumentWorkflow.runOnDevice(image: AgentLoopDocumentWorkflow.syntheticImage(), focus: "Meeting location", additionalFocus: "Meeting start time")
                 let matched = report.excerpts.contains(where: { $0.contains("Room Cedar") })
@@ -190,6 +209,7 @@ struct iGenticDiagnosticsApp: App {
 
 private enum iGenticDiagnosticsIntentError: Error {
     case policyDenied
+    case localAgentRunBlocked
 }
 
 // System-facing, read-only demonstration. No device status, user records, model
@@ -549,6 +569,27 @@ struct iGenticRunLocalStatusLoopIntent: AppIntent {
     }
 }
 
+// Owner-invoked fixed read-only local agent. No arbitrary task text, model
+// callbacks, remote provider, or private observation is returned to Shortcuts.
+@available(iOS 27.0, *)
+struct iGenticRunLocalDiagnosticAgentIntent: AppIntent {
+    static let title: LocalizedStringResource = "iGentic Lokaler KI-Agent"
+    static let description = IntentDescription("Runs the bounded local diagnostic agent using the on-device model; returns execution metadata only.")
+    static let supportedModes: IntentModes = .background
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ReturnsValue<String> {
+        try checkLocalStatusReadPolicy()
+        do {
+            let report = try await AgentLoopLocalDiagnosticWorkflow.runJournaledOnDevice()
+            return .result(value: report.shortcutReceipt)
+        } catch {
+            // Do not leak file errors or assume that a failed run did no work.
+            throw iGenticDiagnosticsIntentError.localAgentRunBlocked
+        }
+    }
+}
+
 // Shortcuts asks iGentic for a new anonymous correlation token before asking
 // ChatGPT. No user content is stored, and this token is NOT authentication.
 @available(iOS 27.0, *)
@@ -631,6 +672,12 @@ struct iGenticChatGPTFollowUpIntent: AppIntent {
 // building blocks in the Shortcuts editor for owner-configured AI workflows.
 struct iGenticDiagnosticsShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
+        AppShortcut(
+            intent: iGenticRunLocalDiagnosticAgentIntent(),
+            phrases: ["Starte den lokalen KI-Agenten mit \(.applicationName)"],
+            shortTitle: "iGentic Lokaler KI-Agent",
+            systemImageName: "brain"
+        )
         AppShortcut(
             intent: iGenticRunLocalStatusLoopIntent(),
             phrases: ["Starte den Status-Loop mit \(.applicationName)"],

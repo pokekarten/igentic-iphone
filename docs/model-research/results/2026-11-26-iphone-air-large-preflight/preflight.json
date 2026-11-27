@@ -1,0 +1,18 @@
+{
+  "actions_executed": 0,
+  "available_process_dirty_memory_bytes": 3526277400,
+  "build": "Debug",
+  "date": "2026-11-26",
+  "device_model": "iPhone Air (iPhone18,4)",
+  "estimated_available_storage_bytes": 206993693722,
+  "hardware_attestation": false,
+  "model_inference_performed": false,
+  "physical_memory_bytes": 12304695296,
+  "preload_reserve_bytes": 1073741824,
+  "qwen35_4b_memory_gate": false,
+  "qwen35_4b_storage_gate": true,
+  "qwen3_text_4b_estimated_gate_from_same_sample": true,
+  "receipt_sha256": "4edfceeb1e14ac5530c729e5e0127f0b2b7c54c663c531fe2088e84fde9164dc",
+  "schema": "igentic.large-model-preflight.v1",
+  "thermal_nominal": true
+}

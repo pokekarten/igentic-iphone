@@ -1,0 +1,43 @@
+{
+  "actions_executed": 0,
+  "artifact_bytes": 201810115,
+  "artifact_manifest_sha256": "caf855c37b689e923bd52f0f4cc2733858a69041d630ea11c56e9227ac0ca979",
+  "available_process_end_bytes": 3243948000,
+  "available_process_start_bytes": 3530209608,
+  "baseline_app_footprint_bytes": 9782968,
+  "candidate": "granite350",
+  "capture_context": {
+    "build_configuration": "Debug",
+    "capture_date": "2026-11-27",
+    "device_model": "iPhone Air (iPhone18,4)",
+    "hardware_attestation": false,
+    "runtime_source_revision": "026d599e52f3a2cebbecbd5b3f318b800a73ff02"
+  },
+  "completed": 3,
+  "elapsed_ms": 2749,
+  "generated_tokens": 125,
+  "hardware_attestation": false,
+  "load_ms": 537,
+  "loaded_app_footprint_bytes": 256935872,
+  "max_sampled_app_footprint_bytes": 362235936,
+  "min_sampled_available_process_bytes": 3177756640,
+  "mlx_peak_active_bytes": 305657486,
+  "model": "mlx-community/granite-4.0-h-350m-4bit",
+  "receipt_sha256": "c12ebf4e8e9c49cd8890764fed9364c99f1a7d46a5b3b291736bab7c39a69f88",
+  "reference_source_sha256": "8f2149422d858b19c8d6a62a322d2810dbeb347c7293d2e55a8db65c85287446",
+  "revision": "2b96c1f68e5349bcaec2a498a68cc177537e46d1",
+  "sample_count": 37,
+  "schema": "igentic.resource.pilot.v1",
+  "status": "completed",
+  "thermal_end": "nominal",
+  "thermal_max": "nominal",
+  "thermal_start": "nominal",
+  "total": 3,
+  "unmeasured": [
+    "actual_temperature_celsius",
+    "true_peak_app_ram",
+    "total_system_model_ram",
+    "energy",
+    "sustained_thermal_performance"
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "actions_executed": 0,
+  "artifact_bytes": 226583972,
+  "artifact_manifest_sha256": "0575a9e4509ef2a1c8eaaeb0f7657ef138a9329e8b7fa2923d7b3d0e5f266170",
+  "available_process_end_bytes": 3215177672,
+  "available_process_start_bytes": 3530045744,
+  "baseline_app_footprint_bytes": 9946832,
+  "candidate": "lfm",
+  "capture_context": {
+    "build_configuration": "Debug",
+    "capture_date": "2026-11-27",
+    "device_model": "iPhone Air (iPhone18,4)",
+    "hardware_attestation": false,
+    "runtime_source_revision": "026d599e52f3a2cebbecbd5b3f318b800a73ff02"
+  },
+  "completed": 3,
+  "elapsed_ms": 1075,
+  "generated_tokens": 116,
+  "hardware_attestation": false,
+  "load_ms": 380,
+  "loaded_app_footprint_bytes": 255379440,
+  "max_sampled_app_footprint_bytes": 375457848,
+  "min_sampled_available_process_bytes": 3165075400,
+  "mlx_peak_active_bytes": 321035640,
+  "model": "LiquidAI/LFM2.5-350M-MLX-4bit",
+  "receipt_sha256": "33f390935d6db5534c4103d0b9f2765d57f8fd30163dbe87c173624b0d943f1e",
+  "reference_source_sha256": "8f2149422d858b19c8d6a62a322d2810dbeb347c7293d2e55a8db65c85287446",
+  "revision": "f6cb4e006bb7a2d8a6afa14ec0a53e0586f65a5b",
+  "sample_count": 20,
+  "schema": "igentic.resource.pilot.v1",
+  "status": "completed",
+  "thermal_end": "nominal",
+  "thermal_max": "nominal",
+  "thermal_start": "nominal",
+  "total": 3,
+  "unmeasured": [
+    "actual_temperature_celsius",
+    "true_peak_app_ram",
+    "total_system_model_ram",
+    "energy",
+    "sustained_thermal_performance"
+  ]
+}

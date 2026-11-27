@@ -1,0 +1,17 @@
+REASON_V1_APPLE_CASE=1; category=arithmetic; pass=false; error=false; milliseconds=1055
+REASON_V1_APPLE_CASE=2; category=arithmetic; pass=true; error=false; milliseconds=245
+REASON_V1_APPLE_CASE=3; category=arithmetic; pass=false; error=false; milliseconds=326
+REASON_V1_APPLE_CASE=4; category=arithmetic; pass=true; error=false; milliseconds=274
+REASON_V1_APPLE_CASE=5; category=planning; pass=false; error=false; milliseconds=296
+REASON_V1_APPLE_CASE=6; category=planning; pass=true; error=false; milliseconds=268
+REASON_V1_APPLE_CASE=7; category=planning; pass=false; error=false; milliseconds=255
+REASON_V1_APPLE_CASE=8; category=planning; pass=true; error=false; milliseconds=249
+REASON_V1_APPLE_CASE=9; category=state; pass=true; error=false; milliseconds=223
+REASON_V1_APPLE_CASE=10; category=state; pass=true; error=false; milliseconds=225
+REASON_V1_APPLE_CASE=11; category=state; pass=false; error=false; milliseconds=219
+REASON_V1_APPLE_CASE=12; category=state; pass=false; error=false; milliseconds=225
+REASON_V1_APPLE_CASE=13; category=evidence; pass=true; error=false; milliseconds=228
+REASON_V1_APPLE_CASE=14; category=evidence; pass=false; error=false; milliseconds=227
+REASON_V1_APPLE_CASE=15; category=evidence; pass=true; error=false; milliseconds=227
+REASON_V1_APPLE_CASE=16; category=evidence; pass=false; error=false; milliseconds=222
+REASON_V1_APPLE=completed; passed=8; completed=16; total=16; errors=0; actionsExecuted=0

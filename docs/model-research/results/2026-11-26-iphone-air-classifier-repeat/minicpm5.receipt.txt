@@ -1,0 +1,15 @@
+MINICPM5_CLASS_INTEGRITY=verified; files=10; bytes=618039803
+MINICPM5_CLASS_LOAD=completed; milliseconds=745
+MINICPM5_CLASS_CASE=1; outcome=reject; tokens=16; milliseconds=208
+MINICPM5_CLASS_CASE=2; outcome=reject; tokens=16; milliseconds=188
+MINICPM5_CLASS_CASE=3; outcome=reject; tokens=16; milliseconds=192
+MINICPM5_CLASS_CASE=4; outcome=reject; tokens=16; milliseconds=188
+MINICPM5_CLASS_CASE=5; outcome=reject; tokens=16; milliseconds=190
+MINICPM5_CLASS_CASE=6; outcome=reject; tokens=16; milliseconds=188
+MINICPM5_CLASS_CASE=7; outcome=reject; tokens=16; milliseconds=188
+MINICPM5_CLASS_CASE=8; outcome=reject; tokens=16; milliseconds=189
+MINICPM5_CLASS_CASE=9; outcome=reject; tokens=16; milliseconds=190
+MINICPM5_CLASS_CASE=10; outcome=reject; tokens=16; milliseconds=191
+MINICPM5_CLASS_CASE=11; outcome=reject; tokens=16; milliseconds=189
+MINICPM5_CLASS_CASE=12; outcome=reject; tokens=16; milliseconds=189
+MINICPM5_CLASS_RESEARCH=completed; passed=0; total=12; holdout=0; actionsExecuted=0

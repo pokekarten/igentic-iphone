@@ -94,14 +94,28 @@ final class AgentLoopDiagnosticJournal {
         guard state.valid else { throw Failure.invalid }
         let data = try encode(state)
         guard data.count <= 2048 else { throw Failure.invalid }
-        // No private payload is persisted. Atomic replacement plus strict
-        // mode checks on load; filesystem rollback is outside this contract.
+        // The cooperating writer holds the journal lease. Prepare private
+        // bytes and permissions before publication, on the same filesystem.
+        // A failed preparation must not replace the previous checkpoint.
+        // Power-loss durability and hostile parent directories are outside
+        // this contract.
+        let staging = url.deletingLastPathComponent().appendingPathComponent(
+            ".igentic-journal-" + UUID().uuidString, isDirectory: true)
+        let manager = FileManager.default
+        try manager.createDirectory(at: staging, withIntermediateDirectories: false,
+                                    attributes: [.posixPermissions: 0o700])
+        defer { try? manager.removeItem(at: staging) }
+        let candidate = staging.appendingPathComponent("candidate")
         #if os(iOS)
-        try data.write(to: url, options: [.atomic, .completeFileProtection])
+        try data.write(to: candidate, options: [.withoutOverwriting, .completeFileProtection])
         #else
-        try data.write(to: url, options: .atomic)
+        try data.write(to: candidate, options: .withoutOverwriting)
         #endif
-        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
+        try manager.setAttributes([.posixPermissions: 0o600], ofItemAtPath: candidate.path)
+        guard rename(candidate.path, url.path) == 0 else {
+            throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
+        }
+        // No throwing operation after successful publication.
     }
 
     /// A running record returned here is necessarily abandoned by the
@@ -191,8 +205,19 @@ final class AgentLoopDiagnosticJournal {
             state = next
         }
         acceptingProgress = false
-        guard report.steps == state.steps, !Task.isCancelled || report.outcome != .completed else { throw Failure.invalid }
-        state.stage = report.outcome == .completed ? .completed : .stopped
+        // The operation is trusted local code, but its terminal receipt must
+        // still agree with durable progress and the bounded execution contract.
+        guard report.steps == state.steps,
+              (0...(goal.requiredReads.count + 1)).contains(report.modelTurns) else { throw Failure.invalid }
+        if report.outcome == .completed {
+            guard !Task.isCancelled, state.steps.last == .finish,
+                  let result = report.localReport, !result.isEmpty,
+                  report.modelTurns == 0 || report.modelTurns == state.steps.count else { throw Failure.invalid }
+            state.stage = .completed
+        } else {
+            guard report.localReport == nil, !state.steps.contains(.finish) else { throw Failure.invalid }
+            state.stage = .stopped
+        }
         try save(state)
         return report
     }
