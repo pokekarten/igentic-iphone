@@ -217,3 +217,15 @@ JSON ticket (schema, taskId, prompt), while **iGentic KI-Auftrag starten**
 creates a task and returns such a ticket. For a beginner setup, use the
 separate iGentic KI-Auftrags-ID lesen and iGentic KI-Prompt lesen actions.
 Only the plain prompt may be forwarded to an external model.
+
+### Native local diagnostic AI agent Shortcut
+
+`iGentic Lokaler KI-Agent` is an app-owned, parameter-free App Shortcut. It
+runs the existing extended local diagnostic workflow via its durable journal,
+with at most four on-device model turns (three registered read-only tools and
+finish). It refuses concurrent, queued or interrupted work rather than
+silently taking it over. No external provider or private observation is
+returned: the Shortcut output contains only outcome, turn count, fixed step
+names and whether a local report was prepared. Model unavailability is not
+reported as completion. App metadata and fixture tests are not physical model
+acceptance; test the actual signed app and native dispatch separately.
