@@ -4,7 +4,7 @@ import tempfile
 from pathlib import Path
 import plistlib
 import unittest
-from status_loop_factory import ADVANCE, START, check_metadata, workflow, write_private_candidate
+from status_loop_factory import ADVANCE, START, check_metadata, workflow, write_private_candidate, AGENT, agent_result_workflow, attachment_token, text_token
 
 
 def primitive(kind):
@@ -67,6 +67,31 @@ class FactoryTests(unittest.TestCase):
                           "is.workflow.actions.getvalueforkey", "example.test."+ADVANCE,
                           "example.test."+ADVANCE])
         self.assertEqual(result, workflow(fixture(), "example.test", "AAAAAAAAAA"))
+
+    def test_agent_result_uses_text_slot_and_exact_source_uuid(self):
+        data = {"actions": {AGENT: {"identifier": AGENT, "isDiscoverable": True,
+                "outputType": primitive(0), "supportedModes": 1, "parameters": []}}}
+        candidate = agent_result_workflow(data, "example.test", "AAAAAAAAAA")
+        actions = plistlib.loads(plistlib.dumps(candidate, fmt=plistlib.FMT_BINARY))["WFWorkflowActions"]
+        self.assertEqual([a["WFWorkflowActionIdentifier"] for a in actions],
+                         ["example.test." + AGENT, "is.workflow.actions.showresult"])
+        p, q = [a["WFWorkflowActionParameters"] for a in actions]
+        source = p["UUID"]
+        self.assertEqual(q["Text"], {"WFSerializationType": "WFTextTokenString",
+            "Value": {"string": "\uFFFC", "attachmentsByRange": {"{0, 1}": {
+                "Type": "ActionOutput", "OutputUUID": source, "OutputName": "iGentic Lokaler KI-Agent"}}}})
+        self.assertEqual(attachment_token(source, "result")["WFSerializationType"], "WFTextTokenAttachment")
+        self.assertEqual(text_token(source, "result")["Value"]["attachmentsByRange"]["{0, 1}"],
+                         attachment_token(source, "result")["Value"])
+        self.assertEqual(candidate, agent_result_workflow(data, "example.test", "AAAAAAAAAA"))
+        for changes in ({"outputType": primitive(1)}, {"isDiscoverable": False},
+                        {"supportedModes": 2}, {"parameters": [param("taskID")]}):
+            bad = copy.deepcopy(data)
+            bad["actions"][AGENT].update(changes)
+            with self.assertRaises(ValueError):
+                agent_result_workflow(bad, "example.test", "AAAAAAAAAA")
+        with self.assertRaises(ValueError):
+            agent_result_workflow(fixture(), "example.test", "AAAAAAAAAA")
 
     def test_type_mode_and_optional_drift(self):
         for mutate in (
