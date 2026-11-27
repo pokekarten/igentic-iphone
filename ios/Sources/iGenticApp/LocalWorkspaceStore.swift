@@ -1,4 +1,9 @@
 import Foundation
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#endif
 
 /// A first-party text-only workspace inside the app sandbox.
 /// Models, MCP clients and remote transports are deliberately not given this store.
@@ -105,14 +110,26 @@ public struct LocalWorkspaceStore {
         guard current.map({ Data($0.utf8) }) == preview.previous.map({ Data($0.utf8) }) else {
             throw LocalWorkspaceError.stalePreview
         }
-        let url = fileURL(preview.name)
-        try Data(preview.proposed.utf8).write(to: url, options: .atomic)
-        try fileManager.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
+        // Stage in a private directory on the same filesystem. Set protection
+        // before publication, so failure cannot replace the previous note.
+        // This is still a single-owner UI safeguard, not a multiprocess CAS.
+        let staging = directory.appendingPathComponent(".stage-" + UUID().uuidString, isDirectory: true)
+        try fileManager.createDirectory(at: staging, withIntermediateDirectories: false,
+                                        attributes: [.posixPermissions: 0o700])
+        defer { try? fileManager.removeItem(at: staging) }
+        let candidate = staging.appendingPathComponent("note")
         #if os(iOS)
-        try fileManager.setAttributes(
-            [.protectionKey: FileProtectionType.complete], ofItemAtPath: url.path
-        )
+        try Data(preview.proposed.utf8).write(to: candidate, options: [.withoutOverwriting, .completeFileProtection])
+        #else
+        try Data(preview.proposed.utf8).write(to: candidate, options: .withoutOverwriting)
         #endif
+        try fileManager.setAttributes([.posixPermissions: 0o600], ofItemAtPath: candidate.path)
+        // Same-volume rename is atomic. No throwing operation follows a
+        // successful publication, so the caller cannot report a false failure.
+        let destination = fileURL(preview.name)
+        guard rename(candidate.path, destination.path) == 0 else {
+            throw LocalWorkspaceError.unsafeEntry
+        }
     }
 
     private func fileURL(_ name: String) -> URL {

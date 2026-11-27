@@ -28,6 +28,19 @@ final class LocalWorkspaceStoreTests: XCTestCase {
         }
     }
 
+    func testReplacementPublishesProtectedFileAndCleansStaging() throws {
+        try withStore { store, dir in
+            try store.apply(try store.preview(name: "note", text: "first"), confirmedByOwner: true)
+            let url = dir.appendingPathComponent("note.txt")
+            try FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: url.path)
+            try store.apply(try store.preview(name: "note", text: "second"), confirmedByOwner: true)
+            XCTAssertEqual(try store.read(name: "note"), "second")
+            let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
+            XCTAssertEqual((attributes[.posixPermissions] as? NSNumber)?.intValue, 0o600)
+            XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: dir.path), ["note.txt"])
+        }
+    }
+
     func testStalePreviewNeverOverwritesChangedNote() throws {
         try withStore { store, _ in
             try store.apply(try store.preview(name: "a", text: "first"), confirmedByOwner: true)
