@@ -60,3 +60,24 @@ system settings, or unrestricted system-wide UI automation.
    exact-head CI and device acceptance. Keep the primary app and the
    model research lab distinct until the local product integration is
    tested.
+
+## 2026-11-27: deterministic local diagnostic execution
+
+The owner can explicitly choose a model-free extended report, execute a
+selected queued batch without a model, or explicitly restart an abandoned
+read-only attempt with the deterministic planner. This reuses the existing
+diagnostic allowlist, local policy checks, deadline, cancellation checks,
+checkpoint callback and durable journal. No new action authority or
+automatic fallback after a failed provider attempt. Each required native
+read is selected exactly once in order, followed by finish; unavailable
+system AI is a report observation, not an admission failure. Receipts
+report zero model turns and UI separates confirmed steps from model calls.
+Queue tickets are consumed in the existing FIFO order; no raw observations
+are persisted. These are bounded diagnostics, not general free-text
+automation or unrestricted device control.
+
+Validation: 23 focused tests passed before the additional queue test;
+full macOS Swift suite passed including the deterministic queue test and
+338 AgentCore tests; generic unsigned iPhoneOS build passed. No physical
+acceptance of the new binary, no installation or main merge. Existing
+external provider paths are unchanged. Recheck exact-head hosted CI.
