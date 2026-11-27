@@ -81,3 +81,7 @@ Qwen3.5 2B full artifact verified on Mac. CoreDevice copy timed out, leaving an 
 ### Physical 2B recovery and native chunk checkpoint
 
 Qwen3.5 2B full 13-file snapshot recovered on physical iPhone (1749154715 bytes, 2478 ms), prefix/tail/full hash checked before atomic replacement. Separate direct HTTPS 105-chunk manifest pilot: two 1 MiB chunks verified across separate launches (6106/5900 ms), prior checkpoint rechecked, no full native installation. Physical strict reasoning 4/16, 16/16 completed, no caps. Agent pilot loaded model twice but console deadlines ended after 16 and 18 cases, no complete aggregate or score. 4B weights fully verified on Mac, not staged. See docs/model-research/results/2026-11-26-iphone-air-qwen2b-recovery. Signed lab build passed; primary app unchanged, no router change. General standalone model installer and timeout/stall diagnosis remain open.
+
+### Physical Qwen3 4B Instruct acceptance smoke
+
+2026-11-27: 34 parts transferred, native SHA-256 assembly and all 14 files verified in 3470 ms. Actual 4B inference completed 3/3 exact short tasks, 842 ms load, nominal thermal samples, available process memory 3529423176 before load / 1179136576 after load / 1101312528 after final case. Signed Debug isolated lab; no production qualification or primary app replacement. Receipts in docs/model-research/results/2026-11-27-iphone-air-4b-smoke.
