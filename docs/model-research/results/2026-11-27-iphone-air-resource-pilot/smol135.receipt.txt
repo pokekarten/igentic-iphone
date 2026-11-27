@@ -1,0 +1,1 @@
+RESOURCE_V1_SMOL135=completed; cases=3; total=3; tokens=192; elapsedMs=2317; loadMs=239; baseline=9864888; loaded=121440096; sampledPeak=175163280; availableStart=3530127688; availableMin=3364829296; availableEnd=3394386032; mlxPeak=150824044; thermalStart=0; thermalMax=0; thermalEnd=0; samples=33; actionsExecuted=0

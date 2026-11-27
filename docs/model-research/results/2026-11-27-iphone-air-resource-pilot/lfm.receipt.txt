@@ -1,0 +1,1 @@
+RESOURCE_V1_LFM=completed; cases=3; total=3; tokens=116; elapsedMs=1075; loadMs=380; baseline=9946832; loaded=255379440; sampledPeak=375457848; availableStart=3530045744; availableMin=3165075400; availableEnd=3215177672; mlxPeak=321035640; thermalStart=0; thermalMax=0; thermalEnd=0; samples=20; actionsExecuted=0
