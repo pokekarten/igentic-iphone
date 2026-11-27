@@ -88,6 +88,49 @@ final class iGenticAppIntentsTests: XCTestCase {
     }
 
     @MainActor
+    func testLocalDiagnosticAgentReturnsBoundedSystemReceipt() async throws {
+        let app = XCUIApplication()
+        app.launch()
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15))
+        let definitions = IntentDefinitions(bundleIdentifier: "org.example.iGenticDiagnostics")
+        let intent = definitions.intents["iGenticRunLocalDiagnosticAgentIntent"]
+        // Dispatch only once; never retry a model call with uncertain outcome.
+        let output = try await intent.makeIntent().run().value.as(String.self)
+        let fields = output.components(separatedBy: "; ")
+        XCTAssertEqual(fields.count, 4)
+        guard fields.count == 4 else { return }
+        XCTAssertTrue(fields[0].hasPrefix("outcome="))
+        XCTAssertTrue(fields[1].hasPrefix("modelTurns="))
+        XCTAssertTrue(fields[2].hasPrefix("steps="))
+        XCTAssertTrue(fields[3].hasPrefix("reportPrepared="))
+        let outcome = String(fields[0].dropFirst("outcome=".count))
+        let turns = try XCTUnwrap(Int(fields[1].dropFirst("modelTurns=".count)))
+        let steps = fields[2].dropFirst("steps=".count).split(separator: ",").map(String.init)
+        let prepared = String(fields[3].dropFirst("reportPrepared=".count))
+        let reads: Set<String> = ["status.read", "model.readiness", "capabilities.read"]
+        XCTAssertTrue(["completed", "modelUnavailable", "rejectedProposal", "failed", "cancelled", "expired"].contains(outcome))
+        XCTAssertTrue((0...4).contains(turns))
+        XCTAssertTrue(Set(steps).isSubset(of: reads.union(["finish"])))
+        XCTAssertEqual(Set(steps).count, steps.count)
+        XCTAssertLessThanOrEqual(steps.count, turns)
+        if outcome == "completed" {
+            XCTAssertEqual(turns, 4)
+            XCTAssertEqual(steps.last, "finish")
+            XCTAssertEqual(Set(steps.dropLast()), reads)
+            XCTAssertEqual(prepared, "true")
+        } else {
+            XCTAssertEqual(prepared, "false")
+            XCTAssertFalse(steps.contains("finish"))
+            if outcome == "modelUnavailable" {
+                XCTAssertEqual(turns, 0)
+                XCTAssertTrue(steps.isEmpty)
+            }
+        }
+        // The simulator may legitimately lack Apple Intelligence. This test
+        // establishes system dispatch and receipt shape, not hardware inference.
+    }
+
+    @MainActor
     func testLocalModelReadinessIntentRunsWithoutMacOrGeneration() async throws {
         // The actual system App Intents path, not an in-process direct perform().
         let app = XCUIApplication()

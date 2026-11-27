@@ -143,3 +143,20 @@ extension AgentLoopLocalDiagnosticWorkflowTests {
         XCTAssertEqual(menus.last?.completedActions, ["capabilities.read", "model.readiness", "status.read"])
     }
 }
+
+// The result can be consumed by an external Shortcut; local report text must
+// never be serialized into this boundary.
+extension AgentLoopLocalDiagnosticWorkflowTests {
+    func testShortcutReceiptContainsOnlyExecutionMetadata() {
+        let report = AgentLoopDiagnosticReport(outcome: .completed,
+            steps: [.readStatus, .checkModel, .inspectCapabilities, .finish],
+            modelTurns: 4, localReport: "PRIVATE FIXTURE status observation")
+        XCTAssertEqual(report.shortcutReceipt,
+            "outcome=completed; modelTurns=4; steps=status.read,model.readiness,capabilities.read,finish; reportPrepared=true")
+        XCTAssertFalse(report.shortcutReceipt.contains("PRIVATE FIXTURE"))
+        let blocked = AgentLoopDiagnosticReport(outcome: .modelUnavailable, steps: [],
+            modelTurns: 0, localReport: nil)
+        XCTAssertEqual(blocked.shortcutReceipt,
+            "outcome=modelUnavailable; modelTurns=0; steps=; reportPrepared=false")
+    }
+}

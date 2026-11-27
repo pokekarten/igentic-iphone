@@ -54,6 +54,12 @@ public struct AgentLoopDiagnosticReport: Sendable, Equatable {
     public let modelTurns: Int
     /// Local UI only. Never send this report to a provider or console.
     public let localReport: String?
+
+    /// A Shortcuts caller may forward its output elsewhere. Return only
+    /// bounded execution metadata, never the local observation or model text.
+    public var shortcutReceipt: String {
+        "outcome=\(outcome.rawValue); modelTurns=\(modelTurns); steps=\(steps.map(\.rawValue).joined(separator: ",")); reportPrepared=\(localReport != nil)"
+    }
 }
 
 @MainActor
@@ -164,6 +170,14 @@ public enum AgentLoopLocalDiagnosticWorkflow {
                 let d = start.duration(to: .now).components
                 return Double(d.seconds) + Double(d.attoseconds) / 1e18
             }, checkpoint: checkpoint)
+        }
+    }
+
+    /// Native Shortcut entry uses the same durable exclusion and recovery
+    /// contract as the UI. Never consume queued tasks or restart interrupted runs.
+    public static func runJournaledOnDevice(goal: AgentLoopDiagnosticGoal = .extended) async throws -> AgentLoopDiagnosticReport {
+        try await AgentLoopDiagnosticJournal().run(goal: goal) { checkpoint in
+            await runOnDevice(goal: goal, checkpoint: checkpoint)
         }
     }
 
