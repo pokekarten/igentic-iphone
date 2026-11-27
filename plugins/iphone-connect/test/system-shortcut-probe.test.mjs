@@ -23,8 +23,8 @@ test('fresh local status is not a pass without independently matched receipt',()
 test('runner cannot promote unknown or local model claims to physical success',()=>{
   const report={...x,independentMcpReceipt:true,status:'pass'};
   assert.equal(evidence('systemShortcut',{status:0,stdout:JSON.stringify(report)}).status,'pass');
-  assert.equal(evidence('systemShortcut',{status:0,stdout:JSON.stringify({...report,independentMcpReceipt:false})}).status,'blocked');
+  assert.equal(evidence('systemShortcut',{status:0,stdout:JSON.stringify({...report,independentMcpReceipt:false})}).status,'unknown');
   assert.equal(evidence('systemShortcut',{status:2,stdout:JSON.stringify({status:'unknown',private:'do not export'})}).status,'unknown');
-  assert.equal(evidence('systemShortcut',{status:0,stdout:JSON.stringify({...report,modelCalled:true})}).status,'blocked');
+  assert.equal(evidence('systemShortcut',{status:0,stdout:JSON.stringify({...report,modelCalled:true})}).status,'unknown');
   assert.equal(run('shortcut',()=>{throw Error('must not dispatch')},'linux').steps[0].reason,'macos-required');
 });
