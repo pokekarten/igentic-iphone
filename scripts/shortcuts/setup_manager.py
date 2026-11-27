@@ -25,11 +25,19 @@ MAX_BYTES = 16 * 1024 * 1024
 
 
 def read_artifact(path):
-    if path.is_symlink() or not path.is_file():
-        raise ValueError("Artifact missing or not a regular file")
-    if path.stat().st_size > MAX_BYTES:
-        raise ValueError("Artifact too large")
-    return path.read_bytes()
+    # Open once and validate the opened inode, not a separate path lookup.
+    # Nonblocking open prevents an unexpected FIFO from hanging preflight.
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    with os.fdopen(fd, "rb") as artifact:
+        info = os.fstat(artifact.fileno())
+        if not stat.S_ISREG(info.st_mode):
+            raise ValueError("Artifact missing or not a regular file")
+        if info.st_size > MAX_BYTES:
+            raise ValueError("Artifact too large")
+        data = artifact.read(MAX_BYTES + 1)
+        if len(data) > MAX_BYTES:
+            raise ValueError("Artifact too large")
+        return data
 
 
 def digest(data):
@@ -123,7 +131,9 @@ def inspect(app, local, cloud, *, prepare=False, publish=False):
             report["newSigned"] = True
     if signed.exists() or signed.is_symlink():
         data = read_artifact(signed)
-        report["signedArtifactPresent"] = bool(data)
+        if not data:
+            raise ValueError("Empty signed artifact")
+        report["signedArtifactPresent"] = True
         if manifest.exists() or manifest.is_symlink():
             report["signedArtifactRecorded"] = json.loads(read_artifact(manifest)) == manifest_for(expected, data)
             if not report["signedArtifactRecorded"]:

@@ -1,13 +1,51 @@
 import json
+import os
 from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
-from setup_manager import stage, next_gate, manifest_for, inspect, UNSIGNED, SIGNED, MANIFEST
+from setup_manager import stage, next_gate, manifest_for, inspect, read_artifact, UNSIGNED, SIGNED, MANIFEST
 from test_status_loop_factory import fixture
 
 
 class SetupTests(unittest.TestCase):
+    def test_read_artifact_rejects_symlink_fifo_and_oversize(self):
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            source = base / "source"
+            source.write_bytes(b"abc")
+            link = base / "link"
+            link.symlink_to(source)
+            with self.assertRaises((ValueError, OSError)):
+                read_artifact(link)
+            fifo = base / "fifo"
+            os.mkfifo(fifo)
+            with self.assertRaises(ValueError):
+                read_artifact(fifo)
+            with patch("setup_manager.MAX_BYTES", 2):
+                with self.assertRaisesRegex(ValueError, "too large"):
+                    read_artifact(source)
+
+    @patch("setup_manager.library_status", return_value=False)
+    @patch("setup_manager.app_identity", return_value=("example.test", "AAAAAAAAAA"))
+    def test_empty_signed_artifact_cannot_publish(self, identity, library):
+        import plistlib
+        from status_loop_factory import workflow
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            meta = base / "app/Metadata.appintents/extract.actionsdata"
+            meta.parent.mkdir(parents=True)
+            meta.write_text(json.dumps(fixture()))
+            local = base / "local"
+            local.mkdir(mode=0o700)
+            unsigned = plistlib.dumps(workflow(fixture(), "example.test", "AAAAAAAAAA"), fmt=plistlib.FMT_BINARY)
+            (local / UNSIGNED).write_bytes(unsigned)
+            (local / SIGNED).write_bytes(b"")
+            (local / MANIFEST).write_text(json.dumps(manifest_for(unsigned, b"")))
+            with self.assertRaisesRegex(ValueError, "Empty signed artifact"):
+                inspect(base / "app", local, base / "cloud", publish=True)
+            self.assertFalse((base / "cloud").exists())
+
     def test_cloud_stage_idempotent_and_conflict(self):
         with tempfile.TemporaryDirectory() as d:
             p = Path(d) / SIGNED

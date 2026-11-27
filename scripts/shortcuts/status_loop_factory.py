@@ -34,6 +34,8 @@ def primitive(value):
 
 
 def check_metadata(metadata):
+    if not isinstance(metadata, dict):
+        raise ValueError("Invalid App Intents metadata")
     actions = metadata.get("actions")
     if not isinstance(actions, dict):
         raise ValueError("Invalid App Intents metadata")

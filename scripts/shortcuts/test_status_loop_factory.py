@@ -26,6 +26,12 @@ def fixture():
 
 
 class FactoryTests(unittest.TestCase):
+    def test_metadata_root_must_be_object(self):
+        for value in (None, [], "invalid", 42, True):
+            with self.subTest(value=value):
+                with self.assertRaisesRegex(ValueError, "Invalid App Intents metadata"):
+                    check_metadata(value)
+
     def test_missing_stale_intent(self):
         data = fixture()
         del data["actions"][START]
