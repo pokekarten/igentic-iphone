@@ -24,6 +24,19 @@ struct AgentLoopDiagnosticCheckpoint: Codable, Equatable, Sendable {
         (stage == .queued ? [Ticket(id: id, goal: goal)] : []) + (pending ?? [])
     }
 
+    /// Display only a terminal report correlated to this exact checkpoint.
+    func matchesTerminalReport(_ report: AgentLoopDiagnosticReport) -> Bool {
+        guard report.attemptID == id, report.steps == steps else { return false }
+        switch stage {
+        case .completed:
+            return report.outcome == .completed && report.localReport?.isEmpty == false
+        case .stopped:
+            return report.outcome != .completed && report.localReport == nil
+        case .queued, .running:
+            return false
+        }
+    }
+
     var valid: Bool {
         let reads = goal.requiredReads
         let waiting = pending ?? []
