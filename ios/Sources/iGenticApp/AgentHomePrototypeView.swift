@@ -51,6 +51,13 @@ public struct AgentHomePrototypeView: View {
                         .font(.caption).foregroundStyle(.secondary)
                 }
 
+                NavigationLink("Gerätesteuerung – direkt auf dem iPhone") {
+                    StandaloneDeviceToolsView()
+                }
+                .accessibilityIdentifier("igentic-agent-device-tools")
+                Text("Eigene Gerätefunktionen bleiben auch ohne externe KI verfügbar.")
+                    .font(.caption).foregroundStyle(.secondary)
+
                 VStack(alignment: .leading, spacing: 10) {
                     TextField("Zum Beispiel: Erinnere mich morgen an die Pflanze", text: $input, axis: .vertical)
                         .lineLimit(2...4)
@@ -184,7 +191,14 @@ public struct AgentHomePrototypeView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Lokaler KI-Agent: Diagnosebericht").font(.headline)
+                    Text("Lokaler Agent: Diagnosebericht").font(.headline)
+                    Button("Diagnose ohne Sprachmodell ausführen") {
+                        startDiagnostic(.extended, deterministic: true)
+                    }
+                    .disabled(diagnosticRun != nil || scenePhase != .active || diagnosticJournalBlocked || diagnosticCheckpoint?.stage == .running || !(diagnosticCheckpoint?.queuedTickets.isEmpty ?? true))
+                    .accessibilityIdentifier("igentic-agent-deterministic-start")
+                    Text("Feste lokale Planung, dieselben geprüften Werkzeuge und dasselbe Journal. Funktioniert auch ohne verfügbare KI; kein automatischer Providerwechsel.")
+                        .font(.caption).foregroundStyle(.secondary)
                     Text("Das Apple-Sprachmodell plant mehrere lokale Schritte. iGentic prüft und führt ausschließlich eigene Status- und KI-Bereitschaftsabfragen aus und erstellt daraus einen Bericht.")
                         .font(.footnote)
                     Button("Lokalen KI-Agenten starten") {
@@ -217,6 +231,9 @@ public struct AgentHomePrototypeView: View {
                         Button("Warteschlange lokal abarbeiten") { runDiagnosticQueue() }
                             .disabled(diagnosticRun != nil || diagnosticJournalBlocked || scenePhase != .active
                                       || diagnosticCheckpoint?.stage == .running)
+                        Button("Warteschlange ohne Sprachmodell abarbeiten") { runDiagnosticQueue(deterministic: true) }
+                            .disabled(diagnosticRun != nil || diagnosticJournalBlocked || scenePhase != .active || diagnosticCheckpoint?.stage == .running)
+                            .accessibilityIdentifier("igentic-agent-deterministic-queue")
                         Text("Bis zu vier Diagnoseaufträge nacheinander, nur bei aktiver App. Bei Fehler oder Abbruch bleiben weitere Aufträge in der Warteschlange.")
                             .font(.caption)
                     }
@@ -232,6 +249,10 @@ public struct AgentHomePrototypeView: View {
                                 startDiagnostic(saved.goal, restartID: saved.id)
                             }
                             .disabled(diagnosticRun != nil || diagnosticJournalBlocked || scenePhase != .active)
+                            Button("Unterbrochene Diagnose ohne Sprachmodell neu starten") {
+                                startDiagnostic(saved.goal, restartID: saved.id, deterministic: true)
+                            }
+                            .disabled(diagnosticRun != nil || diagnosticJournalBlocked || scenePhase != .active)
                         }
                     }
                     if diagnosticRun != nil {
@@ -242,7 +263,7 @@ public struct AgentHomePrototypeView: View {
                         Text(result.localReport ?? "Gestoppt: \(result.outcome.rawValue)")
                             .font(.footnote)
                             .accessibilityIdentifier("igentic-agent-diagnostic-report")
-                        Text("Modellschritte: \(result.modelTurns) · Keine externe Übertragung")
+                        Text("Bestätigte Schritte: \(result.steps.count) · Modellaufrufe: \(result.modelTurns) · Keine externe Übertragung")
                             .font(.caption)
                     }
                 }
@@ -322,7 +343,7 @@ public struct AgentHomePrototypeView: View {
         refreshDiagnosticJournal()
     }
 
-    private func runDiagnosticQueue() {
+    private func runDiagnosticQueue(deterministic: Bool = false) {
         guard diagnosticRun == nil, scenePhase == .active, !diagnosticJournalBlocked else { return }
         // Capture the owner-selected batch, never silently consume later additions.
         let tickets = diagnosticCheckpoint?.queuedTickets ?? []
@@ -334,7 +355,10 @@ public struct AgentHomePrototypeView: View {
                 guard !Task.isCancelled, scenePhase == .active else { return }
                 do {
                     let report = try await diagnosticJournal.run(goal: ticket.goal, queuedID: ticket.id) { checkpoint in
-                        await AgentLoopLocalDiagnosticWorkflow.runOnDevice(goal: ticket.goal, checkpoint: checkpoint)
+                        if deterministic {
+                            return await AgentLoopLocalDiagnosticWorkflow.runDeterministicOnDevice(goal: ticket.goal, checkpoint: checkpoint)
+                        }
+                        return await AgentLoopLocalDiagnosticWorkflow.runOnDevice(goal: ticket.goal, checkpoint: checkpoint)
                     }
                     guard !Task.isCancelled, scenePhase == .active else { return }
                     diagnosticReport = report
@@ -344,14 +368,17 @@ public struct AgentHomePrototypeView: View {
         }
     }
 
-    private func startDiagnostic(_ goal: AgentLoopDiagnosticGoal, restartID: UUID? = nil) {
+    private func startDiagnostic(_ goal: AgentLoopDiagnosticGoal, restartID: UUID? = nil, deterministic: Bool = false) {
         guard diagnosticRun == nil, scenePhase == .active, !diagnosticJournalBlocked else { return }
         diagnosticReport = nil
         diagnosticRun = Task { @MainActor in
             defer { diagnosticRun = nil; refreshDiagnosticJournal() }
             do {
                 let report = try await diagnosticJournal.run(goal: goal, restartID: restartID) { checkpoint in
-                    await AgentLoopLocalDiagnosticWorkflow.runOnDevice(goal: goal, checkpoint: checkpoint)
+                    if deterministic {
+                            return await AgentLoopLocalDiagnosticWorkflow.runDeterministicOnDevice(goal: goal, checkpoint: checkpoint)
+                        }
+                        return await AgentLoopLocalDiagnosticWorkflow.runOnDevice(goal: goal, checkpoint: checkpoint)
                 }
                 guard !Task.isCancelled, scenePhase == .active else { return }
                 diagnosticReport = report
