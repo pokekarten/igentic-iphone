@@ -173,7 +173,7 @@ package struct EventKitReminderTargetResolver {
         )
     }
 
-    private static func authorizationState(
+    package static func authorizationState(
         _ status: EKAuthorizationStatus
     ) -> ReminderTargetAuthorizationState {
         if status == .fullAccess {
@@ -196,7 +196,7 @@ package struct EventKitReminderTargetResolver {
         }
     }
 
-    private static func sourceClass(_ sourceType: EKSourceType) -> ReminderTargetSourceClass {
+    package static func sourceClass(_ sourceType: EKSourceType) -> ReminderTargetSourceClass {
         switch sourceType {
         case .local:
             return .local
@@ -209,7 +209,7 @@ package struct EventKitReminderTargetResolver {
         }
     }
 
-    private static func processLocalTargetBinding(
+    package static func processLocalTargetBinding(
         calendarIdentifier: String,
         sourceIdentifier: String
     ) -> String {

@@ -1,0 +1,5 @@
+TOOL_RESEARCH_QWEN35_CASE=1; pass=false; calls=0; rejected=false; extraText=true; natural=true; tokens=35; milliseconds=535
+TOOL_RESEARCH_QWEN35_CASE=2; pass=true; calls=1; rejected=false; extraText=false; natural=true; tokens=25; milliseconds=408
+TOOL_RESEARCH_QWEN35_CASE=3; pass=false; calls=0; rejected=false; extraText=true; natural=true; tokens=36; milliseconds=521
+TOOL_RESEARCH_QWEN35_CASE=4; pass=false; calls=0; rejected=false; extraText=true; natural=true; tokens=17; milliseconds=309
+TOOL_RESEARCH_QWEN35=completed; passed=1; total=4; parserRejected=0; capped=0; actionsExecuted=0

@@ -1,0 +1,1 @@
+LARGE_PREFLIGHT=completed; physicalMemory=12304695296; processAvailable=3526277400; storageAvailable=206993693722; nominal=true; qwen4bMemoryGate=false; qwen4bStorageGate=true; actionsExecuted=0

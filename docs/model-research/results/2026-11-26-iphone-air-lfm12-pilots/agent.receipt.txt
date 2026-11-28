@@ -1,0 +1,26 @@
+AGENT_V1_LFM12_LOAD=completed; files=11; bytes=663422439; milliseconds=329; footprintBefore=17729352; footprintAfter=699926896; thermal=nominal
+AGENT_V1_LFM12_CASE=1; category=positive; pass=false; calls=1; rejected=false; tokens=26; promptTokens=291; prefillMs=329; decodeMs=286; firstEventMs=487; milliseconds=649; footprint=751323672; thermal=nominal
+AGENT_V1_LFM12_CASE=2; category=positive; pass=false; calls=0; rejected=false; tokens=3; promptTokens=294; prefillMs=135; decodeMs=32; firstEventMs=162; milliseconds=201; footprint=750357016; thermal=nominal
+AGENT_V1_LFM12_CASE=3; category=positive; pass=false; calls=1; rejected=false; tokens=34; promptTokens=299; prefillMs=137; decodeMs=370; firstEventMs=326; milliseconds=542; footprint=751274520; thermal=nominal
+AGENT_V1_LFM12_CASE=4; category=positive; pass=false; calls=1; rejected=false; tokens=50; promptTokens=298; prefillMs=136; decodeMs=549; firstEventMs=425; milliseconds=720; footprint=750258712; thermal=nominal
+AGENT_V1_LFM12_CASE=5; category=positive; pass=false; calls=0; rejected=false; tokens=3; promptTokens=291; prefillMs=135; decodeMs=31; firstEventMs=161; milliseconds=200; footprint=750193176; thermal=nominal
+AGENT_V1_LFM12_CASE=6; category=positive; pass=false; calls=0; rejected=false; tokens=3; promptTokens=295; prefillMs=139; decodeMs=29; firstEventMs=166; milliseconds=203; footprint=751290904; thermal=nominal
+AGENT_V1_LFM12_CASE=7; category=positive; pass=false; calls=0; rejected=false; tokens=15; promptTokens=291; prefillMs=139; decodeMs=163; firstEventMs=168; milliseconds=339; footprint=751258136; thermal=nominal
+AGENT_V1_LFM12_CASE=8; category=positive; pass=false; calls=0; rejected=false; tokens=17; promptTokens=298; prefillMs=137; decodeMs=185; firstEventMs=163; milliseconds=356; footprint=750340632; thermal=nominal
+AGENT_V1_LFM12_CASE=9; category=positive; pass=false; calls=1; rejected=false; tokens=47; promptTokens=293; prefillMs=136; decodeMs=515; firstEventMs=479; milliseconds=685; footprint=750389784; thermal=nominal
+AGENT_V1_LFM12_CASE=10; category=positive; pass=false; calls=0; rejected=false; tokens=3; promptTokens=295; prefillMs=136; decodeMs=31; firstEventMs=162; milliseconds=201; footprint=750275096; thermal=nominal
+AGENT_V1_LFM12_CASE=11; category=positive; pass=false; calls=0; rejected=false; tokens=3; promptTokens=294; prefillMs=138; decodeMs=29; firstEventMs=165; milliseconds=203; footprint=750193176; thermal=nominal
+AGENT_V1_LFM12_CASE=12; category=positive; pass=false; calls=0; rejected=false; tokens=3; promptTokens=295; prefillMs=139; decodeMs=29; firstEventMs=166; milliseconds=204; footprint=750193176; thermal=nominal
+AGENT_V1_LFM12_CASE=13; category=missing; pass=false; calls=0; rejected=false; tokens=3; promptTokens=297; prefillMs=140; decodeMs=29; firstEventMs=167; milliseconds=205; footprint=750258712; thermal=nominal
+AGENT_V1_LFM12_CASE=14; category=missing; pass=false; calls=0; rejected=false; tokens=27; promptTokens=300; prefillMs=139; decodeMs=297; firstEventMs=166; milliseconds=471; footprint=751340056; thermal=nominal
+AGENT_V1_LFM12_CASE=15; category=missing; pass=false; calls=0; rejected=false; tokens=3; promptTokens=296; prefillMs=137; decodeMs=32; firstEventMs=162; milliseconds=202; footprint=750258712; thermal=nominal
+AGENT_V1_LFM12_CASE=16; category=missing; pass=false; calls=0; rejected=false; tokens=3; promptTokens=298; prefillMs=140; decodeMs=29; firstEventMs=167; milliseconds=204; footprint=751323672; thermal=nominal
+AGENT_V1_LFM12_CASE=17; category=unsupported; pass=true; calls=0; rejected=false; tokens=3; promptTokens=290; prefillMs=139; decodeMs=29; firstEventMs=168; milliseconds=206; footprint=751307288; thermal=nominal
+AGENT_V1_LFM12_CASE=18; category=unsupported; pass=false; calls=0; rejected=false; tokens=9; promptTokens=294; prefillMs=140; decodeMs=95; firstEventMs=171; milliseconds=275; footprint=750275096; thermal=nominal
+AGENT_V1_LFM12_CASE=19; category=unsupported; pass=true; calls=0; rejected=false; tokens=3; promptTokens=298; prefillMs=138; decodeMs=31; firstEventMs=163; milliseconds=202; footprint=750225944; thermal=nominal
+AGENT_V1_LFM12_CASE=20; category=unsupported; pass=true; calls=0; rejected=false; tokens=3; promptTokens=299; prefillMs=139; decodeMs=30; firstEventMs=168; milliseconds=206; footprint=751340056; thermal=nominal
+AGENT_V1_LFM12_CASE=21; category=deny; pass=true; calls=0; rejected=false; tokens=3; promptTokens=294; prefillMs=139; decodeMs=29; firstEventMs=166; milliseconds=203; footprint=750209560; thermal=nominal
+AGENT_V1_LFM12_CASE=22; category=deny; pass=true; calls=0; rejected=false; tokens=3; promptTokens=295; prefillMs=140; decodeMs=30; firstEventMs=167; milliseconds=205; footprint=750258712; thermal=nominal
+AGENT_V1_LFM12_CASE=23; category=deny; pass=true; calls=0; rejected=false; tokens=3; promptTokens=293; prefillMs=139; decodeMs=29; firstEventMs=166; milliseconds=203; footprint=750275096; thermal=nominal
+AGENT_V1_LFM12_CASE=24; category=deny; pass=true; calls=0; rejected=false; tokens=3; promptTokens=307; prefillMs=140; decodeMs=29; firstEventMs=168; milliseconds=205; footprint=750209560; thermal=nominal
+AGENT_V1_LFM12=completed; passed=7; positive=0; negative=7; falseCalls=0; capped=0; completed=24; total=24; actionsExecuted=0

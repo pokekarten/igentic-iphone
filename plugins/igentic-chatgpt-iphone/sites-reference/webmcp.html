@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; connect-src 'none'; img-src 'none'; form-action 'none'; base-uri 'none'">
+  <title>iGentic – WebMCP-Browservorschau</title>
+  <style>
+    :root { color-scheme: light dark; font: 16px/1.6 system-ui,-apple-system,sans-serif; }
+    main { max-width: 38rem; margin: 2rem auto; padding: 0 1.2rem; }
+    nav { display: grid; gap: .8rem; margin: 1rem 0; }
+    a { display: block; padding: .9rem; border: 1px solid; border-radius: .7rem; color: inherit; }
+    a:focus-visible { outline: 3px solid Highlight; outline-offset: 3px; }
+  </style>
+  <script type="module" src="./webmcp-init.mjs"></script>
+</head>
+<body>
+<main>
+  <h1>iGentic: manuelle Übergabe</h1>
+  <p>Browser-Experiment für WebMCP. Es verbindet sich weder mit ChatGPT noch mit deinem iPhone. Es führt keine iPhone-Aktion aus.</p>
+  <p id="webmcp-status" aria-live="polite">WebMCP wird lokal geprüft ...</p>
+  <nav aria-label="Nur in der eigenen App öffnen">
+    <a href="igentic://handoff/v1/diagnostics">Diagnose öffnen</a>
+    <a href="igentic://handoff/v1/discovery">Lokale Entdeckungen öffnen</a>
+    <a href="igentic://handoff/v1/reminder-draft">Erinnerungsentwurf prüfen</a>
+  </nav>
+  <p>Diese Links benötigen eine bereits installierte, signierte iGentic-App. iOS kann zur Linköffnung nachfragen. Die App zeigt danach eine zweite manuelle Bestätigung. Keine Erinnerung wird automatisch erstellt.</p>
+  <p>WebMCP ist ein experimenteller, browserlokaler Standard. Die Funktion hängt vom Browser, dessen Version, dessen Sicherheitskontext und gegebenenfalls einer aktivierten Testfunktion ab.</p>
+</main>
+</body>
+</html>

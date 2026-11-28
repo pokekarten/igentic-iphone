@@ -1,0 +1,1 @@
+RESOURCE_V1_FALCON90=completed; cases=3; total=3; tokens=192; elapsedMs=3887; loadMs=211; baseline=9766560; loaded=114476848; sampledPeak=199034720; availableStart=3530226016; availableMin=3340957856; availableEnd=3425466528; mlxPeak=108368796; thermalStart=0; thermalMax=0; thermalEnd=0; samples=48; actionsExecuted=0

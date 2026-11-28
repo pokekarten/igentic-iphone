@@ -1,0 +1,5 @@
+TOOL_RESEARCH_FALCON90_CASE=1; pass=false; calls=0; rejected=false; extraText=true; natural=false; tokens=96; milliseconds=1906
+TOOL_RESEARCH_FALCON90_CASE=2; pass=false; calls=0; rejected=true; extraText=false; natural=false; tokens=96; milliseconds=1514
+TOOL_RESEARCH_FALCON90_CASE=3; pass=false; calls=0; rejected=false; extraText=true; natural=false; tokens=96; milliseconds=1529
+TOOL_RESEARCH_FALCON90_CASE=4; pass=false; calls=0; rejected=false; extraText=true; natural=false; tokens=96; milliseconds=1568
+TOOL_RESEARCH_FALCON90=completed; passed=0; total=4; parserRejected=1; capped=4; actionsExecuted=0

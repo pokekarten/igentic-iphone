@@ -1,0 +1,15 @@
+FALCON90_CLASS_INTEGRITY=verified; files=9; bytes=53968563
+FALCON90_CLASS_LOAD=completed; milliseconds=173
+FALCON90_CLASS_CASE=1; outcome=reject; tokens=16; milliseconds=778
+FALCON90_CLASS_CASE=2; outcome=reject; tokens=16; milliseconds=633
+FALCON90_CLASS_CASE=3; outcome=reject; tokens=16; milliseconds=298
+FALCON90_CLASS_CASE=4; outcome=reject; tokens=16; milliseconds=285
+FALCON90_CLASS_CASE=5; outcome=reject; tokens=16; milliseconds=281
+FALCON90_CLASS_CASE=6; outcome=reject; tokens=16; milliseconds=297
+FALCON90_CLASS_CASE=7; outcome=reject; tokens=14; milliseconds=275
+FALCON90_CLASS_CASE=8; outcome=reject; tokens=16; milliseconds=287
+FALCON90_CLASS_CASE=9; outcome=reject; tokens=16; milliseconds=281
+FALCON90_CLASS_CASE=10; outcome=reject; tokens=16; milliseconds=283
+FALCON90_CLASS_CASE=11; outcome=reject; tokens=16; milliseconds=287
+FALCON90_CLASS_CASE=12; outcome=reject; tokens=8; milliseconds=181
+FALCON90_CLASS_RESEARCH=completed; passed=0; total=12; holdout=0; actionsExecuted=0

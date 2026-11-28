@@ -9,11 +9,16 @@
 /* Begin PBXBuildFile section */
 		A10000000000000000000001 /* iGenticDiagnosticsApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000002 /* iGenticDiagnosticsApp.swift */; };
 		A10000000000000000000003 /* iGenticApp in Frameworks */ = {isa = PBXBuildFile; productRef = A10000000000000000000004 /* iGenticApp */; };
+		B20000000000000000000001 /* iGenticAppIntentsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000002 /* iGenticAppIntentsTests.swift */; };
+		B30000000000000000000001 /* DiagnosticsUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30000000000000000000002 /* DiagnosticsUITests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		A10000000000000000000002 /* iGenticDiagnosticsApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iGenticDiagnosticsApp.swift; sourceTree = "<group>"; };
 		A10000000000000000000005 /* iGenticDiagnostics.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iGenticDiagnostics.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B20000000000000000000002 /* iGenticAppIntentsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iGenticAppIntentsTests.swift; sourceTree = "<group>"; };
+		B30000000000000000000002 /* DiagnosticsUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsUITests.swift; sourceTree = "<group>"; };
+		B20000000000000000000003 /* iGenticDiagnosticsUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = iGenticDiagnosticsUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -25,6 +30,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B20000000000000000000005 /* UI Test Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -33,6 +45,7 @@
 			children = (
 				A10000000000000000000008 /* iGenticDiagnostics */,
 				A10000000000000000000009 /* Products */,
+				B2000000000000000000000C /* iGenticDiagnosticsUITests */,
 			);
 			sourceTree = "<group>";
 		};
@@ -48,8 +61,18 @@
 			isa = PBXGroup;
 			children = (
 				A10000000000000000000005 /* iGenticDiagnostics.app */,
+				B20000000000000000000003 /* iGenticDiagnosticsUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		B2000000000000000000000C /* iGenticDiagnosticsUITests */ = {
+			isa = PBXGroup;
+			children = (
+				B20000000000000000000002 /* iGenticAppIntentsTests.swift */,
+				B30000000000000000000002 /* DiagnosticsUITests.swift */,
+			);
+			path = iGenticDiagnosticsUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -75,6 +98,22 @@
 			productReference = A10000000000000000000005 /* iGenticDiagnostics.app */;
 			productType = "com.apple.product-type.application";
 		};
+		B20000000000000000000006 /* iGenticDiagnosticsUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B20000000000000000000007 /* Build configuration list for iGenticDiagnosticsUITests */;
+			buildPhases = (
+				B20000000000000000000004 /* Sources */,
+				B20000000000000000000005 /* UI Test Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = iGenticDiagnosticsUITests;
+			productName = iGenticDiagnosticsUITests;
+			productReference = B20000000000000000000003 /* iGenticDiagnosticsUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -87,6 +126,10 @@
 				TargetAttributes = {
 					A1000000000000000000000A = {
 						CreatedOnToolsVersion = 16.0;
+					};
+					B20000000000000000000006 = {
+						CreatedOnToolsVersion = 27.2;
+						TestTargetID = A1000000000000000000000A;
 					};
 				};
 			};
@@ -107,6 +150,7 @@
 			projectRoot = "";
 			targets = (
 				A1000000000000000000000A /* iGenticDiagnostics */,
+				B20000000000000000000006 /* iGenticDiagnosticsUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -130,6 +174,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B20000000000000000000004 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B20000000000000000000001 /* iGenticAppIntentsTests.swift in Sources */,
+				B30000000000000000000001 /* DiagnosticsUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
@@ -144,7 +197,7 @@
 				ENABLE_TESTABILITY = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_NO_COMMON_BLOCKS = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
@@ -164,7 +217,7 @@
 				ENABLE_NS_ASSERTIONS = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_NO_COMMON_BLOCKS = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
@@ -179,10 +232,9 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = iGentic;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = iGenticDiagnostics/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -203,10 +255,9 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = iGentic;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = iGenticDiagnostics/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -218,6 +269,38 @@
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		B2000000000000000000000A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				PRODUCT_BUNDLE_IDENTIFIER = org.example.iGenticDiagnosticsUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = iGenticDiagnostics;
+			};
+			name = Debug;
+		};
+		B2000000000000000000000B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				PRODUCT_BUNDLE_IDENTIFIER = org.example.iGenticDiagnosticsUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = iGenticDiagnostics;
 			};
 			name = Release;
 		};
@@ -238,6 +321,15 @@
 			buildConfigurations = (
 				A10000000000000000000011 /* Debug */,
 				A10000000000000000000012 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B20000000000000000000007 /* Build configuration list for iGenticDiagnosticsUITests */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B2000000000000000000000A /* Debug */,
+				B2000000000000000000000B /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

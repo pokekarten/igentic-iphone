@@ -1,0 +1,171 @@
+{
+  "actions_executed": 0,
+  "by_category": {
+    "arithmetic": 0,
+    "evidence": 1,
+    "planning": 0,
+    "state": 0
+  },
+  "candidate": "qwen3",
+  "capped": 0,
+  "capture_context": {
+    "build_configuration": "Debug",
+    "capture_date": "2026-11-26",
+    "device_model": "iPhone Air (iPhone18,4)",
+    "hardware_attestation": false,
+    "runtime_source_revision": "026d599e52f3a2cebbecbd5b3f318b800a73ff02"
+  },
+  "cases": [
+    {
+      "case": 1,
+      "category": "arithmetic",
+      "elapsed_ms": 112,
+      "error": null,
+      "language": "en",
+      "passed": false,
+      "tokens": 2
+    },
+    {
+      "case": 2,
+      "category": "arithmetic",
+      "elapsed_ms": 220,
+      "error": null,
+      "language": "de",
+      "passed": false,
+      "tokens": 16
+    },
+    {
+      "case": 3,
+      "category": "arithmetic",
+      "elapsed_ms": 105,
+      "error": null,
+      "language": "en",
+      "passed": false,
+      "tokens": 4
+    },
+    {
+      "case": 4,
+      "category": "arithmetic",
+      "elapsed_ms": 87,
+      "error": null,
+      "language": "de",
+      "passed": false,
+      "tokens": 2
+    },
+    {
+      "case": 5,
+      "category": "planning",
+      "elapsed_ms": 115,
+      "error": null,
+      "language": "en",
+      "passed": false,
+      "tokens": 5
+    },
+    {
+      "case": 6,
+      "category": "planning",
+      "elapsed_ms": 124,
+      "error": null,
+      "language": "de",
+      "passed": false,
+      "tokens": 6
+    },
+    {
+      "case": 7,
+      "category": "planning",
+      "elapsed_ms": 85,
+      "error": null,
+      "language": "en",
+      "passed": false,
+      "tokens": 1
+    },
+    {
+      "case": 8,
+      "category": "planning",
+      "elapsed_ms": 87,
+      "error": null,
+      "language": "de",
+      "passed": false,
+      "tokens": 1
+    },
+    {
+      "case": 9,
+      "category": "state",
+      "elapsed_ms": 137,
+      "error": null,
+      "language": "en",
+      "passed": false,
+      "tokens": 7
+    },
+    {
+      "case": 10,
+      "category": "state",
+      "elapsed_ms": 221,
+      "error": null,
+      "language": "de",
+      "passed": false,
+      "tokens": 16
+    },
+    {
+      "case": 11,
+      "category": "state",
+      "elapsed_ms": 131,
+      "error": null,
+      "language": "en",
+      "passed": false,
+      "tokens": 7
+    },
+    {
+      "case": 12,
+      "category": "state",
+      "elapsed_ms": 126,
+      "error": null,
+      "language": "de",
+      "passed": false,
+      "tokens": 6
+    },
+    {
+      "case": 13,
+      "category": "evidence",
+      "elapsed_ms": 86,
+      "error": null,
+      "language": "en",
+      "passed": false,
+      "tokens": 2
+    },
+    {
+      "case": 14,
+      "category": "evidence",
+      "elapsed_ms": 78,
+      "error": null,
+      "language": "de",
+      "passed": true,
+      "tokens": 1
+    },
+    {
+      "case": 15,
+      "category": "evidence",
+      "elapsed_ms": 77,
+      "error": null,
+      "language": "en",
+      "passed": false,
+      "tokens": 1
+    },
+    {
+      "case": 16,
+      "category": "evidence",
+      "elapsed_ms": 120,
+      "error": null,
+      "language": "de",
+      "passed": false,
+      "tokens": 5
+    }
+  ],
+  "launch_and_cleanup_ms": 3780,
+  "median_case_ms": 113.5,
+  "passed": 1,
+  "receipt_sha256": "2719264f3083d69e9ce5c296e923405d5b8ed6489bdf163c5d371051a03b5444",
+  "reference_source_sha256": "28bae6913ac7e29e43f7875b7ac7936cff6587c55dee0013bd78ec90263d037c",
+  "schema": "igentic.reason.pilot.v1",
+  "total": 16
+}

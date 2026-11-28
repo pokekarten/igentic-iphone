@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "purpose": "Offline-only, pinned, never-pushed agent-loop composition acceptance",
+  "branches": [
+    {
+      "pr": 420,
+      "ref": "fix/delivery-marker-key-rotation-20261123",
+      "sha": "a46edff41284f326678421c08d58da0eada3071d"
+    },
+    {
+      "pr": 414,
+      "ref": "fix/owner-relay-replay-integrity-20261123",
+      "sha": "d63d94999dba3b6077f4c95cde9d61bd1c79e920"
+    },
+    {
+      "pr": 416,
+      "ref": "feat/ios-agent-loop-owner-task-verifier-20261123",
+      "sha": "90a9e2198e80e6f4da6a4015c44962f9ced16659"
+    },
+    {
+      "pr": 410,
+      "ref": "feat/plugin-capability-guide-20261123",
+      "sha": "1419986ca079565d14e9caad4c54faa94cfb76c9"
+    },
+    {
+      "pr": 421,
+      "ref": "feat/native-readonly-loop-20261123",
+      "sha": "9f2f57652de2ae162268c50e2356117ad0e09ee5"
+    },
+    {
+      "pr": 423,
+      "ref": "fix/native-loop-snapshot-expiry-20261123",
+      "sha": "ab50302723ac31e5a91081cd2b19c83a344f6e63"
+    },
+    {
+      "pr": 422,
+      "ref": "feat/shortcuts-status-receipt-20261123",
+      "sha": "54c855863653ed906e7c8bb4a3887500582d1397"
+    },
+    {
+      "pr": 424,
+      "ref": "fix/shortcut-loop-atomic-store-20261123",
+      "sha": "763a296984c3e2171910d12d93269ce3509d319b"
+    }
+  ]
+}
