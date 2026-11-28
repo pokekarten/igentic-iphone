@@ -89,10 +89,12 @@ test('actual RSA signature, issuer, audience, freshness and read-only scope prot
   // Integration is a real MCP SDK POST, using real signature validation and
   // only a disposable local keyset. No real issuer, password or API key.
   const requestId = '11111111-2222-4333-8444-555555555555';
+  const ownerResult = { requestId, state: 'outcome-unknown', receiptKeyAuthenticated: false,
+    deviceReceipt: 'none', actionExecuted: false, ownerApproved: false, iPhoneConnected: 'not-checked' };
   let lookups = 0;
   const ownerResults = { issuer, subject: 'fixture-person', lookup: async id => {
     lookups++;
-    return id === requestId ? { requestId, actionExecuted: false } : null;
+    return id === requestId ? ownerResult : null;
   }};
   await assert.rejects(startPortableGateway({ ownerResults }), /invalidOwnerResultConfig/);
   const gateway = await startPortableGateway({
@@ -129,7 +131,7 @@ test('actual RSA signature, issuer, audience, freshness and read-only scope prot
   const name = 'iphone_owner_task_result';
   assert.ok((await client.listTools()).tools.some(tool => tool.name === name));
   assert.deepEqual((await client.callTool({ name, arguments: { requestId } })).structuredContent,
-    { data: { result: { requestId, actionExecuted: false } } });
+    { data: { result: ownerResult } });
   const other = new Client({ name: 'other-fixture', version: '1' });
   t.after(() => other.close());
   await other.connect(new StreamableHTTPClientTransport(new URL(endpoint), {
