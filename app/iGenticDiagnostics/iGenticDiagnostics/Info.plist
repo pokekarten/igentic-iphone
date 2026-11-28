@@ -15,6 +15,10 @@
   <key>UILaunchScreen</key><dict/>
   <key>NSRemindersFullAccessUsageDescription</key>
   <string>iGentic erstellt nur nach deiner Freigabe eine Erinnerung in deiner Standardliste und liest genau diesen neuen Eintrag zur Kontrolle zurück. iOS verlangt dafür vollständigen Zugriff auf Erinnerungen.</string>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>iGentic nimmt nur nach Tippen kurz Sprache für eine lokale Transkription auf; keine Cloud-Ausweichroute.</string>
+  <key>NSSpeechRecognitionUsageDescription</key>
+  <string>iGentic wandelt auf Wunsch gesprochene deutsche Sprache ausschließlich auf diesem Gerät in Text um.</string>
   <key>CFBundleURLTypes</key>
   <array>
     <dict>

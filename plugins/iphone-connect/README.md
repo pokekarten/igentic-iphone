@@ -186,7 +186,9 @@ not proof that the physical iPhone used cellular data.
 
 The primary goal is an independent native iPhone agent, with App Intents, Shortcuts and a client-neutral MCP interface. An additional read-only Streamable HTTP protocol preview is available with npm run serve:portable. It binds to loopback only and **does not** connect to the iPhone. The physical desktop stdio backend remains separate. See [portable architecture](PORTABLE_MCP.md).
 
-The signed iOS app also contains a first-party **Offline-Werkzeuge** view with a local text editor, speech through Apple AVFoundation, user-selected photo OCR through Vision, and the existing separate approved reminder workflow. None requires ChatGPT, the Mac, MobileCLI or an external model. These changes require installing the **updated** signed app to use on a physical phone. See [optional tools and true fallback limits](OPTIONAL_TOOLS.md).
+The signed iOS app also contains a first-party **Offline-Werkzeuge** view with a local text editor, speech through Apple AVFoundation, optional German offline dictation through Apple Speech (device/language availability and explicit iOS permissions required), user-selected photo OCR through Vision, and the existing separate approved reminder workflow. None requires ChatGPT, the Mac, MobileCLI or an external model. These changes require installing the **updated** signed app to use on a physical phone. See [optional tools and true fallback limits](OPTIONAL_TOOLS.md).
+
+The read-only `iphone_prepare_local_task(task: dictate-text)` prepares *only a manual navigation recipe*, never starts a microphone or uploads audio. See [dictation security and physical acceptance gates](../../docs/reports/OFFLINE_IOS_DICTATION_V0.md).
 
 ## Install the desktop plugin
 

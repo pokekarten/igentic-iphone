@@ -53,7 +53,7 @@ export function createPortableMcp({ lookupOwnerResult } = {}) {
     title: 'Prepare a manual on-device task without Mac or cloud',
     description: 'Non-executing instructions for the first-party native app. User-supplied draft text remains within this request; no phone is contacted.',
     inputSchema: z.object({
-      task: z.enum(['diagnostics', 'discovery', 'text-draft', 'speak-text', 'read-image-text', 'reminder']),
+      task: z.enum(['diagnostics', 'discovery', 'text-draft', 'workspace-note', 'speak-text', 'dictate-text', 'read-image-text', 'reminder']),
       text: z.string().max(800).optional()
     }).strict(), outputSchema: output, annotations
   }, async ({ task, text }) => wrap(prepareLocalTask(task, text)));

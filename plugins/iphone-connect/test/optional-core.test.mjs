@@ -20,7 +20,7 @@ test('provider tools are never mandatory or claimed installed', () => {
 
 test('every local task plans a manual on-device action, never execution', () => {
   for (const task of ['diagnostics', 'discovery', 'text-draft',
-    'speak-text', 'read-image-text', 'reminder']) {
+    'speak-text', 'dictate-text', 'read-image-text', 'workspace-note', 'reminder']) {
     const plan = prepareLocalTask(task);
     assert.equal(plan.task, task);
     assert.equal(plan.status, 'manual-handoff-only');
@@ -42,6 +42,15 @@ test('text is opt-in, stays copyable and never goes in an executable URL', () =>
   assert.equal(reminder.approval, 'explicit-on-device-before-write');
   assert.equal(reminder.copyableDraft, 'Morgen Milch holen');
   assert.ok(!Object.hasOwn(prepareLocalTask('diagnostics'), 'copyableDraft'));
+  const workspace = prepareLocalTask('workspace-note');
+  assert.ok(!Object.hasOwn(workspace, 'copyableDraft'));
+  assert.equal(workspace.deviceActionExecuted, false);
+  assert.throws(() => prepareLocalTask('workspace-note', 'private file text'), /textNotSupportedForTask/);
+  const dictation = prepareLocalTask('dictate-text');
+  assert.equal(dictation.deviceActionExecuted, false);
+  assert.equal(dictation.networkRequired, false);
+  assert.equal(dictation.appInstalled, 'not-checked');
+  assert.throws(() => prepareLocalTask('dictate-text', 'audio transcript'), /textNotSupportedForTask/);
 });
 
 test('reject invalid task, text on unsupported tasks, and control or oversized text', () => {
