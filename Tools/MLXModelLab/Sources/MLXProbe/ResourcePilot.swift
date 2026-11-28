@@ -73,11 +73,13 @@ public enum ResourcePilot {
     private static func emit(_ prefix: String, status: String, base: Sample, loaded: Sample?,
                              samples: [Sample], completed: Int, tokens: Int?,
                              elapsed: Int, loadMs: Int?, mlxPeak: Int?) -> String {
-        let maximum = samples.compactMap(\.footprint).max()
-        let minAvailable = samples.map(\.available).min() ?? base.available
-        let worst = samples.map(\.thermal).max() ?? base.thermal
         let end = sample()
-        return "\(prefix)=\(status); cases=\(completed); total=3; tokens=\(tokens.map(String.init) ?? "NA"); elapsedMs=\(elapsed); loadMs=\(loadMs.map(String.init) ?? "NA"); baseline=\(value(base.footprint)); loaded=\(value(loaded?.footprint)); sampledPeak=\(value(maximum)); availableStart=\(base.available); availableMin=\(minAvailable); availableEnd=\(end.available); mlxPeak=\(mlxPeak.map(String.init) ?? "NA"); thermalStart=\(base.thermal); thermalMax=\(max(worst,end.thermal)); thermalEnd=\(end.thermal); samples=\(samples.count); actionsExecuted=0"
+        // Every reported endpoint contributes to the same sampled extrema.
+        let observations = samples + [end]
+        let maximum = observations.compactMap(\.footprint).max()
+        let minAvailable = observations.map(\.available).min() ?? base.available
+        let worst = observations.map(\.thermal).max() ?? base.thermal
+        return "\(prefix)=\(status); cases=\(completed); total=3; tokens=\(tokens.map(String.init) ?? "NA"); elapsedMs=\(elapsed); loadMs=\(loadMs.map(String.init) ?? "NA"); baseline=\(value(base.footprint)); loaded=\(value(loaded?.footprint)); sampledPeak=\(value(maximum)); availableStart=\(base.available); availableMin=\(minAvailable); availableEnd=\(end.available); mlxPeak=\(mlxPeak.map(String.init) ?? "NA"); thermalStart=\(base.thermal); thermalMax=\(worst); thermalEnd=\(end.thermal); samples=\(observations.count); actionsExecuted=0"
     }
     private static func admission(_ candidate: Candidate, _ dir: URL) -> Result<PinnedMLXSnapshot.Receipt, PinnedMLXSnapshot.Rejection> {
         switch candidate {
