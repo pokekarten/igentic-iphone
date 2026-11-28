@@ -25,6 +25,8 @@ final class AgentLoopDiagnosticJournalTests: XCTestCase {
         let saved = try XCTUnwrap(AgentLoopDiagnosticJournal(url: url).snapshot())
         XCTAssertEqual(saved.steps,[.readStatus,.checkModel,.finish])
         XCTAssertEqual(saved.stage,.completed)
+        XCTAssertEqual(report.attemptID, saved.id)
+        XCTAssertTrue(report.shortcutReceipt.hasSuffix("; attemptID=" + saved.id.uuidString.lowercased()))
         let data = try Data(contentsOf: url)
         let obj = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String:Any])
         XCTAssertEqual(Set(obj.keys),Set(["schema","id","goal","steps","stage"]))
@@ -73,6 +75,7 @@ final class AgentLoopDiagnosticJournalTests: XCTestCase {
         XCTAssertEqual(report.outcome,.completed)
         XCTAssertEqual(reads,1)
         XCTAssertNotEqual(try reopened.snapshot()?.id,saved.id)
+        XCTAssertEqual(report.attemptID, try reopened.snapshot()?.id)
     }
     @MainActor
     func testCorruptedRecordAndCompetingRunAreRejected() async throws {
@@ -205,6 +208,7 @@ extension AgentLoopDiagnosticJournalTests {
             XCTAssertEqual(report.outcome, .completed)
             XCTAssertEqual(report.modelTurns, 0)
             XCTAssertEqual(try journal.snapshot()?.id, ticket.id)
+            XCTAssertEqual(report.attemptID, ticket.id)
             XCTAssertEqual(try journal.snapshot()?.stage, .completed)
         }
         let reopened = try XCTUnwrap(AgentLoopDiagnosticJournal(url: url).snapshot())

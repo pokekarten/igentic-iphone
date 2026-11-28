@@ -173,14 +173,34 @@ final class DiagnosticsUITests: XCTestCase {
         setup.tap()
         XCTAssertTrue(app.navigationBars["KI-Loop einrichten"]
             .waitForExistence(timeout: 10))
-        XCTAssertTrue(app.descendants(matching: .any)
-            .matching(identifier: "igentic-loop-setup-name")
-            .firstMatch.waitForExistence(timeout: 10))
-        XCTAssertTrue(app.staticTexts["iGentic KI Loop"].exists)
+        // Restrict lookups to visible text in the guide's scroll view. A
+        // whole-app .any query on this long SwiftUI screen timed out in
+        // iOS 27.1 XCTest after navigation had already succeeded.
+        let guide = app.scrollViews.firstMatch
+        guard guide.waitForExistence(timeout: 10) else {
+            XCTFail("Expected the scrollable KI-Loop setup guide")
+            return
+        }
+        guard let name = scrollToSetupText("igentic-loop-setup-name", in: guide)
+        else { return }
+        XCTAssertEqual(name.label, "iGentic KI Loop")
         // Do not tap Create/Run: that would invoke another OS app or model.
-        XCTAssertTrue(app.descendants(matching: .any)
-            .matching(identifier: "igentic-loop-setup-local-state")
-            .firstMatch.exists)
+        guard let state = scrollToSetupText("igentic-loop-setup-local-state", in: guide)
+        else { return }
+        XCTAssertFalse(state.label.isEmpty)
+    }
+
+    @MainActor
+    private func scrollToSetupText(_ identifier: String, in guide: XCUIElement) -> XCUIElement? {
+        let target = guide.staticTexts.matching(identifier: identifier).firstMatch
+        // The name precedes the state in the guide. Search forward with a
+        // finite gesture budget instead of querying the entire offscreen tree.
+        for attempt in 0...8 {
+            if target.exists && target.isHittable { return target }
+            if attempt < 8 { guide.swipeUp() }
+        }
+        XCTFail("Expected visible setup text: \(identifier)")
+        return nil
     }
 
     @MainActor
