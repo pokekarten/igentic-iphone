@@ -24,6 +24,20 @@ struct AgentLoopDiagnosticCheckpoint: Codable, Equatable, Sendable {
         (stage == .queued ? [Ticket(id: id, goal: goal)] : []) + (pending ?? [])
     }
 
+    /// Display only a terminal report correlated to this exact checkpoint.
+    func matchesTerminalReport(_ report: AgentLoopDiagnosticReport) -> Bool {
+        guard report.attemptID == id, report.steps == steps else { return false }
+        switch stage {
+        case .completed:
+            return report.outcome == .completed && report.localReport?.isEmpty == false
+        case .stopped:
+            // An abandoned attempt may retain a finish checkpoint without a receipt.
+            return !steps.contains(.finish) && report.outcome != .completed && report.localReport == nil
+        case .queued, .running:
+            return false
+        }
+    }
+
     var valid: Bool {
         let reads = goal.requiredReads
         let waiting = pending ?? []
@@ -168,6 +182,20 @@ final class AgentLoopDiagnosticJournal {
         try save(state)
     }
 
+    /// Explicit owner decision to close an abandoned attempt without running
+    /// any tool. The lease proves that no cooperating execution is active.
+    /// Preserve its confirmed checkpoints (even a finish checkpoint without
+    /// a terminal receipt) and every waiting ticket. Stopped is not success.
+    func abandonInterrupted(id: UUID) throws {
+        let fd = try claim()
+        defer { _ = close(fd) }
+        guard var state = try load(), state.id == id, state.stage == .running else {
+            throw Failure.staleRecovery
+        }
+        state.stage = .stopped
+        try save(state)
+    }
+
     func run(goal: AgentLoopDiagnosticGoal, restartID: UUID? = nil, queuedID: UUID? = nil,
              operation: @MainActor ((@MainActor ([AgentLoopDiagnosticStep]) throws -> Void)) async -> AgentLoopDiagnosticReport
     ) async throws -> AgentLoopDiagnosticReport {
@@ -207,7 +235,7 @@ final class AgentLoopDiagnosticJournal {
         acceptingProgress = false
         // The operation is trusted local code, but its terminal receipt must
         // still agree with durable progress and the bounded execution contract.
-        guard report.steps == state.steps,
+        guard report.attemptID == nil, report.steps == state.steps,
               (0...(goal.requiredReads.count + 1)).contains(report.modelTurns) else { throw Failure.invalid }
         if report.outcome == .completed {
             guard !Task.isCancelled, state.steps.last == .finish,
@@ -219,6 +247,8 @@ final class AgentLoopDiagnosticJournal {
             state.stage = .stopped
         }
         try save(state)
-        return report
+        return .init(outcome: report.outcome, steps: report.steps,
+                     modelTurns: report.modelTurns, localReport: report.localReport,
+                     attemptID: state.id)
     }
 }

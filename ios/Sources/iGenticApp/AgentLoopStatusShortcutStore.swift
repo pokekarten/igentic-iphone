@@ -48,6 +48,12 @@ public enum AgentLoopStatusShortcutStage: String, Codable, Sendable {
     }
 }
 
+/// Local owner-facing correlation metadata, never a model prompt or authorization.
+public struct AgentLoopStatusShortcutOwnerSnapshot: Equatable, Sendable {
+    public let taskID: String
+    public let stage: AgentLoopStatusShortcutStage
+}
+
 private struct AgentLoopStatusShortcutJournal: Codable {
     let schema: Int
     let id: UUID
@@ -259,6 +265,12 @@ public final class AgentLoopStatusShortcutStore {
     /// Owner-visible, truthful state, including timeouts while idle. A read
     /// never creates a status observation or retries an uncertain read.
     public func stageForOwner() throws -> AgentLoopStatusShortcutStage? {
+        try snapshotForOwner()?.stage
+    }
+
+    /// Read the ID and state from the same locked journal record. This does
+    /// not execute a tool or imply a physical device or remote receipt.
+    public func snapshotForOwner() throws -> AgentLoopStatusShortcutOwnerSnapshot? {
         try withClaim {
             guard var state = try load() else { return nil }
             // An uncertain read is a durable safety marker, not an idle
@@ -270,7 +282,7 @@ public final class AgentLoopStatusShortcutStore {
                     try save(state)
                 }
             }
-            return state.stage
+            return .init(taskID: state.id.uuidString.lowercased(), stage: state.stage)
         }
     }
 

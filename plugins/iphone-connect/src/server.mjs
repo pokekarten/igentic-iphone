@@ -10,6 +10,7 @@ import { MobileBackend, FixtureBackend, loadConfig } from './backend.mjs';
 import { NativeCoreDeviceBackend } from './native-coredevice.mjs';
 import { PluginError } from './process.mjs';
 import { optionalToolCatalog, prepareLocalTask } from './optional-core.mjs';
+import { validateOwnerTaskResult } from './owner-result-boundary.mjs';
 
 export const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 export const UI_URI = 'ui://igentic/iphone-dashboard.html';
@@ -44,7 +45,7 @@ export function createServer(service, { lookupOwnerResult } = {}) {
     add('iphone_owner_task_result', 'Read an iGentic relay task result',
       'Look up an existing task by its original request ID. Returns relay evidence without triggering an action.',
       { requestId: z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/) },
-      true, async ({ requestId }) => ({ result: await lookupOwnerResult(requestId) }));
+      true, async ({ requestId }) => ({ result: validateOwnerTaskResult(requestId, await lookupOwnerResult(requestId)) }));
   }
   add('iphone_list_devices', 'List authorized iPhones',
     'Use this to find the configured iPhone alias and connection availability. No personal device identifiers or installed app list.',

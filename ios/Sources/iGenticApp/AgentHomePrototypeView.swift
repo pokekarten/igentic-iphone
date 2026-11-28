@@ -244,6 +244,9 @@ public struct AgentHomePrototypeView: View {
                         Text("Letzter Auftrag: \(saved.steps.count) bestätigte Schritte · " +
                              (saved.stage == .queued ? "wartet" : saved.stage == .running ? "unterbrochen" : saved.stage == .completed ? "abgeschlossen" : "gestoppt"))
                             .font(.caption)
+                        Text("Journal-ID: " + saved.id.uuidString.lowercased())
+                            .font(.caption)
+                            .accessibilityIdentifier("igentic-agent-journal-id")
                         if saved.stage == .running {
                             Button("Unterbrochene Diagnose neu starten") {
                                 startDiagnostic(saved.goal, restartID: saved.id)
@@ -253,16 +256,30 @@ public struct AgentHomePrototypeView: View {
                                 startDiagnostic(saved.goal, restartID: saved.id, deterministic: true)
                             }
                             .disabled(diagnosticRun != nil || diagnosticJournalBlocked || scenePhase != .active)
+                            Button("Unterbrochenen Auftrag ohne Wiederholung beenden") {
+                                abandonDiagnostic(saved.id)
+                            }
+                            .disabled(diagnosticRun != nil || diagnosticJournalBlocked || scenePhase != .active)
+                            .accessibilityIdentifier("igentic-agent-abandon-interrupted")
+                            Text("Beenden führt keine Werkzeuge aus. Bestätigte Schritte und wartende Aufträge bleiben erhalten.")
+                                .font(.caption).foregroundStyle(.secondary)
                         }
                     }
                     if diagnosticRun != nil {
                         ProgressView("Lokale Planung läuft")
                         Button("Abbrechen") { stopDiagnostic() }
                     }
-                    if let result = diagnosticReport {
+                    if diagnosticRun == nil, !diagnosticJournalBlocked,
+                       let saved = diagnosticCheckpoint, let result = diagnosticReport,
+                       saved.matchesTerminalReport(result) {
                         Text(result.localReport ?? "Gestoppt: \(result.outcome.rawValue)")
                             .font(.footnote)
                             .accessibilityIdentifier("igentic-agent-diagnostic-report")
+                        if let attemptID = result.attemptID {
+                            Text("Ergebnis-ID: " + attemptID.uuidString.lowercased())
+                                .font(.caption)
+                                .accessibilityIdentifier("igentic-agent-report-id")
+                        }
                         Text("Bestätigte Schritte: \(result.steps.count) · Modellaufrufe: \(result.modelTurns) · Keine externe Übertragung")
                             .font(.caption)
                     }
@@ -324,9 +341,28 @@ public struct AgentHomePrototypeView: View {
         do {
             diagnosticCheckpoint = try diagnosticJournal.snapshot()
             diagnosticJournalBlocked = false
+            if let result = diagnosticReport,
+               diagnosticCheckpoint?.matchesTerminalReport(result) != true {
+                diagnosticReport = nil
+            }
         } catch {
+            // A stale snapshot cannot substantiate the visible result.
+            diagnosticCheckpoint = nil
+            diagnosticReport = nil
             diagnosticJournalBlocked = true
         }
+    }
+
+    private func abandonDiagnostic(_ id: UUID) {
+        guard diagnosticRun == nil, scenePhase == .active, !diagnosticJournalBlocked else { return }
+        diagnosticReport = nil
+        do {
+            try diagnosticJournal.abandonInterrupted(id: id)
+        } catch {
+            // A stale selection or competing lease must never affect a newer attempt.
+            diagnosticJournalBlocked = true
+        }
+        refreshDiagnosticJournal()
     }
 
     private func enqueueDiagnostic(_ goal: AgentLoopDiagnosticGoal) {
@@ -353,6 +389,7 @@ public struct AgentHomePrototypeView: View {
             defer { diagnosticRun = nil; refreshDiagnosticJournal() }
             for ticket in tickets {
                 guard !Task.isCancelled, scenePhase == .active else { return }
+                diagnosticReport = nil
                 do {
                     let report = try await diagnosticJournal.run(goal: ticket.goal, queuedID: ticket.id) { checkpoint in
                         if deterministic {

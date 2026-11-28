@@ -6,6 +6,7 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import { z } from 'zod';
 import { makeConnectionReport } from './connection-report.mjs';
 import { optionalToolCatalog, prepareLocalTask } from './optional-core.mjs';
+import { validateOwnerTaskResult } from './owner-result-boundary.mjs';
 import { HANDOFF_ACTIONS, prepareChatGPTHandoff } from './chatgpt-handoff.mjs';
 import { oauthFromEnvironment } from './oauth-jwks.mjs';
 import { validateOAuthConfig, isLocalGatewayRequest, hasBoundedJSONBody,
@@ -69,7 +70,7 @@ export function createPortableMcp({ lookupOwnerResult } = {}) {
         requestId: z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/)
       }).strict(), outputSchema: output, annotations
     }, async ({ requestId }) => {
-      try { return wrap({ result: await lookupOwnerResult(requestId) }); }
+      try { return wrap({ result: validateOwnerTaskResult(requestId, await lookupOwnerResult(requestId)) }); }
       catch { return { isError: true, content: [{ type: 'text', text: 'resultUnavailable' }] }; }
     });
   }

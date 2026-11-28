@@ -69,3 +69,37 @@ a clean isolated checkout of PR #386. The first test attempt exposed
 SwiftUI accessibility text-combination differences; assertions now check
 stable navigation bars and buttons. This proves this limited UI flow,
 not physical iPhone readiness or agent execution.
+
+### Physical acceptance and open PRs — 2026-11-27
+
+The signed iPhoneOS Debug build from `fbba704` was installed as an
+update over CoreDevice Wi-Fi on iPhone Air, iOS 27.2.1. Its locally signed
+executable SHA-256 was
+`ec010c51d16b109dfc1df7e57901778ed86e70f489f1158ec2c16b9dba3ec3c8`.
+
+| Check | Result |
+| --- | --- |
+| App launch and allowlisted navigation | PASS via CoreDevice process check and fresh app navigation receipt |
+| Extended native model diagnostic | PASS via app console receipt, four distinct steps and local report prepared |
+| Synthetic OCR and selection | PASS via app receipt, four lines, two excerpts and both fixture facts matched |
+| Local task ID and reply exchange | PASS via fresh debug receipt copied from the app container after the launch; cleanup confirmed and normal launch restored |
+| Diagnostic journal correlation | UNKNOWN for the debug invocation. A completed checkpoint was read independently, but the invocation does not write that journal |
+| Apple Shortcuts, Siri and ChatGPT result return | Physical system invocation and chat return still require verification |
+
+The local reply exchange used fixed synthetic input through the app's
+debug entry. It made no external model call and dispatched no system intent.
+The previous uncertain physical inputs were not repeated.
+
+The four dependent PRs were refreshed on `fbba704`. At `9a96356`,
+#433 passed 14 local dictation policy and workspace tests. At `972c35c`,
+#394 passed five Fieldglass plugin tests. At `cd17889`, #379 reproduced
+the 107-source appendix byte for byte and its refreshed GitHub
+commit-email privacy check passed. At `b6ac831`, #378 passed 34 ARTEMIS
+contract tests. These results do not include a combined device build.
+
+On the Mac, GitHub checks cover Swift, CodeQL and the simulator UI.
+On the iPhone, the remaining system checks require opening the native
+Status Loop in Apple Shortcuts and observing a fresh completed result,
+then trying the Siri entry and the separate ChatGPT handoff. For #433,
+verify audio interruption and recovery in a signed build containing
+that PR, using only synthetic input and authorized test writes.
