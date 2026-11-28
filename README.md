@@ -109,6 +109,7 @@ See:
 - `MODEL_STRATEGY.md`
 - `docs/KNOWLEDGE_MAP.md`
 - `docs/model-research/README.md`
+- [External mobile-agent research and historical evidence](docs/research/README.md)
 - `docs/provider-research/README.md`
 - `docs/GITHUB_CONTROL.md`
 - `docs/VALIDATION.md`
