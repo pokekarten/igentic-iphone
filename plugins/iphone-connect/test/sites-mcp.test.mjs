@@ -123,6 +123,28 @@ test('built Worker serves the fixed page and MCP without network, secrets or dev
   assert.match(page.headers.get('content-security-policy'), /default-src 'none'/);
   const html = await page.text();
   assert.equal([...html.matchAll(/href="igentic:\/\/handoff\/v1\//g)].length, 3);
+  for (const action of HANDOFF_ACTIONS) {
+    const path = '/handoff/' + action;
+    const guide = await worker.fetch(new Request('https://owner-site.invalid' + path));
+    assert.equal(guide.status, 200);
+    assert.equal(guide.headers.get('cache-control'), 'no-store');
+    assert.match(guide.headers.get('content-security-policy'), /connect-src 'none'/);
+    const content = await guide.text();
+    assert.deepEqual([...content.matchAll(/href="([^"]+)"/g)].map(x => x[1]),
+      ['igentic://handoff/v1/' + action, '/']);
+    assert.doesNotMatch(content, /<script\b|<form\b|<iframe\b|<img\b/i);
+    assert.match(content, /keinen automatischen Rückkanal/);
+    const attributed = await worker.fetch(new Request('https://owner-site.invalid' + path + '?utm_source=chatgpt.com'));
+    assert.equal(attributed.status, 200);
+    assert.equal(await attributed.text(), content);
+    for (const query of ['?private=1', '?utm_source=chatgpt.com&private=1']) {
+      assert.equal((await worker.fetch(new Request('https://owner-site.invalid' + path + query))).status, 404);
+    }
+    assert.equal((await worker.fetch(new Request('https://owner-site.invalid' + path, { method: 'POST' }))).status, 404);
+  }
+  for (const path of ['/handoff/unknown', '/handoff/diagnostics/', '/handoff/%64iagnostics']) {
+    assert.equal((await worker.fetch(new Request('https://owner-site.invalid' + path))).status, 404);
+  }
   const guide = await worker.fetch(new Request('https://owner-site.invalid/ki-loop'));
   assert.equal(guide.status, 200);
   assert.match(guide.headers.get('content-security-policy'), /connect-src 'none'/);

@@ -284,3 +284,8 @@ the deployed `/ki-loop` with and without `?utm_source=chatgpt.com`.
 CoreDevice reported one physical record and no active tunnel. Shortcut
 execution, Siri and a result returned to the originating ChatGPT
 conversation still require physical verification.
+
+
+### Mobile handoff help paths
+
+The reference Worker serves three fixed read-only help pages at `/handoff/diagnostics`, `/handoff/discovery`, and `/handoff/reminder-draft`. Each shows exactly one allowlisted native app link plus a return to the overview. The exact ChatGPT attribution query is accepted; other queries and methods are rejected. No automatic navigation, device execution, callback, user text, or owner credentials are introduced. This aligns the help paths observed in the connected mobile plugin with the reference Worker; it does not assert that the deployed Site uses this source, or that its full MCP registry matches. The KI-loop action in the connected plugin and an authenticated return path remain separate review items.
